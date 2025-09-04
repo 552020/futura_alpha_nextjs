@@ -127,7 +127,7 @@ export interface MemorySyncResult {
   metadata_stored: boolean;
   asset_stored: boolean;
   message: string;
-  error?: ICPErrorCode;
+  error?: Error;
 }
 
 export interface BatchMemorySyncResponse {
@@ -138,16 +138,16 @@ export interface BatchMemorySyncResponse {
   failed_memories: number;
   results: MemorySyncResult[];
   message: string;
-  error?: ICPErrorCode;
+  error?: Error;
 }
 
-export type ICPErrorCode =
+export type Error =
   | { Internal: string }
   | { NotFound: null }
   | { Unauthorized: null }
-  | { ValidationFailed: string }
-  | { StorageFull: null }
-  | { NetworkError: string };
+  | { InvalidArgument: string }
+  | { ResourceExhausted: null }
+  | { Conflict: string };
 
 export interface BlobRef {
   kind: MemoryBlobKind;

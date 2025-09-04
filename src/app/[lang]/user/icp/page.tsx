@@ -176,10 +176,19 @@ export default function ICPPage() {
       // Automatically fetch capsule info after successful login
       try {
         // console.log("Fetching capsule info after login...");
-        const capsuleInfo = await authenticatedActor.capsules_read_basic([]);
-        // console.log("Capsule data received:", capsuleInfo);
-        setCapsuleInfo(capsuleInfo[0] || null);
-        // console.log("Capsule info set to:", capsuleInfo[0] || null);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const capsuleResult = (await authenticatedActor.capsules_read_basic([])) as { Ok: any } | { Err: any };
+        // console.log("Capsule result received:", capsuleResult);
+
+        if ("Ok" in capsuleResult) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          setCapsuleInfo((capsuleResult as { Ok: any }).Ok);
+          // console.log("Capsule info set to:", capsuleResult.Ok);
+        } else {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          console.warn("Capsule read failed:", (capsuleResult as { Err: any }).Err);
+          setCapsuleInfo(null);
+        }
       } catch (error) {
         console.warn("Failed to fetch capsule info on login:", error);
         // Don't fail the login if capsule info fetch fails
@@ -273,15 +282,18 @@ export default function ICPPage() {
 
       // Use cached authenticated actor
       const authenticatedActor = await getAuthenticatedActor();
-      const capsuleInfo = await authenticatedActor.capsules_read_basic([]);
-      setCapsuleInfo(capsuleInfo[0] || null);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const capsuleResult = (await authenticatedActor.capsules_read_basic([])) as { Ok: any } | { Err: any };
 
-      if (capsuleInfo[0]) {
+      if ("Ok" in capsuleResult) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setCapsuleInfo((capsuleResult as { Ok: any }).Ok);
         toast({
           title: "Capsule Info Retrieved",
           description: "Successfully fetched your capsule information",
         });
       } else {
+        setCapsuleInfo(null);
         toast({
           title: "No Capsule Found",
           description: "You don't have a capsule yet. Register to create one.",
@@ -348,18 +360,28 @@ export default function ICPPage() {
 
       // Use cached authenticated actor
       const authenticatedActor = await getAuthenticatedActor();
-      const capsuleData = await authenticatedActor.capsules_read_full([capsuleIdInput.trim()]);
-      setCapsuleReadResult(capsuleData[0] || null);
+      const capsuleResult = (await authenticatedActor.capsules_read_full([capsuleIdInput.trim()])) as {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        Ok: any;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        Err: any;
+      };
 
-      if (capsuleData[0]) {
+      if ("Ok" in capsuleResult) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setCapsuleReadResult((capsuleResult as { Ok: any }).Ok);
         toast({
           title: "Capsule Retrieved",
           description: "Successfully fetched capsule data",
         });
       } else {
+        setCapsuleReadResult(null);
         toast({
           title: "Capsule Not Found",
-          description: "No capsule found with that ID, or you don't have access",
+          description: `No capsule found with that ID, or you don't have access: ${
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            JSON.stringify((capsuleResult as { Err: any }).Err)
+          }`,
           variant: "destructive",
         });
       }

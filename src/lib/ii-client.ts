@@ -42,7 +42,15 @@ export async function fetchChallenge(callbackUrl?: string): Promise<IIChallengeR
  */
 export async function registerOnCanister(identity: Identity) {
   const actor = await backendActor(identity);
-  return actor.register();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const result = (await actor.register()) as { Ok: any } | { Err: any };
+
+  if ("Err" in result) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    throw new Error(`Registration failed: ${JSON.stringify((result as { Err: any }).Err)}`);
+  }
+
+  return true; // Return true for backward compatibility
 }
 
 /**
@@ -58,7 +66,15 @@ export async function registerWithNonce(nonce: string, identity: Identity) {
   }
 
   const actor = await backendActor(identity);
-  return actor.register_with_nonce(nonce);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const result = (await actor.register_with_nonce(nonce)) as { Ok: any } | { Err: any };
+
+  if ("Err" in result) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    throw new Error(`Registration with nonce failed: ${JSON.stringify((result as { Err: any }).Err)}`);
+  }
+
+  return true; // Return true for backward compatibility
 }
 
 /**
@@ -67,8 +83,8 @@ export async function registerWithNonce(nonce: string, identity: Identity) {
  */
 export async function markBoundOnCanister(identity: Identity) {
   const actor = await backendActor(identity);
-      // Use the new flexible binding function to bind the caller's capsule to Neon
-    return actor.capsules_bind_neon({ Capsule: null }, "", true);
+  // Use the new flexible binding function to bind the caller's capsule to Neon
+  return actor.capsules_bind_neon({ Capsule: null }, "", true);
 }
 
 /**

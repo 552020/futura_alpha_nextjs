@@ -115,17 +115,20 @@ export async function POST(request: NextRequest) {
 
     // Call canister to verify nonce
     const actor = await createServerSideActor();
-    const provedPrincipal = await actor.verify_nonce(nonce);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const nonceResult = (await actor.verify_nonce(nonce)) as { Ok: any } | { Err: any };
 
-    if (!provedPrincipal) {
+    if ("Err" in nonceResult) {
       // console.log(`II Verify: No proof found for nonce from IP ${ipAddress}`);
       return NextResponse.json({
         success: false,
-        error: "Authentication proof not found",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        error: `Authentication failed: ${JSON.stringify((nonceResult as { Err: any }).Err)}`,
       });
     }
 
-    const principalStr = provedPrincipal.toString();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const principalStr = (nonceResult as { Ok: any }).Ok.toString();
     // console.log(`II Verify: Successfully verified nonce for principal ${principalStr} from IP ${ipAddress}`);
 
     return NextResponse.json({

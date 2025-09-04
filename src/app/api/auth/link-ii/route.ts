@@ -20,11 +20,19 @@ export async function POST(request: NextRequest) {
 
     // Verify nonce with canister to obtain principal
     const actor = await createServerSideActor();
-    const provedPrincipal = await actor.verify_nonce(nonce);
-    if (!provedPrincipal) {
-      return NextResponse.json({ error: "Nonce verification failed" }, { status: 400 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const nonceResult = (await actor.verify_nonce(nonce)) as { Ok: any } | { Err: any };
+    if ("Err" in nonceResult) {
+      return NextResponse.json(
+        {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          error: `Nonce verification failed: ${JSON.stringify((nonceResult as { Err: any }).Err)}`,
+        },
+        { status: 400 }
+      );
     }
-    const principal = provedPrincipal.toString();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const principal = (nonceResult as { Ok: any }).Ok.toString();
 
     // Check if this Principal is already linked to another user
     const existingAccount = await db.query.accounts.findFirst({
