@@ -37,23 +37,6 @@ export async function fetchChallenge(callbackUrl?: string): Promise<IIChallengeR
 }
 
 /**
- * Register the current user on the backend canister
- * This is step 4.3 in the II integration flow
- */
-export async function registerOnCanister(identity: Identity) {
-  const actor = await backendActor(identity);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result = (await actor.register()) as { Ok: any } | { Err: any };
-
-  if ("Err" in result) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    throw new Error(`Registration failed: ${JSON.stringify((result as { Err: any }).Err)}`);
-  }
-
-  return true; // Return true for backward compatibility
-}
-
-/**
  * Register user and prove nonce in one call (optimized for II auth flow)
  * This combines steps 4.3 and 4.4 in the II integration flow
  */
@@ -85,13 +68,4 @@ export async function markBoundOnCanister(identity: Identity) {
   const actor = await backendActor(identity);
   // Use the new flexible binding function to bind the caller's capsule to Neon
   return actor.capsules_bind_neon({ Capsule: null }, "", true);
-}
-
-/**
- * Prove nonce on the backend canister using authenticated II identity
- * This is step 4.4 in the II integration flow (canister-backed proof)
- */
-export async function proveNonceOnCanister(nonce: string, identity: Identity) {
-  const actor = await backendActor(identity);
-  return actor.prove_nonce(nonce);
 }

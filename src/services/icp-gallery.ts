@@ -25,12 +25,12 @@ export interface Gallery {
   is_public: boolean;
   created_at: bigint;
   updated_at: bigint;
-  storage_status: GalleryStorageStatus;
+  storage_location: GalleryStorageLocation;
   memory_entries: GalleryMemoryEntry[];
   bound_to_neon: boolean;
 }
 
-export type GalleryStorageStatus =
+export type GalleryStorageLocation =
   | { Web2Only: null }
   | { ICPOnly: null }
   | { Both: null }
@@ -176,7 +176,7 @@ export interface StoreGalleryResponse {
   gallery_id?: string;
   icp_gallery_id?: string;
   message: string;
-  storage_status: GalleryStorageStatus;
+  storage_location: GalleryStorageLocation;
 }
 
 export interface UpdateGalleryResponse {
@@ -227,19 +227,38 @@ export class ICPGalleryService {
       // Call the real backend endpoint
       const result = await actor.galleries_create(galleryData);
 
+      // Handle Candid result union type
+      if ("Err" in result) {
+        const error = result.Err;
+        const errorMessage =
+          "Internal" in error
+            ? error.Internal
+            : "InvalidArgument" in error
+            ? error.InvalidArgument
+            : "Conflict" in error
+            ? error.Conflict
+            : "Unknown error";
+        return {
+          success: false,
+          message: `Failed to create gallery: ${errorMessage}`,
+          storage_location: { Failed: null },
+        };
+      }
+
+      const gallery = result.Ok;
       return {
-        success: result.success,
-        gallery_id: result.gallery_id[0] || undefined,
-        icp_gallery_id: result.icp_gallery_id[0] || undefined,
-        message: result.message,
-        storage_status: result.storage_status,
+        success: true,
+        gallery_id: gallery.id,
+        icp_gallery_id: gallery.id,
+        message: "Gallery created successfully",
+        storage_location: gallery.storage_location,
       };
     } catch (error) {
       console.error("Error storing gallery forever:", error);
       return {
         success: false,
         message: `Failed to store gallery: ${error instanceof Error ? error.message : "Unknown error"}`,
-        storage_status: { Failed: null },
+        storage_location: { Failed: null },
       };
     }
   }
@@ -504,7 +523,7 @@ export class ICPGalleryService {
       is_public: Boolean(web2Gallery.is_public),
       created_at: BigInt((web2Gallery.created_at as number) || Date.now()),
       updated_at: BigInt((web2Gallery.updated_at as number) || Date.now()),
-      storage_status: { Web2Only: null },
+      storage_location: { Web2Only: null },
       memory_entries: memoryEntries,
       bound_to_neon: false, // Default to false for Web2 galleries
     };

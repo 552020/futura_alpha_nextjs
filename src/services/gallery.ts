@@ -397,7 +397,7 @@ export const galleryService = {
       return {
         success: false,
         message: `Failed to store gallery forever: ${error instanceof Error ? error.message : "Unknown error"}`,
-        storage_status: { Failed: null },
+        storage_location: { Failed: null },
       };
     }
   },
