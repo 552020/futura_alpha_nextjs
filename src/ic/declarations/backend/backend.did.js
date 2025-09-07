@@ -9,6 +9,32 @@ export const idlFactory = ({ IDL }) => {
     'Conflict' : IDL.Text,
   });
   const Result = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : Error });
+  const GalleryStorageLocation = IDL.Variant({
+    'Web2Only' : IDL.Null,
+    'Failed' : IDL.Null,
+    'Both' : IDL.Null,
+    'Migrating' : IDL.Null,
+    'ICPOnly' : IDL.Null,
+  });
+  const GalleryMemoryEntry = IDL.Record({
+    'memory_id' : IDL.Text,
+    'is_featured' : IDL.Bool,
+    'position' : IDL.Nat32,
+    'gallery_metadata' : IDL.Text,
+    'gallery_caption' : IDL.Opt(IDL.Text),
+  });
+  const Gallery = IDL.Record({
+    'id' : IDL.Text,
+    'is_public' : IDL.Bool,
+    'title' : IDL.Text,
+    'updated_at' : IDL.Nat64,
+    'storage_location' : GalleryStorageLocation,
+    'memory_entries' : IDL.Vec(GalleryMemoryEntry),
+    'description' : IDL.Opt(IDL.Text),
+    'created_at' : IDL.Nat64,
+    'bound_to_neon' : IDL.Bool,
+    'owner_principal' : IDL.Principal,
+  });
   const ResourceType = IDL.Variant({
     'Memory' : IDL.Null,
     'Capsule' : IDL.Null,
@@ -18,34 +44,6 @@ export const idlFactory = ({ IDL }) => {
     'Opaque' : IDL.Text,
     'Principal' : IDL.Principal,
   });
-  const CapsuleCreationResult = IDL.Record({
-    'capsule_id' : IDL.Opt(IDL.Text),
-    'message' : IDL.Text,
-    'success' : IDL.Bool,
-  });
-  const CapsuleHeader = IDL.Record({
-    'id' : IDL.Text,
-    'updated_at' : IDL.Nat64,
-    'subject' : PersonRef,
-    'owner_count' : IDL.Nat32,
-    'created_at' : IDL.Nat64,
-    'controller_count' : IDL.Nat32,
-    'memory_count' : IDL.Nat32,
-  });
-  const CapsuleInfo = IDL.Record({
-    'updated_at' : IDL.Nat64,
-    'gallery_count' : IDL.Nat32,
-    'subject' : PersonRef,
-    'capsule_id' : IDL.Text,
-    'is_owner' : IDL.Bool,
-    'created_at' : IDL.Nat64,
-    'bound_to_neon' : IDL.Bool,
-    'memory_count' : IDL.Nat32,
-    'connection_count' : IDL.Nat32,
-    'is_self_capsule' : IDL.Bool,
-    'is_controller' : IDL.Bool,
-  });
-  const Result_1 = IDL.Variant({ 'Ok' : CapsuleInfo, 'Err' : Error });
   const ControllerState = IDL.Record({
     'granted_at' : IDL.Nat64,
     'granted_by' : PersonRef,
@@ -148,13 +146,19 @@ export const idlFactory = ({ IDL }) => {
     'ICPCapsule' : IDL.Null,
   });
   const BlobRef = IDL.Record({
+    'len' : IDL.Nat64,
     'locator' : IDL.Text,
     'hash' : IDL.Opt(IDL.Vec(IDL.Nat8)),
     'kind' : MemoryBlobKind,
   });
-  const MemoryData = IDL.Record({
-    'data' : IDL.Opt(IDL.Vec(IDL.Nat8)),
-    'blob_ref' : BlobRef,
+  const MemoryMeta = IDL.Record({
+    'name' : IDL.Text,
+    'tags' : IDL.Vec(IDL.Text),
+    'description' : IDL.Opt(IDL.Text),
+  });
+  const MemoryData = IDL.Variant({
+    'BlobRef' : IDL.Record({ 'blob' : BlobRef, 'meta' : MemoryMeta }),
+    'Inline' : IDL.Record({ 'meta' : MemoryMeta, 'bytes' : IDL.Vec(IDL.Nat8) }),
   });
   const MemoryType = IDL.Variant({
     'Note' : IDL.Null,
@@ -178,32 +182,7 @@ export const idlFactory = ({ IDL }) => {
     'metadata' : MemoryMetadata,
     'data' : MemoryData,
     'info' : MemoryInfo,
-  });
-  const GalleryMemoryEntry = IDL.Record({
-    'memory_id' : IDL.Text,
-    'is_featured' : IDL.Bool,
-    'position' : IDL.Nat32,
-    'gallery_metadata' : IDL.Text,
-    'gallery_caption' : IDL.Opt(IDL.Text),
-  });
-  const GalleryStorageStatus = IDL.Variant({
-    'Web2Only' : IDL.Null,
-    'Failed' : IDL.Null,
-    'Both' : IDL.Null,
-    'Migrating' : IDL.Null,
-    'ICPOnly' : IDL.Null,
-  });
-  const Gallery = IDL.Record({
-    'id' : IDL.Text,
-    'is_public' : IDL.Bool,
-    'title' : IDL.Text,
-    'updated_at' : IDL.Nat64,
-    'memory_entries' : IDL.Vec(GalleryMemoryEntry),
-    'description' : IDL.Opt(IDL.Text),
-    'created_at' : IDL.Nat64,
-    'bound_to_neon' : IDL.Bool,
-    'storage_status' : GalleryStorageStatus,
-    'owner_principal' : IDL.Principal,
+    'idempotency_key' : IDL.Opt(IDL.Text),
   });
   const Capsule = IDL.Record({
     'id' : IDL.Text,
@@ -211,6 +190,7 @@ export const idlFactory = ({ IDL }) => {
     'controllers' : IDL.Vec(IDL.Tuple(PersonRef, ControllerState)),
     'subject' : PersonRef,
     'owners' : IDL.Vec(IDL.Tuple(PersonRef, OwnerState)),
+    'inline_bytes_used' : IDL.Nat64,
     'created_at' : IDL.Nat64,
     'connection_groups' : IDL.Vec(IDL.Tuple(IDL.Text, ConnectionGroup)),
     'connections' : IDL.Vec(IDL.Tuple(PersonRef, Connection)),
@@ -218,39 +198,62 @@ export const idlFactory = ({ IDL }) => {
     'bound_to_neon' : IDL.Bool,
     'galleries' : IDL.Vec(IDL.Tuple(IDL.Text, Gallery)),
   });
-  const Result_2 = IDL.Variant({ 'Ok' : Capsule, 'Err' : Error });
+  const Result_1 = IDL.Variant({ 'Ok' : Capsule, 'Err' : Error });
+  const CapsuleHeader = IDL.Record({
+    'id' : IDL.Text,
+    'updated_at' : IDL.Nat64,
+    'subject' : PersonRef,
+    'owner_count' : IDL.Nat32,
+    'created_at' : IDL.Nat64,
+    'controller_count' : IDL.Nat32,
+    'memory_count' : IDL.Nat32,
+  });
+  const CapsuleInfo = IDL.Record({
+    'updated_at' : IDL.Nat64,
+    'gallery_count' : IDL.Nat32,
+    'subject' : PersonRef,
+    'capsule_id' : IDL.Text,
+    'is_owner' : IDL.Bool,
+    'created_at' : IDL.Nat64,
+    'bound_to_neon' : IDL.Bool,
+    'memory_count' : IDL.Nat32,
+    'connection_count' : IDL.Nat32,
+    'is_self_capsule' : IDL.Bool,
+    'is_controller' : IDL.Bool,
+  });
+  const Result_2 = IDL.Variant({ 'Ok' : CapsuleInfo, 'Err' : Error });
+  const CapsuleUpdateData = IDL.Record({ 'bound_to_neon' : IDL.Opt(IDL.Bool) });
   const Result_3 = IDL.Variant({ 'Ok' : IDL.Bool, 'Err' : Error });
   const PersonalCanisterCreationResponse = IDL.Record({
     'canister_id' : IDL.Opt(IDL.Principal),
     'message' : IDL.Text,
     'success' : IDL.Bool,
   });
+  const Result_4 = IDL.Variant({ 'Ok' : IDL.Text, 'Err' : Error });
   const GalleryData = IDL.Record({
     'owner_principal' : IDL.Principal,
     'gallery' : Gallery,
   });
-  const StoreGalleryResponse = IDL.Record({
-    'gallery_id' : IDL.Opt(IDL.Text),
-    'message' : IDL.Text,
-    'storage_status' : GalleryStorageStatus,
-    'icp_gallery_id' : IDL.Opt(IDL.Text),
-    'success' : IDL.Bool,
+  const Result_5 = IDL.Variant({ 'Ok' : Gallery, 'Err' : Error });
+  const GalleryHeader = IDL.Record({
+    'id' : IDL.Text,
+    'updated_at' : IDL.Nat64,
+    'storage_location' : GalleryStorageLocation,
+    'name' : IDL.Text,
+    'created_at' : IDL.Nat64,
+    'memory_count' : IDL.Nat32,
   });
-  const DeleteGalleryResponse = IDL.Record({
-    'message' : IDL.Text,
-    'success' : IDL.Bool,
-  });
-  const Result_4 = IDL.Variant({ 'Ok' : Gallery, 'Err' : Error });
   const GalleryUpdateData = IDL.Record({
     'is_public' : IDL.Opt(IDL.Bool),
     'title' : IDL.Opt(IDL.Text),
     'memory_entries' : IDL.Opt(IDL.Vec(GalleryMemoryEntry)),
     'description' : IDL.Opt(IDL.Text),
   });
-  const UpdateGalleryResponse = IDL.Record({
-    'message' : IDL.Text,
-    'success' : IDL.Bool,
-    'gallery' : IDL.Opt(Gallery),
+  const CanisterSizeStats = IDL.Record({
+    'remaining_capacity_bytes' : IDL.Nat64,
+    'max_size_bytes' : IDL.Nat64,
+    'total_size_bytes' : IDL.Nat64,
+    'usage_percentage' : IDL.Float64,
   });
   const CreationStatus = IDL.Variant({
     'Importing' : IDL.Null,
@@ -271,7 +274,7 @@ export const idlFactory = ({ IDL }) => {
     'cycles_consumed' : IDL.Nat,
     'completed_at' : IDL.Opt(IDL.Nat64),
   });
-  const Result_5 = IDL.Variant({
+  const Result_6 = IDL.Variant({
     'Ok' : IDL.Vec(IDL.Tuple(IDL.Principal, DetailedCreationStatus)),
     'Err' : Error,
   });
@@ -280,34 +283,44 @@ export const idlFactory = ({ IDL }) => {
     'canister_id' : IDL.Opt(IDL.Principal),
     'message' : IDL.Opt(IDL.Text),
   });
+  const GallerySizeInfo = IDL.Record({
+    'is_over_limit' : IDL.Bool,
+    'gallery_id' : IDL.Text,
+    'memory_entries_count' : IDL.Nat32,
+    'total_size' : IDL.Nat64,
+    'estimated_memory_entries_size' : IDL.Nat64,
+    'over_limit_by' : IDL.Nat64,
+  });
   const PersonalCanisterCreationStats = IDL.Record({
     'total_successes' : IDL.Nat64,
     'total_failures' : IDL.Nat64,
     'total_attempts' : IDL.Nat64,
     'total_cycles_consumed' : IDL.Nat,
   });
-  const Result_6 = IDL.Variant({
+  const Result_7 = IDL.Variant({
     'Ok' : PersonalCanisterCreationStats,
     'Err' : Error,
   });
-  const Result_7 = IDL.Variant({
+  const Result_8 = IDL.Variant({
     'Ok' : IDL.Opt(DetailedCreationStatus),
     'Err' : Error,
   });
-  const MemoryMeta = IDL.Record({
-    'name' : IDL.Text,
-    'tags' : IDL.Vec(IDL.Text),
-    'description' : IDL.Opt(IDL.Text),
-  });
-  const Result_8 = IDL.Variant({ 'Ok' : IDL.Nat64, 'Err' : Error });
-  const Result_9 = IDL.Variant({ 'Ok' : IDL.Text, 'Err' : Error });
   const MemoryOperationResponse = IDL.Record({
     'memory_id' : IDL.Opt(IDL.Text),
     'message' : IDL.Text,
     'success' : IDL.Bool,
   });
+  const MemoryHeader = IDL.Record({
+    'id' : IDL.Text,
+    'access' : MemoryAccess,
+    'updated_at' : IDL.Nat64,
+    'memory_type' : MemoryType,
+    'name' : IDL.Text,
+    'size' : IDL.Nat64,
+    'created_at' : IDL.Nat64,
+  });
   const MemoryListResponse = IDL.Record({
-    'memories' : IDL.Vec(Memory),
+    'memories' : IDL.Vec(MemoryHeader),
     'message' : IDL.Text,
     'success' : IDL.Bool,
   });
@@ -316,53 +329,47 @@ export const idlFactory = ({ IDL }) => {
     'memory_id' : IDL.Text,
     'asset_present' : IDL.Bool,
   });
-  const Result_10 = IDL.Variant({
+  const Result_9 = IDL.Variant({
     'Ok' : IDL.Vec(MemoryPresenceResult),
     'Err' : Error,
   });
-  const Result_11 = IDL.Variant({ 'Ok' : Memory, 'Err' : Error });
+  const Result_10 = IDL.Variant({ 'Ok' : Memory, 'Err' : Error });
   const MemoryUpdateData = IDL.Record({
     'access' : IDL.Opt(MemoryAccess),
     'metadata' : IDL.Opt(MemoryMetadata),
     'name' : IDL.Opt(IDL.Text),
   });
-  const SimpleMemoryMetadata = IDL.Record({
-    'title' : IDL.Opt(IDL.Text),
-    'updated_at' : IDL.Nat64,
-    'size' : IDL.Opt(IDL.Nat64),
-    'tags' : IDL.Vec(IDL.Text),
-    'content_type' : IDL.Opt(IDL.Text),
-    'description' : IDL.Opt(IDL.Text),
-    'created_at' : IDL.Nat64,
-    'custom_fields' : IDL.Vec(IDL.Tuple(IDL.Text, IDL.Text)),
+  const UploadConfig = IDL.Record({
+    'inline_max' : IDL.Nat32,
+    'chunk_size' : IDL.Nat32,
+    'inline_budget_per_capsule' : IDL.Nat32,
   });
-  const MetadataResponse = IDL.Record({
-    'memory_id' : IDL.Opt(IDL.Text),
-    'error' : IDL.Opt(Error),
-    'message' : IDL.Text,
-    'success' : IDL.Bool,
-  });
-  const Result_12 = IDL.Variant({ 'Ok' : MetadataResponse, 'Err' : Error });
-  const Result_13 = IDL.Variant({ 'Ok' : IDL.Principal, 'Err' : Error });
+  const Result_11 = IDL.Variant({ 'Ok' : IDL.Nat64, 'Err' : Error });
+  const Result_12 = IDL.Variant({ 'Ok' : IDL.Principal, 'Err' : Error });
   return IDL.Service({
     'add_admin' : IDL.Func([IDL.Principal], [Result], []),
+    'calculate_gallery_capsule_size' : IDL.Func(
+        [Gallery],
+        [IDL.Nat64],
+        ['query'],
+      ),
+    'calculate_gallery_size' : IDL.Func([Gallery], [IDL.Nat64], ['query']),
     'capsules_bind_neon' : IDL.Func(
         [ResourceType, IDL.Text, IDL.Bool],
         [Result],
         [],
       ),
-    'capsules_create' : IDL.Func(
-        [IDL.Opt(PersonRef)],
-        [CapsuleCreationResult],
-        [],
-      ),
+    'capsules_create' : IDL.Func([IDL.Opt(PersonRef)], [Result_1], []),
+    'capsules_delete' : IDL.Func([IDL.Text], [Result], []),
     'capsules_list' : IDL.Func([], [IDL.Vec(CapsuleHeader)], ['query']),
     'capsules_read_basic' : IDL.Func(
         [IDL.Opt(IDL.Text)],
-        [Result_1],
+        [Result_2],
         ['query'],
       ),
-    'capsules_read_full' : IDL.Func([IDL.Opt(IDL.Text)], [Result_2], ['query']),
+    'capsules_read_full' : IDL.Func([IDL.Opt(IDL.Text)], [Result_1], ['query']),
+    'capsules_update' : IDL.Func([IDL.Text, CapsuleUpdateData], [Result_1], []),
+    'clear_all_stable_memory' : IDL.Func([], [Result], []),
     'clear_creation_state' : IDL.Func([IDL.Principal], [Result_3], []),
     'clear_migration_state' : IDL.Func([IDL.Principal], [Result_3], []),
     'create_personal_canister' : IDL.Func(
@@ -370,23 +377,35 @@ export const idlFactory = ({ IDL }) => {
         [PersonalCanisterCreationResponse],
         [],
       ),
-    'galleries_create' : IDL.Func([GalleryData], [StoreGalleryResponse], []),
+    'debug_finish_hex' : IDL.Func(
+        [IDL.Nat64, IDL.Text, IDL.Nat64],
+        [Result_4],
+        [],
+      ),
+    'debug_put_chunk_b64' : IDL.Func(
+        [IDL.Nat64, IDL.Nat32, IDL.Text],
+        [Result],
+        [],
+      ),
+    'debug_sha256' : IDL.Func([IDL.Vec(IDL.Nat8)], [IDL.Text], ['query']),
+    'galleries_create' : IDL.Func([GalleryData], [Result_5], []),
     'galleries_create_with_memories' : IDL.Func(
         [GalleryData, IDL.Bool],
-        [StoreGalleryResponse],
+        [Result_5],
         [],
       ),
-    'galleries_delete' : IDL.Func([IDL.Text], [DeleteGalleryResponse], []),
-    'galleries_list' : IDL.Func([], [IDL.Vec(Gallery)], ['query']),
-    'galleries_read' : IDL.Func([IDL.Text], [Result_4], ['query']),
+    'galleries_delete' : IDL.Func([IDL.Text], [Result], []),
+    'galleries_list' : IDL.Func([], [IDL.Vec(GalleryHeader)], ['query']),
+    'galleries_read' : IDL.Func([IDL.Text], [Result_5], ['query']),
     'galleries_update' : IDL.Func(
         [IDL.Text, GalleryUpdateData],
-        [UpdateGalleryResponse],
+        [Result_5],
         [],
       ),
+    'get_canister_size_stats' : IDL.Func([], [CanisterSizeStats], ['query']),
     'get_creation_states_by_status' : IDL.Func(
         [CreationStatus],
-        [Result_5],
+        [Result_6],
         ['query'],
       ),
     'get_creation_status' : IDL.Func(
@@ -404,12 +423,18 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Opt(DetailedCreationStatus)],
         ['query'],
       ),
-    'get_migration_states_by_status' : IDL.Func(
-        [CreationStatus],
-        [Result_5],
+    'get_gallery_size_breakdown' : IDL.Func(
+        [Gallery],
+        [GallerySizeInfo],
         ['query'],
       ),
-    'get_migration_stats' : IDL.Func([], [Result_6], ['query']),
+    'get_gallery_size_info' : IDL.Func([Gallery], [IDL.Text], ['query']),
+    'get_migration_states_by_status' : IDL.Func(
+        [CreationStatus],
+        [Result_6],
+        ['query'],
+      ),
+    'get_migration_stats' : IDL.Func([], [Result_7], ['query']),
     'get_migration_status' : IDL.Func(
         [],
         [IDL.Opt(CreationStatusResponse)],
@@ -422,7 +447,7 @@ export const idlFactory = ({ IDL }) => {
       ),
     'get_personal_canister_creation_stats' : IDL.Func(
         [],
-        [Result_6],
+        [Result_7],
         ['query'],
       ),
     'get_personal_canister_id' : IDL.Func(
@@ -432,12 +457,12 @@ export const idlFactory = ({ IDL }) => {
       ),
     'get_user_creation_status' : IDL.Func(
         [IDL.Principal],
-        [Result_7],
+        [Result_8],
         ['query'],
       ),
     'get_user_migration_status' : IDL.Func(
         [IDL.Principal],
-        [Result_7],
+        [Result_8],
         ['query'],
       ),
     'greet' : IDL.Func([IDL.Text], [IDL.Text], ['query']),
@@ -448,47 +473,24 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'list_admins' : IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
-    'list_all_creation_states' : IDL.Func([], [Result_5], ['query']),
-    'list_all_migration_states' : IDL.Func([], [Result_5], ['query']),
+    'list_all_creation_states' : IDL.Func([], [Result_6], ['query']),
+    'list_all_migration_states' : IDL.Func([], [Result_6], ['query']),
     'list_superadmins' : IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
-    'memories_abort' : IDL.Func([IDL.Nat64], [Result], []),
-    'memories_begin_upload' : IDL.Func(
-        [IDL.Text, MemoryMeta, IDL.Nat32],
-        [Result_8],
-        [],
-      ),
-    'memories_commit' : IDL.Func(
-        [IDL.Nat64, IDL.Vec(IDL.Nat8), IDL.Nat64],
-        [Result_9],
-        [],
-      ),
     'memories_create' : IDL.Func(
-        [IDL.Text, MemoryData],
-        [MemoryOperationResponse],
-        [],
-      ),
-    'memories_create_inline' : IDL.Func(
-        [IDL.Text, IDL.Vec(IDL.Nat8), MemoryMeta],
-        [Result_9],
+        [IDL.Text, MemoryData, IDL.Text],
+        [Result_4],
         [],
       ),
     'memories_delete' : IDL.Func([IDL.Text], [MemoryOperationResponse], []),
     'memories_list' : IDL.Func([IDL.Text], [MemoryListResponse], ['query']),
-    'memories_ping' : IDL.Func([IDL.Vec(IDL.Text)], [Result_10], ['query']),
-    'memories_put_chunk' : IDL.Func(
-        [IDL.Nat64, IDL.Nat32, IDL.Vec(IDL.Nat8)],
-        [Result],
-        [],
-      ),
-    'memories_read' : IDL.Func([IDL.Text], [Result_11], ['query']),
+    'memories_ping' : IDL.Func([IDL.Vec(IDL.Text)], [Result_9], ['query']),
+    'memories_read' : IDL.Func([IDL.Text], [Result_10], ['query']),
     'memories_update' : IDL.Func(
         [IDL.Text, MemoryUpdateData],
         [MemoryOperationResponse],
         [],
       ),
     'migrate_capsule' : IDL.Func([], [PersonalCanisterCreationResponse], []),
-    'prove_nonce' : IDL.Func([IDL.Text], [Result], []),
-    'register' : IDL.Func([], [Result], []),
     'register_with_nonce' : IDL.Func([IDL.Text], [Result], []),
     'remove_admin' : IDL.Func([IDL.Principal], [Result], []),
     'set_migration_enabled' : IDL.Func([IDL.Bool], [Result], []),
@@ -497,17 +499,29 @@ export const idlFactory = ({ IDL }) => {
         [Result],
         [],
       ),
-    'update_gallery_storage_status' : IDL.Func(
-        [IDL.Text, GalleryStorageStatus],
+    'update_gallery_storage_location' : IDL.Func(
+        [IDL.Text, GalleryStorageLocation],
         [Result],
         [],
       ),
-    'upsert_metadata' : IDL.Func(
-        [IDL.Text, MemoryType, SimpleMemoryMetadata, IDL.Text],
-        [Result_12],
+    'upload_config' : IDL.Func([], [UploadConfig], ['query']),
+    'uploads_abort' : IDL.Func([IDL.Nat64], [Result], []),
+    'uploads_begin' : IDL.Func(
+        [IDL.Text, MemoryMeta, IDL.Nat32, IDL.Text],
+        [Result_11],
         [],
       ),
-    'verify_nonce' : IDL.Func([IDL.Text], [Result_13], ['query']),
+    'uploads_finish' : IDL.Func(
+        [IDL.Nat64, IDL.Vec(IDL.Nat8), IDL.Nat64],
+        [Result_4],
+        [],
+      ),
+    'uploads_put_chunk' : IDL.Func(
+        [IDL.Nat64, IDL.Nat32, IDL.Vec(IDL.Nat8)],
+        [Result],
+        [],
+      ),
+    'verify_nonce' : IDL.Func([IDL.Text], [Result_12], ['query']),
     'whoami' : IDL.Func([], [IDL.Principal], ['query']),
   });
 };
