@@ -24,6 +24,9 @@ export const artifact_t = pgEnum("artifact_t", ["metadata", "asset"]);
 export const backend_t = pgEnum("backend_t", ["neon-db", "vercel-blob", "icp-canister"]); // add more later
 export const memory_type_t = pgEnum("memory_type_t", ["image", "video", "note", "document", "audio"]);
 export const sync_t = pgEnum("sync_t", ["idle", "migrating", "failed"]);
+
+// Storage Preference Enum - replaces boolean fields to avoid CHECK constraints
+export const storage_pref_t = pgEnum("storage_pref_t", ["neon", "icp", "dual"]);
 // Users table - Core user data - required for auth.js
 export const users = pgTable(
   "user",
@@ -64,6 +67,11 @@ export const users = pgTable(
       .notNull(),
 
     premiumExpiresAt: timestamp("premium_expires_at", { mode: "date" }),
+
+    // Storage preferences
+    // Using enum instead of booleans to avoid CHECK constraints and keep everything in Drizzle
+    storagePreference: storage_pref_t("storage_preference").default("neon").notNull(),
+    storagePrimaryStorage: backend_t("storage_primary_storage").default("neon-db").notNull(),
 
     // Timestamp fields
     createdAt: timestamp("created_at").defaultNow().notNull(),
