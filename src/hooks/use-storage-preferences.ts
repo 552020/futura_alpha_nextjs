@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { parseApiError, normalizeError, type NormalizedError } from "@/lib/error-handling";
 
 export type Pref = "neon" | "icp" | "dual";
 export type Primary = "neon-db" | "icp-canister" | "vercel-blob";
@@ -6,7 +7,6 @@ export type Primary = "neon-db" | "icp-canister" | "vercel-blob";
 export interface StoragePreferences {
   preference: Pref;
   primary: Primary;
-  allowed: { icp: boolean; neon: boolean };
   updatedAt?: string;
 }
 
@@ -26,14 +26,9 @@ export function togglesToPref(neon: boolean, icp: boolean): Pref {
 }
 
 // ---- API helpers ----
-async function parseError(res: Response) {
-  try {
-    const data = await res.json();
-    return new Error(data?.message || `HTTP ${res.status} ${res.statusText}`);
-  } catch {
-    const text = await res.text();
-    return new Error(text || `HTTP ${res.status} ${res.statusText}`);
-  }
+async function parseError(res: Response): Promise<NormalizedError> {
+  const apiError = await parseApiError(res);
+  return normalizeError(apiError);
 }
 
 function idempotencyKey() {
@@ -45,7 +40,7 @@ function idempotencyKey() {
 
 // ---- Queries ----
 export function useStoragePreferences() {
-  return useQuery<StoragePreferences>({
+  return useQuery<StoragePreferences, NormalizedError>({
     queryKey: ["me", "storage"],
     queryFn: async () => {
       const res = await fetch("/api/me/storage", {
@@ -68,7 +63,7 @@ type Ctx = { previousData?: StoragePreferences };
 export function useUpdateStoragePreferences() {
   const qc = useQueryClient();
 
-  return useMutation<StoragePreferences, Error, UpdateBody, Ctx>({
+  return useMutation<StoragePreferences, NormalizedError, UpdateBody, Ctx>({
     mutationFn: async (body) => {
       const res = await fetch("/api/me/storage", {
         method: "PATCH",

@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/db/db";
-import { getMemoryPresenceById } from "@/db/schema";
 
 export async function GET(request: NextRequest) {
   try {
@@ -31,43 +29,30 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Query the memory_presence view
-    const result = await db.execute(getMemoryPresenceById(memoryId, memoryType));
-
-    // Handle raw database result format
-    const rows = (result as { rows?: unknown[] })?.rows || [];
-
-    if (!rows || rows.length === 0) {
-      return NextResponse.json({ error: "Memory not found or no presence data available" }, { status: 404 });
-    }
-
-    const presenceData = rows[0] as Record<string, unknown>;
+    // TODO: Replace with actual database query when memory_presence view is created
+    // For now, return mock data for development
+    const mockPresenceData = {
+      memoryId,
+      memoryType,
+      // Storage presence flags (mock: assume everything is in Neon for now)
+      metaNeon: true,
+      assetBlob: true,
+      metaIcp: false,
+      assetIcp: false,
+      // Computed storage status
+      storageStatus: {
+        neon: true,
+        blob: true,
+        icp: false,
+        icpPartial: false,
+      },
+      // Overall status summary
+      overallStatus: "web2_only" as const,
+    };
 
     return NextResponse.json({
       success: true,
-      data: {
-        memoryId: presenceData.memory_id,
-        memoryType: presenceData.memory_type,
-        // Storage presence flags
-        metaNeon: presenceData.meta_neon,
-        assetBlob: presenceData.asset_blob,
-        metaIcp: presenceData.meta_icp,
-        assetIcp: presenceData.asset_icp,
-        // Computed storage status
-        storageStatus: {
-          neon: presenceData.meta_neon,
-          blob: presenceData.asset_blob,
-          icp: presenceData.meta_icp && presenceData.asset_icp,
-          icpPartial: presenceData.meta_icp || presenceData.asset_icp,
-        },
-        // Overall status summary
-        overallStatus:
-          presenceData.meta_icp && presenceData.asset_icp
-            ? "stored_forever"
-            : presenceData.meta_icp || presenceData.asset_icp
-            ? "partially_stored"
-            : "web2_only",
-      },
+      data: mockPresenceData,
     });
   } catch (error) {
     console.error("Error querying memory presence:", error);

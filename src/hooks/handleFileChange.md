@@ -1,4 +1,4 @@
-# handleFileChange: Mode Comparison
+#ke handleFileChange: Mode Comparison
 
 ## Mode === "folder"
 
