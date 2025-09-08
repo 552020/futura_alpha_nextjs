@@ -15,6 +15,7 @@ import { OnboardingProvider } from "@/contexts/onboarding-context";
 import { Analytics } from "@vercel/analytics/react";
 import { Toaster } from "@/components/ui/toaster";
 import Footer from "@/components/layout/footer";
+import { QueryProvider } from "@/components/providers/query-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -85,26 +86,28 @@ export default async function RootLayout({
   return (
     <html lang={lang} suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <SessionProvider basePath="/api/auth">
-          <PostHogProvider>
-            <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-              <InterfaceProvider>
-                <OnboardingProvider>
-                  <div className="relative flex min-h-screen flex-col">
-                    <Header dict={dict} lang={resolvedParams.lang} />
-                    <BottomNav dict={dict} />
-                    <div className="flex flex-1">
-                      <Sidebar dict={dict} />
-                      <main className="flex-1">{children}</main>
+        <QueryProvider>
+          <SessionProvider basePath="/api/auth">
+            <PostHogProvider>
+              <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+                <InterfaceProvider>
+                  <OnboardingProvider>
+                    <div className="relative flex min-h-screen flex-col">
+                      <Header dict={dict} lang={resolvedParams.lang} />
+                      <BottomNav dict={dict} />
+                      <div className="flex flex-1">
+                        <Sidebar dict={dict} />
+                        <main className="flex-1">{children}</main>
+                      </div>
                     </div>
-                  </div>
-                  <Footer dict={dict} lang={lang} />
-                  <Toaster />
-                </OnboardingProvider>
-              </InterfaceProvider>
-            </ThemeProvider>
-          </PostHogProvider>
-        </SessionProvider>
+                    <Footer dict={dict} lang={lang} />
+                    <Toaster />
+                  </OnboardingProvider>
+                </InterfaceProvider>
+              </ThemeProvider>
+            </PostHogProvider>
+          </SessionProvider>
+        </QueryProvider>
         <Analytics />
       </body>
     </html>
