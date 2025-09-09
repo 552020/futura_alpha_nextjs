@@ -38,7 +38,7 @@ fn get_notifications_token() -> Result<String, String> {
     let prod_id = "2IqlfbIX7fiflApSv4dSk"; // fixed ENV_VARS doc id
 
     match get_doc_store(
-        ic_cdk::caller(),
+        ic_cdk::id(), // the canister's own Principal
         "ENV_VARS".to_string(),
         prod_id.to_string(),
     ) {
