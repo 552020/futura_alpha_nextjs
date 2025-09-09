@@ -34,82 +34,53 @@ struct EnvVars {
 
 fn get_notifications_token() -> Result<String, String> {
     ic_cdk::print("Entered get_notifications_token()");
-    let prod_id = "xX_CHt9f1p35fO6a75snN";
-    let dev_id = "-emAGTKnxk_4IUG4ycgs6";
+    let prod_id = "xX_CHt9f1p35fO6a75snN"; // production doc id
+    let dev_id = "-emAGTKnxk_4IUG4ycgs6"; // development doc id
 
-    // Fetch prod doc
-    let prod_doc = get_doc_store(
+    // Attempt to get prod doc
+    match get_doc_store(
         ic_cdk::caller(),
         "ENV_VARS".to_string(),
         prod_id.to_string(),
-    );
-    ic_cdk::print(format!("🔍 Prod doc fetch result: {:?}", prod_doc));
-
-    match prod_doc {
-        Ok(Some(doc)) => {
-            ic_cdk::print(format!("📄 Prod ENV_VARS doc exists: {:?}", doc));
-            match decode_doc_data::<EnvVars>(&doc.data) {
-                Ok(env) => {
-                    ic_cdk::print(format!("✅ Decoded prod ENV_VARS: {:?}", env));
-                    if env.NOTIFICATIONS_TOKEN.is_empty() {
-                        ic_cdk::print("⚠️ Prod token is empty");
-                        return Err("Prod token is empty".to_string());
-                    }
-                    Ok(env.NOTIFICATIONS_TOKEN)
-                }
-                Err(e) => Err(format!("Failed to decode prod ENV_VARS: {}", e)),
+    ) {
+        Ok(Some(doc)) => match decode_doc_data::<EnvVars>(&doc.data) {
+            Ok(env) => Ok(env.NOTIFICATIONS_TOKEN),
+            Err(e) => Err(format!("Failed to decode prod ENV_VARS: {}", e)),
+        },
+        _ => {
+            ic_cdk::println!("⚠️ Prod token not found, falling back to dev...");
+            // Attempt to get dev doc
+            match get_doc_store(ic_cdk::caller(), "ENV_VARS".to_string(), dev_id.to_string()) {
+                Ok(Some(doc)) => match decode_doc_data::<EnvVars>(&doc.data) {
+                    Ok(env) => Ok(env.NOTIFICATIONS_TOKEN),
+                    Err(e) => Err(format!("Failed to decode dev ENV_VARS: {}", e)),
+                },
+                Err(e) => Err(format!("Failed to retrieve NOTIFICATIONS_TOKEN: {:?}", e)),
+                Ok(None) => Err("No dev ENV_VARS found".to_string()),
             }
         }
-        Ok(None) => {
-            ic_cdk::print("⚠️ Prod ENV_VARS doc not found, trying dev...");
-            let dev_doc =
-                get_doc_store(ic_cdk::caller(), "ENV_VARS".to_string(), dev_id.to_string());
-            ic_cdk::print(format!("🔍 Dev doc fetch result: {:?}", dev_doc));
-
-            match dev_doc {
-                Ok(Some(doc)) => {
-                    ic_cdk::print(format!("📄 Dev ENV_VARS doc exists: {:?}", doc));
-                    match decode_doc_data::<EnvVars>(&doc.data) {
-                        Ok(env) => {
-                            ic_cdk::print(format!("✅ Decoded dev ENV_VARS: {:?}", env));
-                            if env.NOTIFICATIONS_TOKEN.is_empty() {
-                                ic_cdk::print("⚠️ Dev token is empty");
-                                return Err("Dev token is empty".to_string());
-                            }
-                            Ok(env.NOTIFICATIONS_TOKEN)
-                        }
-                        Err(e) => Err(format!("Failed to decode dev ENV_VARS: {}", e)),
-                    }
-                }
-                Ok(None) => {
-                    ic_cdk::print("❌ No dev ENV_VARS found");
-                    Err("No dev ENV_VARS found".to_string())
-                }
-                Err(e) => Err(format!("Failed to retrieve dev ENV_VARS: {:?}", e)),
-            }
-        }
-        Err(e) => Err(format!("Failed to retrieve prod ENV_VARS: {:?}", e)),
     }
 }
 
 #[on_set_doc(collections = ["email_requests"])]
 async fn on_set_doc(context: OnSetDocContext) -> Result<(), String> {
-    ic_cdk::print(format!(
+    ic_cdk::println!(
         "📧 Email function triggered for document key: {}",
         context.data.key
-    ));
+    );
 
     let email_data: EmailRequest =
         match decode_doc_data::<EmailRequest>(&context.data.data.after.data) {
             Ok(data) => {
-                ic_cdk::print(format!(
+                ic_cdk::println!(
                     "✅ Successfully decoded email data for: {} -> {}",
-                    data.user_name, data.recipient_name
-                ));
+                    data.user_name,
+                    data.recipient_name
+                );
                 data
             }
             Err(e) => {
-                ic_cdk::print(format!("❌ Failed to decode email data: {}", e));
+                ic_cdk::println!("❌ Failed to decode email data: {}", e);
                 return Err(format!("Failed to decode email data: {}", e));
             }
         };
@@ -148,7 +119,7 @@ async fn on_set_doc(context: OnSetDocContext) -> Result<(), String> {
     let auth_token = match get_notifications_token() {
         Ok(token) => token,
         Err(e) => {
-            ic_cdk::print(format!("❌ Could not fetch NOTIFICATIONS_TOKEN: {}", e));
+            ic_cdk::println!("❌ Could not fetch NOTIFICATIONS_TOKEN: {}", e);
             return Err(e);
         }
     };
@@ -172,13 +143,13 @@ async fn on_set_doc(context: OnSetDocContext) -> Result<(), String> {
         },
     ];
 
-    ic_cdk::print(format!(
+    ic_cdk::println!(
         "📡 Prepared {} headers for HTTP request",
         request_headers.len()
-    ));
+    );
 
     let url = "https://observatory-7kdhmtcbfq-oa.a.run.app/notifications/email";
-    ic_cdk::print(format!("🌐 Making HTTP POST request to: {}", url));
+    ic_cdk::println!("🌐 Making HTTP POST request to: {}", url);
 
     let request = CanisterHttpRequestArgument {
         url: url.to_string(),
@@ -189,25 +160,26 @@ async fn on_set_doc(context: OnSetDocContext) -> Result<(), String> {
         headers: request_headers,
     };
 
-    ic_cdk::print("⏳ Initiating HTTP outcall with 5s timeout...");
+    ic_cdk::println!("⏳ Initiating HTTP outcall with 5s timeout...");
 
     match http_request_outcall(request, 5_000_000_000).await {
         Ok((response,)) => {
-            ic_cdk::print(format!(
+            ic_cdk::println!(
                 "📨 HTTP response received - Status: {}, Body length: {} bytes",
                 response.status,
                 response.body.len()
-            ));
+            );
 
             if response.status >= Nat::from(200u32) && response.status < Nat::from(300u32) {
-                ic_cdk::print(format!("✅ Email sent successfully to {}", email_data.to));
+                ic_cdk::println!("✅ Email sent successfully to {}", email_data.to);
                 Ok(())
             } else {
                 let error_body = String::from_utf8_lossy(&response.body);
-                ic_cdk::print(format!(
+                ic_cdk::println!(
                     "❌ Email API error - Status: {}, Body: {}",
-                    response.status, error_body
-                ));
+                    response.status,
+                    error_body
+                );
                 Err(format!(
                     "Email API returned status {}: {}",
                     response.status, error_body
@@ -215,10 +187,11 @@ async fn on_set_doc(context: OnSetDocContext) -> Result<(), String> {
             }
         }
         Err((r, m)) => {
-            ic_cdk::print(format!(
+            ic_cdk::println!(
                 "❌ HTTP request failed - RejectionCode: {:?}, Error: {}",
-                r, m
-            ));
+                r,
+                m
+            );
             Err(format!(
                 "HTTP request failed. RejectionCode: {:?}, Error: {}",
                 r, m
