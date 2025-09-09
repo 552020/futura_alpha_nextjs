@@ -36,6 +36,21 @@ fn get_notifications_token() -> Result<String, String> {
     let prod_id = "xX_CHt9f1p35fO6a75snN"; // production doc id
     let dev_id = "-emAGTKnxk_4IUG4ycgs6"; // development doc id
 
+    // Helper to log token safely
+    fn log_token(token: &str) {
+        if token.is_empty() {
+            ic_cdk::println!("⚠️ Token is empty");
+        } else {
+            let len = token.len();
+            let preview = if len <= 8 {
+                token.to_string()
+            } else {
+                format!("{}...{}", &token[..4], &token[len - 4..])
+            };
+            ic_cdk::println!("🔑 Token preview: {}", preview);
+        }
+    }
+
     // Attempt to get prod doc
     match get_doc_store(
         ic_cdk::caller(),
@@ -43,10 +58,11 @@ fn get_notifications_token() -> Result<String, String> {
         prod_id.to_string(),
     ) {
         Ok(Some(doc)) => {
-            ic_cdk::println!("📄 Prod ENV_VARS doc found: {:?}", doc);
+            ic_cdk::println!("📄 Prod ENV_VARS doc fetched: {:?}", doc);
             match decode_doc_data::<EnvVars>(&doc.data) {
                 Ok(env) => {
                     ic_cdk::println!("✅ Decoded prod ENV_VARS: {:?}", env);
+                    log_token(&env.NOTIFICATIONS_TOKEN);
                     Ok(env.NOTIFICATIONS_TOKEN)
                 }
                 Err(e) => {
@@ -59,10 +75,11 @@ fn get_notifications_token() -> Result<String, String> {
             ic_cdk::println!("⚠️ Prod ENV_VARS doc not found, falling back to dev...");
             match get_doc_store(ic_cdk::caller(), "ENV_VARS".to_string(), dev_id.to_string()) {
                 Ok(Some(doc)) => {
-                    ic_cdk::println!("📄 Dev ENV_VARS doc found: {:?}", doc);
+                    ic_cdk::println!("📄 Dev ENV_VARS doc fetched: {:?}", doc);
                     match decode_doc_data::<EnvVars>(&doc.data) {
                         Ok(env) => {
                             ic_cdk::println!("✅ Decoded dev ENV_VARS: {:?}", env);
+                            log_token(&env.NOTIFICATIONS_TOKEN);
                             Ok(env.NOTIFICATIONS_TOKEN)
                         }
                         Err(e) => {
@@ -71,11 +88,20 @@ fn get_notifications_token() -> Result<String, String> {
                         }
                     }
                 }
-                Ok(None) => Err("No dev ENV_VARS found".to_string()),
-                Err(e) => Err(format!("Failed to retrieve dev ENV_VARS: {:?}", e)),
+                Ok(None) => {
+                    ic_cdk::println!("❌ No dev ENV_VARS found");
+                    Err("No dev ENV_VARS found".to_string())
+                }
+                Err(e) => {
+                    ic_cdk::println!("❌ Failed to retrieve dev ENV_VARS: {:?}", e);
+                    Err(format!("Failed to retrieve dev ENV_VARS: {:?}", e))
+                }
             }
         }
-        Err(e) => Err(format!("Failed to retrieve prod ENV_VARS: {:?}", e)),
+        Err(e) => {
+            ic_cdk::println!("❌ Failed to retrieve prod ENV_VARS: {:?}", e);
+            Err(format!("Failed to retrieve prod ENV_VARS: {:?}", e))
+        }
     }
 }
 
