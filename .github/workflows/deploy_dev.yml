@@ -3,7 +3,7 @@ name: Deploy to Development
 on:
   push:
     branches:
-      - lmangallon/icp-383-implement-serverless-rust-function-for-email-proxy-call
+      - lmangallon/icp-335-fixes-pre-submission-milestone1
 
 concurrency:
   group: juno-deploy-dev-${{ github.ref }}
