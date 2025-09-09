@@ -33,75 +33,61 @@ struct EnvVars {
 }
 
 fn get_notifications_token() -> Result<String, String> {
-    let prod_id = "xX_CHt9f1p35fO6a75snN"; // production doc id
-    let dev_id = "-emAGTKnxk_4IUG4ycgs6"; // development doc id
+    let prod_id = "xX_CHt9f1p35fO6a75snN";
+    let dev_id = "-emAGTKnxk_4IUG4ycgs6";
 
-    // Helper to log token safely
-    fn log_token(token: &str) {
-        if token.is_empty() {
-            ic_cdk::println!("⚠️ Token is empty");
-        } else {
-            let len = token.len();
-            let preview = if len <= 8 {
-                token.to_string()
-            } else {
-                format!("{}...{}", &token[..4], &token[len - 4..])
-            };
-            ic_cdk::println!("🔑 Token preview: {}", preview);
-        }
-    }
-
-    // Attempt to get prod doc
-    match get_doc_store(
+    // Fetch prod doc
+    let prod_doc = get_doc_store(
         ic_cdk::caller(),
         "ENV_VARS".to_string(),
         prod_id.to_string(),
-    ) {
+    );
+    ic_cdk::println!("🔍 Prod doc fetch result: {:?}", prod_doc);
+
+    match prod_doc {
         Ok(Some(doc)) => {
-            ic_cdk::println!("📄 Prod ENV_VARS doc fetched: {:?}", doc);
+            ic_cdk::println!("📄 Prod ENV_VARS doc exists: {:?}", doc);
             match decode_doc_data::<EnvVars>(&doc.data) {
                 Ok(env) => {
                     ic_cdk::println!("✅ Decoded prod ENV_VARS: {:?}", env);
-                    log_token(&env.NOTIFICATIONS_TOKEN);
+                    if env.NOTIFICATIONS_TOKEN.is_empty() {
+                        ic_cdk::println!("⚠️ Prod token is empty");
+                        return Err("Prod token is empty".to_string());
+                    }
                     Ok(env.NOTIFICATIONS_TOKEN)
                 }
-                Err(e) => {
-                    ic_cdk::println!("❌ Failed to decode prod ENV_VARS: {}", e);
-                    Err(format!("Failed to decode prod ENV_VARS: {}", e))
-                }
+                Err(e) => Err(format!("Failed to decode prod ENV_VARS: {}", e)),
             }
         }
         Ok(None) => {
-            ic_cdk::println!("⚠️ Prod ENV_VARS doc not found, falling back to dev...");
-            match get_doc_store(ic_cdk::caller(), "ENV_VARS".to_string(), dev_id.to_string()) {
+            ic_cdk::println!("⚠️ Prod ENV_VARS doc not found, trying dev...");
+            let dev_doc =
+                get_doc_store(ic_cdk::caller(), "ENV_VARS".to_string(), dev_id.to_string());
+            ic_cdk::println!("🔍 Dev doc fetch result: {:?}", dev_doc);
+
+            match dev_doc {
                 Ok(Some(doc)) => {
-                    ic_cdk::println!("📄 Dev ENV_VARS doc fetched: {:?}", doc);
+                    ic_cdk::println!("📄 Dev ENV_VARS doc exists: {:?}", doc);
                     match decode_doc_data::<EnvVars>(&doc.data) {
                         Ok(env) => {
                             ic_cdk::println!("✅ Decoded dev ENV_VARS: {:?}", env);
-                            log_token(&env.NOTIFICATIONS_TOKEN);
+                            if env.NOTIFICATIONS_TOKEN.is_empty() {
+                                ic_cdk::println!("⚠️ Dev token is empty");
+                                return Err("Dev token is empty".to_string());
+                            }
                             Ok(env.NOTIFICATIONS_TOKEN)
                         }
-                        Err(e) => {
-                            ic_cdk::println!("❌ Failed to decode dev ENV_VARS: {}", e);
-                            Err(format!("Failed to decode dev ENV_VARS: {}", e))
-                        }
+                        Err(e) => Err(format!("Failed to decode dev ENV_VARS: {}", e)),
                     }
                 }
                 Ok(None) => {
                     ic_cdk::println!("❌ No dev ENV_VARS found");
                     Err("No dev ENV_VARS found".to_string())
                 }
-                Err(e) => {
-                    ic_cdk::println!("❌ Failed to retrieve dev ENV_VARS: {:?}", e);
-                    Err(format!("Failed to retrieve dev ENV_VARS: {:?}", e))
-                }
+                Err(e) => Err(format!("Failed to retrieve dev ENV_VARS: {:?}", e)),
             }
         }
-        Err(e) => {
-            ic_cdk::println!("❌ Failed to retrieve prod ENV_VARS: {:?}", e);
-            Err(format!("Failed to retrieve prod ENV_VARS: {:?}", e))
-        }
+        Err(e) => Err(format!("Failed to retrieve prod ENV_VARS: {:?}", e)),
     }
 }
 
