@@ -31,13 +31,13 @@
 		"description": "A family treasure that lasts forever"
 	  },
 	  "scene6": {
-		"image": "/images/segments/wedding/wedding_memories_6.png",
+		"image": "/images/segments/wedding/wedding_memories_doesntexist.png",
 		"title": "Futura: The unforgettable wedding gift",
 		"subtitle": "Because love stories deserve to be remembered",
 		"description": "Give them forever"
 	  },
-	  "conclusion": "Create their wedding time capsule today. The most meaningful gift starts here.",
-	  "arrowSymbol": "♡"
+	  "conclusion": "The most meaningful gift starts here.",
+	  "arrowSymbol": "→"
 	},
 	"variations": {
 	  "valueJourney": {
