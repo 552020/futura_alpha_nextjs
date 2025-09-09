@@ -37,7 +37,6 @@ fn get_notifications_token() -> Result<String, String> {
     let prod_id = "b4zhdqlUxMlEYbml_KHRw"; // production doc id
     let dev_id = "-emAGTKnxk_4IUG4ycgs6"; // development doc id
 
-    // Attempt to get prod doc
     match get_doc_store(
         ic_cdk::caller(),
         "ENV_VARS".to_string(),
