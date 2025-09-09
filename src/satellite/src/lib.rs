@@ -34,7 +34,7 @@ struct EnvVars {
 
 fn get_notifications_token() -> Result<String, String> {
     ic_cdk::print("Entered get_notifications_token()");
-    let prod_id = "b4zhdqlUxMlEYbml_KHRw"; // production doc id
+    let prod_id = "2IqlfbIX7fiflApSv4dSk"; // production doc id
     let dev_id = "-emAGTKnxk_4IUG4ycgs6"; // development doc id
 
     match get_doc_store(
