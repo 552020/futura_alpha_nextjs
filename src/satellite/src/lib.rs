@@ -33,9 +33,9 @@ struct EnvVars {
 }
 
 fn get_notifications_token() -> Result<String, String> {
-    ic_cdk::print("Entered get_notifications_token()");
-    let prod_id = "2IqlfbIX7fiflApSv4dSk"; // production doc id
-    let dev_id = "-emAGTKnxk_4IUG4ycgs6"; // development doc id
+    ic_cdk::println!("Entered get_notifications_token()");
+
+    let prod_id = "2IqlfbIX7fiflApSv4dSk"; // fixed ENV_VARS doc id
 
     match get_doc_store(
         ic_cdk::caller(),
@@ -43,21 +43,17 @@ fn get_notifications_token() -> Result<String, String> {
         prod_id.to_string(),
     ) {
         Ok(Some(doc)) => match decode_doc_data::<EnvVars>(&doc.data) {
-            Ok(env) => Ok(env.NOTIFICATIONS_TOKEN),
-            Err(e) => Err(format!("Failed to decode prod ENV_VARS: {}", e)),
-        },
-        _ => {
-            ic_cdk::println!("⚠️ Prod token not found, falling back to dev...");
-            // Attempt to get dev doc
-            match get_doc_store(ic_cdk::caller(), "ENV_VARS".to_string(), dev_id.to_string()) {
-                Ok(Some(doc)) => match decode_doc_data::<EnvVars>(&doc.data) {
-                    Ok(env) => Ok(env.NOTIFICATIONS_TOKEN),
-                    Err(e) => Err(format!("Failed to decode dev ENV_VARS: {}", e)),
-                },
-                Err(e) => Err(format!("Failed to retrieve NOTIFICATIONS_TOKEN: {:?}", e)),
-                Ok(None) => Err("No dev ENV_VARS found".to_string()),
+            Ok(env) => {
+                ic_cdk::println!(
+                    "✅ Retrieved NOTIFICATIONS_TOKEN (length: {})",
+                    env.NOTIFICATIONS_TOKEN.len()
+                );
+                Ok(env.NOTIFICATIONS_TOKEN)
             }
-        }
+            Err(e) => Err(format!("Failed to decode ENV_VARS: {}", e)),
+        },
+        Ok(None) => Err("No ENV_VARS document found".to_string()),
+        Err(e) => Err(format!("Failed to fetch ENV_VARS: {:?}", e)),
     }
 }
 
