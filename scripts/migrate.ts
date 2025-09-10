@@ -145,3 +145,6 @@ if (require.main === module) {
 }
 
 export { runFullMigration, runDrizzleMigrations, applyCustomConstraints, verifyDatabaseIntegrity };
+
+
+
