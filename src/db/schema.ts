@@ -12,12 +12,15 @@ import {
   index,
   uuid,
   bigint,
+  varchar,
+  jsonb,
   //   IndexBuilder,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
 // import type { AdapterAccount } from "@auth/core/adapters";
 import type { AdapterAccount } from "next-auth/adapters";
+import type { LanguageModelV2Usage } from "@ai-sdk/provider";
 
 // Storage Edge Enums
 export const artifact_t = pgEnum("artifact_t", ["metadata", "asset"]);
@@ -876,3 +879,155 @@ export type MemberRole = (typeof MEMBER_ROLES)[number];
 
 export type DBRelationship = typeof relationship.$inferSelect;
 export type DBFamilyRelationship = typeof familyRelationship.$inferSelect;
+
+// AI Chatbot Tables (copied 1:1 from ai-chatbot)
+export const chat = pgTable("Chat", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  createdAt: timestamp("createdAt").notNull(),
+  title: text("title").notNull(),
+  userId: text("userId")
+    .notNull()
+    .references(() => allUsers.id, { onDelete: "cascade" }),
+  visibility: varchar("visibility", { enum: ["public", "private"] })
+    .notNull()
+    .default("private"),
+  lastContext: jsonb("lastContext").$type<LanguageModelV2Usage | null>(),
+});
+
+export type Chat = typeof chat.$inferSelect;
+
+// DEPRECATED: The following schema is deprecated and will be removed in the future.
+// Read the migration guide at https://chat-sdk.dev/docs/migration-guides/message-parts
+export const messageDeprecated = pgTable("Message", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  chatId: uuid("chatId")
+    .notNull()
+    .references(() => chat.id),
+  role: varchar("role").notNull(),
+  content: json("content").notNull(),
+  createdAt: timestamp("createdAt").notNull(),
+});
+
+export type MessageDeprecated = typeof messageDeprecated.$inferSelect;
+
+export const message = pgTable("Message_v2", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  chatId: uuid("chatId")
+    .notNull()
+    .references(() => chat.id),
+  role: varchar("role").notNull(),
+  parts: json("parts").notNull(),
+  attachments: json("attachments").notNull(),
+  createdAt: timestamp("createdAt").notNull(),
+});
+
+export type DBMessage = typeof message.$inferSelect;
+
+// DEPRECATED: The following schema is deprecated and will be removed in the future.
+// Read the migration guide at https://chat-sdk.dev/docs/migration-guides/message-parts
+export const voteDeprecated = pgTable(
+  "Vote",
+  {
+    chatId: uuid("chatId")
+      .notNull()
+      .references(() => chat.id),
+    messageId: uuid("messageId")
+      .notNull()
+      .references(() => messageDeprecated.id),
+    isUpvoted: boolean("isUpvoted").notNull(),
+  },
+  (table) => {
+    return {
+      pk: primaryKey({ columns: [table.chatId, table.messageId] }),
+    };
+  }
+);
+
+export type VoteDeprecated = typeof voteDeprecated.$inferSelect;
+
+export const vote = pgTable(
+  "Vote_v2",
+  {
+    chatId: uuid("chatId")
+      .notNull()
+      .references(() => chat.id),
+    messageId: uuid("messageId")
+      .notNull()
+      .references(() => message.id),
+    isUpvoted: boolean("isUpvoted").notNull(),
+  },
+  (table) => {
+    return {
+      pk: primaryKey({ columns: [table.chatId, table.messageId] }),
+    };
+  }
+);
+
+export type Vote = typeof vote.$inferSelect;
+
+export const document = pgTable(
+  "Document",
+  {
+    id: uuid("id").notNull().defaultRandom(),
+    createdAt: timestamp("createdAt").notNull(),
+    title: text("title").notNull(),
+    content: text("content"),
+    kind: varchar("text", { enum: ["text", "code", "image", "sheet"] })
+      .notNull()
+      .default("text"),
+    userId: text("userId")
+      .notNull()
+      .references(() => allUsers.id, { onDelete: "cascade" }),
+  },
+  (table) => {
+    return {
+      pk: primaryKey({ columns: [table.id, table.createdAt] }),
+    };
+  }
+);
+
+export type Document = typeof document.$inferSelect;
+
+export const suggestion = pgTable(
+  "Suggestion",
+  {
+    id: uuid("id").notNull().defaultRandom(),
+    documentId: uuid("documentId").notNull(),
+    documentCreatedAt: timestamp("documentCreatedAt").notNull(),
+    originalText: text("originalText").notNull(),
+    suggestedText: text("suggestedText").notNull(),
+    description: text("description"),
+    isResolved: boolean("isResolved").notNull().default(false),
+    userId: text("userId")
+      .notNull()
+      .references(() => allUsers.id, { onDelete: "cascade" }),
+    createdAt: timestamp("createdAt").notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.id] }),
+    documentRef: foreignKey({
+      columns: [table.documentId, table.documentCreatedAt],
+      foreignColumns: [document.id, document.createdAt],
+    }),
+  })
+);
+
+export type Suggestion = typeof suggestion.$inferSelect;
+
+export const stream = pgTable(
+  "Stream",
+  {
+    id: uuid("id").notNull().defaultRandom(),
+    chatId: uuid("chatId").notNull(),
+    createdAt: timestamp("createdAt").notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.id] }),
+    chatRef: foreignKey({
+      columns: [table.chatId],
+      foreignColumns: [chat.id],
+    }),
+  })
+);
+
+export type Stream = typeof stream.$inferSelect;

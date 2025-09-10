@@ -1,8 +1,17 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { generateId } from "ai";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
+}
+
+/**
+ * Generate a unique UUID for database records
+ * Uses the AI SDK's generateId function for consistency
+ */
+export function generateUUID(): string {
+  return generateId();
 }
 
 /**

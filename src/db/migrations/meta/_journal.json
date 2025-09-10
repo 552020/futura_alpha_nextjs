@@ -176,6 +176,13 @@
       "when": 1757311370704,
       "tag": "0024_sweet_dragon_lord",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1757513699805,
+      "tag": "0025_regular_bloodaxe",
+      "breakpoints": true
     }
   ]
 }
