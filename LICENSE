@@ -1,0 +1,28 @@
+Business Source License 1.1
+
+Copyright (c) 2025 SLD UNIT
+
+Licensed under the Business Source License 1.1 (the "License").
+You may not use this file except in compliance with the License.
+You may obtain a copy of the License at:
+https://mariadb.com/bsl11
+
+Licensor: SLD UNIT
+Licensed Work: Futura
+Change Date: 2029-09-10
+Change License: Apache License, Version 2.0
+
+Additional Use Grant:
+The Licensed Work may be used free of charge for non-commercial and research purposes.
+
+On the Change Date, the Licensed Work will be made available under the Change License.
+
+---
+
+Third-Party Components
+
+This project includes code from third-party sources:
+
+- Portions of code from Vercel, Inc., licensed under the Apache License, Version 2.0.
+  Copyright 2024 Vercel, Inc.
+  http://www.apache.org/licenses/LICENSE-2.0

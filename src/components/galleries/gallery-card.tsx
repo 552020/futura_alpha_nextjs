@@ -24,7 +24,6 @@ export function GalleryCard({ gallery, onClick, onEdit, onShare, onDelete }: Gal
       onDelete={onDelete}
       renderPreview={() => (
         <div className="flex flex-col items-center justify-center text-muted-foreground">
-          {/* eslint-disable-next-line jsx-a11y/alt-text */}
           <Image className="h-16 w-16 mb-2" aria-hidden="true" />
           <span className="text-sm">Gallery</span>
         </div>
@@ -36,7 +35,6 @@ export function GalleryCard({ gallery, onClick, onEdit, onShare, onDelete }: Gal
         <>
           {/* Image count icon */}
           <div className="flex-shrink-0">
-            {/* eslint-disable-next-line jsx-a11y/alt-text */}
             <Image className="h-4 w-4" aria-hidden="true" />
           </div>
 

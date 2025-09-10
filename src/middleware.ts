@@ -21,6 +21,11 @@ export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const origin = request.headers.get("origin");
 
+  // Playwright health check endpoint
+  if (pathname.startsWith("/ping")) {
+    return new Response("pong", { status: 200 });
+  }
+
   // Log for /decide paths
   if (pathname.includes("decide")) {
     // console.log("🔥 DECIDE HIT");

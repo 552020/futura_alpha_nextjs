@@ -18,6 +18,8 @@ import { validateNonce, consumeNonce } from "@/lib/ii-nonce";
 // console.log("--------------------------------");
 // console.log("NODE_ENV:", process.env.NODE_ENV);
 
+export type UserType = "user" | "admin" | "superadmin" | "developer";
+
 declare module "next-auth" {
   interface User {
     role?: string;
