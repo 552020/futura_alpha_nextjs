@@ -62,13 +62,7 @@ export function DocumentPreview({ isReadonly, result, args }: DocumentPreviewPro
     }
 
     if (args) {
-      return (
-        <DocumentToolCall
-          type="create"
-          args={{ title: args.title, kind: args.kind }}
-          isReadonly={isReadonly}
-        />
-      );
+      return <DocumentToolCall type="create" args={{ title: args.title, kind: args.kind }} isReadonly={isReadonly} />;
     }
   }
 

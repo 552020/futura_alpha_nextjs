@@ -1,41 +1,29 @@
-import { formatDistance } from 'date-fns';
-import { AnimatePresence, motion } from 'framer-motion';
-import {
-  type Dispatch,
-  memo,
-  type SetStateAction,
-  useCallback,
-  useEffect,
-  useState,
-} from 'react';
-import useSWR, { useSWRConfig } from 'swr';
-import { useDebounceCallback, useWindowSize } from 'usehooks-ts';
-import type { Document, Vote } from '@/db/schema';
-import { fetcher } from '@/lib/utils';
-import { MultimodalInput } from './multimodal-input';
-import { Toolbar } from './toolbar';
-import { VersionFooter } from './version-footer';
-import { ArtifactActions } from './artifact-actions';
-import { ArtifactCloseButton } from './artifact-close-button';
-import { ArtifactMessages } from './artifact-messages';
-import { useSidebar } from '@/components/ui/sidebar';
-import { useArtifact } from '@/hooks/use-artifact';
-import { imageArtifact } from '@/artifacts/image/client';
-import { codeArtifact } from '@/artifacts/code/client';
-import { sheetArtifact } from '@/artifacts/sheet/client';
-import { textArtifact } from '@/artifacts/text/client';
-import equal from 'fast-deep-equal';
-import type { UseChatHelpers } from '@ai-sdk/react';
-import type { VisibilityType } from './visibility-selector';
-import type { Attachment, ChatMessage } from '@/types/ai';
+import { formatDistance } from "date-fns";
+import { AnimatePresence, motion } from "framer-motion";
+import { type Dispatch, memo, type SetStateAction, useCallback, useEffect, useState } from "react";
+import useSWR, { useSWRConfig } from "swr";
+import { useDebounceCallback, useWindowSize } from "usehooks-ts";
+import type { Document, Vote } from "@/db/schema";
+import { fetcher } from "@/lib/utils";
+import { MultimodalInput } from "./multimodal-input";
+import { Toolbar } from "./toolbar";
+import { VersionFooter } from "./version-footer";
+import { ArtifactActions } from "./artifact-actions";
+import { ArtifactCloseButton } from "./artifact-close-button";
+import { ArtifactMessages } from "./artifact-messages";
+import { useSidebar } from "@/components/ui/sidebar";
+import { useArtifact } from "@/hooks/use-artifact";
+import { imageArtifact } from "@/artifacts/image/client";
+import { codeArtifact } from "@/artifacts/code/client";
+import { sheetArtifact } from "@/artifacts/sheet/client";
+import { textArtifact } from "@/artifacts/text/client";
+import equal from "fast-deep-equal";
+import type { UseChatHelpers } from "@ai-sdk/react";
+import type { VisibilityType } from "./visibility-selector";
+import type { Attachment, ChatMessage } from "@/types/ai";
 
-export const artifactDefinitions = [
-  textArtifact,
-  codeArtifact,
-  imageArtifact,
-  sheetArtifact,
-];
-export type ArtifactKind = (typeof artifactDefinitions)[number]['kind'];
+export const artifactDefinitions = [textArtifact, codeArtifact, imageArtifact, sheetArtifact];
+export type ArtifactKind = (typeof artifactDefinitions)[number]["kind"];
 
 export interface UIArtifact {
   title: string;
@@ -43,7 +31,7 @@ export interface UIArtifact {
   kind: ArtifactKind;
   content: string;
   isVisible: boolean;
-  status: 'streaming' | 'idle';
+  status: "streaming" | "idle";
   boundingBox: {
     top: number;
     left: number;
@@ -72,15 +60,15 @@ function PureArtifact({
   chatId: string;
   input: string;
   setInput: Dispatch<SetStateAction<string>>;
-  status: UseChatHelpers<ChatMessage>['status'];
-  stop: UseChatHelpers<ChatMessage>['stop'];
+  status: UseChatHelpers<ChatMessage>["status"];
+  stop: UseChatHelpers<ChatMessage>["stop"];
   attachments: Attachment[];
   setAttachments: Dispatch<SetStateAction<Attachment[]>>;
   messages: ChatMessage[];
-  setMessages: UseChatHelpers<ChatMessage>['setMessages'];
+  setMessages: UseChatHelpers<ChatMessage>["setMessages"];
   votes: Array<Vote> | undefined;
-  sendMessage: UseChatHelpers<ChatMessage>['sendMessage'];
-  regenerate: UseChatHelpers<ChatMessage>['regenerate'];
+  sendMessage: UseChatHelpers<ChatMessage>["sendMessage"];
+  regenerate: UseChatHelpers<ChatMessage>["regenerate"];
   isReadonly: boolean;
   selectedVisibilityType: VisibilityType;
   selectedModelId: string;
@@ -92,13 +80,13 @@ function PureArtifact({
     isLoading: isDocumentsFetching,
     mutate: mutateDocuments,
   } = useSWR<Array<Document>>(
-    artifact.documentId !== 'init' && artifact.status !== 'streaming'
+    artifact.documentId !== "init" && artifact.status !== "streaming"
       ? `/api/document?id=${artifact.documentId}`
       : null,
-    fetcher,
+    fetcher
   );
 
-  const [mode, setMode] = useState<'edit' | 'diff'>('edit');
+  const [mode, setMode] = useState<"edit" | "diff">("edit");
   const [document, setDocument] = useState<Document | null>(null);
   const [currentVersionIndex, setCurrentVersionIndex] = useState(-1);
 
@@ -113,7 +101,7 @@ function PureArtifact({
         setCurrentVersionIndex(documents.length - 1);
         setArtifact((currentArtifact) => ({
           ...currentArtifact,
-          content: mostRecentDocument.content ?? '',
+          content: mostRecentDocument.content ?? "",
         }));
       }
     }
@@ -144,7 +132,7 @@ function PureArtifact({
 
           if (currentDocument.content !== updatedContent) {
             await fetch(`/api/document?id=${artifact.documentId}`, {
-              method: 'POST',
+              method: "POST",
               body: JSON.stringify({
                 title: artifact.title,
                 content: updatedContent,
@@ -164,16 +152,13 @@ function PureArtifact({
           }
           return currentDocuments;
         },
-        { revalidate: false },
+        { revalidate: false }
       );
     },
-    [artifact, mutate],
+    [artifact, mutate]
   );
 
-  const debouncedHandleContentChange = useDebounceCallback(
-    handleContentChange,
-    2000,
-  );
+  const debouncedHandleContentChange = useDebounceCallback(handleContentChange, 2000);
 
   const saveContent = useCallback(
     (updatedContent: string, debounce: boolean) => {
@@ -187,32 +172,32 @@ function PureArtifact({
         }
       }
     },
-    [document, debouncedHandleContentChange, handleContentChange],
+    [document, debouncedHandleContentChange, handleContentChange]
   );
 
   function getDocumentContentById(index: number) {
-    if (!documents) return '';
-    if (!documents[index]) return '';
-    return documents[index].content ?? '';
+    if (!documents) return "";
+    if (!documents[index]) return "";
+    return documents[index].content ?? "";
   }
 
-  const handleVersionChange = (type: 'next' | 'prev' | 'toggle' | 'latest') => {
+  const handleVersionChange = (type: "next" | "prev" | "toggle" | "latest") => {
     if (!documents) return;
 
-    if (type === 'latest') {
+    if (type === "latest") {
       setCurrentVersionIndex(documents.length - 1);
-      setMode('edit');
+      setMode("edit");
     }
 
-    if (type === 'toggle') {
-      setMode((mode) => (mode === 'edit' ? 'diff' : 'edit'));
+    if (type === "toggle") {
+      setMode((mode) => (mode === "edit" ? "diff" : "edit"));
     }
 
-    if (type === 'prev') {
+    if (type === "prev") {
       if (currentVersionIndex > 0) {
         setCurrentVersionIndex((index) => index - 1);
       }
-    } else if (type === 'next') {
+    } else if (type === "next") {
       if (currentVersionIndex < documents.length - 1) {
         setCurrentVersionIndex((index) => index + 1);
       }
@@ -227,24 +212,19 @@ function PureArtifact({
    * we mark it as the current version.
    */
 
-  const isCurrentVersion =
-    documents && documents.length > 0
-      ? currentVersionIndex === documents.length - 1
-      : true;
+  const isCurrentVersion = documents && documents.length > 0 ? currentVersionIndex === documents.length - 1 : true;
 
   const { width: windowWidth, height: windowHeight } = useWindowSize();
   const isMobile = windowWidth ? windowWidth < 768 : false;
 
-  const artifactDefinition = artifactDefinitions.find(
-    (definition) => definition.kind === artifact.kind,
-  );
+  const artifactDefinition = artifactDefinitions.find((definition) => definition.kind === artifact.kind);
 
   if (!artifactDefinition) {
-    throw new Error('Artifact definition not found!');
+    throw new Error("Artifact definition not found!");
   }
 
   useEffect(() => {
-    if (artifact.documentId !== 'init') {
+    if (artifact.documentId !== "init") {
       if (artifactDefinition.initialize) {
         artifactDefinition.initialize({
           documentId: artifact.documentId,
@@ -289,7 +269,7 @@ function PureArtifact({
                 scale: 1,
                 transition: {
                   delay: 0.1,
-                  type: 'spring',
+                  type: "spring",
                   stiffness: 300,
                   damping: 30,
                 },
@@ -373,11 +353,11 @@ function PureArtifact({
                     x: 0,
                     y: 0,
                     height: windowHeight,
-                    width: windowWidth ? windowWidth : 'calc(100dvw)',
+                    width: windowWidth ? windowWidth : "calc(100dvw)",
                     borderRadius: 0,
                     transition: {
                       delay: 0,
-                      type: 'spring',
+                      type: "spring",
                       stiffness: 300,
                       damping: 30,
                       duration: 0.8,
@@ -388,13 +368,11 @@ function PureArtifact({
                     x: 400,
                     y: 0,
                     height: windowHeight,
-                    width: windowWidth
-                      ? windowWidth - 400
-                      : 'calc(100dvw-400px)',
+                    width: windowWidth ? windowWidth - 400 : "calc(100dvw-400px)",
                     borderRadius: 0,
                     transition: {
                       delay: 0,
-                      type: 'spring',
+                      type: "spring",
                       stiffness: 300,
                       damping: 30,
                       duration: 0.8,
@@ -406,7 +384,7 @@ function PureArtifact({
               scale: 0.5,
               transition: {
                 delay: 0.1,
-                type: 'spring',
+                type: "spring",
                 stiffness: 600,
                 damping: 30,
               },
@@ -420,18 +398,12 @@ function PureArtifact({
                   <div className="font-medium">{artifact.title}</div>
 
                   {isContentDirty ? (
-                    <div className="text-muted-foreground text-sm">
-                      Saving changes...
-                    </div>
+                    <div className="text-muted-foreground text-sm">Saving changes...</div>
                   ) : document ? (
                     <div className="text-muted-foreground text-sm">
-                      {`Updated ${formatDistance(
-                        new Date(document.createdAt),
-                        new Date(),
-                        {
-                          addSuffix: true,
-                        },
-                      )}`}
+                      {`Updated ${formatDistance(new Date(document.createdAt), new Date(), {
+                        addSuffix: true,
+                      })}`}
                     </div>
                   ) : (
                     <div className="mt-2 h-3 w-32 animate-pulse rounded-md bg-muted-foreground/20" />
@@ -453,11 +425,7 @@ function PureArtifact({
             <div className="h-full max-w-full! items-center overflow-y-scroll bg-background dark:bg-muted">
               <artifactDefinition.content
                 title={artifact.title}
-                content={
-                  isCurrentVersion
-                    ? artifact.content
-                    : getDocumentContentById(currentVersionIndex)
-                }
+                content={isCurrentVersion ? artifact.content : getDocumentContentById(currentVersionIndex)}
                 mode={mode}
                 status={artifact.status}
                 currentVersionIndex={currentVersionIndex}
@@ -507,8 +475,7 @@ export const Artifact = memo(PureArtifact, (prevProps, nextProps) => {
   if (!equal(prevProps.votes, nextProps.votes)) return false;
   if (prevProps.input !== nextProps.input) return false;
   if (!equal(prevProps.messages, nextProps.messages.length)) return false;
-  if (prevProps.selectedVisibilityType !== nextProps.selectedVisibilityType)
-    return false;
+  if (prevProps.selectedVisibilityType !== nextProps.selectedVisibilityType) return false;
 
   return true;
 });
