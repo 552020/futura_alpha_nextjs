@@ -3,7 +3,7 @@ import { ChatProvider, StreamChunk } from "../providers";
 const DEEPSEEK_BASE = process.env.THETA_CLOUD_BASE_URL ?? "https://ondemand.thetaedgecloud.com";
 const LLAMA_BASE =
   process.env.THETA_LLAMA_BASE_URL ?? "https://llama3170b2oczc2osyg-07554694ea35fad5.tec-s20.onthetaedgecloud.com/v1";
-ythin-const THETA_COMPLETIONS_BASE =
+const THETA_COMPLETIONS_BASE =
   process.env.THETA_COMPLETIONS_BASE_URL ??
   "https://gpunoderunvqeffmrgv7-3960575ead1a184d.tec-s20.onthetaedgecloud.com/v1";
 const TOKEN = process.env.THETA_CLOUD_API_TOKEN!;
