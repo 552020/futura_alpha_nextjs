@@ -6,7 +6,7 @@ import { auth } from "@/auth";
 import Script from "next/script";
 import { DataStreamProvider } from "@/components/chat-ai/data-stream-provider";
 
-export const experimental_ppr = true;
+// export const experimental_ppr = true; // Disabled for deployment compatibility
 
 export default async function Layout({ children }: { children: React.ReactNode }) {
   const [session, cookieStore] = await Promise.all([auth(), cookies()]);

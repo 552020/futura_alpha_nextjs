@@ -41,6 +41,10 @@ if (isLocal && !env.NEXT_PUBLIC_CANISTER_ID_INTERNET_IDENTITY) {
 
 const nextConfig: NextConfig = {
   outputFileTracingRoot: __dirname,
+  experimental: {
+    // Disable PPR for deployment compatibility
+    ppr: false,
+  },
   env: {
     ...env,
     NEXT_PUBLIC_II_URL:
