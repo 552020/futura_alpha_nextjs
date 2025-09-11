@@ -43,7 +43,6 @@ import type { VisibilityType } from "@/components/chat-ai/visibility-selector";
 export const maxDuration = 60;
 export const runtime = "nodejs";
 
-
 // Extract user-facing text from DeepSeek R1 response (strip reasoning)
 function extractUserFacingText(text: string): string {
   if (!text) {
@@ -243,6 +242,7 @@ export async function POST(request: Request) {
             dataStream.write({ type: "text-end", id: textId });
             dataStream.write({ type: "finish" });
           } catch (err) {
+            console.error("demo.chat theta completions error", err);
             const messageId = generateUUID();
             const textId = generateUUID();
             dataStream.write({ type: "start", messageId });

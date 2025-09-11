@@ -257,6 +257,8 @@ type ThetaCompletionRes = {
 // OpenAI-style completions call
 export async function thetaCompletions(req: ThetaCompletionReq): Promise<ThetaCompletionRes> {
   const url = `${THETA_COMPLETIONS_BASE}/completions`;
+  console.log("🧠 Theta completions request:", { url, body: req });
+
   const res = await fetch(url, {
     method: "POST",
     headers: {
@@ -266,8 +268,11 @@ export async function thetaCompletions(req: ThetaCompletionReq): Promise<ThetaCo
     body: JSON.stringify(req),
   });
 
+  console.log("🧠 Theta completions response:", { status: res.status, statusText: res.statusText });
+
   if (!res.ok) {
     const body = await res.text().catch(() => "");
+    console.error("🧠 Theta completions error:", { status: res.status, body });
     throw new Error(`Theta completions error ${res.status}: ${body}`);
   }
   return (await res.json()) as ThetaCompletionRes;
@@ -320,7 +325,6 @@ export async function thetaCompletionsAsChat({
     max_tokens: maxTokens,
     temperature,
     top_p: topP,
-    stream: false,
   });
 
   const text = json.choices?.[0]?.text ?? "";
