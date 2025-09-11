@@ -3,8 +3,8 @@
 import { useMemo } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { unstable_serialize } from "swr/infinite";
-// import { updateChatVisibility } from "@/app/[lang]/(chat)/actions";
-import { updateChatVisibility } from "@/app/[lang]/(chat)/actions";
+// import { updateChatVisibility } from "@/app/[lang]/chat/actions";
+import { updateChatVisibility } from "@/app/[lang]/chat/actions";
 import { getChatHistoryPaginationKey, type ChatHistory } from "@/components/chat-ai/sidebar-history";
 import type { VisibilityType } from "@/components/chat-ai/visibility-selector";
 

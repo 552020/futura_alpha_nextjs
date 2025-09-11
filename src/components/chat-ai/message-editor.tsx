@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { type Dispatch, type SetStateAction, useEffect, useRef, useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
-import { deleteTrailingMessages } from "@/app/[lang]/(chat)/actions";
+import { deleteTrailingMessages } from "@/app/[lang]/chat/actions";
 import type { UseChatHelpers } from "@ai-sdk/react";
 import type { ChatMessage } from "@/types/ai";
 import { getTextFromMessage } from "@/lib/utils";

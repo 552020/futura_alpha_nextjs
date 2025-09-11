@@ -21,7 +21,7 @@ import {
 } from "@/db/queries";
 import { updateChatLastContextById } from "@/db/queries";
 import { convertToUIMessages, generateUUID } from "@/lib/utils";
-import { generateTitleFromUserMessage } from "@/app/[lang]/(chat)/actions";
+import { generateTitleFromUserMessage } from "@/app/[lang]/chat/actions";
 import { createDocument } from "@/lib/ai/tools/create-document";
 import { updateDocument } from "@/lib/ai/tools/update-document";
 import { requestSuggestions } from "@/lib/ai/tools/request-suggestions";

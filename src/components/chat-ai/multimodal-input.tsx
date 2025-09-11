@@ -38,7 +38,7 @@ import { useScrollToBottom } from "@/hooks/use-scroll-to-bottom";
 import type { VisibilityType } from "./visibility-selector";
 import type { Attachment, ChatMessage } from "@/types/ai";
 import { chatModels } from "@/lib/ai/models";
-import { saveChatModelAsCookie } from "@/app/[lang]/(chat)/actions";
+import { saveChatModelAsCookie } from "@/app/[lang]/chat/actions";
 import { startTransition } from "react";
 import { getContextWindow, normalizeUsage } from "tokenlens";
 import { Context } from "./elements/context";
