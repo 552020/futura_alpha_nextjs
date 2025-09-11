@@ -1,6 +1,6 @@
 import ForceClient from "./_force-client";
 
-export default function ChatGroupLayout({ children }: { children: React.ReactNode }) {
+export default function ChatGroupTemplate({ children }: { children: React.ReactNode }) {
   return (
     <>
       <ForceClient />

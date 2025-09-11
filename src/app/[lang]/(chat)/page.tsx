@@ -1,4 +1,4 @@
-import "./_force-client";
+import ForceClient from "./_force-client";
 import { cookies } from "next/headers";
 
 import { Chat } from "@/components/chat-ai/chat";
@@ -40,6 +40,7 @@ export default async function Page() {
 
   return (
     <>
+      <ForceClient />
       <Script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js" strategy="beforeInteractive" />
       <DataStreamProvider>
         <SidebarProvider defaultOpen={!isCollapsed}>
