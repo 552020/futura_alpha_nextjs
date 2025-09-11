@@ -1,4 +1,4 @@
-export const DEFAULT_CHAT_MODEL: string = "llama-3.1-70b";
+export const DEFAULT_CHAT_MODEL: string = "llama-3.1-8b-dreams";
 
 export interface ChatModel {
   id: string;
@@ -12,18 +12,25 @@ export type UiModel = {
   label: string;
   provider: "theta" | "vercel";
   providerModelId: string;
-  kind: "reasoning" | "chat";
+  kind: "reasoning" | "chat" | "completion";
   default?: boolean;
 };
 
 export const MODELS: UiModel[] = [
+  {
+    id: "llama-3.1-8b-dreams",
+    label: "Llama 3.1 8B Dreams (Theta)",
+    provider: "theta",
+    providerModelId: "llama-3.1-8b-dreams",
+    kind: "completion",
+    default: true,
+  },
   {
     id: "llama-3.1-70b",
     label: "Llama 3.1 70B (Theta)",
     provider: "theta",
     providerModelId: "meta-llama/Llama-3.1-70B-Instruct",
     kind: "chat",
-    default: true,
   },
   {
     id: "deepseek-r1",

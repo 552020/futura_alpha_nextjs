@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ChatProvider, StreamChunk } from "../providers";
 import { myProvider } from "../providers";
 
@@ -8,31 +9,28 @@ export const VercelProvider: ChatProvider = {
     const aiMessages = messages.map((msg) => ({
       role: msg.role,
       content: msg.content,
-    }));
+    })) as any;
 
     // Use the existing myProvider for Vercel AI Gateway
-    const languageModel = myProvider.languageModels[model];
-    if (!languageModel) {
-      throw new Error(`Model ${model} not found in Vercel provider`);
-    }
+    const languageModel = myProvider.languageModel(model);
 
     if (!stream) {
       // Non-streaming response
-      const result = await languageModel.doGenerate({
+      const result = (await languageModel.doGenerate({
         inputFormat: "messages",
         mode: { type: "regular" },
         prompt: aiMessages,
         maxTokens,
         temperature,
         topP,
-      });
+      } as any)) as any;
 
       return new Response(
         JSON.stringify({
           choices: [
             {
               message: {
-                content: result.text,
+                content: result.text || result.content?.[0]?.text || "",
                 role: "assistant",
               },
             },
@@ -47,14 +45,14 @@ export const VercelProvider: ChatProvider = {
     // Streaming response
     async function* streamChunks(): AsyncGenerator<StreamChunk> {
       try {
-        const result = await languageModel.doStream({
+        const result = (await languageModel.doStream({
           inputFormat: "messages",
           mode: { type: "regular" },
           prompt: aiMessages,
           maxTokens,
           temperature,
           topP,
-        });
+        } as any)) as any;
 
         for await (const chunk of result.textStream) {
           yield { type: "delta", data: chunk };

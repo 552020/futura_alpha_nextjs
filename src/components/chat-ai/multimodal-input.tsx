@@ -180,7 +180,7 @@ function PureMultimodalInput({
     try {
       // Resolve only for models known to the Vercel provider map.
       return myProvider.languageModel(selectedModelId);
-    } catch (error) {
+    } catch {
       // For models not registered in myProvider (e.g., Theta models),
       // provide a minimal shim with a stable modelId to avoid runtime errors.
       console.warn("Model not found in myProvider, using shim:", selectedModelId);

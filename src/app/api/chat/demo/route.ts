@@ -30,6 +30,7 @@ import { getWeather } from "@/lib/ai/tools/get-weather";
 import { isProductionEnvironment } from "@/lib/constants";
 import { getProviderForModel } from "@/lib/ai/provider-factory";
 import { pickModel } from "@/lib/ai/models";
+import { thetaCompletionsAsChat } from "@/lib/ai/providers/theta";
 import { myProvider } from "@/lib/ai/providers";
 import { entitlementsByUserType } from "@/lib/ai/entitlements";
 import { postRequestBodySchema, type PostRequestBody } from "../schema";
@@ -42,16 +43,6 @@ import type { VisibilityType } from "@/components/chat-ai/visibility-selector";
 export const maxDuration = 60;
 export const runtime = "nodejs";
 
-// Extract text from Theta JSON response
-function extractThetaTextFromJson(obj: unknown): string {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const out = (obj as any)?.body?.infer_requests?.[0]?.output ?? {};
-  if (typeof out.message === "string") return out.message;
-  if (typeof out.content === "string") return out.content;
-  if (typeof out.completion === "string") return out.completion;
-  if (typeof out.text === "string") return out.text;
-  return "";
-}
 
 // Extract user-facing text from DeepSeek R1 response (strip reasoning)
 function extractUserFacingText(text: string): string {
@@ -233,7 +224,40 @@ export async function POST(request: Request) {
         ];
 
         // Use provider-specific streaming
-        if (provider.name === "theta") {
+        if (provider.name === "theta" && model.kind === "completion") {
+          // Handle completion models (dream interpretation)
+          try {
+            const { text } = await thetaCompletionsAsChat({
+              model: model.providerModelId,
+              messages: providerMessages,
+              maxTokens: 300,
+              temperature: 0.7,
+              topP: 0.9,
+            });
+
+            const messageId = generateUUID();
+            const textId = generateUUID();
+            dataStream.write({ type: "start", messageId });
+            dataStream.write({ type: "text-start", id: textId });
+            dataStream.write({ type: "text-delta", id: textId, delta: text || "(no text returned)" });
+            dataStream.write({ type: "text-end", id: textId });
+            dataStream.write({ type: "finish" });
+          } catch (err) {
+            const messageId = generateUUID();
+            const textId = generateUUID();
+            dataStream.write({ type: "start", messageId });
+            dataStream.write({ type: "text-start", id: textId });
+            dataStream.write({
+              type: "text-delta",
+              id: textId,
+              delta: `Theta /v1/completions failed: ${err instanceof Error ? err.message : String(err)}`,
+            });
+            dataStream.write({ type: "text-end", id: textId });
+            dataStream.write({ type: "finish" });
+          }
+          return;
+        } else if (provider.name === "theta") {
+          // Handle chat/reasoning models (existing logic)
           try {
             // 1) Call Theta provider (returns AsyncGenerator)
             const generator = await provider.chat({
@@ -250,7 +274,7 @@ export async function POST(request: Request) {
             let hasStarted = false;
             let fullText = "";
 
-            for await (const chunk of generator) {
+            for await (const chunk of generator as AsyncGenerator<{ type: string; data?: string }, unknown, unknown>) {
               if (chunk.type === "delta" && chunk.data) {
                 if (!hasStarted) {
                   dataStream.write({ type: "start", messageId });
@@ -287,7 +311,7 @@ export async function POST(request: Request) {
               delta: "Theta request failed. " + (err instanceof Error ? err.message : String(err)),
             });
             dataStream.write({ type: "text-end", id: textId });
-            dataStream.write({ type: "error", error: err instanceof Error ? err.message : String(err) });
+            dataStream.write({ type: "error", errorText: err instanceof Error ? err.message : String(err) });
           } finally {
             dataStream.write({ type: "finish" });
           }

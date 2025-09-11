@@ -35,7 +35,6 @@ import { createResumableStreamContext, type ResumableStreamContext } from "resum
 import { after } from "next/server";
 import { ChatSDKError } from "@/lib/errors";
 import type { ChatMessage } from "@/types/ai";
-import type { ChatModel } from "@/lib/ai/models";
 import type { VisibilityType } from "@/components/chat-ai/visibility-selector";
 
 export const maxDuration = 60;

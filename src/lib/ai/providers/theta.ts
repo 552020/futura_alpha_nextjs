@@ -3,6 +3,9 @@ import { ChatProvider, StreamChunk } from "../providers";
 const DEEPSEEK_BASE = process.env.THETA_CLOUD_BASE_URL ?? "https://ondemand.thetaedgecloud.com";
 const LLAMA_BASE =
   process.env.THETA_LLAMA_BASE_URL ?? "https://llama3170b2oczc2osyg-07554694ea35fad5.tec-s20.onthetaedgecloud.com/v1";
+const THETA_COMPLETIONS_BASE =
+  process.env.THETA_COMPLETIONS_BASE_URL ??
+  "https://gpunoderunvqeffmrgv7-3960575ead1a184d.tec-s20.onthetaedgecloud.com/v1";
 const TOKEN = process.env.THETA_CLOUD_API_TOKEN!;
 const FORCE_NON_STREAM = process.env.THETA_FORCE_NON_STREAM?.toString() !== "0"; // default ON
 
@@ -19,11 +22,13 @@ function getEndpointForModel(model: string): { baseUrl: string; endpoint: string
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function pick<T = any>(o: any, path: string): T | undefined {
   return path.split(".").reduce((v, k) => v?.[k] ?? undefined, o);
 }
 
 // For non-stream and final objects
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function extractThetaText(obj: any): string {
   // Standard OpenAI format: response.choices[0].message.content
   const choice = obj?.choices?.[0];
@@ -31,7 +36,7 @@ function extractThetaText(obj: any): string {
 
   // Theta on-demand common shape seen in your logs:
   // { status: "success", body: { infer_requests: [ { output: { message, reasoning? ... } } ] } }
-  const out = pick(obj, "body.infer_requests.0.output") as any;
+  const out = pick(obj, "body.infer_requests.0.output");
   if (out) {
     // message may be string or array of segments
     if (typeof out.message === "string") return out.message;
@@ -55,9 +60,10 @@ function extractThetaText(obj: any): string {
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function extractThetaReasoning(obj: any): string {
   // Prefer explicit reasoning if present
-  const out = pick(obj, "body.infer_requests.0.output") as any;
+  const out = pick(obj, "body.infer_requests.0.output");
   if (out?.reasoning) {
     if (typeof out.reasoning === "string") return out.reasoning;
     if (Array.isArray(out.reasoning)) return out.reasoning.join("");
@@ -67,6 +73,7 @@ function extractThetaReasoning(obj: any): string {
 }
 
 // For streamed chunks (payload per SSE/JSONL "data:" line)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function extractThetaDeltaFromChunk(obj: any): string {
   // If Theta streams tokens as { token: "t" } or { data: { token: "t" } }
   if (typeof obj?.token === "string") return obj.token;
@@ -156,6 +163,7 @@ export const ThetaProvider: ChatProvider = {
               if (!s.startsWith("data:")) continue;
               const payload = s.slice(5).trim();
               if (!payload || payload === "[DONE]") continue;
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               let obj: any;
               try {
                 obj = JSON.parse(payload);
@@ -186,6 +194,7 @@ export const ThetaProvider: ChatProvider = {
           for (const line of lines) {
             const s = line.trim();
             if (!s) continue;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             let obj: any;
             try {
               obj = JSON.parse(s);
@@ -227,3 +236,93 @@ export const ThetaProvider: ChatProvider = {
     return gen();
   },
 };
+
+// New: OpenAI-style completions types and functions
+type ThetaCompletionReq = {
+  model: string;
+  prompt: string;
+  max_tokens?: number;
+  temperature?: number;
+  top_p?: number;
+  stream?: boolean;
+};
+
+type ThetaCompletionRes = {
+  id?: string;
+  model?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  choices: Array<{ text: string; index: number; logprobs?: any; finish_reason?: string }>;
+};
+
+// OpenAI-style completions call
+export async function thetaCompletions(req: ThetaCompletionReq): Promise<ThetaCompletionRes> {
+  const url = `${THETA_COMPLETIONS_BASE}/completions`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      // No authentication required for this endpoint
+    },
+    body: JSON.stringify(req),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Theta completions error ${res.status}: ${body}`);
+  }
+  return (await res.json()) as ThetaCompletionRes;
+}
+
+// Helper to get models list from the box
+export async function thetaCompletionsModels(): Promise<string[]> {
+  const url = `${THETA_COMPLETIONS_BASE}/models`;
+  const res = await fetch(url, {
+    headers: {
+      "Content-Type": "application/json",
+      // No authentication required for this endpoint
+    },
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Theta /v1/models error ${res.status}: ${body}`);
+  }
+  const json = (await res.json()) as { data?: Array<{ id: string }> } | Array<{ id: string }>;
+  const list = Array.isArray(json) ? json : json.data ?? [];
+  return list.map((m) => m.id);
+}
+
+// Wrapper to present /v1/completions as "chat" for the UI
+export async function thetaCompletionsAsChat({
+  model,
+  messages,
+  maxTokens = 512,
+  temperature = 0.7,
+  topP = 0.9,
+}: {
+  model: string;
+  messages: Array<{ role: "system" | "user" | "assistant"; content: string }>;
+  maxTokens?: number;
+  temperature?: number;
+  topP?: number;
+}) {
+  // Simple prompt synthesis: take the latest user turn + optional system preface.
+  const sys = messages.find((m) => m.role === "system")?.content?.trim();
+  const lastUser =
+    [...messages]
+      .reverse()
+      .find((m) => m.role === "user")
+      ?.content?.trim() ?? "";
+  const prompt = sys ? `${sys}\n\nUser: ${lastUser}\nAssistant:` : lastUser;
+
+  const json = await thetaCompletions({
+    model,
+    prompt,
+    max_tokens: maxTokens,
+    temperature,
+    top_p: topP,
+    stream: false,
+  });
+
+  const text = json.choices?.[0]?.text ?? "";
+  return { text };
+}
