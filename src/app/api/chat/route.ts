@@ -49,10 +49,10 @@ export function getStreamContext() {
         waitUntil: after,
       });
     } catch (error: unknown) {
-      if (error instanceof Error && error.message.includes("REDIS_URL")) {
-        console.log(" > Resumable streams are disabled due to missing REDIS_URL");
+      if (error instanceof Error && (error.message.includes("REDIS_URL") || error.message.includes("Invalid URL"))) {
+        console.log(" > Resumable streams are disabled due to Redis configuration issue");
       } else {
-        console.error(error);
+        console.error("Redis connection error:", error);
       }
     }
   }
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
     }: {
       id: string;
       message: ChatMessage;
-      selectedChatModel: ChatModel["id"];
+      selectedChatModel: string;
       selectedVisibilityType: VisibilityType;
     } = requestBody;
 

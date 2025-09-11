@@ -14,7 +14,7 @@ export const entitlementsByUserType: Record<UserType, Entitlements> = {
    */
   temporary: {
     maxMessagesPerDay: 20,
-    availableChatModelIds: ["chat-model", "chat-model-reasoning"],
+    availableChatModelIds: ["chat-model", "chat-model-reasoning", "llama-3.1-70b", "deepseek-r1"],
   },
 
   /*
@@ -22,7 +22,7 @@ export const entitlementsByUserType: Record<UserType, Entitlements> = {
    */
   user: {
     maxMessagesPerDay: 100,
-    availableChatModelIds: ["chat-model", "chat-model-reasoning"],
+    availableChatModelIds: ["chat-model", "chat-model-reasoning", "llama-3.1-70b", "deepseek-r1"],
   },
 
   /*

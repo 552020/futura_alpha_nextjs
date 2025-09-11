@@ -2,6 +2,27 @@ import { customProvider, extractReasoningMiddleware, wrapLanguageModel } from "a
 import { gateway } from "@ai-sdk/gateway";
 import { isTestEnvironment } from "../constants";
 
+// Provider abstraction types
+export type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
+export type StreamChunk = { type: "delta" | "final" | "reasoning" | "error"; data: string };
+
+export interface ChatProvider {
+  name: "vercel" | "theta";
+  chat(opts: {
+    model: string;
+    messages: ChatMessage[];
+    stream?: boolean;
+    maxTokens?: number;
+    temperature?: number;
+    topP?: number;
+    signal?: AbortSignal;
+  }): Promise<Response | AsyncGenerator<StreamChunk>>;
+}
+
+export function currentProviderName() {
+  return (process.env.AI_PROVIDER ?? "vercel") as "vercel" | "theta";
+}
+
 export const myProvider = isTestEnvironment
   ? (() => {
       const {

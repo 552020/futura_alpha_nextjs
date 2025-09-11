@@ -1,6 +1,5 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { generateId } from "ai";
 import { formatISO } from "date-fns";
 import type { DBMessage } from "@/db/schema";
 import type { ChatMessage, CustomUIDataTypes, ChatTools } from "@/types/ai";
@@ -15,7 +14,11 @@ export function cn(...inputs: ClassValue[]) {
  * Uses the AI SDK's generateId function for consistency
  */
 export function generateUUID(): string {
-  return generateId();
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
 }
 
 /**

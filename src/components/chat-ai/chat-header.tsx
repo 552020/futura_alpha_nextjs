@@ -10,16 +10,22 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { memo } from "react";
 import { type VisibilityType, VisibilitySelector } from "./visibility-selector";
 import type { Session } from "next-auth";
+import { ModelSelector } from "./model-selector";
 
 function PureChatHeader({
   chatId,
   selectedVisibilityType,
   isReadonly,
+  session,
+  selectedModelId,
+  onModelChange,
 }: {
   chatId: string;
   selectedVisibilityType: VisibilityType;
   isReadonly: boolean;
   session: Session;
+  selectedModelId: string;
+  onModelChange: (id: string) => void;
 }) {
   const router = useRouter();
   const { open } = useSidebar();
@@ -51,6 +57,16 @@ function PureChatHeader({
           className="order-1 md:order-2"
         />
       )}
+
+      {/* Model selector on the right */}
+      {!isReadonly && (
+        <ModelSelector
+          session={session}
+          selectedModelId={selectedModelId}
+          onModelChange={onModelChange}
+          className="order-3 ml-auto"
+        />
+      )}
     </header>
   );
 }
@@ -59,6 +75,7 @@ export const ChatHeader = memo(PureChatHeader, (prevProps, nextProps) => {
   return (
     prevProps.chatId === nextProps.chatId &&
     prevProps.selectedVisibilityType === nextProps.selectedVisibilityType &&
-    prevProps.isReadonly === nextProps.isReadonly
+    prevProps.isReadonly === nextProps.isReadonly &&
+    prevProps.selectedModelId === nextProps.selectedModelId
   );
 });

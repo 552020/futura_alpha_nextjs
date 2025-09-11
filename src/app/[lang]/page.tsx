@@ -18,7 +18,7 @@ type PageProps = {
 };
 
 const DEFAULT_SEGMENT = "family";
-const BLOCK_JAM = true; // Hardcoded flag for chatbot integration
+const BLOCK_JAM_DEMO = true; // Hardcoded flag for demo mode
 
 export default async function LangPage({ params }: PageProps) {
   // Resolve the params promise
@@ -43,7 +43,7 @@ export default async function LangPage({ params }: PageProps) {
   const showVault = heroMode === "vault";
 
   // If block-jam flag is true, render Chat component instead of marketing content
-  if (BLOCK_JAM) {
+  if (BLOCK_JAM_DEMO) {
     const id = generateUUID();
     const modelIdFromCookie = cookieStore.get("chat-model");
 
@@ -72,6 +72,7 @@ export default async function LangPage({ params }: PageProps) {
                 isReadonly={false}
                 session={mockSession}
                 autoResume={false}
+                demoMode={BLOCK_JAM_DEMO}
               />
               <DataStreamHandler />
             </SidebarInset>

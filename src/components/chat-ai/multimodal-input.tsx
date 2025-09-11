@@ -177,13 +177,25 @@ function PureMultimodalInput({
   };
 
   const modelResolver = useMemo(() => {
-    return myProvider.languageModel(selectedModelId);
+    try {
+      // Resolve only for models known to the Vercel provider map.
+      return myProvider.languageModel(selectedModelId);
+    } catch (error) {
+      // For models not registered in myProvider (e.g., Theta models),
+      // provide a minimal shim with a stable modelId to avoid runtime errors.
+      console.warn("Model not found in myProvider, using shim:", selectedModelId);
+      return { modelId: selectedModelId } as { modelId: string };
+    }
   }, [selectedModelId]);
 
   const contextMax = useMemo(() => {
-    // Resolve from selected model; stable across chunks.
-    const cw = getContextWindow(modelResolver.modelId);
-    return cw.combinedMax ?? cw.inputMax ?? 0;
+    // Resolve token window if known; otherwise default to 0 (unknown).
+    try {
+      const cw = getContextWindow(modelResolver.modelId);
+      return cw.combinedMax ?? cw.inputMax ?? 0;
+    } catch {
+      return 0;
+    }
   }, [modelResolver]);
 
   const usedTokens = useMemo(() => {
