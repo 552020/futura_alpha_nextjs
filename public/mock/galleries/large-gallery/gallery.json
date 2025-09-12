@@ -1,8 +1,0 @@
-{
-  "name": "large-gallery",
-  "description": "Large gallery for performance testing",
-  "imageCount":       50,
-  "aspectRatio": "mixed",
-  "format": "webp",
-  "createdAt": "2025-08-25T08:54:57Z"
-}

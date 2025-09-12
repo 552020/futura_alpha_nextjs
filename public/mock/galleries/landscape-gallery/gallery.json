@@ -1,8 +1,0 @@
-{
-  "name": "landscape-gallery",
-  "description": "Landscape-only gallery for testing horizontal layouts",
-  "imageCount":       15,
-  "aspectRatio": "landscape",
-  "format": "webp",
-  "createdAt": "2025-08-25T08:54:45Z"
-}

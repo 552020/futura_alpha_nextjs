@@ -1,8 +1,0 @@
-{
-  "name": "mixed-gallery",
-  "description": "Mixed aspect ratios for realistic testing",
-  "imageCount":       20,
-  "aspectRatio": "mixed",
-  "format": "webp",
-  "createdAt": "2025-08-25T08:54:47Z"
-}

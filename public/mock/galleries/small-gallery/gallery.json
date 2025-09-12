@@ -1,8 +1,0 @@
-{
-  "name": "small-gallery",
-  "description": "Small gallery for quick loading tests",
-  "imageCount":        5,
-  "aspectRatio": "mixed",
-  "format": "webp",
-  "createdAt": "2025-08-25T08:54:52Z"
-}
