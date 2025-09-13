@@ -95,11 +95,11 @@ function Hero({ dict, lang }: HeroProps) {
               //   style={{ fontSize: `calc(147vw / ${(dict?.hero?.title || "Futura").length})` }}
               style={{
                 fontSize: `calc(73.5vw / ${
-                  (dict?.hero?.title || "Kotti Motti").length
+                  (dict?.hero?.title || "Futura").length
                 })`,
               }}
             >
-              {dict?.hero?.title || "Kotti Motti"}
+              {dict?.hero?.title || "Futura"}
             </h1>
           </div>
 
@@ -108,10 +108,10 @@ function Hero({ dict, lang }: HeroProps) {
             <p
               className="font-normal text-foreground"
               style={{
-                fontSize: `calc(80vw / ${"Kotti&apos;s Insta".length})`,
+                fontSize: `calc(80vw / ${"Live forever. Now.".length})`,
               }}
             >
-              Kotti&apos;s Insta
+              Live forever. Now.
             </p>
           </div>
         </div>

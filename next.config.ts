@@ -14,6 +14,10 @@ if (fs.existsSync(ICP_ENV_PATH)) {
   dotenv.config({ path: ICP_ENV_PATH });
 }
 
+if (fs.existsSync(ICP_ENV_PATH)) {
+  dotenv.config({ path: ICP_ENV_PATH });
+}
+
 // Transform CANISTER_ and DFX_ variables to NEXT_PUBLIC_ for browser access
 const ICP_PREFIXES = ["CANISTER_", "DFX_"];
 
@@ -28,12 +32,19 @@ const passthroughEntries = Object.entries(process.env)
   .map(([key, val]) => [key, String(val ?? "")]);
 
 // Process ICP environment variables for Next.js
-const env: Record<string, string> = Object.fromEntries([...passthroughEntries, ...publicEnvEntries]);
+const env: Record<string, string> = Object.fromEntries([
+  ...passthroughEntries,
+  ...publicEnvEntries,
+]);
 
-const POSTHOG_INGEST_DOMAIN = process.env.NEXT_PUBLIC_POSTHOG_INGEST || "https://eu.i.posthog.com";
-const POSTHOG_ASSETS_DOMAIN = process.env.NEXT_PUBLIC_POSTHOG_ASSETS || "https://eu-assets.i.posthog.com";
+const POSTHOG_INGEST_DOMAIN =
+  process.env.NEXT_PUBLIC_POSTHOG_INGEST || "https://eu.i.posthog.com";
+const POSTHOG_ASSETS_DOMAIN =
+  process.env.NEXT_PUBLIC_POSTHOG_ASSETS || "https://eu-assets.i.posthog.com";
 
-const isLocal = process.env.NEXT_PUBLIC_DFX_NETWORK === "local" || process.env.NODE_ENV !== "production";
+const isLocal =
+  process.env.NEXT_PUBLIC_DFX_NETWORK === "local" ||
+  process.env.NODE_ENV !== "production";
 
 if (isLocal && !env.NEXT_PUBLIC_CANISTER_ID_INTERNET_IDENTITY) {
   console.warn("Missing NEXT_PUBLIC_CANISTER_ID_INTERNET_IDENTITY");
@@ -45,7 +56,9 @@ const nextConfig: NextConfig = {
     ...env,
     NEXT_PUBLIC_II_URL:
       env.NEXT_PUBLIC_CANISTER_ID_INTERNET_IDENTITY &&
-      (isLocal ? `http://${env.NEXT_PUBLIC_CANISTER_ID_INTERNET_IDENTITY}.localhost:4943/` : "https://id.ai"),
+      (isLocal
+        ? `http://${env.NEXT_PUBLIC_CANISTER_ID_INTERNET_IDENTITY}.localhost:4943/`
+        : "https://id.ai"),
   },
   webpack: (config) => {
     config.resolve.alias = {
