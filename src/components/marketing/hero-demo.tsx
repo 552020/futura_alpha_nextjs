@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Dictionary } from "@/utils/dictionaries";
 import { validateTranslations } from "@/components/utils/translation-validation";
+import { isKOTTIMOTTI } from "@/utils/project-config";
 
 interface HeroProps {
   dict: Dictionary;
@@ -61,8 +62,12 @@ function HeroTitle({
 }
 
 function Hero({ dict, lang }: HeroProps) {
+  // Get project-specific hero content
+  const isKottiMotti = isKOTTIMOTTI();
+  const heroContent = isKottiMotti ? dict?.hero_kottimotti : dict?.hero;
+
   // Validate translations using the helper function
-  validateTranslations(dict, lang, "hero");
+  validateTranslations(dict, lang, isKottiMotti ? "hero_kottimotti" : "hero");
 
   // Controls for mobile overlay typography (adjust to taste)
   const TITLE_VW = 73.5; // base vw numerator for title
@@ -92,14 +97,14 @@ function Hero({ dict, lang }: HeroProps) {
           <div className="pt-32 lg:pt-0">
             <h1
               className="font-black font-bold leading-none text-foreground"
-              //   style={{ fontSize: `calc(147vw / ${(dict?.hero?.title || "Futura").length})` }}
+              //   style={{ fontSize: `calc(147vw / ${(heroContent?.title || "Futura").length})` }}
               style={{
                 fontSize: `calc(73.5vw / ${
-                  (dict?.hero?.title || "Futura").length
+                  (heroContent?.title || "Futura").length
                 })`,
               }}
             >
-              {dict?.hero?.title || "Futura"}
+              {heroContent?.title || "Futura"}
             </h1>
           </div>
 
@@ -108,10 +113,12 @@ function Hero({ dict, lang }: HeroProps) {
             <p
               className="font-normal text-foreground"
               style={{
-                fontSize: `calc(80vw / ${"Live forever. Now.".length})`,
+                fontSize: `calc(80vw / ${
+                  (heroContent?.subtitle || "Live forever. Now.").length
+                })`,
               }}
             >
-              Live forever. Now.
+              {heroContent?.subtitle || "Live forever. Now."}
             </p>
           </div>
         </div>
@@ -139,9 +146,9 @@ function Hero({ dict, lang }: HeroProps) {
                 }}
               >
                 <HeroTitle
-                  text={dict?.hero?.title || "Futura"}
+                  text={heroContent?.title || "Futura"}
                   fontSize={`calc(${(TITLE_VW * TITLE_SCALE).toFixed(1)}vw / ${
-                    (dict?.hero?.title || "Futura").length
+                    (heroContent?.title || "Futura").length
                   })`}
                   //   variant={TITLE_VARIANT}
                   //   variant="transform-overflow"
@@ -153,10 +160,12 @@ function Hero({ dict, lang }: HeroProps) {
                   style={{
                     fontSize: `calc(${(SUBTITLE_VW * SUBTITLE_SCALE).toFixed(
                       1
-                    )}vw / ${"Kotti&apos;s Insta".length})`,
+                    )}vw / ${
+                      (heroContent?.subtitle || "Kotti's Insta").length
+                    })`,
                   }}
                 >
-                  Kotti&apos;s Insta
+                  {heroContent?.subtitle || "Kotti's Insta"}
                 </p>
               </div>
             </div>
@@ -207,13 +216,13 @@ function Hero({ dict, lang }: HeroProps) {
                     className="font-black text-white leading-none w-full"
                     style={{ fontSize: "clamp(4rem, 9vw, 14rem)" }}
                   >
-                    Futura
+                    {heroContent?.title || "Futura"}
                   </div>
                   <div
                     className="mt-2 text-white/90 w-full"
                     style={{ fontSize: "clamp(2rem, 3vw, 6rem)" }}
                   >
-                    Kotti&apos;s Insta
+                    {heroContent?.subtitle || "Kotti's Insta"}
                   </div>
                 </div>
               </div>
@@ -232,9 +241,9 @@ function Hero({ dict, lang }: HeroProps) {
             href={`/${lang}/onboarding/items-upload`}
             className="relative w-24 h-24 rounded-full flex items-center justify-center cursor-pointer text-neutral-900 border-2 border-transparent transition-all text-4xl font-bold"
             style={{ backgroundColor: CTA_BG_COLOR }}
-            aria-label={dict?.hero?.startNow || "Start Now"}
+            aria-label={heroContent?.startHere || "Start Here"}
           >
-            {dict?.hero?.arrowSymbol || "→"}
+            {heroContent?.arrowSymbol || "→"}
           </Link>
         </div>
       </div>
