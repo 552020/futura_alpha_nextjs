@@ -108,10 +108,10 @@ function Hero({ dict, lang }: HeroProps) {
             <p
               className="font-normal text-foreground"
               style={{
-                fontSize: `calc(80vw / ${"Kotti's Insta .".length})`,
+                fontSize: `calc(80vw / ${"Kotti&apos;s Insta".length})`,
               }}
             >
-              Kotti's Insta .
+              Kotti&apos;s Insta
             </p>
           </div>
         </div>
@@ -153,10 +153,10 @@ function Hero({ dict, lang }: HeroProps) {
                   style={{
                     fontSize: `calc(${(SUBTITLE_VW * SUBTITLE_SCALE).toFixed(
                       1
-                    )}vw / ${"Kotti's Insta .".length})`,
+                    )}vw / ${"Kotti&apos;s Insta".length})`,
                   }}
                 >
-                  Kotti's Insta .
+                  Kotti&apos;s Insta
                 </p>
               </div>
             </div>
@@ -213,7 +213,7 @@ function Hero({ dict, lang }: HeroProps) {
                     className="mt-2 text-white/90 w-full"
                     style={{ fontSize: "clamp(2rem, 3vw, 6rem)" }}
                   >
-                    Kotti's Insta .
+                    Kotti&apos;s Insta
                   </div>
                 </div>
               </div>
