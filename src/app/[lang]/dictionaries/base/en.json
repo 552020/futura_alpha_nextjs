@@ -21,11 +21,13 @@
     "feed": "Feed"
   },
   "navigation": {
-    "vault": "Vault",
+    "dashboard": "Dashboard",
+    "gallery": "Galleries",
     "feed": "Feed",
     "shared": "Shared",
     "contacts": "Contacts",
-    "profile": "Profile"
+    "profile": "Profile",
+    "icp": "ICP"
   },
   "footer": {
     "tagline": "Made with ❤️ between Berlin, Marseille and Lisbon",

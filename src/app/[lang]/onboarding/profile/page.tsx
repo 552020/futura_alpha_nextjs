@@ -1,6 +1,6 @@
 "use client";
 
-import { Profile } from "@/components/profile";
+import { Profile } from "@/components/user/profile";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 

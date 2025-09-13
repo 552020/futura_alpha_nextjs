@@ -21,11 +21,13 @@
     "feed": "Feed"
   },
   "navigation": {
-    "vault": "Tresor",
+    "dashboard": "Dashboard",
+    "gallery": "Galerien",
     "feed": "Feed",
     "shared": "Geteilt",
     "contacts": "Kontakte",
-    "profile": "Profil"
+    "profile": "Profil",
+    "icp": "ICP"
   },
   "footer": {
     "tagline": "Mit ❤️ zwischen Berlin, Marseille und Lissabon gemacht",

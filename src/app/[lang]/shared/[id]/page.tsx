@@ -3,7 +3,7 @@ import { db } from "@/db/db";
 import { memoryShares, allUsers } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { findMemory } from "@/app/api/memories/utils/memory";
-import { MemoryViewer } from "@/components/memory-viewer";
+import { MemoryViewer } from "@/components/memory/memory-viewer";
 import { Card } from "@/components/ui/card";
 import { auth } from "@/auth";
 

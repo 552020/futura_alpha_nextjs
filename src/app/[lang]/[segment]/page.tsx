@@ -1,6 +1,6 @@
 // app/[lang]/[segment]/page.tsx
-import Hero from "@/components/hero";
-import ValueJourney from "@/components/value-journey";
+import Hero from "@/components/marketing/hero";
+import ValueJourney from "@/components/marketing/value-journey";
 import { getDictionary } from "@/utils/dictionaries";
 import { notFound } from "next/navigation";
 // Remove the import for the server action

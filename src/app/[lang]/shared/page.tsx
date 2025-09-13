@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, use } from "react";
-import { MemoryGrid } from "@/components/memory/MemoryGrid";
+import { MemoryGrid } from "@/components/memory/memory-grid";
 import { Loader2 } from "lucide-react";
 import { useInView } from "react-intersection-observer";
 import { useAuthGuard } from "@/utils/authentication";
@@ -9,12 +9,13 @@ import { normalizeMemories } from "@/utils/normalizeMemories";
 import { Memory } from "@/types/memory";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
+import RequireAuth from "@/components/auth/require-auth";
 
 export default function SharedMemoriesPage({ params }: { params: Promise<{ lang: string }> }) {
   // Unwrap params using React.use()
   const { lang } = use(params);
 
-  const { isAuthorized, isTemporaryUser, userId, redirectToSignIn, isLoading } = useAuthGuard();
+  const { isAuthorized, isTemporaryUser, userId, isLoading } = useAuthGuard();
   const router = useRouter();
   const { toast } = useToast();
   const [memories, setMemories] = useState<
@@ -85,11 +86,7 @@ export default function SharedMemoriesPage({ params }: { params: Promise<{ lang:
     }
   }, [currentPage, toast]);
 
-  useEffect(() => {
-    if (!isAuthorized) {
-      redirectToSignIn();
-    }
-  }, [isAuthorized, redirectToSignIn]);
+  // Removed automatic redirect - now handled by RequireAuth component in render
 
   useEffect(() => {
     if (isAuthorized && userId) {
@@ -112,17 +109,34 @@ export default function SharedMemoriesPage({ params }: { params: Promise<{ lang:
 
   const handleDelete = async (id: string) => {
     try {
-      const response = await fetch(`/api/memories/${id}`, {
-        method: "DELETE",
-      });
+      // Check if this is a folder item
+      if (id.startsWith("folder-")) {
+        const folderName = id.replace("folder-", "");
+        const response = await fetch(`/api/memories?folder=${encodeURIComponent(folderName)}`, {
+          method: "DELETE",
+        });
 
-      if (!response.ok) throw new Error("Failed to delete memory");
+        if (!response.ok) throw new Error("Failed to delete folder");
 
-      setMemories((prev) => prev.filter((memory) => memory.id !== id));
-      toast({
-        title: "Success",
-        description: "Memory deleted successfully.",
-      });
+        setMemories((prev) => prev.filter((memory) => memory.id !== id));
+        toast({
+          title: "Success",
+          description: `Folder "${folderName}" and all its contents deleted successfully.`,
+        });
+      } else {
+        // Handle individual memory deletion
+        const response = await fetch(`/api/memories/${id}`, {
+          method: "DELETE",
+        });
+
+        if (!response.ok) throw new Error("Failed to delete memory");
+
+        setMemories((prev) => prev.filter((memory) => memory.id !== id));
+        toast({
+          title: "Success",
+          description: "Memory deleted successfully.",
+        });
+      }
     } catch (error) {
       console.error("Error deleting memory:", error);
       toast({
@@ -143,11 +157,17 @@ export default function SharedMemoriesPage({ params }: { params: Promise<{ lang:
   };
 
   if (!isAuthorized || isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
+    // Show loading spinner only while status is loading
+    if (isLoading) {
+      return (
+        <div className="flex h-screen items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      );
+    }
+
+    // Show access denied for unauthenticated users
+    return <RequireAuth />;
   }
 
   return (

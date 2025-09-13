@@ -1,0 +1,377 @@
+type AccessEvent = variant {
+  CapsuleMaturity : nat32;
+  Graduation;
+  AfterDeath;
+  Wedding;
+  Birthday : nat32;
+  Custom : text;
+  ConnectionCount : nat32;
+  Anniversary : nat32;
+};
+type AudioMetadata = record {
+  duration : opt nat32;
+  base : MemoryMetadataBase;
+  channels : opt nat8;
+  sample_rate : opt nat32;
+  bitrate : opt nat32;
+  format : opt text;
+};
+type BlobRef = record {
+  len : nat64;
+  locator : text;
+  hash : opt blob;
+  kind : MemoryBlobKind;
+};
+type CanisterSizeStats = record {
+  remaining_capacity_bytes : nat64;
+  max_size_bytes : nat64;
+  total_size_bytes : nat64;
+  usage_percentage : float64;
+};
+type Capsule = record {
+  id : text;
+  updated_at : nat64;
+  controllers : vec record { PersonRef; ControllerState };
+  subject : PersonRef;
+  owners : vec record { PersonRef; OwnerState };
+  inline_bytes_used : nat64;
+  created_at : nat64;
+  connection_groups : vec record { text; ConnectionGroup };
+  connections : vec record { PersonRef; Connection };
+  memories : vec record { text; Memory };
+  bound_to_neon : bool;
+  galleries : vec record { text; Gallery };
+};
+type CapsuleHeader = record {
+  id : text;
+  updated_at : nat64;
+  subject : PersonRef;
+  owner_count : nat32;
+  created_at : nat64;
+  controller_count : nat32;
+  memory_count : nat32;
+};
+type CapsuleInfo = record {
+  updated_at : nat64;
+  gallery_count : nat32;
+  subject : PersonRef;
+  capsule_id : text;
+  is_owner : bool;
+  created_at : nat64;
+  bound_to_neon : bool;
+  memory_count : nat32;
+  connection_count : nat32;
+  is_self_capsule : bool;
+  is_controller : bool;
+};
+type CapsuleUpdateData = record { bound_to_neon : opt bool };
+type Connection = record {
+  status : ConnectionStatus;
+  updated_at : nat64;
+  peer : PersonRef;
+  created_at : nat64;
+};
+type ConnectionGroup = record {
+  id : text;
+  updated_at : nat64;
+  members : vec PersonRef;
+  name : text;
+  description : opt text;
+  created_at : nat64;
+};
+type ConnectionStatus = variant { Blocked; Accepted; Revoked; Pending };
+type ControllerState = record { granted_at : nat64; granted_by : PersonRef };
+type CreationStatus = variant {
+  Importing;
+  Creating;
+  Failed;
+  Exporting;
+  Installing;
+  Completed;
+  Verifying;
+  NotStarted;
+};
+type CreationStatusResponse = record {
+  status : CreationStatus;
+  canister_id : opt principal;
+  message : opt text;
+};
+type DetailedCreationStatus = record {
+  status : CreationStatus;
+  progress_message : text;
+  canister_id : opt principal;
+  error_message : opt text;
+  created_at : nat64;
+  cycles_consumed : nat;
+  completed_at : opt nat64;
+};
+type DocumentMetadata = record { base : MemoryMetadataBase };
+type Error = variant {
+  Internal : text;
+  NotFound;
+  Unauthorized;
+  InvalidArgument : text;
+  ResourceExhausted;
+  Conflict : text;
+};
+type Gallery = record {
+  id : text;
+  is_public : bool;
+  title : text;
+  updated_at : nat64;
+  storage_location : GalleryStorageLocation;
+  memory_entries : vec GalleryMemoryEntry;
+  description : opt text;
+  created_at : nat64;
+  bound_to_neon : bool;
+  owner_principal : principal;
+};
+type GalleryData = record { owner_principal : principal; gallery : Gallery };
+type GalleryHeader = record {
+  id : text;
+  updated_at : nat64;
+  storage_location : GalleryStorageLocation;
+  name : text;
+  created_at : nat64;
+  memory_count : nat32;
+};
+type GalleryMemoryEntry = record {
+  memory_id : text;
+  is_featured : bool;
+  position : nat32;
+  gallery_metadata : text;
+  gallery_caption : opt text;
+};
+type GallerySizeInfo = record {
+  is_over_limit : bool;
+  gallery_id : text;
+  memory_entries_count : nat32;
+  total_size : nat64;
+  estimated_memory_entries_size : nat64;
+  over_limit_by : nat64;
+};
+type GalleryStorageLocation = variant {
+  Web2Only;
+  Failed;
+  Both;
+  Migrating;
+  ICPOnly;
+};
+type GalleryUpdateData = record {
+  is_public : opt bool;
+  title : opt text;
+  memory_entries : opt vec GalleryMemoryEntry;
+  description : opt text;
+};
+type ImageMetadata = record {
+  base : MemoryMetadataBase;
+  dimensions : opt record { nat32; nat32 };
+};
+type Memory = record {
+  id : text;
+  access : MemoryAccess;
+  metadata : MemoryMetadata;
+  data : MemoryData;
+  info : MemoryInfo;
+  idempotency_key : opt text;
+};
+type MemoryAccess = variant {
+  Private;
+  Custom : record { groups : vec text; individuals : vec PersonRef };
+  EventTriggered : record {
+    access : MemoryAccess;
+    trigger_event : AccessEvent;
+  };
+  Public;
+  Scheduled : record { access : MemoryAccess; accessible_after : nat64 };
+};
+type MemoryBlobKind = variant { MemoryBlobKindExternal; ICPCapsule };
+type MemoryData = variant {
+  BlobRef : record { "blob" : BlobRef; meta : MemoryMeta };
+  Inline : record { meta : MemoryMeta; bytes : blob };
+};
+type MemoryHeader = record {
+  id : text;
+  access : MemoryAccess;
+  updated_at : nat64;
+  memory_type : MemoryType;
+  name : text;
+  size : nat64;
+  created_at : nat64;
+};
+type MemoryInfo = record {
+  updated_at : nat64;
+  date_of_memory : opt nat64;
+  memory_type : MemoryType;
+  name : text;
+  content_type : text;
+  created_at : nat64;
+  uploaded_at : nat64;
+};
+type MemoryListResponse = record {
+  memories : vec MemoryHeader;
+  message : text;
+  success : bool;
+};
+type MemoryMeta = record {
+  name : text;
+  tags : vec text;
+  description : opt text;
+};
+type MemoryMetadata = variant {
+  Note : NoteMetadata;
+  Image : ImageMetadata;
+  Document : DocumentMetadata;
+  Audio : AudioMetadata;
+  Video : VideoMetadata;
+};
+type MemoryMetadataBase = record {
+  date_of_memory : opt text;
+  size : nat64;
+  people_in_memory : opt vec text;
+  mime_type : text;
+  bound_to_neon : bool;
+  original_name : text;
+  uploaded_at : text;
+  format : opt text;
+};
+type MemoryOperationResponse = record {
+  memory_id : opt text;
+  message : text;
+  success : bool;
+};
+type MemoryPresenceResult = record {
+  metadata_present : bool;
+  memory_id : text;
+  asset_present : bool;
+};
+type MemoryType = variant { Note; Image; Document; Audio; Video };
+type MemoryUpdateData = record {
+  access : opt MemoryAccess;
+  metadata : opt MemoryMetadata;
+  name : opt text;
+};
+type NoteMetadata = record { base : MemoryMetadataBase; tags : opt vec text };
+type OwnerState = record { last_activity_at : nat64; since : nat64 };
+type PersonRef = variant { Opaque : text; Principal : principal };
+type PersonalCanisterCreationResponse = record {
+  canister_id : opt principal;
+  message : text;
+  success : bool;
+};
+type PersonalCanisterCreationStats = record {
+  total_successes : nat64;
+  total_failures : nat64;
+  total_attempts : nat64;
+  total_cycles_consumed : nat;
+};
+type ResourceType = variant { Memory; Capsule; Gallery };
+type Result = variant { Ok; Err : Error };
+type Result_1 = variant { Ok : Capsule; Err : Error };
+type Result_10 = variant { Ok : Memory; Err : Error };
+type Result_11 = variant { Ok : nat64; Err : Error };
+type Result_12 = variant { Ok : principal; Err : Error };
+type Result_2 = variant { Ok : CapsuleInfo; Err : Error };
+type Result_3 = variant { Ok : bool; Err : Error };
+type Result_4 = variant { Ok : text; Err : Error };
+type Result_5 = variant { Ok : Gallery; Err : Error };
+type Result_6 = variant {
+  Ok : vec record { principal; DetailedCreationStatus };
+  Err : Error;
+};
+type Result_7 = variant { Ok : PersonalCanisterCreationStats; Err : Error };
+type Result_8 = variant { Ok : opt DetailedCreationStatus; Err : Error };
+type Result_9 = variant { Ok : vec MemoryPresenceResult; Err : Error };
+type UploadConfig = record {
+  inline_max : nat32;
+  chunk_size : nat32;
+  inline_budget_per_capsule : nat32;
+};
+type VideoMetadata = record {
+  height : opt nat32;
+  duration : opt nat32;
+  thumbnail : opt text;
+  base : MemoryMetadataBase;
+  width : opt nat32;
+};
+service : {
+  add_admin : (principal) -> (Result);
+  // Calculate gallery size when stored in capsule context
+  calculate_gallery_capsule_size : (Gallery) -> (nat64) query;
+  // Calculate just the gallery size (without capsule overhead)
+  calculate_gallery_size : (Gallery) -> (nat64) query;
+  capsules_bind_neon : (ResourceType, text, bool) -> (Result);
+  capsules_create : (opt PersonRef) -> (Result_1);
+  capsules_delete : (text) -> (Result);
+  capsules_list : () -> (vec CapsuleHeader) query;
+  capsules_read_basic : (opt text) -> (Result_2) query;
+  capsules_read_full : (opt text) -> (Result_1) query;
+  capsules_update : (text, CapsuleUpdateData) -> (Result_1);
+  // Emergency function to clear all stable memory data
+  // WARNING: This will delete all stored data and should only be used for recovery
+  clear_all_stable_memory : () -> (Result);
+  clear_creation_state : (principal) -> (Result_3);
+  clear_migration_state : (principal) -> (Result_3);
+  create_personal_canister : () -> (PersonalCanisterCreationResponse);
+  // Debug endpoint to finish upload with hex hash (dev only)
+  debug_finish_hex : (nat64, text, nat64) -> (Result_4);
+  // Debug endpoint to upload chunk with base64 data (dev only)
+  debug_put_chunk_b64 : (nat64, nat32, text) -> (Result);
+  // Debug endpoint to compute SHA256 hash of provided bytes
+  debug_sha256 : (blob) -> (text) query;
+  galleries_create : (GalleryData) -> (Result_5);
+  galleries_create_with_memories : (GalleryData, bool) -> (Result_5);
+  galleries_delete : (text) -> (Result);
+  galleries_list : () -> (vec GalleryHeader) query;
+  galleries_read : (text) -> (Result_5) query;
+  galleries_update : (text, GalleryUpdateData) -> (Result_5);
+  get_canister_size_stats : () -> (CanisterSizeStats) query;
+  get_creation_states_by_status : (CreationStatus) -> (Result_6) query;
+  get_creation_status : () -> (opt CreationStatusResponse) query;
+  get_detailed_creation_status : () -> (opt DetailedCreationStatus) query;
+  get_detailed_migration_status : () -> (opt DetailedCreationStatus) query;
+  // Get detailed gallery size breakdown
+  get_gallery_size_breakdown : (Gallery) -> (GallerySizeInfo) query;
+  // Get gallery size information for debugging stable memory limits
+  get_gallery_size_info : (Gallery) -> (text) query;
+  get_migration_states_by_status : (CreationStatus) -> (Result_6) query;
+  get_migration_stats : () -> (Result_7) query;
+  get_migration_status : () -> (opt CreationStatusResponse) query;
+  get_my_personal_canister_id : () -> (opt principal) query;
+  get_personal_canister_creation_stats : () -> (Result_7) query;
+  get_personal_canister_id : (principal) -> (opt principal) query;
+  get_user_creation_status : (principal) -> (Result_8) query;
+  get_user_migration_status : (principal) -> (Result_8) query;
+  greet : (text) -> (text) query;
+  is_migration_enabled : () -> (Result_3) query;
+  is_personal_canister_creation_enabled : () -> (Result_3) query;
+  list_admins : () -> (vec principal) query;
+  list_all_creation_states : () -> (Result_6) query;
+  list_all_migration_states : () -> (Result_6) query;
+  list_superadmins : () -> (vec principal) query;
+  memories_create : (text, MemoryData, text) -> (Result_4);
+  memories_delete : (text) -> (MemoryOperationResponse);
+  memories_list : (text) -> (MemoryListResponse) query;
+  // Check presence for multiple memories on ICP (consolidated from get_memory_presence_icp and get_memory_list_presence_icp)
+  memories_ping : (vec text) -> (Result_9) query;
+  memories_read : (text) -> (Result_10) query;
+  memories_update : (text, MemoryUpdateData) -> (MemoryOperationResponse);
+  migrate_capsule : () -> (PersonalCanisterCreationResponse);
+  register_with_nonce : (text) -> (Result);
+  remove_admin : (principal) -> (Result);
+  set_migration_enabled : (bool) -> (Result);
+  set_personal_canister_creation_enabled : (bool) -> (Result);
+  update_gallery_storage_location : (text, GalleryStorageLocation) -> (Result);
+  // Get upload configuration for TypeScript client discoverability
+  upload_config : () -> (UploadConfig) query;
+  // Abort upload session and cleanup
+  uploads_abort : (nat64) -> (Result);
+  // Begin chunked upload for large files
+  uploads_begin : (text, MemoryMeta, nat32, text) -> (Result_11);
+  // Commit chunks to create final memory
+  uploads_finish : (nat64, blob, nat64) -> (Result_4);
+  // Upload a chunk for an active session
+  uploads_put_chunk : (nat64, nat32, blob) -> (Result);
+  verify_nonce : (text) -> (Result_12) query;
+  whoami : () -> (principal) query;
+}

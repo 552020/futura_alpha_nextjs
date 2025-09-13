@@ -1,0 +1,2 @@
+# This file ensures the mock directory structure is preserved in git
+# while all other contents are ignored

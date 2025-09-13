@@ -44,11 +44,13 @@ export type BaseDictionary = {
     feed?: string;
   };
   navigation?: {
-    vault?: string;
+    dashboard?: string;
+    gallery?: string;
     feed?: string;
     shared?: string;
     contacts?: string;
     profile?: string;
+    icp?: string;
   };
   footer?: {
     tagline?: string;
@@ -173,6 +175,10 @@ export type OnboardingDictionary = {
           title?: string;
           subtitle?: string;
         };
+        "wedding-memory"?: {
+          title?: string;
+          subtitle?: string;
+        };
       };
     };
   };
@@ -193,6 +199,7 @@ export type Dictionary = BaseDictionary &
         "preserve-your-digital-legacy": { title: string; subtitle: string };
         "digital-time-capsule": { title: string; subtitle: string };
         "pass-to-the-future": { title: string; subtitle: string };
+        "wedding-memory": { title: string; subtitle: string };
       };
     };
   } & {

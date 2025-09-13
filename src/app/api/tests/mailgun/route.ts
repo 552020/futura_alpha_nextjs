@@ -16,16 +16,11 @@ const FROM_EMAIL = process.env.FROM_EMAIL || `hello@${DOMAIN}`;
 export async function POST(request: NextRequest) {
   const session = await auth();
 
-  console.log("--------------------------------");
-  console.log("Current session role:", session?.user?.role);
-  console.log("Current session user:", session?.user);
-  console.log("--------------------------------");
-
   // Check if user is admin or dev
   //   if (!session?.user?.role || !["admin", "developer", "superadmin"].includes(session.user.role)) {
   if (!session?.user.role || !["admin", "developer", "superadmin"].includes(session.user.role)) {
-    console.log("Current session role:", session?.user?.role);
-    console.log("Current session user:", session?.user);
+    // console.log("Current session role:", session?.user?.role);
+    // console.log("Current session user:", session?.user);
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

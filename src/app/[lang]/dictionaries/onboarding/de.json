@@ -28,6 +28,10 @@
       "pass-to-the-future": {
         "title": "Was möchtest du der Zukunft hinterlassen?",
         "subtitle": "Wähle eine kostbare Erinnerung, die du mit deinen Liebsten teilen möchtest."
+      },
+      "wedding-memory": {
+        "title": "Lade dein Album hoch oder wähle das eine Foto, das wir am meisten lieben",
+        "subtitle": "Oder wähle das eine Foto, das wir am meisten lieben"
       }
     }
   }

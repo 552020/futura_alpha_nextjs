@@ -60,7 +60,7 @@ export function UserInfoStep({
   const validateEmail = (email: string) => {
     const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
     const isValid = emailRegex.test(email);
-    console.log("Email validation:", { email, isValid });
+    // console.log("Email validation:", { email, isValid });
     return isValid;
   };
 
@@ -72,7 +72,7 @@ export function UserInfoStep({
 
   const handleEventBasedEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
-    console.log("Email changed:", newValue);
+    // console.log("Email changed:", newValue);
     setLocalEmail(newValue);
     updateUserData({ email: newValue });
   };
@@ -86,12 +86,12 @@ export function UserInfoStep({
 
   // Add debug log for button state
   const isNextDisabled = collectEmail && !validateEmail(localEmail);
-  console.log("Button state:", {
-    collectEmail,
-    localEmail,
-    isValid: validateEmail(localEmail),
-    isNextDisabled,
-  });
+  // console.log("Button state:", {
+  //   collectEmail,
+  //   localEmail,
+  //   isValid: validateEmail(localEmail),
+  //   isNextDisabled,
+  // });
 
   return (
     // <StepContainer title="Tell us about yourself" description="Help us personalize your experience">
@@ -113,6 +113,11 @@ export function UserInfoStep({
         {!withImage && (
           <div className="pt-4">
             <p className="text-5xl font-bold">How should we call you?</p>
+            {userData.uploadedFileCount && userData.uploadedFileCount > 1 && (
+              <p className="text-sm text-muted-foreground mt-2">
+                Great! You&apos;ve uploaded {userData.uploadedFileCount} files.
+              </p>
+            )}
             <p className="text-sm text-muted-foreground italic mt-3">
               We need at least your name to let you retrieve your memory for the case you don&apos;t want to sign in.
             </p>

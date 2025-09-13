@@ -3,9 +3,9 @@ import { storeInDatabase, uploadFileToStorage, validateFile, isAcceptedMimeType,
 import { createTemporaryUserBase } from "../../../utils";
 
 export async function POST(request: NextRequest) {
-  console.log("🚀 Starting onboarding file upload process...");
+  // console.log("🚀 Starting onboarding file upload process...");
   try {
-    console.log("📦 Parsing form data...");
+    // console.log("📦 Parsing form data...");
     const formData = await request.formData();
     const file = formData.get("file") as File;
 
@@ -14,11 +14,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing file" }, { status: 400 });
     }
 
-    console.log("📄 File details:", {
-      name: file.name,
-      type: file.type,
-      size: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
-    });
+    // console.log("📄 File details:", {
+    //   name: file.name,
+    //   type: file.type,
+    //   size: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
+    // });
 
     if (!isAcceptedMimeType(file.type)) {
       return NextResponse.json({ error: "Invalid file type" }, { status: 400 });
@@ -27,16 +27,16 @@ export async function POST(request: NextRequest) {
     // Validate file
     let validationResult;
     try {
-      console.log("🔍 Starting file validation...");
+      // console.log("🔍 Starting file validation...");
       validationResult = await validateFile(file);
       if (!validationResult.isValid) {
         console.error("❌ File validation failed:", validationResult.error);
         return NextResponse.json({ error: validationResult.error }, { status: 400 });
       }
-      console.log("✅ File validation successful:", {
-        type: file.type,
-        size: file.size,
-      });
+      // console.log("✅ File validation successful:", {
+      //   type: file.type,
+      //   size: file.size,
+      // });
     } catch (validationError) {
       console.error("❌ Validation error:", validationError);
       return NextResponse.json(
@@ -52,9 +52,9 @@ export async function POST(request: NextRequest) {
     // Upload file to storage
     let url;
     try {
-      console.log("📤 Starting file upload to storage...");
+      // console.log("📤 Starting file upload to storage...");
       url = await uploadFileToStorage(file, validationResult.buffer);
-      console.log("✅ File uploaded successfully to:", url);
+      // console.log("✅ File uploaded successfully to:", url);
     } catch (uploadError) {
       console.error("❌ Upload error:", uploadError);
       return NextResponse.json(
@@ -67,14 +67,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create temporary user
-    console.log("👤 Creating temporary user...");
-    const { allUser } = await createTemporaryUserBase("inviter");
-    console.log("✅ Temporary user created:", { userId: allUser.id });
+    // Create temporary user or use existing one
+    let allUser;
+    const existingUserId = formData.get("existingUserId") as string;
+
+    if (existingUserId) {
+      // console.log("👤 Using existing user:", existingUserId);
+      // TODO: Fetch existing user from database
+      allUser = { id: existingUserId };
+    } else {
+      // console.log("👤 Creating temporary user...");
+      const result = await createTemporaryUserBase("inviter");
+      allUser = result.allUser;
+      // console.log("✅ Temporary user created:", { userId: allUser.id });
+    }
 
     // Store in database
     try {
-      console.log("💾 Storing file metadata in database...");
+      // console.log("💾 Storing file metadata in database...");
       const result = await storeInDatabase({
         type: getMemoryType(file.type),
         ownerId: allUser.id,
@@ -87,7 +97,7 @@ export async function POST(request: NextRequest) {
           mimeType: file.type,
         },
       });
-      console.log("✅ File metadata stored successfully");
+      // console.log("✅ File metadata stored successfully");
 
       return NextResponse.json({
         ...result,

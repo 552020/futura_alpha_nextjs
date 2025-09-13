@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
 
 // Add these constants at the top of the file
 const ONBOARDING_STATE_KEY = "onboarding_state";
@@ -37,6 +37,7 @@ interface OnboardingContextType {
     allUserId?: string;
     isTemporary: boolean;
     memoryId?: string;
+    uploadedFileCount?: number;
   };
   updateUserData: (data: Partial<OnboardingContextType["userData"]>) => void;
   clearOnboardingState: () => void;
@@ -58,6 +59,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     isTemporary: true,
     allUserId: undefined as string | undefined,
     memoryId: undefined as string | undefined,
+    uploadedFileCount: undefined as number | undefined,
   });
 
   // Load state from localStorage on mount
@@ -100,51 +102,40 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   }, [currentStep, userData, onboardingStatus]);
 
   // Update user data - using functional update pattern
-  const updateUserData = (update: Partial<typeof userData> | ((prev: typeof userData) => Partial<typeof userData>)) => {
-    console.log("Updating userData:", typeof update === "function" ? "function" : update);
-    setUserData((prev) => ({
-      ...prev,
-      ...(typeof update === "function" ? update(prev) : update),
-    }));
-  };
+  const updateUserData = useCallback(
+    (update: Partial<typeof userData> | ((prev: typeof userData) => Partial<typeof userData>)) => {
+      setUserData((prev) => ({
+        ...prev,
+        ...(typeof update === "function" ? update(prev) : update),
+      }));
+    },
+    []
+  );
 
   // Add a file
-  const addFile = (file: TempFile) => {
-    console.log("📥 Adding file to context:", {
-      file,
-      currentFiles: files,
-    });
+  const addFile = useCallback((file: TempFile) => {
     setFiles((prev) => {
       const newFiles = [...prev, file];
-      console.log("📦 Updated files in context:", newFiles);
       return newFiles;
     });
-  };
+  }, []);
 
   // Remove a file by URL
-  const removeFile = (url: string) => {
-    console.log("🗑️ Removing file from context:", {
-      url,
-      currentFiles: files,
-    });
+  const removeFile = useCallback((url: string) => {
     // Revoke the object URL to prevent memory leaks
     URL.revokeObjectURL(url);
     setFiles((prev) => {
       const newFiles = prev.filter((f) => f.url !== url);
-      console.log("📦 Updated files in context after removal:", newFiles);
       return newFiles;
     });
-  };
+  }, []);
 
   // Clear all files
-  const clearFiles = () => {
-    console.log("🧹 Clearing all files from context:", {
-      currentFiles: files,
-    });
+  const clearFiles = useCallback(() => {
     // Revoke all object URLs
     files.forEach((file) => URL.revokeObjectURL(file.url));
     setFiles([]);
-  };
+  }, [files]);
 
   // Clear onboarding state
   const clearOnboardingState = () => {

@@ -16,7 +16,7 @@ export function useAuthGuard() {
 
   const redirectToSignIn = () => {
     if (!isLoading && !isAuthenticated && !isTemporaryUser) {
-      router.push(`/${lang}/auth/signin`);
+      router.push(`/${lang}/signin`);
     }
   };
 

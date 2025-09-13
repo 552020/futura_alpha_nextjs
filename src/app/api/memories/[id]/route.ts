@@ -202,6 +202,8 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
           .returning();
         return NextResponse.json({ success: true, data: updated });
       }
+      default:
+        return NextResponse.json({ error: `Unsupported memory type: ${memory.type}` }, { status: 400 });
     }
   } catch (error) {
     console.error("Error updating memory:", error);

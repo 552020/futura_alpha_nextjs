@@ -1,13 +1,13 @@
 import { seedTenenbaum } from "./fixtures/tenenbaum";
 
-async function main() {
-  console.log("🌱 Starting database seeding...");
+export async function seed() {
+  // console.log("🌱 Starting database seeding...");
 
   try {
     // Seed Tenenbaum family data
     await seedTenenbaum();
 
-    console.log("✅ Database seeding completed successfully");
+    // console.log("✅ Database seeding completed successfully");
     process.exit(0);
   } catch (error) {
     console.error("❌ Error seeding database:", error);
@@ -16,4 +16,4 @@ async function main() {
 }
 
 // Run the seed function
-main();
+seed();

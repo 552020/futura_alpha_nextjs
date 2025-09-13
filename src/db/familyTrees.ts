@@ -41,8 +41,8 @@ export async function findCommonAncestor(userAId: string, userBId: string) {
 export async function resolveFuzzyRelationship(userAId: string, userBId: string) {
   const ancestorData = await findCommonAncestor(userAId, userBId);
   if (!ancestorData) {
-    console.log(`No common ancestor found for ${userAId} and ${userBId}`);
-    return;
+    // console.log(`No common ancestor found for ${userAId} and ${userBId}`);
+    return null;
   }
 
   const { commonAncestor, totalDepth } = ancestorData;
@@ -59,5 +59,5 @@ export async function resolveFuzzyRelationship(userAId: string, userBId: string)
     )
   `);
 
-  console.log(`Updated relationship between ${userAId} and ${userBId} to ${newFamilyRole}`);
+  // console.log(`Updated relationship between ${userAId} and ${userBId} to ${newFamilyRole}`);
 }

@@ -28,6 +28,10 @@
       "pass-to-the-future": {
         "title": "What Will You Pass to the Future?",
         "subtitle": "Choose one precious memory to share with your loved ones."
+      },
+      "wedding-memory": {
+        "title": "Upload your album or pick the one shot you love the most",
+        "subtitle": "Or pick that one shot you love the most"
       }
     }
   }

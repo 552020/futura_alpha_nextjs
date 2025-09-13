@@ -36,7 +36,7 @@ async function createTestUsers() {
       }),
     ]);
 
-    console.log("✅ Test users created successfully");
+    // console.log("✅ Test users created successfully");
   } catch (error) {
     console.error("❌ Error creating test users:", error);
   }

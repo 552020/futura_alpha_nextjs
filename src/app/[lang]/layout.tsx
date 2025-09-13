@@ -1,18 +1,21 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeProvider } from "@/components/providers/theme-provider";
 import { SessionProvider } from "next-auth/react";
-import Header from "@/components/header";
+import Header from "@/components/layout/header";
 import { InterfaceProvider } from "@/contexts/interface-context";
 import { locales } from "@/middleware";
 import { notFound } from "next/navigation";
 import { getDictionary, Dictionary } from "@/utils/dictionaries";
-import { PostHogProvider } from "@/components/posthog-provider";
-import BottomNav from "@/components/bottom-nav";
-import Sidebar from "@/components/sidebar";
+import { PostHogProvider } from "@/components/utils/posthog-provider";
+import BottomNav from "@/components/layout/bottom-nav";
+import Sidebar from "@/components/layout/sidebar";
 import { OnboardingProvider } from "@/contexts/onboarding-context";
 import { Analytics } from "@vercel/analytics/react";
+import { Toaster } from "@/components/ui/toaster";
+import Footer from "@/components/layout/footer";
+import { QueryProvider } from "@/components/providers/query-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -83,24 +86,28 @@ export default async function RootLayout({
   return (
     <html lang={lang} suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <SessionProvider basePath="/api/auth">
-          <PostHogProvider>
-            <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-              <InterfaceProvider>
-                <OnboardingProvider>
-                  <div className="relative flex min-h-screen flex-col">
-                    <Header dict={dict} lang={resolvedParams.lang} />
-                    <BottomNav dict={dict} />
-                    <div className="flex flex-1">
-                      <Sidebar dict={dict} />
-                      <main className="flex-1">{children}</main>
+        <QueryProvider>
+          <SessionProvider basePath="/api/auth">
+            <PostHogProvider>
+              <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+                <InterfaceProvider>
+                  <OnboardingProvider>
+                    <div className="relative flex min-h-screen flex-col">
+                      <Header dict={dict} lang={resolvedParams.lang} />
+                      <BottomNav dict={dict} />
+                      <div className="flex flex-1">
+                        <Sidebar dict={dict} />
+                        <main className="flex-1">{children}</main>
+                      </div>
                     </div>
-                  </div>
-                </OnboardingProvider>
-              </InterfaceProvider>
-            </ThemeProvider>
-          </PostHogProvider>
-        </SessionProvider>
+                    <Footer dict={dict} lang={lang} />
+                    <Toaster />
+                  </OnboardingProvider>
+                </InterfaceProvider>
+              </ThemeProvider>
+            </PostHogProvider>
+          </SessionProvider>
+        </QueryProvider>
         <Analytics />
       </body>
     </html>

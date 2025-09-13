@@ -117,7 +117,7 @@ export const sendEmail = async ({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const response = await mg.messages.create(DOMAIN, data as any);
 
-    console.log(`Email sent to ${Array.isArray(to) ? to.join(", ") : to} with subject: ${subject}`);
+    // console.log(`Email sent to ${Array.isArray(to) ? to.join(", ") : to} with subject: ${subject}`);
     return response;
   } catch (error) {
     console.error("Mailgun Error:", error);
