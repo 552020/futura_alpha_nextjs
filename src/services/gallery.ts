@@ -23,7 +23,11 @@ export const trackGalleryEvent = (
   event: string,
   _properties: Record<string, unknown> = {}
 ) => {
-  // console.log("Gallery Analytics:", { event, properties: _properties, timestamp: new Date().toISOString() });
+  console.log("Gallery Analytics:", {
+    event,
+    properties: _properties,
+    timestamp: new Date().toISOString(),
+  });
   // TODO: Implement actual analytics tracking
   // This could send data to PostHog, Google Analytics, or other analytics services
 };
