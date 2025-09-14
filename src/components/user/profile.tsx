@@ -16,7 +16,7 @@ interface ProfileProps {
 
 export function Profile({ isOnboarding = false }: ProfileProps) {
   const { files, currentStep } = useOnboarding();
-  const { isLoading, fileInputRef, handleUploadClick, handleFileChange } = useFileUpload({
+  const { isLoading, fileInputRef, handleUploadClick, handleFileUpload } = useFileUpload({
     isOnboarding,
   });
 
@@ -77,7 +77,7 @@ export function Profile({ isOnboarding = false }: ProfileProps) {
       )}
 
       {/* Hidden file input */}
-      <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" multiple={false} />
+      <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" multiple={false} />
 
       {/* Action Buttons */}
       <div className="flex justify-center gap-4 mt-8">

@@ -239,7 +239,7 @@ export function useFileUpload({ isOnboarding = false, mode = "folder", onSuccess
     }
   };
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (mode == "folder") {
       const files = event.target.files;
       if (!files) return;
@@ -368,5 +368,5 @@ export function useFileUpload({ isOnboarding = false, mode = "folder", onSuccess
     }
   };
 
-  return { isLoading, fileInputRef, handleUploadClick, handleFileChange };
+  return { isLoading, fileInputRef, handleUploadClick, handleFileUpload };
 }
