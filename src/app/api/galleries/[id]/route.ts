@@ -2,7 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/db/db";
 import { eq, and, inArray } from "drizzle-orm";
-import { galleries, allUsers, galleryShares, galleryItems, images, videos, documents, notes, audio } from "@/db/schema";
+import {
+  galleries,
+  allUsers,
+  galleryShares,
+  galleryItems,
+  images,
+  videos,
+  documents,
+  notes,
+  audio,
+} from "@/db/schema";
 import { addStorageStatusToGallery } from "../utils";
 
 // Helper function to check if user has access to a memory, considering gallery override
@@ -112,7 +122,10 @@ async function checkMemoryAccess(
   return false;
 }
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   const { id } = await params;
   // Check authentication
   const session = await auth();
@@ -128,7 +141,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     if (!allUserRecord) {
       console.error("No allUsers record found for user:", session.user.id);
-      return NextResponse.json({ error: "User record not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "User record not found" },
+        { status: 404 }
+      );
     }
 
     const galleryId = id;
@@ -143,7 +159,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // First check if user owns the gallery
     const ownedGallery = await db.query.galleries.findFirst({
-      where: and(eq(galleries.id, galleryId), eq(galleries.ownerId, allUserRecord.id)),
+      where: and(
+        eq(galleries.id, galleryId),
+        eq(galleries.ownerId, allUserRecord.id)
+      ),
     });
 
     let accessibleGallery = null;
@@ -197,7 +216,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     // Filter items based on memory access
     const accessibleItems = [];
     for (const item of galleryItemsList) {
-      const hasAccess = await checkMemoryAccess(item.memoryId, item.memoryType, allUserRecord.id, galleryId);
+      const hasAccess = await checkMemoryAccess(
+        item.memoryId,
+        item.memoryType,
+        allUserRecord.id,
+        galleryId
+      );
       if (hasAccess) {
         accessibleItems.push(item);
       }
@@ -253,15 +277,22 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             memory,
           });
         } else {
-          console.warn(`Memory not found for item: ${item.memoryId} (type: ${item.memoryType})`);
+          console.warn(
+            `Memory not found for item: ${item.memoryId} (type: ${item.memoryType})`
+          );
         }
       } catch (itemError) {
-        console.error(`Error fetching memory for item ${item.memoryId}:`, itemError);
+        console.error(
+          `Error fetching memory for item ${item.memoryId}:`,
+          itemError
+        );
       }
     }
 
     // Add storage status to the gallery
-    const galleryWithStorageStatus = await addStorageStatusToGallery(accessibleGallery);
+    const galleryWithStorageStatus = await addStorageStatusToGallery(
+      accessibleGallery
+    );
 
     // Create the gallery with items in the expected format
     const galleryWithItems = {
@@ -286,11 +317,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       message: error instanceof Error ? error.message : "Unknown error",
       stack: error instanceof Error ? error.stack : undefined,
     });
-    return NextResponse.json({ error: "Failed to fetch gallery" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch gallery" },
+      { status: 500 }
+    );
   }
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   const { id } = await params;
   // Check authentication
   const session = await auth();
@@ -306,7 +343,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     if (!allUserRecord) {
       console.error("No allUsers record found for user:", session.user.id);
-      return NextResponse.json({ error: "User record not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "User record not found" },
+        { status: 404 }
+      );
     }
 
     const galleryId = id;
@@ -315,7 +355,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     // Check if gallery exists and user owns it
     const existingGallery = await db.query.galleries.findFirst({
-      where: and(eq(galleries.id, galleryId), eq(galleries.ownerId, allUserRecord.id)),
+      where: and(
+        eq(galleries.id, galleryId),
+        eq(galleries.ownerId, allUserRecord.id)
+      ),
     });
 
     if (!existingGallery) {
@@ -327,7 +370,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       .update(galleries)
       .set({
         title: title !== undefined ? title : existingGallery.title,
-        description: description !== undefined ? description : existingGallery.description,
+        description:
+          description !== undefined ? description : existingGallery.description,
         isPublic: isPublic !== undefined ? isPublic : existingGallery.isPublic,
         updatedAt: new Date(),
       })
@@ -344,27 +388,42 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
           orderBy: [galleryItems.position],
           limit: 1,
         });
-        const startPosition = currentItems.length > 0 ? currentItems[0].position + 1 : 0;
+        const startPosition =
+          currentItems.length > 0 ? currentItems[0].position + 1 : 0;
 
         // Add new items
-        const newItems = items.memories.map((memory: { id: string; type: string }, index: number) => ({
-          galleryId,
-          memoryId: memory.id,
-          memoryType: memory.type as "image" | "video" | "document" | "note" | "audio",
-          position: startPosition + index,
-          caption: null,
-          isFeatured: false,
-          metadata: {},
-        }));
+        const newItems = items.memories.map(
+          (memory: { id: string; type: string }, index: number) => ({
+            galleryId,
+            memoryId: memory.id,
+            memoryType: memory.type as
+              | "image"
+              | "video"
+              | "document"
+              | "note"
+              | "audio",
+            position: startPosition + index,
+            caption: null,
+            isFeatured: false,
+            metadata: {},
+          })
+        );
 
         await db.insert(galleryItems).values(newItems);
         itemsResult = { action: "add", count: newItems.length };
       } else if (items.action === "remove") {
         // Remove items by memory IDs
-        const memoryIds = items.memories.map((memory: { id: string }) => memory.id);
+        const memoryIds = items.memories.map(
+          (memory: { id: string }) => memory.id
+        );
         const deletedItems = await db
           .delete(galleryItems)
-          .where(and(eq(galleryItems.galleryId, galleryId), inArray(galleryItems.memoryId, memoryIds)))
+          .where(
+            and(
+              eq(galleryItems.galleryId, galleryId),
+              inArray(galleryItems.memoryId, memoryIds)
+            )
+          )
           .returning();
 
         itemsResult = { action: "remove", count: deletedItems.length };
@@ -374,7 +433,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
           await db
             .update(galleryItems)
             .set({ position: item.position })
-            .where(and(eq(galleryItems.galleryId, galleryId), eq(galleryItems.memoryId, item.id)));
+            .where(
+              and(
+                eq(galleryItems.galleryId, galleryId),
+                eq(galleryItems.memoryId, item.id)
+              )
+            );
         }
         itemsResult = { action: "reorder", count: items.memories.length };
       }
@@ -385,18 +449,107 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     //   items: itemsResult,
     // });
 
+    // Get the updated gallery with storage status and items in the same format as GET
+    const galleryWithStorageStatus = await addStorageStatusToGallery(
+      updatedGallery[0]
+    );
+
+    // Get gallery items with access control (same logic as GET endpoint)
+    const galleryItemsList = await db.query.galleryItems.findMany({
+      where: eq(galleryItems.galleryId, galleryId),
+      orderBy: [galleryItems.position],
+    });
+
+    // Filter items based on memory access
+    const accessibleItems = [];
+    for (const item of galleryItemsList) {
+      const hasAccess = await checkMemoryAccess(
+        item.memoryId,
+        item.memoryType,
+        allUserRecord.id,
+        galleryId
+      );
+      if (hasAccess) {
+        accessibleItems.push(item);
+      }
+    }
+
+    // Get the actual memory data for each item
+    const itemsWithMemories = [];
+    for (const item of accessibleItems) {
+      try {
+        let memory = null;
+        switch (item.memoryType) {
+          case "image":
+            memory = await db.query.images.findFirst({
+              where: eq(images.id, item.memoryId),
+            });
+            break;
+          case "video":
+            memory = await db.query.videos.findFirst({
+              where: eq(videos.id, item.memoryId),
+            });
+            break;
+          case "document":
+            memory = await db.query.documents.findFirst({
+              where: eq(documents.id, item.memoryId),
+            });
+            break;
+          case "note":
+            memory = await db.query.notes.findFirst({
+              where: eq(notes.id, item.memoryId),
+            });
+            break;
+          case "audio":
+            memory = await db.query.audio.findFirst({
+              where: eq(audio.id, item.memoryId),
+            });
+            break;
+        }
+
+        if (memory) {
+          itemsWithMemories.push({
+            ...item,
+            memory,
+          });
+        } else {
+          console.warn(
+            `Memory not found for item: ${item.memoryId} (type: ${item.memoryType})`
+          );
+        }
+      } catch (itemError) {
+        console.error(
+          `Error fetching memory for item ${item.memoryId}:`,
+          itemError
+        );
+      }
+    }
+
+    // Create the gallery with items in the expected format (same as GET endpoint)
+    const galleryWithItems = {
+      ...galleryWithStorageStatus,
+      items: itemsWithMemories,
+      imageCount: itemsWithMemories.length,
+      isOwner: updatedGallery[0].ownerId === allUserRecord.id,
+    };
+
     return NextResponse.json({
-      success: true,
-      data: updatedGallery[0],
+      gallery: galleryWithItems,
       items: itemsResult,
     });
   } catch (error) {
     console.error("Error updating gallery:", error);
-    return NextResponse.json({ error: "Failed to update gallery" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to update gallery" },
+      { status: 500 }
+    );
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   const { id } = await params;
   // Check authentication
   const session = await auth();
@@ -412,14 +565,20 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     if (!allUserRecord) {
       console.error("No allUsers record found for user:", session.user.id);
-      return NextResponse.json({ error: "User record not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "User record not found" },
+        { status: 404 }
+      );
     }
 
     const galleryId = id;
 
     // Check if gallery exists and user owns it
     const existingGallery = await db.query.galleries.findFirst({
-      where: and(eq(galleries.id, galleryId), eq(galleries.ownerId, allUserRecord.id)),
+      where: and(
+        eq(galleries.id, galleryId),
+        eq(galleries.ownerId, allUserRecord.id)
+      ),
     });
 
     if (!existingGallery) {
@@ -436,6 +595,9 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     });
   } catch (error) {
     console.error("Error deleting gallery:", error);
-    return NextResponse.json({ error: "Failed to delete gallery" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to delete gallery" },
+      { status: 500 }
+    );
   }
 }
