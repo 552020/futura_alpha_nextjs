@@ -6,11 +6,26 @@ import Image from "next/image";
 import { useAuthGuard } from "@/utils/authentication";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Share2, Edit, Globe, Lock, ImageIcon, Trash2, Eye, EyeOff, Maximize2, HardDrive } from "lucide-react";
+import {
+  Share2,
+  Edit,
+  Globe,
+  Lock,
+  ImageIcon,
+  Trash2,
+  Eye,
+  EyeOff,
+  Maximize2,
+  HardDrive,
+} from "lucide-react";
 import { galleryService } from "@/services/gallery";
 import { GalleryWithItems } from "@/types/gallery";
 import { ForeverStorageProgressModal } from "@/components/galleries/forever-storage-progress-modal";
-import { StorageStatusBadge, getGalleryStorageStatus } from "@/components/common/storage-status-badge";
+import { PublishConfirmationModal } from "@/components/galleries/publish-confirmation-modal";
+import {
+  StorageStatusBadge,
+  getGalleryStorageStatus,
+} from "@/components/common/storage-status-badge";
 import { MemoryStorageBadge } from "@/components/common/memory-storage-badge";
 import { GalleryStorageSummary } from "@/components/galleries/gallery-storage-summary";
 
@@ -30,12 +45,17 @@ function GalleryViewContent() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showForeverStorageModal, setShowForeverStorageModal] = useState(false);
+  const [showPublishConfirmationModal, setShowPublishConfirmationModal] =
+    useState(false);
 
   const loadGallery = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
-      const result = await galleryService.getGallery(id as string, USE_MOCK_DATA);
+      const result = await galleryService.getGallery(
+        id as string,
+        USE_MOCK_DATA
+      );
       setGallery(result.gallery);
     } catch (err) {
       console.error("Error loading gallery:", err);
@@ -74,7 +94,12 @@ function GalleryViewContent() {
   }, []);
 
   const handleDeleteGallery = async () => {
-    if (!gallery || !confirm("Are you sure you want to delete this gallery? This action cannot be undone.")) {
+    if (
+      !gallery ||
+      !confirm(
+        "Are you sure you want to delete this gallery? This action cannot be undone."
+      )
+    ) {
       return;
     }
 
@@ -94,7 +119,12 @@ function GalleryViewContent() {
     router.push(`/gallery/${id}/preview`);
   };
 
-  const handleTogglePrivacy = async () => {
+  const handleTogglePrivacy = () => {
+    if (!gallery) return;
+    setShowPublishConfirmationModal(true);
+  };
+
+  const handleConfirmPrivacyToggle = async () => {
     if (!gallery) return;
 
     try {
@@ -105,6 +135,7 @@ function GalleryViewContent() {
         USE_MOCK_DATA
       );
       setGallery(updatedGallery);
+      setShowPublishConfirmationModal(false);
     } catch (err) {
       console.error("Error updating gallery privacy:", err);
       setError("Failed to update gallery privacy");
@@ -119,7 +150,12 @@ function GalleryViewContent() {
   };
 
   const getStoreForeverButtonState = () => {
-    if (!gallery) return { text: "Store Forever", disabled: true, variant: "outline" as const };
+    if (!gallery)
+      return {
+        text: "Store Forever",
+        disabled: true,
+        variant: "outline" as const,
+      };
 
     // Check if gallery has storage status
     if (gallery.storageStatus) {
@@ -197,7 +233,9 @@ function GalleryViewContent() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <h2 className="text-2xl font-semibold mb-4">Access Denied</h2>
-          <p className="text-muted-foreground mb-6">You need to be logged in to view this gallery</p>
+          <p className="text-muted-foreground mb-6">
+            You need to be logged in to view this gallery
+          </p>
         </div>
       </div>
     );
@@ -208,7 +246,9 @@ function GalleryViewContent() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <h2 className="text-2xl font-semibold mb-4">Gallery not found</h2>
-          <p className="text-muted-foreground mb-6">{error || "This gallery doesn't exist"}</p>
+          <p className="text-muted-foreground mb-6">
+            {error || "This gallery doesn't exist"}
+          </p>
         </div>
       </div>
     );
@@ -225,7 +265,9 @@ function GalleryViewContent() {
                 <h1 className="text-2xl font-light">{gallery.title}</h1>
                 <div className="flex items-center gap-2">
                   <div className="relative group">
-                    <StorageStatusBadge status={getGalleryStorageStatus(gallery)} />
+                    <StorageStatusBadge
+                      status={getGalleryStorageStatus(gallery)}
+                    />
                     <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
                       {gallery.storageStatus?.status === "stored_forever"
                         ? "Gallery stored permanently on Internet Computer"
@@ -249,10 +291,18 @@ function GalleryViewContent() {
                   </Badge>
                 </div>
               </div>
-              {gallery.description && <p className="text-muted-foreground text-sm mt-1">{gallery.description}</p>}
+              {gallery.description && (
+                <p className="text-muted-foreground text-sm mt-1">
+                  {gallery.description}
+                </p>
+              )}
             </div>
             <div className="flex items-center gap-2 flex-shrink-0 min-w-0">
-              <Button variant="outline" size="sm" onClick={handleFullScreenView}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleFullScreenView}
+              >
                 <Maximize2 className="h-4 w-4 mr-2" />
                 Preview
               </Button>
@@ -260,7 +310,12 @@ function GalleryViewContent() {
                 <Share2 className="h-4 w-4 mr-2" />
                 Share
               </Button>
-              <Button variant="outline" size="sm" onClick={handleTogglePrivacy} disabled={isUpdating}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleTogglePrivacy}
+                disabled={isUpdating}
+              >
                 {isUpdating ? (
                   <>
                     <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -269,7 +324,7 @@ function GalleryViewContent() {
                 ) : gallery.isPublic ? (
                   <>
                     <EyeOff className="h-4 w-4 mr-2" />
-                    Hide
+                    Unpublish
                   </>
                 ) : (
                   <>
@@ -300,7 +355,8 @@ function GalleryViewContent() {
                       <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
                         {gallery?.storageStatus?.status === "stored_forever"
                           ? "This gallery is already permanently stored on the Internet Computer"
-                          : gallery?.storageStatus?.status === "partially_stored"
+                          : gallery?.storageStatus?.status ===
+                            "partially_stored"
                           ? "Continue storing the remaining items on the Internet Computer"
                           : "Store this gallery permanently on the Internet Computer blockchain"}
                       </div>
@@ -322,7 +378,12 @@ function GalleryViewContent() {
                   </>
                 );
               })()}
-              <Button variant="outline" size="sm" onClick={handleDeleteGallery} disabled={isDeleting}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDeleteGallery}
+                disabled={isDeleting}
+              >
                 {isDeleting ? (
                   <>
                     <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -341,7 +402,10 @@ function GalleryViewContent() {
       </div>
 
       {/* Gallery Storage Summary */}
-      <GalleryStorageSummary gallery={gallery} onStoreForever={handleStoreForever} />
+      <GalleryStorageSummary
+        gallery={gallery}
+        onStoreForever={handleStoreForever}
+      />
 
       {/* Photo Grid */}
       <div className="container mx-auto px-6 py-8 min-w-0">
@@ -368,9 +432,13 @@ function GalleryViewContent() {
                   <div className="w-full h-full bg-muted flex items-center justify-center min-w-0">
                     <div className="flex flex-col items-center justify-center text-muted-foreground">
                       <ImageIcon className="h-16 w-16 mb-2" />
-                      <span className="text-sm break-words">Photo {index + 1}</span>
+                      <span className="text-sm break-words">
+                        Photo {index + 1}
+                      </span>
                       {failedImages.has(item.memory.url!) && (
-                        <span className="text-xs text-muted-foreground/70 mt-1 break-words">Failed to load</span>
+                        <span className="text-xs text-muted-foreground/70 mt-1 break-words">
+                          Failed to load
+                        </span>
                       )}
                     </div>
                   </div>
@@ -390,8 +458,12 @@ function GalleryViewContent() {
           </div>
         ) : (
           <div className="text-center py-16">
-            <h3 className="text-xl font-semibold mb-2">No photos in this gallery yet</h3>
-            <p className="text-muted-foreground mb-6">Add photos to this gallery to see them here.</p>
+            <h3 className="text-xl font-semibold mb-2">
+              No photos in this gallery yet
+            </h3>
+            <p className="text-muted-foreground mb-6">
+              Add photos to this gallery to see them here.
+            </p>
           </div>
         )}
       </div>
@@ -404,6 +476,17 @@ function GalleryViewContent() {
           gallery={gallery}
           onSuccess={handleForeverStorageSuccess}
           onError={handleForeverStorageError}
+        />
+      )}
+
+      {/* Publish Confirmation Modal */}
+      {gallery && (
+        <PublishConfirmationModal
+          isOpen={showPublishConfirmationModal}
+          onClose={() => setShowPublishConfirmationModal(false)}
+          onConfirm={handleConfirmPrivacyToggle}
+          gallery={gallery}
+          isLoading={isUpdating}
         />
       )}
     </div>
