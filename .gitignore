@@ -43,3 +43,5 @@ next-env.d.ts
 # mock data - ignore all contents but keep directory structure
 /public/mock/**/*
 !/public/mock/.gitkeep
+lab/
+lab/

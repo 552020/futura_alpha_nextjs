@@ -29,6 +29,15 @@ export type BaseDictionary = {
     startNow?: string;
     arrowSymbol?: string;
   };
+  hero_kottimotti?: {
+    title?: string;
+    subtitle?: string;
+    learnMore?: string;
+    startHere?: string;
+    now?: string;
+    startNow?: string;
+    arrowSymbol?: string;
+  };
   header?: {
     signIn?: string;
   };
@@ -217,35 +226,81 @@ export type Dictionary = BaseDictionary &
   };
 
 const dictionaries: Record<string, () => Promise<BaseDictionary>> = {
-  en: () => import("../app/[lang]/dictionaries/base/en.json").then((module) => module.default),
-  fr: () => import("../app/[lang]/dictionaries/base/fr.json").then((module) => module.default),
-  es: () => import("../app/[lang]/dictionaries/base/es.json").then((module) => module.default),
-  pt: () => import("../app/[lang]/dictionaries/base/pt.json").then((module) => module.default),
-  it: () => import("../app/[lang]/dictionaries/base/it.json").then((module) => module.default),
-  de: () => import("../app/[lang]/dictionaries/base/de.json").then((module) => module.default),
-  pl: () => import("../app/[lang]/dictionaries/base/pl.json").then((module) => module.default),
-  zh: () => import("../app/[lang]/dictionaries/base/zh.json").then((module) => module.default),
+  en: () =>
+    import("../app/[lang]/dictionaries/base/en.json").then(
+      (module) => module.default
+    ),
+  fr: () =>
+    import("../app/[lang]/dictionaries/base/fr.json").then(
+      (module) => module.default
+    ),
+  es: () =>
+    import("../app/[lang]/dictionaries/base/es.json").then(
+      (module) => module.default
+    ),
+  pt: () =>
+    import("../app/[lang]/dictionaries/base/pt.json").then(
+      (module) => module.default
+    ),
+  it: () =>
+    import("../app/[lang]/dictionaries/base/it.json").then(
+      (module) => module.default
+    ),
+  de: () =>
+    import("../app/[lang]/dictionaries/base/de.json").then(
+      (module) => module.default
+    ),
+  pl: () =>
+    import("../app/[lang]/dictionaries/base/pl.json").then(
+      (module) => module.default
+    ),
+  zh: () =>
+    import("../app/[lang]/dictionaries/base/zh.json").then(
+      (module) => module.default
+    ),
 };
 
 // Onboarding dictionaries
-const onboardingDictionaries: Record<string, () => Promise<OnboardingDictionary>> = {
+const onboardingDictionaries: Record<
+  string,
+  () => Promise<OnboardingDictionary>
+> = {
   en: () =>
-    import("../app/[lang]/dictionaries/onboarding/en.json").then((module) => module.default as OnboardingDictionary),
+    import("../app/[lang]/dictionaries/onboarding/en.json").then(
+      (module) => module.default as OnboardingDictionary
+    ),
   de: () =>
-    import("../app/[lang]/dictionaries/onboarding/de.json").then((module) => module.default as OnboardingDictionary),
+    import("../app/[lang]/dictionaries/onboarding/de.json").then(
+      (module) => module.default as OnboardingDictionary
+    ),
   // Add other languages as needed
 };
 
 // Segment-specific dictionaries
-const segmentDictionaries: Record<string, Record<string, () => Promise<ValueJourneyDictionary>>> = {
+const segmentDictionaries: Record<
+  string,
+  Record<string, () => Promise<ValueJourneyDictionary>>
+> = {
   family: {
-    en: () => import("../app/[lang]/dictionaries/segments/family/en.json").then((module) => module.default),
-    de: () => import("../app/[lang]/dictionaries/segments/family/de.json").then((module) => module.default),
+    en: () =>
+      import("../app/[lang]/dictionaries/segments/family/en.json").then(
+        (module) => module.default
+      ),
+    de: () =>
+      import("../app/[lang]/dictionaries/segments/family/de.json").then(
+        (module) => module.default
+      ),
     // Add other languages as needed
   },
   "black-mirror": {
-    en: () => import("../app/[lang]/dictionaries/segments/black-mirror/en.json").then((module) => module.default),
-    de: () => import("../app/[lang]/dictionaries/segments/black-mirror/de.json").then((module) => module.default),
+    en: () =>
+      import("../app/[lang]/dictionaries/segments/black-mirror/en.json").then(
+        (module) => module.default
+      ),
+    de: () =>
+      import("../app/[lang]/dictionaries/segments/black-mirror/de.json").then(
+        (module) => module.default
+      ),
     // Add other languages as needed
   },
   // Add other segments as needed
@@ -253,15 +308,27 @@ const segmentDictionaries: Record<string, Record<string, () => Promise<ValueJour
 
 // About page dictionaries
 const aboutDictionaries: Record<string, () => Promise<AboutDictionary>> = {
-  en: () => import("../app/[lang]/dictionaries/about/en.json").then((module) => module.default as AboutDictionary),
-  de: () => import("../app/[lang]/dictionaries/about/de.json").then((module) => module.default as AboutDictionary),
+  en: () =>
+    import("../app/[lang]/dictionaries/about/en.json").then(
+      (module) => module.default as AboutDictionary
+    ),
+  de: () =>
+    import("../app/[lang]/dictionaries/about/de.json").then(
+      (module) => module.default as AboutDictionary
+    ),
   // Add other languages as needed
 };
 
 // FAQ page dictionaries
 const faqDictionaries: Record<string, () => Promise<FAQDictionary>> = {
-  en: () => import("../app/[lang]/dictionaries/faq/en.json").then((module) => module.default as FAQDictionary),
-  de: () => import("../app/[lang]/dictionaries/faq/de.json").then((module) => module.default as FAQDictionary),
+  en: () =>
+    import("../app/[lang]/dictionaries/faq/en.json").then(
+      (module) => module.default as FAQDictionary
+    ),
+  de: () =>
+    import("../app/[lang]/dictionaries/faq/de.json").then(
+      (module) => module.default as FAQDictionary
+    ),
   // Add other languages as needed
 };
 
@@ -321,7 +388,9 @@ export const getDictionary = async (
       try {
         // Check if we have a segment dictionary for this locale
         if (segmentDictionaries[options.segment]?.[locale]) {
-          const segmentDict = await segmentDictionaries[options.segment][locale]();
+          const segmentDict = await segmentDictionaries[options.segment][
+            locale
+          ]();
           // Merge the segment dictionary with the result
           result = { ...result, ...segmentDict };
         }
@@ -332,7 +401,10 @@ export const getDictionary = async (
           result = { ...result, ...segmentDict };
         }
       } catch (error) {
-        console.error(`Error loading segment dictionary for ${options.segment}:`, error);
+        console.error(
+          `Error loading segment dictionary for ${options.segment}:`,
+          error
+        );
         // Continue with just the base dictionary if there's an error
       }
     }
