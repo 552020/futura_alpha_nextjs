@@ -1,5 +1,6 @@
 import { db } from "@/db/db";
-import { DBDocument, DBImage, DBVideo, documents, images, videos } from "@/db/schema";
+import { memories, memoryAssets } from "@/db/schema";
+import { NewDBMemory, NewDBMemoryAsset, DBMemory } from "@/db/schema";
 import { put } from "@vercel/blob";
 import { fileTypeFromBuffer } from "file-type";
 import crypto from "crypto";
@@ -46,7 +47,7 @@ export const ACCEPTED_MIME_TYPES = {
 
 export type UploadResponse = {
   type: "image" | "document" | "video";
-  data: DBImage | DBDocument | DBVideo;
+  data: DBMemory;
 };
 
 export type AcceptedMimeType =
@@ -110,48 +111,45 @@ export async function storeInDatabase(params: {
 
   if (type === "image") {
     const [image] = await db
-      .insert(images)
+      .insert(memories)
       .values({
         ownerId,
-        url,
+        type: "image",
         title: file.name.split(".")[0],
+        description: "",
+        fileCreatedAt: new Date(),
         isPublic: false,
-        metadata,
+        parentFolderId: null,
         ownerSecureCode,
       })
       .returning();
     memoryData = image;
   } else if (type === "video") {
     const [video] = await db
-      .insert(videos)
+      .insert(memories)
       .values({
         ownerId,
-        url,
+        type: "video",
         title: file.name.split(".")[0],
         description: "",
-        mimeType: metadata.mimeType,
-        size: metadata.size.toString(),
+        fileCreatedAt: new Date(),
+        isPublic: false,
+        parentFolderId: null,
         ownerSecureCode,
-        metadata: {
-          width: undefined,
-          height: undefined,
-          format: metadata.mimeType.split("/")[1],
-          thumbnail: undefined,
-        },
       })
       .returning();
     memoryData = video;
   } else {
     const [document] = await db
-      .insert(documents)
+      .insert(memories)
       .values({
         ownerId,
-        url,
+        type: "document",
         title: file.name.split(".")[0],
-        mimeType: metadata.mimeType,
-        size: metadata.size.toString(),
+        description: "",
+        fileCreatedAt: new Date(),
         isPublic: false,
-        metadata,
+        parentFolderId: null,
         ownerSecureCode,
       })
       .returning();
@@ -172,6 +170,78 @@ export async function storeInDatabase(params: {
   }
 
   return { type, data: memoryData };
+}
+
+// New function to store in the new unified schema
+export async function storeInNewDatabase(params: {
+  type: "document" | "image" | "video" | "note" | "audio";
+  ownerId: string;
+  url: string;
+  file: File;
+  metadata: {
+    uploadedAt: string;
+    originalName: string;
+    size: number;
+    mimeType: AcceptedMimeType;
+  };
+  parentFolderId?: string | null;
+}) {
+  const { type, ownerId, url, file, metadata, parentFolderId } = params;
+
+  // Create memory in the new unified table
+  const newMemory: NewDBMemory = {
+    ownerId,
+    type: type as "image" | "video" | "document" | "note" | "audio",
+    title: file.name.split(".")[0],
+    description: "",
+    fileCreatedAt: new Date(),
+    isPublic: false,
+    parentFolderId: parentFolderId || null,
+    ownerSecureCode: crypto.randomUUID(),
+  };
+
+  const [createdMemory] = await db.insert(memories).values(newMemory).returning();
+
+  // Create original asset
+  const newAsset: NewDBMemoryAsset = {
+    memoryId: createdMemory.id,
+    assetType: "original",
+    variant: "default",
+    url,
+    storageBackend: "vercel_blob",
+    storageKey: url.split("/").pop() || "",
+    bytes: metadata.size,
+    width: null, // Will be populated by client-side processing
+    height: null, // Will be populated by client-side processing
+    mimeType: metadata.mimeType,
+    sha256: null, // Will be populated by client-side processing
+    processingStatus: "completed",
+    processingError: null,
+  };
+
+  const [createdAsset] = await db.insert(memoryAssets).values(newAsset).returning();
+
+  // Create storage edges for the newly created memory
+  const storageEdgeResult = await createStorageEdgesForMemory({
+    memoryId: createdMemory.id,
+    memoryType: type,
+    url,
+    size: metadata.size,
+  });
+
+  if (!storageEdgeResult.success) {
+    console.warn("⚠️ Failed to create storage edges for memory:", createdMemory.id, storageEdgeResult.error);
+    // Don't fail the upload if storage edge creation fails
+  }
+
+  return {
+    type,
+    data: {
+      id: createdMemory.id,
+      ownerId: createdMemory.ownerId,
+      assets: [createdAsset],
+    },
+  };
 }
 
 export type FileValidationResult = {

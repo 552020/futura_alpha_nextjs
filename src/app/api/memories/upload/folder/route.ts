@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import pLimit from "p-limit";
 import { db } from "@/db/db";
-import { images, videos, documents, allUsers, users } from "@/db/schema";
-import type { InferInsertModel } from "drizzle-orm";
+import { allUsers, users, memories, memoryAssets } from "@/db/schema";
+import { NewDBMemory, NewDBMemoryAsset } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { randomUUID } from "crypto";
 import {
   parseMultipleFiles,
   logMultipleFileDetails,
@@ -12,107 +13,68 @@ import {
   uploadFileToStorageWithErrorHandling,
   createStorageEdgesForMemory,
 } from "../utils";
-import { isAcceptedMimeType, validateFile, uploadFileToStorage, getMemoryType } from "../utils";
+import { isAcceptedMimeType, validateFile, uploadFileToStorage, getMemoryType, AcceptedMimeType } from "../utils";
 import { auth } from "@/auth";
 
-// Type definitions for database inserts
-type ImageInsert = InferInsertModel<typeof images>;
-type VideoInsert = InferInsertModel<typeof videos>;
-type DocumentInsert = InferInsertModel<typeof documents>;
-
 // Type for upload results
-type UploadResult = {
+type NewUploadResult = {
   fileName: string;
   url: string;
   success: boolean;
   userId: string;
   memoryId: string;
+  assetId: string;
 };
 
-// Type for successful uploads with discriminated union
-type UploadOk =
-  | { success: true; memoryType: "image"; fileName: string; url: string; row: ImageInsert }
-  | { success: true; memoryType: "video"; fileName: string; url: string; row: VideoInsert }
-  | { success: true; memoryType: "document"; fileName: string; url: string; row: DocumentInsert };
+type NewUploadOk = {
+  success: true;
+  memoryType: "image" | "video" | "document" | "note" | "audio";
+  fileName: string;
+  url: string;
+  memory: NewDBMemory;
+  asset: NewDBMemoryAsset;
+};
 
-type UploadErr = { success: false; fileName: string; error: unknown };
-
-// Helper function to extract folder information from file path
-function extractFolderInfo(fileName: string): { originalPath: string; folderName: string } {
-  // When using webkitdirectory, fileName contains the full relative path
-  // e.g., "Wedding Photos/ceremony/img001.jpg" -> folderName: "Wedding Photos", originalPath: "Wedding Photos/ceremony/img001.jpg"
-  const pathParts = fileName.split("/");
-  const folderName = pathParts.length > 1 ? pathParts[0] : "Ungrouped";
-
-  return {
-    originalPath: fileName,
-    folderName: folderName,
-  };
-}
+type NewUploadErr = { success: false; fileName: string; error: unknown };
 
 // Row builder functions that match exact schema types
-function buildImageRow(file: File, url: string, ownerId: string): ImageInsert {
+
+// New function to build unified schema data
+function buildNewMemoryAndAsset(
+  file: File,
+  url: string,
+  ownerId: string
+): { memory: NewDBMemory; asset: NewDBMemoryAsset } {
   const name = file.name || "Untitled";
-  const { originalPath, folderName } = extractFolderInfo(name);
 
-  return {
+  const memory: NewDBMemory = {
     ownerId,
-    url,
-    title: name,
-    caption: name,
-    description: "",
-    ownerSecureCode: crypto.randomUUID(),
-    metadata: {
-      size: file.size,
-      mimeType: file.type,
-      originalName: name,
-      uploadedAt: new Date().toISOString(),
-      originalPath,
-      folderName,
-    },
-  };
-}
-
-function buildVideoRow(file: File, url: string, ownerId: string): VideoInsert {
-  const name = file.name || "Untitled";
-  const { originalPath, folderName } = extractFolderInfo(name);
-
-  return {
-    ownerId,
-    url,
+    type: getMemoryType(file.type as AcceptedMimeType) as "image" | "video" | "document" | "note" | "audio",
     title: name,
     description: "",
-    mimeType: file.type || "video/mp4",
-    size: String(file.size),
-    ownerSecureCode: crypto.randomUUID(),
-    metadata: {
-      originalPath,
-      folderName,
-    },
+    fileCreatedAt: new Date(),
+    isPublic: false,
+    parentFolderId: null,
+    ownerSecureCode: randomUUID(),
   };
-}
 
-function buildDocumentRow(file: File, url: string, ownerId: string): DocumentInsert {
-  const name = file.name || "Untitled";
-  const { originalPath, folderName } = extractFolderInfo(name);
-
-  return {
-    ownerId,
+  const asset: NewDBMemoryAsset = {
+    memoryId: "", // Will be set after memory is created
+    assetType: "original",
+    variant: "default",
     url,
-    title: name,
-    description: "",
-    mimeType: file.type || "application/pdf",
-    size: String(file.size),
-    ownerSecureCode: crypto.randomUUID(),
-    metadata: {
-      size: file.size,
-      mimeType: file.type,
-      originalName: name,
-      uploadedAt: new Date().toISOString(),
-      originalPath,
-      folderName,
-    },
+    storageBackend: "vercel_blob",
+    storageKey: url.split("/").pop() || "",
+    bytes: file.size,
+    width: null,
+    height: null,
+    mimeType: file.type,
+    sha256: null,
+    processingStatus: "completed",
+    processingError: null,
   };
+
+  return { memory, asset };
 }
 
 /**
@@ -206,7 +168,7 @@ export async function POST(request: NextRequest) {
     // Process files in parallel with concurrency limit (validate + upload only)
     const limit = pLimit(5); // max 5 concurrent uploads
     const uploadTasks = files.map((file) =>
-      limit(async (): Promise<UploadOk | UploadErr> => {
+      limit(async (): Promise<NewUploadOk | NewUploadErr> => {
         try {
           const name = String(file.name || "Untitled"); // Guarantee string type
 
@@ -228,45 +190,17 @@ export async function POST(request: NextRequest) {
             return { success: false, fileName: name, error: uploadError };
           }
 
-          // Build database row based on memory type
-          const memoryType = getMemoryType(
-            file.type as
-              | "image/jpeg"
-              | "image/png"
-              | "image/gif"
-              | "image/webp"
-              | "video/mp4"
-              | "video/webm"
-              | "application/pdf"
-              | "application/msword"
-              | "text/plain"
-              | "text/markdown"
-          );
+          // Build memory and asset data for new unified schema
+          const { memory, asset } = buildNewMemoryAndAsset(file, url, allUserId);
+          const memoryType = memory.type;
 
-          if (memoryType === "image") {
-            return {
-              success: true,
-              memoryType,
-              fileName: name,
-              url,
-              row: buildImageRow(file, url, allUserId),
-            };
-          }
-          if (memoryType === "video") {
-            return {
-              success: true,
-              memoryType,
-              fileName: name,
-              url,
-              row: buildVideoRow(file, url, allUserId),
-            };
-          }
           return {
             success: true,
-            memoryType: "document",
+            memoryType,
             fileName: name,
             url,
-            row: buildDocumentRow(file, url, allUserId),
+            memory,
+            asset,
           };
         } catch (error) {
           const name = String(file.name || "Untitled");
@@ -278,29 +212,23 @@ export async function POST(request: NextRequest) {
 
     const results = await Promise.allSettled(uploadTasks);
 
-    // Process results and collect successful rows by type
-    const imageRows: ImageInsert[] = [];
-    const videoRows: VideoInsert[] = [];
-    const documentRows: DocumentInsert[] = [];
-    const uploadResults: UploadResult[] = [];
+    // Process results and collect successful data
+    const memoryRows: NewDBMemory[] = [];
+    const assetRows: NewDBMemoryAsset[] = [];
+    const uploadResults: NewUploadResult[] = [];
 
     const ok = results
-      .filter((r): r is PromiseFulfilledResult<UploadOk> => r.status === "fulfilled" && r.value.success)
+      .filter((r): r is PromiseFulfilledResult<NewUploadOk> => r.status === "fulfilled" && r.value.success)
       .map((r) => r.value);
 
     const failures = results.filter(
-      (r) => r.status === "rejected" || (r.status === "fulfilled" && !(r.value as UploadOk | UploadErr).success)
+      (r) => r.status === "rejected" || (r.status === "fulfilled" && !(r.value as NewUploadOk | NewUploadErr).success)
     ).length;
 
-    // Split rows by type using type guards
+    // Collect memory and asset data
     ok.forEach((value) => {
-      if (value.memoryType === "image") {
-        imageRows.push(value.row);
-      } else if (value.memoryType === "video") {
-        videoRows.push(value.row);
-      } else {
-        documentRows.push(value.row);
-      }
+      memoryRows.push(value.memory);
+      assetRows.push(value.asset);
 
       uploadResults.push({
         fileName: value.fileName,
@@ -308,37 +236,32 @@ export async function POST(request: NextRequest) {
         success: true,
         userId: allUserId,
         memoryId: "", // Will be set after batch insert
+        assetId: "", // Will be set after batch insert
       });
     });
 
     console.log(`✅ ${ok.length} uploads ready for batch insert, ❌ ${failures} failures`);
 
-    // Batch insert all successful files (no transactions - Neon HTTP limitation)
-    const insertedIds: string[] = [];
+    // Batch insert memories first
+    const insertedMemories = await db.insert(memories).values(memoryRows).returning();
+    console.log(`✅ Batch inserted ${insertedMemories.length} memories into database`);
 
-    if (imageRows.length > 0) {
-      const imageResults = await db.insert(images).values(imageRows).returning({ id: images.id });
-      insertedIds.push(...imageResults.map((r) => r.id));
-    }
+    // Update asset memoryIds and insert assets
+    const assetsWithMemoryIds = assetRows.map((asset, index) => ({
+      ...asset,
+      memoryId: insertedMemories[index].id,
+    }));
 
-    if (videoRows.length > 0) {
-      const videoResults = await db.insert(videos).values(videoRows).returning({ id: videos.id });
-      insertedIds.push(...videoResults.map((r) => r.id));
-    }
+    const insertedAssets = await db.insert(memoryAssets).values(assetsWithMemoryIds).returning();
+    console.log(`✅ Batch inserted ${insertedAssets.length} assets into database`);
 
-    if (documentRows.length > 0) {
-      const documentResults = await db.insert(documents).values(documentRows).returning({ id: documents.id });
-      insertedIds.push(...documentResults.map((r) => r.id));
-    }
-
-    // Update uploadResults with actual memory IDs
+    // Update uploadResults with actual IDs
     uploadResults.forEach((result, index) => {
-      if (result.success && insertedIds[index]) {
-        result.memoryId = insertedIds[index];
+      if (result.success && insertedMemories[index] && insertedAssets[index]) {
+        result.memoryId = insertedMemories[index].id;
+        result.assetId = insertedAssets[index].id;
       }
     });
-
-    console.log(`✅ Batch inserted ${insertedIds.length} files into database`);
 
     // Create storage edges for all successfully inserted memories
     console.log("🔗 Creating storage edges for batch upload...");
@@ -358,7 +281,7 @@ export async function POST(request: NextRequest) {
             | "application/msword"
             | "text/plain"
             | "text/markdown"
-        );
+        ) as "image" | "video" | "document" | "note" | "audio";
 
         return createStorageEdgesForMemory({
           memoryId: result.memoryId!,

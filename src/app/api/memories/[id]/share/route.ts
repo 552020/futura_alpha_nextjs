@@ -4,7 +4,7 @@ import { db } from "@/db/db";
 import { memoryShares, relationship, familyRelationship, allUsers, users, temporaryUsers } from "@/db/schema";
 import { findMemory } from "@/app/api/memories/utils/memory";
 import { eq, and } from "drizzle-orm";
-import { sendInvitationEmail, sendSharedMemoryEmail } from "@/app/api/memories/utils/email";
+// import { sendInvitationEmail, sendSharedMemoryEmail } from "@/app/api/memories/utils/email";
 import type { RelationshipType, FamilyRelationshipType } from "@/db/schema";
 import crypto from "crypto";
 
@@ -160,12 +160,14 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     const inviteeMagicLink = `${process.env.NEXT_PUBLIC_APP_URL}/memories/${memoryId}/share-link?code=${share.inviteeSecureCode}`;
 
     // Send email if requested
+    // TODO: Implement email functions for new unified schema
     if (sendEmail && target.type === "user") {
-      if (isInviteeNew) {
-        await sendInvitationEmail(userEmail, memory, memory.data.ownerId, { useTemplate: false });
-      } else {
-        await sendSharedMemoryEmail(userEmail, memory, memory.data.ownerId, inviteeMagicLink, { useTemplate: false });
-      }
+      console.log("📧 Email sending not implemented yet for new schema");
+      // if (isInviteeNew) {
+      //   await sendInvitationEmail(userEmail, memory, memory.data.ownerId, { useTemplate: false });
+      // } else {
+      //   await sendSharedMemoryEmail(userEmail, memory, memory.data.ownerId, inviteeMagicLink, { useTemplate: false });
+      // }
     }
 
     return NextResponse.json({
