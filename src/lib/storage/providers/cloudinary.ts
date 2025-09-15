@@ -23,6 +23,9 @@ export class CloudinaryProvider implements StorageProvider {
    * TODO: Implement with cloudinary-js
    */
   async upload(_file: File, _options?: UploadOptions): Promise<UploadResult> {
+    // Suppress unused parameter warnings for placeholder implementation
+    void _file;
+    void _options;
     if (!this.isAvailable()) {
       throw new Error("Cloudinary is not available. Cloud name, API key, and API secret are required.");
     }
@@ -36,6 +39,8 @@ export class CloudinaryProvider implements StorageProvider {
    * TODO: Implement with cloudinary-js
    */
   async delete(_options: DeleteOptions): Promise<void> {
+    // Suppress unused parameter warnings for placeholder implementation
+    void _options;
     if (!this.isAvailable()) {
       throw new Error("Cloudinary is not available. Cloud name, API key, and API secret are required.");
     }

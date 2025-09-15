@@ -23,6 +23,9 @@ export class AWSS3Provider implements StorageProvider {
    * TODO: Implement with AWS SDK v3
    */
   async upload(_file: File, _options?: UploadOptions): Promise<UploadResult> {
+    // Suppress unused parameter warnings for placeholder implementation
+    void _file;
+    void _options;
     if (!this.isAvailable()) {
       throw new Error("AWS S3 is not available. AWS credentials and bucket are required.");
     }
@@ -36,6 +39,8 @@ export class AWSS3Provider implements StorageProvider {
    * TODO: Implement with AWS SDK v3
    */
   async delete(_options: DeleteOptions): Promise<void> {
+    // Suppress unused parameter warnings for placeholder implementation
+    void _options;
     if (!this.isAvailable()) {
       throw new Error("AWS S3 is not available. AWS credentials and bucket are required.");
     }

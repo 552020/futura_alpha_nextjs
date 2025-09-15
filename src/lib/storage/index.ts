@@ -14,10 +14,14 @@ export type {
   DeleteOptions,
 } from "./types";
 
+// Import for internal use
+import type { StorageManagerConfig } from "./types";
+
 export { StorageError, UploadError, DeleteError } from "./types";
 
 // Storage manager
 export { StorageManager } from "./storage-manager";
+import { StorageManager } from "./storage-manager";
 
 // Individual providers
 export { VercelBlobProvider } from "./providers/vercel-blob";
@@ -28,6 +32,6 @@ export { CloudinaryProvider } from "./providers/cloudinary";
 export { ICPProvider } from "./providers/icp";
 
 // Convenience function to create a default storage manager
-export function createStorageManager(config?: import("./types").StorageManagerConfig) {
+export function createStorageManager(config?: StorageManagerConfig) {
   return new StorageManager(config);
 }

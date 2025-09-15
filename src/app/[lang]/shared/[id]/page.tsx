@@ -52,7 +52,7 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
     console.log("🔍 DEBUG SharedMemoryPage - Memory Lookup:", {
       memoryFound: !!memory,
       memoryId: id,
-      ownerId: memory?.data?.ownerId,
+      ownerId: memory?.ownerId,
       timestamp: new Date().toISOString(),
     });
 
@@ -61,10 +61,10 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
       notFound();
     }
 
-    const isOwner = memory.data.ownerId === allUserRecord.id;
+    const isOwner = memory.ownerId === allUserRecord.id;
     console.log("🔍 DEBUG SharedMemoryPage - Ownership Check:", {
       isOwner,
-      memoryOwnerId: memory.data.ownerId,
+      memoryOwnerId: memory.ownerId,
       currentUserAllId: allUserRecord.id,
       timestamp: new Date().toISOString(),
     });

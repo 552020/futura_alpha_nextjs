@@ -25,7 +25,7 @@ import { fetchMemoriesWithGalleries } from "./utils/queries";
  * Main GET handler for memory listing
  * Handles pagination, filtering, and asset inclusion
  */
-export async function handleApiMemoryGet(request: NextRequest) {
+export async function handleApiMemoryGet(request: NextRequest): Promise<NextResponse> {
   // Check authentication
   const session = await auth();
   if (!session?.user?.id) {

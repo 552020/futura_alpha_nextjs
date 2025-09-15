@@ -14,10 +14,10 @@
 import { db } from "@/db/db";
 import { memories } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import type { DBMemory } from "@/db/schema";
+import type { DBMemoryWithAssets } from "@/db/schema";
 
-// With unified schema, MemoryWithType is just the memory itself
-export type MemoryWithType = DBMemory;
+// With unified schema, MemoryWithType includes assets
+export type MemoryWithType = DBMemoryWithAssets;
 
 /**
  * Finds a memory by ID in the unified memories table
@@ -27,6 +27,9 @@ export type MemoryWithType = DBMemory;
 export async function findMemory(id: string): Promise<MemoryWithType | null> {
   const memory = await db.query.memories.findFirst({
     where: eq(memories.id, id),
+    with: {
+      assets: true,
+    },
   });
   return memory || null;
 }

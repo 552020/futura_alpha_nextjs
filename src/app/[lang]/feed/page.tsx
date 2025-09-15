@@ -23,7 +23,7 @@
  * adjustments based on real usage patterns.
  */
 
-import { useEffect, useState, useCallback, use } from "react";
+import { useEffect, useState, useCallback, use, useMemo } from "react";
 import { useInView } from "react-intersection-observer";
 import { useAuthGuard } from "@/utils/authentication";
 import { Loader2 } from "lucide-react";
@@ -31,6 +31,7 @@ import RequireAuth from "@/components/auth/require-auth";
 import { Memory } from "@/types/memory";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
+import Image from "next/image";
 
 interface FeedItem extends Memory {
   status: "shared";
@@ -56,39 +57,42 @@ export default function FeedPage({ params }: { params: Promise<{ lang: string }>
   const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_FEED === "true";
 
   // Sample feed data - Rick Astley video and welcome message
-  const sampleFeedItems: FeedItem[] = [
-    {
-      id: "mock-1",
-      type: "video",
-      title: "Rick Astley - Never Gonna Give You Up",
-      description: "A classic music video that never gets old",
-      url: "https://www.youtube.com/embed/dQw4w9WgXcQ?si=rKeJHC7Y8EuIaKLH",
-      thumbnail: "https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      ownerId: "mock-user-1",
-      status: "shared",
-      sharedBy: { id: "mock-user-1", name: "Rick Astley" },
-      sharedWithCount: 1,
-      sharedAt: new Date().toISOString(),
-    },
-    {
-      id: "mock-2",
-      type: "note",
-      title: "Welcome to the Feed!",
-      description:
-        "This is where you can see shared content from your family and friends. You can embed YouTube videos, share photos, and post updates.",
-      url: "",
-      thumbnail: "",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      ownerId: "mock-user-2",
-      status: "shared",
-      sharedBy: { id: "mock-user-2", name: "Futura Team" },
-      sharedWithCount: 1,
-      sharedAt: new Date().toISOString(),
-    },
-  ];
+  const sampleFeedItems: FeedItem[] = useMemo(
+    () => [
+      {
+        id: "mock-1",
+        type: "video",
+        title: "Rick Astley - Never Gonna Give You Up",
+        description: "A classic music video that never gets old",
+        url: "https://www.youtube.com/embed/dQw4w9WgXcQ?si=rKeJHC7Y8EuIaKLH",
+        thumbnail: "https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        ownerId: "mock-user-1",
+        status: "shared",
+        sharedBy: { id: "mock-user-1", name: "Rick Astley" },
+        sharedWithCount: 1,
+        sharedAt: new Date().toISOString(),
+      },
+      {
+        id: "mock-2",
+        type: "note",
+        title: "Welcome to the Feed!",
+        description:
+          "This is where you can see shared content from your family and friends. You can embed YouTube videos, share photos, and post updates.",
+        url: "",
+        thumbnail: "",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        ownerId: "mock-user-2",
+        status: "shared",
+        sharedBy: { id: "mock-user-2", name: "Futura Team" },
+        sharedWithCount: 1,
+        sharedAt: new Date().toISOString(),
+      },
+    ],
+    []
+  );
 
   const fetchFeedItems = useCallback(async () => {
     if (USE_MOCK_DATA) {
@@ -108,14 +112,16 @@ export default function FeedPage({ params }: { params: Promise<{ lang: string }>
       const data = await response.json();
 
       // Transform shared memories into feed items
-      const feedItems = data.data.map((memory: any) => ({
-        // eslint-disable-line @typescript-eslint/no-explicit-any
-        ...memory,
-        status: "shared" as const,
-        sharedBy: memory.sharedBy || { id: "unknown", name: "Unknown" },
-        sharedWithCount: memory.sharedWithCount || 1,
-        sharedAt: memory.sharedAt || memory.createdAt, // Use sharing date or fallback to creation date
-      }));
+      const feedItems = data.data.map((memory: unknown) => {
+        const m = memory as Record<string, unknown>;
+        return {
+          ...m,
+          status: "shared" as const,
+          sharedBy: m.sharedBy || { id: "unknown", name: "Unknown" },
+          sharedWithCount: m.sharedWithCount || 1,
+          sharedAt: m.sharedAt || m.createdAt, // Use sharing date or fallback to creation date
+        };
+      });
 
       setFeedItems((prev) => {
         if (currentPage === 1) return feedItems;
@@ -159,7 +165,7 @@ export default function FeedPage({ params }: { params: Promise<{ lang: string }>
         return (
           <div className="relative w-full h-48 rounded-lg overflow-hidden bg-gray-100">
             {item.thumbnail ? (
-              <img src={item.thumbnail} alt={item.title || "Shared image"} className="w-full h-full object-cover" />
+              <Image src={item.thumbnail} alt={item.title || "Shared image"} fill className="object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-gray-400">📷 Image</div>
             )}
@@ -181,7 +187,7 @@ export default function FeedPage({ params }: { params: Promise<{ lang: string }>
                 className="rounded-lg"
               />
             ) : item.thumbnail ? (
-              <img src={item.thumbnail} alt={item.title || "Shared video"} className="w-full h-full object-cover" />
+              <Image src={item.thumbnail} alt={item.title || "Shared video"} fill className="object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-gray-400">🎥 Video</div>
             )}

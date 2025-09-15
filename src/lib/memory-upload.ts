@@ -201,14 +201,15 @@ export async function uploadImageWithMultipleAssets(
         id: memory.id,
         type: memory.type,
         title: memory.title,
-        assets: assetsData.assets.map((asset: any) => ({
-          // eslint-disable-line @typescript-eslint/no-explicit-any
-          assetType: asset.assetType,
-          url: asset.url,
-          width: asset.width,
-          height: asset.height,
-          bytes: asset.bytes,
-        })),
+        assets: assetsData.assets.map(
+          (asset: { assetType: string; url: string; width: number; height: number; bytes: number }) => ({
+            assetType: asset.assetType,
+            url: asset.url,
+            width: asset.width,
+            height: asset.height,
+            bytes: asset.bytes,
+          })
+        ),
       },
     };
   } catch (error) {

@@ -25,6 +25,13 @@ import { useInView } from "react-intersection-observer";
 import { useAuthGuard } from "@/utils/authentication";
 // Removed normalizeMemories import - no longer needed with unified API
 import { Memory } from "@/types/memory";
+
+// Extended type for shared memories that includes additional properties from the API
+type SharedMemory = Memory & {
+  sharedWithCount?: number;
+  sharedBy?: { id: string; name: string };
+  status: "private" | "shared" | "public";
+};
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import RequireAuth from "@/components/auth/require-auth";
@@ -36,13 +43,7 @@ export default function SharedMemoriesPage({ params }: { params: Promise<{ lang:
   const { isAuthorized, isTemporaryUser, userId, isLoading } = useAuthGuard();
   const router = useRouter();
   const { toast } = useToast();
-  const [memories, setMemories] = useState<
-    (Memory & {
-      status: "private" | "shared" | "public";
-      sharedWithCount?: number;
-      sharedBy?: { id: string; name: string };
-    })[]
-  >([]);
+  const [memories, setMemories] = useState<SharedMemory[]>([]);
   const [isLoadingMemories, setIsLoadingMemories] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -99,8 +100,7 @@ export default function SharedMemoriesPage({ params }: { params: Promise<{ lang:
       // });
 
       // Use new unified format - memories already have status and sharedWithCount from API
-      const sharedMemories = data.data.map((memory: any) => ({
-        // eslint-disable-line @typescript-eslint/no-explicit-any
+      const sharedMemories: SharedMemory[] = data.data.map((memory: SharedMemory) => ({
         ...memory,
         status: "shared" as const, // Override to "shared" since these are shared memories
         sharedWithCount: memory.sharedWithCount || 1,

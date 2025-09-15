@@ -103,7 +103,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     }
 
     // Check ownership
-    if (memory.data.ownerId !== authenticatedUserId) {
+    if (memory.ownerId !== authenticatedUserId) {
       return NextResponse.json({ error: "Only the owner can share this memory" }, { status: 403 });
     }
 
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       .values({
         memoryId: memoryId,
         memoryType: memory.type,
-        ownerId: memory.data.ownerId,
+        ownerId: memory.ownerId,
         sharedWithType: target.type,
         sharedWithId: target.type === "user" ? target.allUserId! : target.groupId!,
         inviteeSecureCode: generateSecureCode(), // For invitee to access the memory
@@ -152,11 +152,11 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
 
     // Create relationship if provided
     if (relationshipInfo && target.type === "user") {
-      await createRelationship(memory.data.ownerId, target.allUserId!, relationshipInfo);
+      await createRelationship(memory.ownerId, target.allUserId!, relationshipInfo);
     }
 
     // Generate magic links for both owner and invitee
-    const ownerMagicLink = `${process.env.NEXT_PUBLIC_APP_URL}/memories/${memoryId}/share-link?code=${memory.data.ownerSecureCode}`;
+    const ownerMagicLink = `${process.env.NEXT_PUBLIC_APP_URL}/memories/${memoryId}/share-link?code=${memory.ownerSecureCode}`;
     const inviteeMagicLink = `${process.env.NEXT_PUBLIC_APP_URL}/memories/${memoryId}/share-link?code=${share.inviteeSecureCode}`;
 
     // Send email if requested
@@ -164,9 +164,9 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     if (sendEmail && target.type === "user") {
       console.log("📧 Email sending not implemented yet for new schema");
       // if (isInviteeNew) {
-      //   await sendInvitationEmail(userEmail, memory, memory.data.ownerId, { useTemplate: false });
+      //   await sendInvitationEmail(userEmail, memory, memory.ownerId, { useTemplate: false });
       // } else {
-      //   await sendSharedMemoryEmail(userEmail, memory, memory.data.ownerId, inviteeMagicLink, { useTemplate: false });
+      //   await sendSharedMemoryEmail(userEmail, memory, memory.ownerId, inviteeMagicLink, { useTemplate: false });
       // }
     }
 

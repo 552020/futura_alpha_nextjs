@@ -5,7 +5,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Download, Edit, Trash } from "lucide-react";
 import { useState, useEffect } from "react";
-import type { DBImage, DBDocument, DBNote, DBVideo } from "@/db/schema";
+// Note: DBImage, DBDocument, DBNote, DBVideo types are no longer used with the new schema
 import { shortenTitle } from "@/lib/utils";
 
 interface MemoryViewerProps {
@@ -19,15 +19,23 @@ export function MemoryViewer({ memory, isOwner }: MemoryViewerProps) {
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [downloadFileName, setDownloadFileName] = useState<string | null>(null);
 
+  // Helper function to get asset by type
+  const getAssetByType = (assetType: string) => {
+    return memory.assets?.find((asset: any) => asset.assetType === assetType); // eslint-disable-line @typescript-eslint/no-explicit-any
+  };
+
+  // Get the primary asset (original or first available)
+  const primaryAsset = getAssetByType('original') || memory.assets?.[0];
+
   const handleDownload = async () => {
     try {
-      const response = await fetch(`/api/memories/${memory.data.id}/download`);
+      const response = await fetch(`/api/memories/${memory.id}/download`);
       if (!response.ok) throw new Error("Download failed");
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       setDownloadUrl(url);
-      setDownloadFileName(memory.data.title || "memory");
+      setDownloadFileName(memory.title || "memory");
     } catch (error) {
       console.error("Error downloading memory:", error);
     }
@@ -46,7 +54,7 @@ export function MemoryViewer({ memory, isOwner }: MemoryViewerProps) {
     if (!confirm("Are you sure you want to delete this memory?")) return;
 
     try {
-      const response = await fetch(`/api/memories/${memory.data.id}`, {
+      const response = await fetch(`/api/memories/${memory.id}`, {
         method: "DELETE",
       });
 
@@ -63,8 +71,8 @@ export function MemoryViewer({ memory, isOwner }: MemoryViewerProps) {
     <div className="space-y-4">
       {/* Title and Actions */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold" title={memory.data.title || ""}>
-          {shortenTitle(memory.data.title || "", 40)}
+        <h2 className="text-xl font-semibold" title={memory.title || ""}>
+          {shortenTitle(memory.title || "", 40)}
         </h2>
         <div className="flex gap-2">
           <Button variant="outline" size="icon" onClick={handleDownload}>
@@ -85,41 +93,41 @@ export function MemoryViewer({ memory, isOwner }: MemoryViewerProps) {
 
       {/* Memory Content */}
       <div className="mt-4">
-        {memory.type === "image" && (
+        {memory.type === "image" && primaryAsset && (
           <div className="relative aspect-video w-full overflow-hidden rounded-lg">
             <Image
-              src={(memory.data as DBImage).url}
-              alt={(memory.data as DBImage).title || "Shared memory"}
+              src={primaryAsset.url}
+              alt={memory.title || "Shared memory"}
               fill
               className="object-cover"
             />
           </div>
         )}
 
-        {memory.type === "video" && (
+        {memory.type === "video" && primaryAsset && (
           <div className="relative aspect-video w-full overflow-hidden rounded-lg">
             <video controls className="h-full w-full">
-              <source src={(memory.data as DBVideo).url} type={(memory.data as DBVideo).mimeType} />
+              <source src={primaryAsset.url} type={primaryAsset.mimeType} />
               Your browser does not support the video tag.
             </video>
           </div>
         )}
 
-        {memory.type === "document" && (
+        {memory.type === "document" && primaryAsset && (
           <div className="rounded-lg border p-4">
-            <p className="text-sm text-muted-foreground">Document Type: {(memory.data as DBDocument).mimeType}</p>
-            <p className="text-sm text-muted-foreground">Size: {(memory.data as DBDocument).size}</p>
+            <p className="text-sm text-muted-foreground">Document Type: {primaryAsset.mimeType}</p>
+            <p className="text-sm text-muted-foreground">Size: {primaryAsset.bytes} bytes</p>
           </div>
         )}
 
         {memory.type === "note" && (
           <div className="rounded-lg border p-4">
-            <p className="text-muted-foreground">{(memory.data as DBNote).content}</p>
+            <p className="text-muted-foreground">{memory.description || "Note content not available"}</p>
           </div>
         )}
 
-        {(memory.data as DBImage | DBDocument | DBVideo).description && (
-          <p className="mt-4 text-muted-foreground">{(memory.data as DBImage | DBDocument | DBVideo).description}</p>
+        {memory.description && (
+          <p className="mt-4 text-muted-foreground">{memory.description}</p>
         )}
       </div>
 

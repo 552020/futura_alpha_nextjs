@@ -54,7 +54,7 @@ import {
  * Main POST handler for memory creation
  * Handles both JSON requests and file uploads
  */
-export async function handleApiMemoryPost(request: NextRequest) {
+export async function handleApiMemoryPost(request: NextRequest): Promise<NextResponse> {
   console.log("🚀 Starting memory creation process...");
 
   try {
@@ -104,7 +104,7 @@ export async function handleApiMemoryPost(request: NextRequest) {
 /**
  * Handle folder upload requests using new blob-first approach with multiple assets support
  */
-async function handleFolderUpload(request: NextRequest) {
+async function handleFolderUpload(request: NextRequest): Promise<NextResponse> {
   const startTime = Date.now();
   console.log("🚀 Starting folder upload process with blob-first approach...");
 
@@ -112,7 +112,7 @@ async function handleFolderUpload(request: NextRequest) {
     // Parse files using the utility function
     const { files, userId: providedAllUserId, error: parseError } = await parseMultipleFiles(request);
     if (parseError) {
-      return parseError;
+      return NextResponse.json({ error: parseError }, { status: 400 });
     }
 
     if (!files || files.length === 0) {
@@ -123,8 +123,10 @@ async function handleFolderUpload(request: NextRequest) {
 
     // Validate file types for all files
     for (const file of files) {
-      const fileTypeError = validateFileType(file, isAcceptedMimeType);
-      if (fileTypeError) return fileTypeError;
+      const { error: fileTypeError } = validateFileType(file, isAcceptedMimeType);
+      if (fileTypeError) {
+        return NextResponse.json({ error: fileTypeError }, { status: 400 });
+      }
     }
 
     // Get user ID using extracted utility
@@ -190,7 +192,7 @@ async function handleFolderUpload(request: NextRequest) {
 /**
  * Handle file upload requests (single or multiple files)
  */
-async function handleFileUpload(request: NextRequest, ownerId: string) {
+async function handleFileUpload(request: NextRequest, ownerId: string): Promise<NextResponse> {
   const startTime = Date.now();
 
   // Parse form data to determine if single or multiple files

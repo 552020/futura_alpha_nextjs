@@ -132,22 +132,36 @@ export async function POST(request: NextRequest) {
         // Create assets if provided
         let createdAssets: unknown[] = [];
         if (memoryData.assets && memoryData.assets.length > 0) {
-          const assetData = memoryData.assets.map((asset: any) => ({
-            // eslint-disable-line @typescript-eslint/no-explicit-any
-            memoryId: createdMemory.id,
-            assetType: asset.assetType as "original" | "display" | "thumb" | "placeholder" | "poster" | "waveform",
-            variant: asset.variant || null,
-            url: asset.url,
-            storageBackend: asset.storageBackend || "vercel_blob",
-            storageKey: asset.storageKey || asset.url.split("/").pop() || "",
-            bytes: asset.bytes,
-            width: asset.width || null,
-            height: asset.height || null,
-            mimeType: asset.mimeType,
-            sha256: asset.sha256 || null,
-            processingStatus: asset.processingStatus || "completed",
-            processingError: asset.processingError || null,
-          }));
+          const assetData = memoryData.assets.map(
+            (asset: {
+              assetType: string;
+              variant?: string;
+              url: string;
+              storageBackend?: string;
+              storageKey?: string;
+              bytes: number;
+              width?: number;
+              height?: number;
+              mimeType: string;
+              sha256?: string;
+              processingStatus?: string;
+              processingError?: string;
+            }) => ({
+              memoryId: createdMemory.id,
+              assetType: asset.assetType as "original" | "display" | "thumb" | "placeholder" | "poster" | "waveform",
+              variant: asset.variant || null,
+              url: asset.url,
+              storageBackend: asset.storageBackend || "vercel_blob",
+              storageKey: asset.storageKey || asset.url.split("/").pop() || "",
+              bytes: asset.bytes,
+              width: asset.width || null,
+              height: asset.height || null,
+              mimeType: asset.mimeType,
+              sha256: asset.sha256 || null,
+              processingStatus: asset.processingStatus || "completed",
+              processingError: asset.processingError || null,
+            })
+          );
 
           createdAssets = await db.insert(memoryAssets).values(assetData).returning();
           console.log(`✅ Created ${createdAssets.length} assets for memory ${createdMemory.id}`);
@@ -180,7 +194,10 @@ export async function POST(request: NextRequest) {
     }
 
     const duration = Date.now() - startTime;
-    const totalAssets = successfulMemories.reduce((sum, memory) => sum + (memory.assets?.length || 0), 0);
+    const totalAssets = successfulMemories.reduce(
+      (sum: number, memory) => sum + ((memory as { assets?: unknown[] }).assets?.length || 0),
+      0
+    );
 
     console.log(`✅ Batch upload completed in ${duration}ms`);
     console.log(`📊 Results: ${successfulMemories.length} successful, ${failedMemories.length} failed`);

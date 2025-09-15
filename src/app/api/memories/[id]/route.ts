@@ -139,7 +139,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     await db.delete(memories).where(eq(memories.id, memoryId));
 
     // Clean up storage edges
-    const { cleanupStorageEdgesForMemory } = await import("../upload/utils");
+    const { cleanupStorageEdgesForMemory } = await import("../utils/memory-database");
     await cleanupStorageEdgesForMemory({
       memoryId,
       memoryType: existingMemory.type,

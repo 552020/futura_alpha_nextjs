@@ -55,7 +55,7 @@ async function cleanupStorageEdgesForMemories(memories: Array<{ id: string; type
  * Main DELETE handler for memory deletion
  * Handles bulk deletion and type-specific deletion
  */
-export async function handleApiMemoryDelete(request: NextRequest) {
+export async function handleApiMemoryDelete(request: NextRequest): Promise<NextResponse> {
   // Check authentication
   const session = await auth();
   if (!session?.user?.id) {

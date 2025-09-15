@@ -21,11 +21,11 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     }
 
     // Check if this is an owner's secure code
-    if (memory.data.ownerSecureCode === secureCode) {
+    if (memory.ownerSecureCode === secureCode) {
       // Owner's secure code - return full memory data
       return NextResponse.json({
         type: memory.type,
-        data: memory.data,
+        data: memory,
         isOwner: true,
       });
     }
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     return NextResponse.json({
       type: memory.type,
       data: {
-        ...memory.data,
+        ...memory,
         // Remove sensitive data for non-owners
         ownerSecureCode: undefined,
       },

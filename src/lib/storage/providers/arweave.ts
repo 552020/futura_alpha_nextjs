@@ -23,6 +23,9 @@ export class ArweaveProvider implements StorageProvider {
    * TODO: Implement with arweave-js
    */
   async upload(_file: File, _options?: UploadOptions): Promise<UploadResult> {
+    // Suppress unused parameter warnings for placeholder implementation
+    void _file;
+    void _options;
     if (!this.isAvailable()) {
       throw new Error("Arweave is not available. Wallet key and gateway URL are required.");
     }
@@ -36,6 +39,8 @@ export class ArweaveProvider implements StorageProvider {
    * Note: Arweave is immutable, so deletion is not possible
    */
   async delete(_options: DeleteOptions): Promise<void> {
+    // Suppress unused parameter warnings for placeholder implementation
+    void _options;
     throw new Error("Arweave is immutable. Files cannot be deleted.");
   }
 

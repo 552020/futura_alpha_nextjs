@@ -43,8 +43,7 @@ export const fetchMemories = async (page: number): Promise<FetchMemoriesResult> 
   const data = await response.json();
 
   // Use new unified format - memories already have status and sharedWithCount
-  const memories = data.data.map((memory: any) => ({
-    // eslint-disable-line @typescript-eslint/no-explicit-any
+  const memories = data.data.map((memory: Memory & { status?: string; sharedWithCount?: number }) => ({
     ...memory,
     // Ensure we have the expected properties
     status: memory.status || "private",

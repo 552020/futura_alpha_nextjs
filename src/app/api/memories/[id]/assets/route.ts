@@ -58,13 +58,14 @@ import { getMemoryAccessLevel } from "../../utils/access";
  *   ]
  * }
  */
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
+    const params = await context.params;
     const memoryId = params.id;
 
     // Get the allUserId for the authenticated user
@@ -183,13 +184,14 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 /**
  * GET /api/memories/:id/assets - Get all assets for a memory
  */
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
+    const params = await context.params;
     const memoryId = params.id;
 
     // Get the allUserId for the authenticated user
@@ -239,13 +241,14 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
  * }
  * If no assetTypes provided, deletes all assets for the memory
  */
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
+    const params = await context.params;
     const memoryId = params.id;
 
     // Get the allUserId for the authenticated user

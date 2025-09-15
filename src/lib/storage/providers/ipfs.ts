@@ -23,6 +23,9 @@ export class IPFSProvider implements StorageProvider {
    * TODO: Implement with ipfs-http-client
    */
   async upload(_file: File, _options?: UploadOptions): Promise<UploadResult> {
+    // Suppress unused parameter warnings for placeholder implementation
+    void _file;
+    void _options;
     if (!this.isAvailable()) {
       throw new Error("IPFS is not available. Gateway URL and API/Node URL are required.");
     }
@@ -36,6 +39,8 @@ export class IPFSProvider implements StorageProvider {
    * Note: IPFS is content-addressed, so deletion is not possible
    */
   async delete(_options: DeleteOptions): Promise<void> {
+    // Suppress unused parameter warnings for placeholder implementation
+    void _options;
     throw new Error("IPFS is content-addressed. Files cannot be deleted.");
   }
 

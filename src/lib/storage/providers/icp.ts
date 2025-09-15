@@ -23,6 +23,9 @@ export class ICPProvider implements StorageProvider {
    * TODO: Implement with ICP agent
    */
   async upload(_file: File, _options?: UploadOptions): Promise<UploadResult> {
+    // Suppress unused parameter warnings for placeholder implementation
+    void _file;
+    void _options;
     if (!this.isAvailable()) {
       throw new Error("ICP is not available. Canister ID and network URL are required.");
     }
@@ -36,6 +39,8 @@ export class ICPProvider implements StorageProvider {
    * TODO: Implement with ICP agent
    */
   async delete(_options: DeleteOptions): Promise<void> {
+    // Suppress unused parameter warnings for placeholder implementation
+    void _options;
     if (!this.isAvailable()) {
       throw new Error("ICP is not available. Canister ID and network URL are required.");
     }

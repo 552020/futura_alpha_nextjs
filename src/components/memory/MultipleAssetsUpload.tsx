@@ -16,6 +16,7 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
+import Image from "next/image";
 import {
   uploadMultipleImagesWithAssets,
   getOptimalAssetUrl,
@@ -40,6 +41,50 @@ export default function MultipleAssetsUpload({
   const [uploadResults, setUploadResults] = useState<UploadResult[]>([]);
   const [dragActive, setDragActive] = useState(false);
 
+  const handleFiles = useCallback(
+    async (files: File[]) => {
+      // Filter for image files only
+      const imageFiles = files.filter((file) => file.type.startsWith("image/"));
+
+      if (imageFiles.length === 0) {
+        onUploadError?.("Please select image files only");
+        return;
+      }
+
+      setIsUploading(true);
+      setUploadProgress(new Map());
+      setUploadResults([]);
+
+      try {
+        // Calculate upload size info
+        const sizeInfo = calculateUploadSize(imageFiles);
+        console.log("Upload size info:", sizeInfo);
+
+        // Upload files
+        const results = await uploadMultipleImagesWithAssets(imageFiles, {
+          parentFolderId,
+          onProgress: (fileIndex, progress) => {
+            setUploadProgress((prev) => new Map(prev).set(fileIndex, progress));
+          },
+          maxConcurrent: 2, // Limit concurrent uploads
+        });
+
+        setUploadResults([...results.successful, ...results.failed]);
+        onUploadComplete?.(results.successful);
+
+        if (results.failed.length > 0) {
+          onUploadError?.(`${results.failed.length} files failed to upload`);
+        }
+      } catch (error) {
+        console.error("Upload error:", error);
+        onUploadError?.(error instanceof Error ? error.message : "Upload failed");
+      } finally {
+        setIsUploading(false);
+      }
+    },
+    [parentFolderId, onUploadComplete, onUploadError]
+  );
+
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -50,62 +95,27 @@ export default function MultipleAssetsUpload({
     }
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setDragActive(false);
 
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFiles(Array.from(e.dataTransfer.files));
-    }
-  }, []);
-
-  const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      handleFiles(Array.from(e.target.files));
-    }
-  }, []);
-
-  const handleFiles = async (files: File[]) => {
-    // Filter for image files only
-    const imageFiles = files.filter((file) => file.type.startsWith("image/"));
-
-    if (imageFiles.length === 0) {
-      onUploadError?.("Please select image files only");
-      return;
-    }
-
-    setIsUploading(true);
-    setUploadProgress(new Map());
-    setUploadResults([]);
-
-    try {
-      // Calculate upload size info
-      const sizeInfo = calculateUploadSize(imageFiles);
-      console.log("Upload size info:", sizeInfo);
-
-      // Upload files
-      const results = await uploadMultipleImagesWithAssets(imageFiles, {
-        parentFolderId,
-        onProgress: (fileIndex, progress) => {
-          setUploadProgress((prev) => new Map(prev).set(fileIndex, progress));
-        },
-        maxConcurrent: 2, // Limit concurrent uploads
-      });
-
-      setUploadResults([...results.successful, ...results.failed]);
-      onUploadComplete?.(results.successful);
-
-      if (results.failed.length > 0) {
-        onUploadError?.(`${results.failed.length} files failed to upload`);
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        handleFiles(Array.from(e.dataTransfer.files));
       }
-    } catch (error) {
-      console.error("Upload error:", error);
-      onUploadError?.(error instanceof Error ? error.message : "Upload failed");
-    } finally {
-      setIsUploading(false);
-    }
-  };
+    },
+    [handleFiles]
+  );
+
+  const handleFileInput = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files) {
+        handleFiles(Array.from(e.target.files));
+      }
+    },
+    [handleFiles]
+  );
 
   // const getProgressForFile = (fileIndex: number): UploadProgress | undefined => {
   //   return uploadProgress.get(fileIndex);
@@ -228,9 +238,11 @@ export default function MultipleAssetsUpload({
                       ))}
                     </div>
                     <div className="mt-3">
-                      <img
-                        src={getOptimalAssetUrl(result.memory.assets, "thumb")}
+                      <Image
+                        src={getOptimalAssetUrl(result.memory.assets, "grid")}
                         alt={result.memory.title}
+                        width={200}
+                        height={96}
                         className="w-full h-24 object-cover rounded"
                       />
                     </div>
