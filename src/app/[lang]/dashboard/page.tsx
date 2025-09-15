@@ -114,9 +114,9 @@ export default function VaultPage() {
         error,
         message: error instanceof Error ? error.message : "Unknown error",
         stack: error instanceof Error ? error.stack : undefined,
-        status: (error as any)?.status,
-        statusText: (error as any)?.statusText,
-        details: (error as any)?.details,
+        status: (error as Error & { status?: number })?.status,
+        statusText: (error as Error & { statusText?: string })?.statusText,
+        details: (error as Error & { details?: Record<string, unknown> })?.details,
         timestamp,
       });
 
