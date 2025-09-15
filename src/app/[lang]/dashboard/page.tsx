@@ -1,5 +1,20 @@
 "use client";
 
+/**
+ * DASHBOARD PAGE (formerly "Vault")
+ *
+ * This page displays the user's memory collection in a grid/list view.
+ * It was previously called "Vault" but has been renamed to "Dashboard"
+ * for better UX clarity.
+ *
+ * Features:
+ * - Memory grid/list view with pagination
+ * - Upload functionality
+ * - Memory management (delete, share, edit)
+ * - Folder organization
+ * - Search and filtering
+ */
+
 import { useEffect, useState, useCallback } from "react";
 import { MemoryGrid } from "@/components/memory/memory-grid";
 import { Loader2 } from "lucide-react";
@@ -12,7 +27,7 @@ import { ItemUploadButton } from "@/components/memory/item-upload-button";
 import { useParams } from "next/navigation";
 import RequireAuth from "@/components/auth/require-auth";
 import {
-  fetchAndNormalizeMemories,
+  fetchMemories,
   processDashboardItems,
   deleteMemory,
   deleteAllMemories,
@@ -52,7 +67,7 @@ export default function VaultPage() {
   const { ref } = useInView();
   const params = useParams();
 
-  const fetchMemories = useCallback(async () => {
+  const fetchDashboardMemories = useCallback(async () => {
     // console.log("🚀 LINE 104: ENTERING fetchMemories function");
     const timestamp = new Date().toISOString();
     // console.log("🔍 fetchMemories called with:", { currentPage, USE_MOCK_DATA, timestamp });
@@ -72,9 +87,9 @@ export default function VaultPage() {
       //   timestamp,
       // });
 
-      // console.log("🚀 LINE 122: CALLING fetchAndNormalizeMemories");
-      const result = await fetchAndNormalizeMemories(currentPage);
-      // console.log("✅ LINE 124: EXITED fetchAndNormalizeMemories");
+      // console.log("🚀 LINE 122: CALLING fetchMemories");
+      const result = await fetchMemories(currentPage);
+      // console.log("✅ LINE 124: EXITED fetchMemories");
 
       // console.log("🚀 LINE 126: CALLING processDashboardItems");
       const processedItems = processDashboardItems(result.memories);
@@ -117,13 +132,13 @@ export default function VaultPage() {
   useEffect(() => {
     // console.log("🔍 Dashboard useEffect - Auth check:", { isAuthorized, userId, isLoading });
     if (isAuthorized && !isLoading) {
-      // console.log("🚀 LINE 168: CALLING fetchMemories");
-      fetchMemories();
-      // console.log("✅ LINE 170: EXITED fetchMemories");
+      // console.log("🚀 LINE 168: CALLING fetchDashboardMemories");
+      fetchDashboardMemories();
+      // console.log("✅ LINE 170: EXITED fetchDashboardMemories");
     } else {
       // console.log("🔍 Dashboard useEffect - Not authorized or still loading");
     }
-  }, [isAuthorized, isLoading, userId, fetchMemories]);
+  }, [isAuthorized, isLoading, userId, fetchDashboardMemories]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -163,7 +178,7 @@ export default function VaultPage() {
 
   const handleShare = () => {
     // Refresh the memories list to show any new shares
-    fetchMemories();
+    fetchDashboardMemories();
   };
 
   const handleMemoryClick = (memory: Memory) => {
@@ -187,7 +202,7 @@ export default function VaultPage() {
 
   const handleUploadSuccess = () => {
     // Refresh the memories list to show the new memory
-    fetchMemories();
+    fetchDashboardMemories();
   };
 
   const handleUploadError = (error: Error) => {
