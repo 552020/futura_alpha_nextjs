@@ -47,7 +47,7 @@ export function LanguageSwitcher() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="flex items-center gap-2">
+        <Button variant="ghost" size="sm" className="flex items-center gap-2" suppressHydrationWarning>
           <Globe className="h-5 w-5" />
           <span className="uppercase text-xs font-medium">{lang}</span>
         </Button>

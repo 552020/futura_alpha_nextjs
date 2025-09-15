@@ -37,7 +37,26 @@ export const fetchMemories = async (page: number): Promise<FetchMemoriesResult> 
   const response = await fetch(`/api/memories?page=${page}`);
 
   if (!response.ok) {
-    throw new Error("Failed to fetch memories");
+    // Try to get error details from the response
+    let errorMessage = "Failed to fetch memories";
+    let errorDetails: any = {};
+
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.error || errorMessage;
+      errorDetails = errorData;
+    } catch (parseError) {
+      // If we can't parse the error response, use the status text
+      errorMessage = response.statusText || errorMessage;
+    }
+
+    const error = new Error(errorMessage);
+    // Attach additional error details for debugging
+    (error as any).status = response.status;
+    (error as any).statusText = response.statusText;
+    (error as any).details = errorDetails;
+
+    throw error;
   }
 
   const data = await response.json();

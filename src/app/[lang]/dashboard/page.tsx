@@ -114,11 +114,17 @@ export default function VaultPage() {
         error,
         message: error instanceof Error ? error.message : "Unknown error",
         stack: error instanceof Error ? error.stack : undefined,
+        status: (error as any)?.status,
+        statusText: (error as any)?.statusText,
+        details: (error as any)?.details,
         timestamp,
       });
+
+      // Show more specific error message if available
+      const errorMessage = error instanceof Error ? error.message : "Failed to load memories. Please try again.";
       toast({
         title: "Error",
-        description: "Failed to load memories. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
