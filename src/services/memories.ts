@@ -3,12 +3,21 @@ import { Memory } from '@/types/memory';
 
 // Removed old interfaces - now using unified format
 
-export interface NormalizedMemory extends Memory {
+export interface MemoryWithFolder extends Omit<Memory, 'parentFolderId'> {
   status: 'private' | 'shared' | 'public';
   sharedWithCount?: number;
+  parentFolderId?: string | null; // Allow null for database compatibility
+  folder?: {
+    id: string;
+    name: string;
+    ownerId: string;
+    parentFolderId?: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+  };
   metadata?: {
     originalPath?: string;
-    folderName?: string;
+    folderName?: string; // Keep for backward compatibility
   };
 }
 
@@ -18,7 +27,8 @@ export interface FolderItem {
   title: string;
   description: string;
   itemCount: number;
-  memories: NormalizedMemory[];
+  memories: MemoryWithFolder[];
+  folderId: string; // Store actual folder ID for navigation
   createdAt: string;
   url?: string;
   thumbnail?: string;
@@ -26,15 +36,17 @@ export interface FolderItem {
   sharedWithCount?: number;
 }
 
-export type DashboardItem = NormalizedMemory | FolderItem;
+export type DashboardItem = MemoryWithFolder | FolderItem;
 
 export interface FetchMemoriesResult {
-  memories: NormalizedMemory[];
+  memories: MemoryWithFolder[];
   hasMore: boolean;
 }
 
 export const fetchMemories = async (page: number): Promise<FetchMemoriesResult> => {
+  console.log(`🔍 Fetching memories for page ${page}...`);
   const response = await fetch(`/api/memories?page=${page}`);
+  console.log(`🔍 API response status: ${response.status} ${response.statusText}`);
 
   if (!response.ok) {
     // Try to get error details from the response
@@ -63,6 +75,11 @@ export const fetchMemories = async (page: number): Promise<FetchMemoriesResult> 
   }
 
   const data = await response.json();
+  console.log(`🔍 API response data:`, {
+    memoriesCount: data.data?.length || 0,
+    hasMore: data.hasMore,
+    total: data.total,
+  });
 
   // Use new unified format - memories already have status and sharedWithCount
   const memories = data.data.map((memory: Memory & { status?: string; sharedWithCount?: number }) => ({
@@ -116,35 +133,36 @@ export const deleteAllMemories = async (options?: {
   return response.json();
 };
 
-export const processDashboardItems = (memories: NormalizedMemory[]): DashboardItem[] => {
+export const processDashboardItems = (memories: MemoryWithFolder[]): DashboardItem[] => {
   // console.log("🚀 LINE 129: ENTERING processDashboardItems");
   // console.log("🔍 processDashboardItems - Received memories:", memories.length);
 
-  // Step 1: Group memories by folderName
+  // Step 1: Group memories by parentFolderId
   const folderGroups = memories.reduce(
     (groups, memory) => {
-      const folderName = memory.metadata?.folderName;
-      if (folderName) {
-        if (!groups[folderName]) {
-          groups[folderName] = [];
+      const parentFolderId = memory.parentFolderId;
+      if (parentFolderId) {
+        if (!groups[parentFolderId]) {
+          groups[parentFolderId] = [];
         }
-        groups[folderName].push(memory);
+        groups[parentFolderId].push(memory);
       }
       return groups;
     },
-    {} as Record<string, NormalizedMemory[]>
+    {} as Record<string, MemoryWithFolder[]>
   );
 
   // console.log("🔍 Folder groups:", folderGroups);
 
   // Step 2: Create FolderItems for each group
-  const folderItems: FolderItem[] = Object.entries(folderGroups).map(([folderName, folderMemories]) => ({
-    id: `folder-${folderName}`,
+  const folderItems: FolderItem[] = Object.entries(folderGroups).map(([folderId, folderMemories]) => ({
+    id: `folder-${folderId}`,
     type: 'folder' as const,
-    title: folderName,
+    title: folderMemories[0]?.folder?.name || 'Unknown Folder',
     description: `${folderMemories.length} items`,
     itemCount: folderMemories.length,
     memories: folderMemories,
+    folderId: folderId, // Store actual folder ID
     createdAt: folderMemories[0]?.createdAt || new Date().toISOString(),
     url: folderMemories[0]?.url || '',
     thumbnail: folderMemories[0]?.thumbnail || '',
@@ -155,7 +173,7 @@ export const processDashboardItems = (memories: NormalizedMemory[]): DashboardIt
   // console.log("🔍 Created folder items:", folderItems);
 
   // Step 3: Get individual memories (not in folders)
-  const individualMemories = memories.filter(memory => !memory.metadata?.folderName);
+  const individualMemories = memories.filter(memory => !memory.parentFolderId);
 
   // console.log("🔍 Individual memories:", individualMemories.length);
 

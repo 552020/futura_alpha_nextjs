@@ -12,6 +12,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { db } from '@/db/db';
+import { folders } from '@/db/schema';
 
 // Import organized utilities
 import {
@@ -165,6 +167,22 @@ async function handleFolderUpload(formData: FormData, allUserId: string): Promis
 
     // Use the allUserId passed from the main handler
 
+    // Extract folder name from first file
+    const folderName = files[0]?.name.split('/')[0] || 'Ungrouped';
+    console.log(`📁 Creating folder entity: "${folderName}"`);
+
+    // Create folder entity first
+    const [createdFolder] = await db
+      .insert(folders)
+      .values({
+        ownerId: allUserId,
+        name: folderName,
+        parentFolderId: null, // Root level for now
+      })
+      .returning();
+
+    console.log(`✅ Folder created with ID: ${createdFolder.id}`);
+
     // For server-side folder uploads, use the server-side upload approach
     // Process files in parallel (limit to 5 concurrent uploads)
     const pLimit = (await import('p-limit')).default;
@@ -206,13 +224,17 @@ async function handleFolderUpload(formData: FormData, allUserId: string): Promis
           // Determine memory type from file
           const memoryType = getMemoryType(file.type as AcceptedMimeType);
 
-          // Store in database using the new unified schema
+          // Store in database using the new unified schema with parentFolderId
           const mimeType = toAcceptedMimeType(file.type);
           const result = await storeInNewDatabase({
             type: memoryType,
             ownerId: allUserId,
             url,
-            file,
+            file: {
+              ...file,
+              name: file.name.split('/').pop() || file.name, // Clean filename
+            },
+            parentFolderId: createdFolder.id, // ✅ Link to folder
             metadata: {
               uploadedAt: new Date().toISOString(),
               originalName: file.name,

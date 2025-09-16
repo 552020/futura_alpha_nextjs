@@ -148,6 +148,7 @@ export async function storeInNewDatabase(params: {
     isPublic: false,
     parentFolderId: parentFolderId || null,
     ownerSecureCode: crypto.randomUUID(),
+    metadata: {},
   };
 
   const [createdMemory] = await db.insert(memories).values(newMemory).returning();

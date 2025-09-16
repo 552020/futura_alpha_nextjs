@@ -85,7 +85,7 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
       }
     }
 
-    // Fetch memories with optional assets
+    // Fetch memories with optional assets and folder information
     const userMemories = await db.query.memories.findMany({
       where: whereCondition,
       orderBy: desc(memories.createdAt),
@@ -94,8 +94,11 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
       with: includeAssets
         ? {
             assets: true,
+            folder: true, // Include folder information
           }
-        : undefined,
+        : {
+            folder: true, // Always include folder information for dashboard grouping
+          },
     });
 
     // Calculate share counts for each memory (like the old implementation)
@@ -134,24 +137,10 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
         })
       );
 
-      // Filter memories by type for backward compatibility
-      const images = memoriesWithThumbs.filter(m => m.type === 'image');
-      const documents = memoriesWithThumbs.filter(m => m.type === 'document');
-      const notes = memoriesWithThumbs.filter(m => m.type === 'note');
-      const videos = memoriesWithThumbs.filter(m => m.type === 'video');
-      const audio = memoriesWithThumbs.filter(m => m.type === 'audio');
-
       return NextResponse.json({
-        // Legacy format for backward compatibility (includes videos/audio that old GET was missing)
-        images,
-        documents,
-        notes,
-        videos,
-        audio,
-        hasMore: images.length + documents.length + notes.length + videos.length + audio.length === limit,
-        // New unified format (additional)
         success: true,
         data: memoriesWithThumbs,
+        hasMore: memoriesWithThumbs.length === limit,
         total: memoriesWithShareInfo.length,
       });
     }

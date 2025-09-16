@@ -205,3 +205,19 @@ export function logMultipleFileDetails(files: File[]): void {
     // console.log(`  ${_index + 1}. `);
   });
 }
+
+/**
+ * Extract folder information from file path
+ * Used for folder uploads to determine folder name and preserve original path
+ */
+export function extractFolderInfo(fileName: string): { originalPath: string; folderName: string } {
+  // When using webkitdirectory, fileName contains the full relative path
+  // e.g., "Wedding Photos/ceremony/img001.jpg" -> folderName: "Wedding Photos"
+  const pathParts = fileName.split("/");
+  const folderName = pathParts.length > 1 ? pathParts[0] : "Ungrouped";
+
+  return {
+    originalPath: fileName,
+    folderName: folderName,
+  };
+}

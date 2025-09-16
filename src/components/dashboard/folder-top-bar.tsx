@@ -1,17 +1,10 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Memory as BaseMemory } from '@/types/memory';
+import { ExtendedMemory } from '@/types/dashboard';
 import { CreateGalleryModal } from '@/components/galleries/create-gallery-modal';
 import { BaseTopBar } from '@/components/common/base-top-bar';
 import { ImageIcon } from 'lucide-react';
-
-// Extended Memory interface for gallery with additional properties
-interface ExtendedMemory extends BaseMemory {
-  tags?: string[];
-  isFavorite?: boolean;
-  views?: number;
-}
 
 interface FolderTopBarProps {
   memories: ExtendedMemory[];

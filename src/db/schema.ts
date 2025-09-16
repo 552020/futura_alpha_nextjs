@@ -398,7 +398,7 @@ export const memories = pgTable(
     description: text('description'),
     isPublic: boolean('is_public').default(false).notNull(),
     ownerSecureCode: text('owner_secure_code').notNull(),
-    parentFolderId: text('parent_folder_id'),
+    parentFolderId: uuid('parent_folder_id'),
     // Tags for better performance and search
     tags: text('tags').array().default([]),
     // Universal fields for all memory types
@@ -544,7 +544,7 @@ export const folders = pgTable(
       .notNull()
       .references(() => allUsers.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
-    parentFolderId: text('parent_folder_id'), // Self-referencing FK for nested folders
+    parentFolderId: uuid('parent_folder_id'), // Self-referencing FK for nested folders
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
@@ -1337,11 +1337,15 @@ export const refreshGalleryPresence = () => sql`SELECT refresh_gallery_presence(
  * // Result: asset.memory is the parent Memory object
  * ```
  */
-export const memoriesRelations = relations(memories, ({ many }) => ({
+export const memoriesRelations = relations(memories, ({ many, one }) => ({
   assets: many(memoryAssets),
   people: many(peopleInMemories),
   likes: many(memoryLikes),
   comments: many(memoryComments),
+  folder: one(folders, {
+    fields: [memories.parentFolderId],
+    references: [folders.id],
+  }),
 }));
 
 export const memoryAssetsRelations = relations(memoryAssets, ({ one }) => ({

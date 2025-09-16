@@ -340,27 +340,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
 
     async jwt({ token, account, user, trigger, session }) {
-      console.log('🔐 [JWT] Callback triggered with:', {
-        trigger,
-        hasUser: !!user,
-        tokenKeys: Object.keys(token),
-        userKeys: user ? Object.keys(user) : 'no user',
-      });
+      // console.log('🔐 [JWT] Callback triggered with:'n
+      //   trigger,
+      //   hasUser: !!user,
+      //   tokenKeys: Object.keys(token),
+      //   userKeys: user ? Object.keys(user) : 'no user',
+      // });
 
       // 🚫 CRITICAL: NO database writes in JWT callback
       // Linking/unlinking happens in API routes or events.linkAccount/unlinkAccount
 
       // Handle fresh sign-in (new session) - v5
       if (trigger === 'signIn' && account) {
-        console.log('🆕 [JWT] Fresh sign-in detected (v5)');
+        // console.log('🆕 [JWT] Fresh sign-in detected (v5)');
 
         // Set base session provider (authoritative on each fresh sign-in)
         token.loginProvider = account.provider;
-        console.log('🔑 [JWT] Set loginProvider:', token.loginProvider);
+        // console.log('🔑 [JWT] Set loginProvider:', token.loginProvider);
 
         // Clear any existing II co-auth flags on fresh sign-in
         if (account.provider !== 'internet-identity') {
-          console.log('🧹 [JWT] Clearing II co-auth flags (non-II sign-in)');
+          // console.log('🧹 [JWT] Clearing II co-auth flags (non-II sign-in)');
           delete token.activeIcPrincipal;
           delete token.activeIcPrincipalAssertedAt;
         }
@@ -376,7 +376,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               });
               if (iiAccount?.providerAccountId) {
                 token.linkedIcPrincipal = iiAccount.providerAccountId;
-                console.log('🔗 [JWT] Set linkedIcPrincipal from DB:', token.linkedIcPrincipal);
+                // console.log('🔗 [JWT] Set linkedIcPrincipal from DB:', token.linkedIcPrincipal);
               }
             } catch (error) {
               console.warn('⚠️ [JWT] Failed to fetch linkedIcPrincipal:', error);
@@ -387,20 +387,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       // Handle session update (II co-auth activation/clearing) - NextAuth v5
       if (trigger === 'update' && session) {
-        console.log('🔄 [JWT] Session update triggered (v5)');
+        // console.log('🔄 [JWT] Session update triggered (v5)');
 
         // Set co-auth when provided
         if ((session as any).activeIcPrincipal) {
           token.activeIcPrincipal = (session as any).activeIcPrincipal as string;
           token.activeIcPrincipalAssertedAt = Date.now();
-          console.log('✅ [JWT] Set activeIcPrincipal via update():', token.activeIcPrincipal);
+          // console.log('✅ [JWT] Set activeIcPrincipal via update():', token.activeIcPrincipal);
         }
 
         // Clear co-auth when explicitly requested
         if ((session as any).clearActiveIc === true) {
           delete token.activeIcPrincipal;
           delete token.activeIcPrincipalAssertedAt;
-          console.log('🧹 [JWT] Cleared activeIcPrincipal via update()');
+          // console.log('🧹 [JWT] Cleared activeIcPrincipal via update()');
         }
       }
 

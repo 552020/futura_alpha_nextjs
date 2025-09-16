@@ -1,6 +1,6 @@
 {
-  "id": "c741e15c-3f26-45cc-ac80-c1619094591b",
-  "prevId": "d8aae90b-c03b-481b-bf35-3a4f2bf78815",
+  "id": "e03f7d08-e43a-4e1b-868c-3fd5ccec9933",
+  "prevId": "90135fe7-6b76-441c-84ef-6220401c218a",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -118,8 +118,12 @@
           "name": "account_userId_user_id_fk",
           "tableFrom": "account",
           "tableTo": "user",
-          "columnsFrom": ["userId"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -127,7 +131,10 @@
       "compositePrimaryKeys": {
         "account_provider_providerAccountId_pk": {
           "name": "account_provider_providerAccountId_pk",
-          "columns": ["provider", "providerAccountId"]
+          "columns": [
+            "provider",
+            "providerAccountId"
+          ]
         }
       },
       "uniqueConstraints": {},
@@ -196,6 +203,204 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.memories": {
+      "name": "memories",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "memory_type_t",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_public": {
+          "name": "is_public",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "owner_secure_code": {
+          "name": "owner_secure_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parent_folder_id": {
+          "name": "parent_folder_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tags": {
+          "name": "tags",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'"
+        },
+        "recipients": {
+          "name": "recipients",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'"
+        },
+        "file_created_at": {
+          "name": "file_created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "unlock_date": {
+          "name": "unlock_date",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'::json"
+        }
+      },
+      "indexes": {
+        "memories_owner_created_idx": {
+          "name": "memories_owner_created_idx",
+          "columns": [
+            {
+              "expression": "owner_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": false,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "memories_type_idx": {
+          "name": "memories_type_idx",
+          "columns": [
+            {
+              "expression": "type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "memories_public_idx": {
+          "name": "memories_public_idx",
+          "columns": [
+            {
+              "expression": "is_public",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "memories_tags_idx": {
+          "name": "memories_tags_idx",
+          "columns": [
+            {
+              "expression": "tags",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "memories_owner_id_all_user_id_fk": {
+          "name": "memories_owner_id_all_user_id_fk",
+          "tableFrom": "memories",
+          "tableTo": "all_user",
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.audio_details": {
       "name": "audio_details",
       "schema": "",
@@ -237,8 +442,12 @@
           "name": "audio_details_memory_id_memories_id_fk",
           "tableFrom": "audio_details",
           "tableTo": "memories",
-          "columnsFrom": ["memory_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "memory_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -308,8 +517,12 @@
           "name": "authenticator_userId_user_id_fk",
           "tableFrom": "authenticator",
           "tableTo": "user",
-          "columnsFrom": ["userId"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -319,7 +532,9 @@
         "authenticator_credentialID_unique": {
           "name": "authenticator_credentialID_unique",
           "nullsNotDistinct": false,
-          "columns": ["credentialID"]
+          "columns": [
+            "credentialID"
+          ]
         }
       },
       "policies": {},
@@ -405,8 +620,12 @@
           "name": "business_relationship_business_id_all_user_id_fk",
           "tableFrom": "business_relationship",
           "tableTo": "all_user",
-          "columnsFrom": ["business_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "business_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -414,8 +633,12 @@
           "name": "business_relationship_client_id_all_user_id_fk",
           "tableFrom": "business_relationship",
           "tableTo": "all_user",
-          "columnsFrom": ["client_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "client_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -455,8 +678,12 @@
           "name": "document_details_memory_id_memories_id_fk",
           "tableFrom": "document_details",
           "tableTo": "memories",
-          "columnsFrom": ["memory_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "memory_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -547,8 +774,12 @@
           "name": "family_member_owner_id_all_user_id_fk",
           "tableFrom": "family_member",
           "tableTo": "all_user",
-          "columnsFrom": ["owner_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -556,8 +787,12 @@
           "name": "family_member_user_id_all_user_id_fk",
           "tableFrom": "family_member",
           "tableTo": "all_user",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -565,8 +800,12 @@
           "name": "family_member_user_fk",
           "tableFrom": "family_member",
           "tableTo": "all_user",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -626,8 +865,12 @@
           "name": "family_relationship_relationship_id_relationship_id_fk",
           "tableFrom": "family_relationship",
           "tableTo": "relationship",
-          "columnsFrom": ["relationship_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "relationship_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -635,8 +878,12 @@
           "name": "family_relationship_shared_ancestor_id_all_user_id_fk",
           "tableFrom": "family_relationship",
           "tableTo": "all_user",
-          "columnsFrom": ["shared_ancestor_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "shared_ancestor_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -672,7 +919,7 @@
         },
         "parent_folder_id": {
           "name": "parent_folder_id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
@@ -728,8 +975,12 @@
           "name": "folders_owner_id_all_user_id_fk",
           "tableFrom": "folders",
           "tableTo": "all_user",
-          "columnsFrom": ["owner_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -796,8 +1047,12 @@
           "name": "gallery_owner_id_all_user_id_fk",
           "tableFrom": "gallery",
           "tableTo": "all_user",
-          "columnsFrom": ["owner_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -953,8 +1208,12 @@
           "name": "gallery_item_gallery_id_gallery_id_fk",
           "tableFrom": "gallery_item",
           "tableTo": "gallery",
-          "columnsFrom": ["gallery_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "gallery_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1045,8 +1304,12 @@
           "name": "gallery_share_gallery_id_gallery_id_fk",
           "tableFrom": "gallery_share",
           "tableTo": "gallery",
-          "columnsFrom": ["gallery_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "gallery_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1054,8 +1317,12 @@
           "name": "gallery_share_owner_id_all_user_id_fk",
           "tableFrom": "gallery_share",
           "tableTo": "all_user",
-          "columnsFrom": ["owner_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1063,8 +1330,12 @@
           "name": "gallery_share_shared_with_id_all_user_id_fk",
           "tableFrom": "gallery_share",
           "tableTo": "all_user",
-          "columnsFrom": ["shared_with_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "shared_with_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1072,8 +1343,12 @@
           "name": "gallery_share_group_id_group_id_fk",
           "tableFrom": "gallery_share",
           "tableTo": "group",
-          "columnsFrom": ["group_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "group_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1127,8 +1402,12 @@
           "name": "group_owner_id_user_id_fk",
           "tableFrom": "group",
           "tableTo": "user",
-          "columnsFrom": ["owner_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1169,8 +1448,12 @@
           "name": "group_member_group_id_group_id_fk",
           "tableFrom": "group_member",
           "tableTo": "group",
-          "columnsFrom": ["group_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "group_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1178,8 +1461,12 @@
           "name": "group_member_user_id_user_id_fk",
           "tableFrom": "group_member",
           "tableTo": "user",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1187,7 +1474,10 @@
       "compositePrimaryKeys": {
         "group_member_group_id_user_id_pk": {
           "name": "group_member_group_id_user_id_pk",
-          "columns": ["group_id", "user_id"]
+          "columns": [
+            "group_id",
+            "user_id"
+          ]
         }
       },
       "uniqueConstraints": {},
@@ -1350,9 +1640,39 @@
           "primaryKey": false,
           "notNull": false
         },
-        "exif": {
-          "name": "exif",
-          "type": "json",
+        "camera": {
+          "name": "camera",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "focal": {
+          "name": "focal",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "iso": {
+          "name": "iso",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "aperture": {
+          "name": "aperture",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shutter_speed": {
+          "name": "shutter_speed",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "orientation": {
+          "name": "orientation",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false
         }
@@ -1363,160 +1683,12 @@
           "name": "image_details_memory_id_memories_id_fk",
           "tableFrom": "image_details",
           "tableTo": "memories",
-          "columnsFrom": ["memory_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.memories": {
-      "name": "memories",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "owner_id": {
-          "name": "owner_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "type": {
-          "name": "type",
-          "type": "memory_type_t",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "title": {
-          "name": "title",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "taken_at": {
-          "name": "taken_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "is_public": {
-          "name": "is_public",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "owner_secure_code": {
-          "name": "owner_secure_code",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "parent_folder_id": {
-          "name": "parent_folder_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "memories_owner_created_idx": {
-          "name": "memories_owner_created_idx",
-          "columns": [
-            {
-              "expression": "owner_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": false,
-              "nulls": "last"
-            }
+          "columnsFrom": [
+            "memory_id"
           ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "memories_type_idx": {
-          "name": "memories_type_idx",
-          "columns": [
-            {
-              "expression": "type",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
+          "columnsTo": [
+            "id"
           ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "memories_public_idx": {
-          "name": "memories_public_idx",
-          "columns": [
-            {
-              "expression": "is_public",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "memories_owner_id_all_user_id_fk": {
-          "name": "memories_owner_id_all_user_id_fk",
-          "tableFrom": "memories",
-          "tableTo": "all_user",
-          "columnsFrom": ["owner_id"],
-          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1741,8 +1913,12 @@
           "name": "memory_assets_memory_id_memories_id_fk",
           "tableFrom": "memory_assets",
           "tableTo": "memories",
-          "columnsFrom": ["memory_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "memory_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1760,6 +1936,267 @@
           "value": "(\"memory_assets\".\"width\" IS NULL OR \"memory_assets\".\"width\" > 0) AND (\"memory_assets\".\"height\" IS NULL OR \"memory_assets\".\"height\" > 0)"
         }
       },
+      "isRLSEnabled": false
+    },
+    "public.memory_comments": {
+      "name": "memory_comments",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "memory_id": {
+          "name": "memory_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "all_user_id": {
+          "name": "all_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "content": {
+          "name": "content",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parent_comment_id": {
+          "name": "parent_comment_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "memory_comments_memory_created_idx": {
+          "name": "memory_comments_memory_created_idx",
+          "columns": [
+            {
+              "expression": "memory_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": false,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "memory_comments_user_idx": {
+          "name": "memory_comments_user_idx",
+          "columns": [
+            {
+              "expression": "all_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "memory_comments_parent_idx": {
+          "name": "memory_comments_parent_idx",
+          "columns": [
+            {
+              "expression": "parent_comment_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "memory_comments_memory_id_memories_id_fk": {
+          "name": "memory_comments_memory_id_memories_id_fk",
+          "tableFrom": "memory_comments",
+          "tableTo": "memories",
+          "columnsFrom": [
+            "memory_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "memory_comments_all_user_id_all_user_id_fk": {
+          "name": "memory_comments_all_user_id_all_user_id_fk",
+          "tableFrom": "memory_comments",
+          "tableTo": "all_user",
+          "columnsFrom": [
+            "all_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.memory_likes": {
+      "name": "memory_likes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "memory_id": {
+          "name": "memory_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "all_user_id": {
+          "name": "all_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "memory_likes_unique": {
+          "name": "memory_likes_unique",
+          "columns": [
+            {
+              "expression": "memory_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "all_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "memory_likes_memory_idx": {
+          "name": "memory_likes_memory_idx",
+          "columns": [
+            {
+              "expression": "memory_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "memory_likes_user_idx": {
+          "name": "memory_likes_user_idx",
+          "columns": [
+            {
+              "expression": "all_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "memory_likes_memory_id_memories_id_fk": {
+          "name": "memory_likes_memory_id_memories_id_fk",
+          "tableFrom": "memory_likes",
+          "tableTo": "memories",
+          "columnsFrom": [
+            "memory_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "memory_likes_all_user_id_all_user_id_fk": {
+          "name": "memory_likes_all_user_id_all_user_id_fk",
+          "tableFrom": "memory_likes",
+          "tableTo": "all_user",
+          "columnsFrom": [
+            "all_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "public.memory_metadata": {
@@ -1786,8 +2223,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "exif_data": {
-          "name": "exif_data",
+        "universal_data": {
+          "name": "universal_data",
           "type": "json",
           "primaryKey": false,
           "notNull": false
@@ -1973,8 +2410,12 @@
           "name": "memory_share_owner_id_all_user_id_fk",
           "tableFrom": "memory_share",
           "tableTo": "all_user",
-          "columnsFrom": ["owner_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1982,8 +2423,12 @@
           "name": "memory_share_shared_with_id_all_user_id_fk",
           "tableFrom": "memory_share",
           "tableTo": "all_user",
-          "columnsFrom": ["shared_with_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "shared_with_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1991,8 +2436,12 @@
           "name": "memory_share_group_id_group_id_fk",
           "tableFrom": "memory_share",
           "tableTo": "group",
-          "columnsFrom": ["group_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "group_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2026,8 +2475,137 @@
           "name": "note_details_memory_id_memories_id_fk",
           "tableFrom": "note_details",
           "tableTo": "memories",
-          "columnsFrom": ["memory_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "memory_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.people_in_memories": {
+      "name": "people_in_memories",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "memory_id": {
+          "name": "memory_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "all_user_id": {
+          "name": "all_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'subject'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "people_in_memories_unique": {
+          "name": "people_in_memories_unique",
+          "columns": [
+            {
+              "expression": "memory_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "all_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "people_in_memories_memory_idx": {
+          "name": "people_in_memories_memory_idx",
+          "columns": [
+            {
+              "expression": "memory_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "people_in_memories_user_idx": {
+          "name": "people_in_memories_user_idx",
+          "columns": [
+            {
+              "expression": "all_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "people_in_memories_memory_id_memories_id_fk": {
+          "name": "people_in_memories_memory_id_memories_id_fk",
+          "tableFrom": "people_in_memories",
+          "tableTo": "memories",
+          "columnsFrom": [
+            "memory_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "people_in_memories_all_user_id_all_user_id_fk": {
+          "name": "people_in_memories_all_user_id_all_user_id_fk",
+          "tableFrom": "people_in_memories",
+          "tableTo": "all_user",
+          "columnsFrom": [
+            "all_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2115,8 +2693,12 @@
           "name": "relationship_user_id_all_user_id_fk",
           "tableFrom": "relationship",
           "tableTo": "all_user",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2124,8 +2706,12 @@
           "name": "relationship_related_user_id_all_user_id_fk",
           "tableFrom": "relationship",
           "tableTo": "all_user",
-          "columnsFrom": ["related_user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "related_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2165,8 +2751,12 @@
           "name": "session_userId_user_id_fk",
           "tableFrom": "session",
           "tableTo": "user",
-          "columnsFrom": ["userId"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2461,8 +3051,12 @@
           "name": "temporary_user_invited_by_fk",
           "tableFrom": "temporary_user",
           "tableTo": "all_user",
-          "columnsFrom": ["invited_by_all_user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "invited_by_all_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2615,8 +3209,12 @@
           "name": "user_invited_by_fk",
           "tableFrom": "user",
           "tableTo": "all_user",
-          "columnsFrom": ["invited_by_all_user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "invited_by_all_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2624,8 +3222,12 @@
           "name": "user_parent_fk",
           "tableFrom": "user",
           "tableTo": "user",
-          "columnsFrom": ["parent_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2635,12 +3237,16 @@
         "user_email_unique": {
           "name": "user_email_unique",
           "nullsNotDistinct": false,
-          "columns": ["email"]
+          "columns": [
+            "email"
+          ]
         },
         "user_username_unique": {
           "name": "user_username_unique",
           "nullsNotDistinct": false,
-          "columns": ["username"]
+          "columns": [
+            "username"
+          ]
         }
       },
       "policies": {},
@@ -2675,7 +3281,10 @@
       "compositePrimaryKeys": {
         "verificationToken_identifier_token_pk": {
           "name": "verificationToken_identifier_token_pk",
-          "columns": ["identifier", "token"]
+          "columns": [
+            "identifier",
+            "token"
+          ]
         }
       },
       "uniqueConstraints": {},
@@ -2730,8 +3339,12 @@
           "name": "video_details_memory_id_memories_id_fk",
           "tableFrom": "video_details",
           "tableTo": "memories",
-          "columnsFrom": ["memory_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "memory_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2747,42 +3360,82 @@
     "public.artifact_t": {
       "name": "artifact_t",
       "schema": "public",
-      "values": ["metadata", "asset"]
+      "values": [
+        "metadata",
+        "asset"
+      ]
     },
     "public.asset_type_t": {
       "name": "asset_type_t",
       "schema": "public",
-      "values": ["original", "display", "thumb", "placeholder", "poster", "waveform"]
+      "values": [
+        "original",
+        "display",
+        "thumb",
+        "placeholder",
+        "poster",
+        "waveform"
+      ]
     },
     "public.backend_t": {
       "name": "backend_t",
       "schema": "public",
-      "values": ["neon-db", "vercel-blob", "icp-canister"]
+      "values": [
+        "neon-db",
+        "vercel-blob",
+        "icp-canister"
+      ]
     },
     "public.memory_type_t": {
       "name": "memory_type_t",
       "schema": "public",
-      "values": ["image", "video", "note", "document", "audio"]
+      "values": [
+        "image",
+        "video",
+        "note",
+        "document",
+        "audio"
+      ]
     },
     "public.processing_status_t": {
       "name": "processing_status_t",
       "schema": "public",
-      "values": ["pending", "processing", "completed", "failed"]
+      "values": [
+        "pending",
+        "processing",
+        "completed",
+        "failed"
+      ]
     },
     "public.storage_backend_t": {
       "name": "storage_backend_t",
       "schema": "public",
-      "values": ["s3", "vercel_blob", "icp", "arweave", "ipfs", "neon"]
+      "values": [
+        "s3",
+        "vercel_blob",
+        "icp",
+        "arweave",
+        "ipfs",
+        "neon"
+      ]
     },
     "public.storage_pref_t": {
       "name": "storage_pref_t",
       "schema": "public",
-      "values": ["neon", "icp", "dual"]
+      "values": [
+        "neon",
+        "icp",
+        "dual"
+      ]
     },
     "public.sync_t": {
       "name": "sync_t",
       "schema": "public",
-      "values": ["idle", "migrating", "failed"]
+      "values": [
+        "idle",
+        "migrating",
+        "failed"
+      ]
     }
   },
   "schemas": {},

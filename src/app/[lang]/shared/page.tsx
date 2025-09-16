@@ -25,6 +25,7 @@ import { useInView } from 'react-intersection-observer';
 import { useAuthGuard } from '@/utils/authentication';
 // Removed normalizeMemories import - no longer needed with unified API
 import { Memory } from '@/types/memory';
+import { type DashboardItem } from '@/services/memories';
 
 // Extended type for shared memories that includes additional properties from the API
 type SharedMemory = Memory & {
@@ -198,7 +199,7 @@ export default function SharedMemoriesPage({ params }: { params: Promise<{ lang:
     fetchMemories();
   };
 
-  const handleMemoryClick = (memory: Memory) => {
+  const handleMemoryClick = (memory: Memory | DashboardItem) => {
     router.push(`/${lang}/shared/${memory.id}`);
   };
 

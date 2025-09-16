@@ -31,17 +31,11 @@ import {
   processDashboardItems,
   deleteMemory,
   deleteAllMemories,
-  type NormalizedMemory,
+  type MemoryWithFolder,
   type DashboardItem,
+  type FolderItem,
 } from '@/services/memories';
-import { Memory as BaseMemory } from '@/types/memory';
-
-// Extended Memory interface for compatibility with DashboardTopBar
-interface ExtendedMemory extends BaseMemory {
-  tags?: string[];
-  isFavorite?: boolean;
-  views?: number;
-}
+import { ExtendedMemory } from '@/types/dashboard';
 import { TawkChat } from '@/components/chat/tawk-chat';
 import { DashboardTopBar } from '@/components/dashboard/dashboard-top-bar';
 import { sampleDashboardMemories } from './sample-data';
@@ -59,7 +53,7 @@ export default function VaultPage() {
   const [isLoadingMemories, setIsLoadingMemories] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [filteredMemories, setFilteredMemories] = useState<NormalizedMemory[]>([]);
+  const [filteredMemories, setFilteredMemories] = useState<DashboardItem[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Dashboard items are already processed by processDashboardItems
@@ -74,7 +68,7 @@ export default function VaultPage() {
 
     if (USE_MOCK_DATA) {
       // console.log("🎭 MOCK DATA - Using sample data for demo");
-      const processedItems = processDashboardItems(sampleDashboardMemories as NormalizedMemory[]);
+      const processedItems = processDashboardItems(sampleDashboardMemories as MemoryWithFolder[]);
       setMemories(processedItems);
       setHasMore(false);
       setIsLoadingMemories(false);
@@ -187,18 +181,18 @@ export default function VaultPage() {
     fetchDashboardMemories();
   };
 
-  const handleMemoryClick = (memory: Memory) => {
+  const handleMemoryClick = (memory: Memory | DashboardItem) => {
     // console.log("🔍 Memory clicked:", memory);
     // console.log("🔍 Memory type:", memory.type);
     // console.log("🔍 Memory ID:", memory.id);
 
     // Check if it's a folder item
     if (memory.type === 'folder') {
-      // For folders, we need to extract the folder name from the ID
-      const folderName = memory.id.replace('folder-', '');
-      // console.log("🔍 Extracted folder name:", folderName);
-      // console.log("🔍 Navigating to folder:", folderName);
-      router.push(`/${params.lang}/dashboard/folder/${folderName}`);
+      // For folders, use the folderId property (new structure) or fallback to extracting from ID (old structure)
+      const folderId = (memory as FolderItem).folderId || memory.id.replace('folder-', '');
+      // console.log("🔍 Folder ID:", folderId);
+      // console.log("🔍 Navigating to folder:", folderId);
+      router.push(`/${params.lang}/dashboard/folder/${folderId}`);
     } else {
       // For individual memories, navigate to the memory detail page
       // console.log("🔍 Navigating to memory:", memory.id);
@@ -220,7 +214,7 @@ export default function VaultPage() {
   };
 
   const handleFilteredMemoriesChange = useCallback((filtered: ExtendedMemory[]) => {
-    setFilteredMemories(filtered as NormalizedMemory[]);
+    setFilteredMemories(filtered as MemoryWithFolder[]);
   }, []);
 
   const handleClearAllMemories = async () => {
@@ -290,7 +284,7 @@ export default function VaultPage() {
 
       {/* DashboardTopBar Component */}
       <DashboardTopBar
-        memories={dashboardItems as NormalizedMemory[]}
+        memories={dashboardItems as MemoryWithFolder[]}
         onFilteredMemoriesChange={handleFilteredMemoriesChange}
         showViewToggle={true}
         onViewModeChange={setViewMode}
@@ -311,7 +305,7 @@ export default function VaultPage() {
         </div>
       ) : (
         <MemoryGrid
-          memories={filteredMemories}
+          memories={filteredMemories.filter(item => item.type !== 'folder') as MemoryWithFolder[]}
           onDelete={handleDelete}
           onShare={handleShare}
           onClick={handleMemoryClick}

@@ -10,7 +10,7 @@ import { ItemUploadButton } from '@/components/memory/item-upload-button';
 import { Button } from '@/components/ui/button';
 import { FolderTopBar } from '@/components/dashboard/folder-top-bar';
 import { TawkChat } from '@/components/chat/tawk-chat';
-import { fetchMemories, deleteMemory, type NormalizedMemory, type DashboardItem } from '@/services/memories';
+import { fetchMemories, deleteMemory, type MemoryWithFolder, type DashboardItem } from '@/services/memories';
 import { Memory } from '@/types/memory';
 import { sampleDashboardMemories } from '../../sample-data';
 import {
@@ -34,7 +34,7 @@ export default function FolderPage() {
   const router = useRouter();
   const params = useParams();
   const { toast } = useToast();
-  const [memories, setMemories] = useState<NormalizedMemory[]>([]);
+  const [memories, setMemories] = useState<MemoryWithFolder[]>([]);
   const [isLoadingMemories, setIsLoadingMemories] = useState(true);
   const [folderName, setFolderName] = useState<string>('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -56,13 +56,17 @@ export default function FolderPage() {
       //     .map((m) => ({ id: m.id, folderName: m.metadata?.folderName }))
       // );
 
-      // Filter mock memories by folder name
-      const folderMemories = sampleDashboardMemories.filter(memory => memory.metadata?.folderName === folderId);
+      // Filter mock memories by parentFolderId (for new structure) or fallback to folderName (for old structure)
+      const folderMemories = sampleDashboardMemories.filter(
+        memory => memory.parentFolderId === folderId || memory.metadata?.folderName === folderId
+      );
 
       // console.log("🔍 Mock folder memories found:", folderMemories.length);
 
       if (folderMemories.length > 0) {
-        setFolderName(folderMemories[0].metadata?.folderName || folderId);
+        // Use folder name from new structure or fallback to old structure
+        const folderName = (folderMemories[0] as MemoryWithFolder)?.folder?.name || folderMemories[0]?.metadata?.folderName || folderId;
+        setFolderName(folderName);
         setMemories(folderMemories);
       } else {
         // console.log("❌ No mock memories found for folder:", folderId);
@@ -80,15 +84,21 @@ export default function FolderPage() {
     try {
       // Get all memories and filter by folder
       const result = await fetchMemories(1);
-      const folderMemories = result.memories;
+      const allMemories = result.memories;
+
+      // Filter memories by parentFolderId (new structure) or fallback to folderName (old structure)
+      const folderMemories = allMemories.filter(
+        memory => memory.parentFolderId === folderId || memory.metadata?.folderName === folderId
+      );
 
       // console.log("🔍 Folder memories found:", folderMemories.length);
       // console.log("🔍 Folder ID:", folderId);
       // console.log("🔍 Cleaned folder ID:", folderId.replace("folder-", ""));
-      // console.log("🔍 First memory folder name:", folderMemories[0]?.metadata?.folderName);
+      // console.log("🔍 First memory folder name:", folderMemories[0]?.folder?.name);
 
       if (folderMemories.length > 0) {
-        const actualFolderName = folderMemories[0].metadata?.folderName || folderId;
+        // Use folder name from new structure or fallback to old structure
+        const actualFolderName = (folderMemories[0] as MemoryWithFolder)?.folder?.name || folderMemories[0]?.metadata?.folderName || folderId;
         // console.log("🔍 Setting folder name to:", actualFolderName);
         setFolderName(actualFolderName);
         setMemories(folderMemories);

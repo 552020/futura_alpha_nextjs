@@ -3,24 +3,10 @@
   "dialect": "postgresql",
   "entries": [
     {
-      "idx": 0,
+      "idx": 4,
       "version": "7",
-      "when": 1757917894363,
-      "tag": "0000_cooing_lightspeed",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1757918897716,
-      "tag": "0001_fearless_sue_storm",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1757919450426,
-      "tag": "0002_tranquil_puma",
+      "when": 1758045683680,
+      "tag": "0004_fix_parent_folder_id_types",
       "breakpoints": true
     }
   ]

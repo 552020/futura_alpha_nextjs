@@ -1,6 +1,7 @@
 import { Memory } from '@/types/memory';
 import { MemoryCard } from './memory-card';
 import { DashboardItem } from '@/services/memories';
+import { ExtendedMemory } from '@/types/dashboard';
 import { BaseGrid } from '@/components/common/base-grid';
 
 interface MemoryGridProps {
@@ -13,9 +14,16 @@ interface MemoryGridProps {
 }
 
 export function MemoryGrid({ memories, onDelete, onShare, onEdit, onClick, viewMode = 'grid' }: MemoryGridProps) {
+  // Filter out folder items - MemoryGrid only handles individual memories
+  const individualMemories = memories.filter(memory => memory.type !== 'folder') as (ExtendedMemory & {
+    status: 'private' | 'shared' | 'public';
+    sharedWithCount?: number;
+    sharedBy?: string;
+  })[];
+
   return (
     <BaseGrid
-      items={memories}
+      items={individualMemories}
       renderItem={memory => (
         <MemoryCard
           key={memory.id}
@@ -23,7 +31,7 @@ export function MemoryGrid({ memories, onDelete, onShare, onEdit, onClick, viewM
           onDelete={onDelete || (() => {})}
           onShare={onShare || (() => {})}
           onEdit={onEdit || (() => {})}
-          onClick={onClick || (() => {})}
+          onClick={memory => onClick?.(memory as Memory | DashboardItem)}
           viewMode={viewMode}
         />
       )}
