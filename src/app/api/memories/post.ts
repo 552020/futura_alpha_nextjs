@@ -16,7 +16,6 @@ import { NextRequest, NextResponse } from "next/server";
 // Import organized utilities
 import {
   // File processing
-  parseMultipleFiles,
   validateFile,
   validateFileWithErrorHandling,
   validateFileType,
@@ -62,22 +61,46 @@ export async function handleApiMemoryPost(request: NextRequest): Promise<NextRes
     const contentType = request.headers.get("content-type") || "";
 
     if (contentType.includes("multipart/form-data")) {
-      // Check if this is a folder upload (multiple files) or single file
+      // Parse FormData ONCE to avoid double parsing bug
       const formData = await request.formData();
       const files = formData.getAll("file") as File[];
 
+      console.log(`📊 BACKEND FILE ANALYSIS:`, {
+        fileCount: files.length,
+        files: files.map((f) => ({
+          name: f.name,
+          size: f.size,
+          sizeMB: (f.size / (1024 * 1024)).toFixed(2),
+          type: f.type,
+        })),
+        isFolderUpload: files.length > 1,
+        chosenPath: files.length > 1 ? "FOLDER_UPLOAD" : "SINGLE_FILE_UPLOAD",
+      });
+
+      // Get user ID using the same pattern for both single and folder uploads
+      // Extract userId from FormData to avoid double parsing in getAllUserId
+      const providedUserId = formData.get("userId") as string | null;
+      const { allUserId, error } = await getUserIdForUpload({ providedUserId: providedUserId || undefined });
+      if (error) {
+        return error;
+      }
+
       if (files.length > 1) {
         // Handle folder upload using new streamlined approach
-        return await handleFolderUpload(request);
+        console.log(`📁 Processing folder upload with ${files.length} files`);
+        return await handleFolderUpload(formData, allUserId);
       } else {
         // Handle single file upload (legacy)
-        const { allUserId, error } = await getAllUserId(request);
-        if (error) {
-          return error;
-        }
-        return await handleFileUpload(request, allUserId);
+        console.log(`📄 Processing single file upload: ${files[0]?.name}`);
+        return await handleFileUpload(formData, allUserId);
       }
     } else {
+      // JSON REQUESTS: Memory creation without files (text notes, metadata-only memories)
+      // Examples:
+      // - Creating text notes: { "type": "note", "title": "My thoughts", "description": "..." }
+      // - Onboarding memory creation: { "type": "document", "title": "Welcome", "isOnboarding": true }
+      // - Metadata-only memories: { "type": "document", "title": "Meeting Notes", "metadata": {...} }
+
       // For JSON requests, check if this is an onboarding request
       const body = await request.json();
       const { isOnboarding } = body;
@@ -104,16 +127,13 @@ export async function handleApiMemoryPost(request: NextRequest): Promise<NextRes
 /**
  * Handle folder upload requests using new blob-first approach with multiple assets support
  */
-async function handleFolderUpload(request: NextRequest): Promise<NextResponse> {
+async function handleFolderUpload(formData: FormData, allUserId: string): Promise<NextResponse> {
   const startTime = Date.now();
   console.log("🚀 Starting folder upload process with blob-first approach...");
 
   try {
-    // Parse files using the utility function
-    const { files, userId: providedAllUserId, error: parseError } = await parseMultipleFiles(request);
-    if (parseError) {
-      return NextResponse.json({ error: parseError }, { status: 400 });
-    }
+    // Extract files from the already-parsed FormData
+    const files = formData.getAll("file") as File[];
 
     if (!files || files.length === 0) {
       return NextResponse.json({ error: "No files provided" }, { status: 400 });
@@ -129,11 +149,7 @@ async function handleFolderUpload(request: NextRequest): Promise<NextResponse> {
       }
     }
 
-    // Get user ID using extracted utility
-    const { allUserId, error: userError } = await getUserIdForUpload({ providedUserId: providedAllUserId });
-    if (userError) {
-      return userError;
-    }
+    // Use the allUserId passed from the main handler
 
     // Import the uploadFiles service for blob-first approach
     const { uploadFiles } = await import("@/services/upload");
@@ -192,20 +208,29 @@ async function handleFolderUpload(request: NextRequest): Promise<NextResponse> {
 /**
  * Handle file upload requests (single or multiple files)
  */
-async function handleFileUpload(request: NextRequest, ownerId: string): Promise<NextResponse> {
+async function handleFileUpload(formData: FormData, ownerId: string): Promise<NextResponse> {
   const startTime = Date.now();
 
-  // Parse form data to determine if single or multiple files
-  const { files, error: parseError } = await parseMultipleFiles(request);
-  if (parseError) {
-    return NextResponse.json({ error: parseError }, { status: 400 });
-  }
+  // Extract files from the already-parsed FormData
+  const files = formData.getAll("file") as File[];
 
   if (!files || files.length === 0) {
     return NextResponse.json({ error: "No files provided" }, { status: 400 });
   }
 
   console.log(`📁 Processing ${files.length} file(s)...`);
+  console.log(`📊 HANDLE_FILE_UPLOAD ANALYSIS:`, {
+    fileCount: files.length,
+    files: files.map((f) => ({
+      name: f.name,
+      size: f.size,
+      sizeMB: (f.size / (1024 * 1024)).toFixed(2),
+      type: f.type,
+      isLargeFile: f.size / (1024 * 1024) > 4,
+    })),
+    ownerId,
+    uploadMethod: "SERVER_SIDE_DIRECT_UPLOAD",
+  });
 
   // Log file details for debugging
   files.forEach((file, index) => {
@@ -230,9 +255,9 @@ async function handleFileUpload(request: NextRequest, ownerId: string): Promise<
 
         // Validate file type first
         const fileTypeError = validateFileType(file, isAcceptedMimeType);
-        if (fileTypeError) {
+        if (fileTypeError.error) {
           console.error(`❌ File type validation failed for ${name}:`, fileTypeError);
-          return { success: false, fileName: name, error: fileTypeError };
+          return { success: false, fileName: name, error: fileTypeError.error };
         }
 
         // Validate file

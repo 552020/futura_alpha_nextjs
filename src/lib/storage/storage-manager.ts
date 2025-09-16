@@ -17,12 +17,12 @@ import type {
   UploadResult,
   DeleteOptions,
 } from "./types";
-import { VercelBlobProvider } from "./providers/vercel-blob";
-import { AWSS3Provider } from "./providers/aws-s3";
-import { ArweaveProvider } from "./providers/arweave";
-import { IPFSProvider } from "./providers/ipfs";
-import { CloudinaryProvider } from "./providers/cloudinary";
-import { ICPProvider } from "./providers/icp";
+import { VercelBlobGrantProvider } from "./providers/vercel-blob-grant";
+// import { AWSS3Provider } from "./providers/aws-s3";
+// import { ArweaveProvider } from "./providers/arweave";
+// import { IPFSProvider } from "./providers/ipfs";
+// import { CloudinaryProvider } from "./providers/cloudinary";
+// import { ICPProvider } from "./providers/icp";
 import { UploadError } from "./types";
 
 export class StorageManager {
@@ -32,7 +32,7 @@ export class StorageManager {
   constructor(config: StorageManagerConfig = {}) {
     this.config = {
       defaultBackend: config.defaultBackend || "vercel_blob",
-      fallbackBackends: config.fallbackBackends || ["s3", "arweave"],
+      fallbackBackends: config.fallbackBackends || [], // No fallbacks for now - only use working providers
       maxRetries: config.maxRetries || 3,
       retryDelay: config.retryDelay || 1000,
     };
@@ -44,13 +44,17 @@ export class StorageManager {
    * Initialize all available storage providers
    */
   private initializeProviders(): void {
-    // Register all providers
-    this.providers.set("vercel_blob", new VercelBlobProvider());
-    this.providers.set("s3", new AWSS3Provider());
-    this.providers.set("arweave", new ArweaveProvider());
-    this.providers.set("ipfs", new IPFSProvider());
-    this.providers.set("cloudinary", new CloudinaryProvider());
-    this.providers.set("icp", new ICPProvider());
+    console.log("🔧 Initializing storage providers...");
+
+    // Register grant-based provider for client-side uploads (secure)
+    const vercelBlobGrantProvider = new VercelBlobGrantProvider();
+    this.providers.set("vercel_blob", vercelBlobGrantProvider);
+
+    console.log("🔍 Checking Vercel Blob Grant provider availability...");
+    console.log("🔍 Vercel Blob Grant isAvailable:", vercelBlobGrantProvider.isAvailable());
+
+    // Note: S3, Arweave, IPFS, Cloudinary, ICP are not fully implemented yet
+    // Only register them if they have proper implementations
 
     // Log available providers
     const availableProviders = Array.from(this.providers.entries())
@@ -58,6 +62,14 @@ export class StorageManager {
       .map(([backend]) => backend);
 
     console.log(`📦 Storage Manager initialized with providers: ${availableProviders.join(", ")}`);
+    console.log(`📦 Total registered providers: ${this.providers.size}`);
+
+    if (availableProviders.length === 0) {
+      console.error("❌ No storage providers are available! Check your environment variables.");
+      console.error("❌ Environment check:");
+      console.error("   - NODE_ENV:", process.env.NODE_ENV);
+      console.error("   - BLOB_READ_WRITE_TOKEN:", process.env.BLOB_READ_WRITE_TOKEN ? "SET" : "NOT SET");
+    }
   }
 
   /**
@@ -93,7 +105,13 @@ export class StorageManager {
       return this.uploadWithFallback(file, options);
     }
 
-    return this.uploadWithRetry(file, provider, options);
+    try {
+      return await this.uploadWithRetry(file, provider, options);
+    } catch (error) {
+      console.error(`❌ Provider ${backend} failed:`, error);
+      console.warn(`🔄 Trying fallback providers...`);
+      return this.uploadWithFallback(file, options);
+    }
   }
 
   /**
@@ -140,21 +158,52 @@ export class StorageManager {
    */
   private async uploadWithFallback(file: File, options?: UploadOptions): Promise<UploadResult> {
     const fallbackBackends = this.config.fallbackBackends;
+    const availableProviders = this.getAvailableProviders();
 
+    console.log(`🔄 Available providers for fallback: ${availableProviders.join(", ")}`);
+    console.log(`🔄 Configured fallback backends: ${fallbackBackends.join(", ")}`);
+
+    // Try fallback backends that are actually available
     for (const backend of fallbackBackends) {
-      const provider = this.providers.get(backend);
-      if (provider?.isAvailable()) {
-        console.log(`🔄 Trying fallback provider: ${backend}`);
-        try {
-          return await this.uploadWithRetry(file, provider, options);
-        } catch (error) {
-          console.warn(`⚠️ Fallback provider ${backend} failed:`, error);
-          continue;
+      if (availableProviders.includes(backend)) {
+        const provider = this.providers.get(backend);
+        if (provider) {
+          console.log(`🔄 Trying fallback provider: ${backend}`);
+          try {
+            return await this.uploadWithRetry(file, provider, options);
+          } catch (error) {
+            console.warn(`⚠️ Fallback provider ${backend} failed:`, error);
+            continue;
+          }
+        }
+      } else {
+        console.log(`⚠️ Fallback provider ${backend} is not available, skipping`);
+      }
+    }
+
+    // If no fallback providers worked, try any available provider
+    for (const backend of availableProviders) {
+      if (!fallbackBackends.includes(backend)) {
+        const provider = this.providers.get(backend);
+        if (provider) {
+          console.log(`🔄 Trying any available provider: ${backend}`);
+          try {
+            return await this.uploadWithRetry(file, provider, options);
+          } catch (error) {
+            console.warn(`⚠️ Provider ${backend} failed:`, error);
+            continue;
+          }
         }
       }
     }
 
-    throw new Error("All storage providers failed");
+    const availableCount = availableProviders.length;
+    const triedCount = fallbackBackends.length;
+    throw new Error(
+      `All storage providers failed. Available: ${availableCount}, Tried: ${triedCount}. Available providers: ${availableProviders.join(
+        ", "
+      )}`
+    );
   }
 
   /**

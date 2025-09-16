@@ -150,6 +150,19 @@ export function useFileUpload({ isOnboarding = false, mode = "folder", onSuccess
   };
 
   const processSingleFile = async (file: File, skipSuccess = false, existingUserId?: string) => {
+    console.log(`📁 Processing single file: ${file.name} (${file.size} bytes)`);
+    console.log(`📊 DASHBOARD UPLOAD ANALYSIS:`, {
+      fileName: file.name,
+      fileSize: file.size,
+      fileSizeMB: (file.size / (1024 * 1024)).toFixed(2),
+      fileType: file.type,
+      isOnboarding,
+      mode,
+      existingUserId,
+      isLargeFile: file.size / (1024 * 1024) > 4,
+      threshold: "4MB",
+    });
+
     try {
       checkFileSize(file);
 
@@ -161,19 +174,31 @@ export function useFileUpload({ isOnboarding = false, mode = "folder", onSuccess
 
       // 2) Use unified upload service with storage preference
       const userStoragePreference = preferences?.preference; // "neon" | "icp" | "dual"
+      console.log(`🔍 User storage preference: ${userStoragePreference}`);
 
       // For ICP preference, check authentication first
       // NOTE: ICP users ALWAYS need Internet Identity authentication, even during onboarding
       // This is different from Neon users where onboarding creates temporary users without auth
       // ICP canister interactions require authenticated principals, so onboarding still needs II
       if (userStoragePreference === "icp") {
+        console.log(`🔐 Checking ICP authentication...`);
         const isAuthenticated = await icpUploadService.isAuthenticated();
         if (!isAuthenticated) {
           throw new Error("Please connect your Internet Identity to upload to ICP");
         }
+        console.log(`✅ ICP authentication confirmed`);
       }
 
       // Use the new unified uploadFile function
+      console.log(`🚀 Calling uploadFile with parameters:`, {
+        fileName: file.name,
+        isOnboarding,
+        existingUserId,
+        mode,
+        storageBackend: "vercel_blob",
+        userStoragePreference,
+      });
+
       const uploadResult = await uploadFile(
         file,
         isOnboarding,
@@ -184,13 +209,24 @@ export function useFileUpload({ isOnboarding = false, mode = "folder", onSuccess
       );
 
       // Convert to expected format for compatibility
+      // Note: uploadResult.data is an array of memories from the backend
+      const memory = Array.isArray(uploadResult.data) ? uploadResult.data[0] : uploadResult.data;
+
+      // Check if we have a valid memory response
+      if (!memory || !memory.id) {
+        console.error("❌ Invalid upload response:", uploadResult);
+        throw new Error("Upload failed: Invalid response from server");
+      }
+
       const data = {
-        data: { id: uploadResult.data.id },
-        results: uploadResult.data.assets.map((asset) => ({
-          memoryId: uploadResult.data.id,
-          size: asset.bytes,
-          checksum_sha256: null, // Will be filled by verification if available
-        })),
+        data: { id: memory.id },
+        results: [
+          {
+            memoryId: memory.id,
+            size: file.size, // Use original file size since assets array might not be available
+            checksum_sha256: null, // Will be filled by verification if available
+          },
+        ],
         userId: existingUserId || "", // Add userId for compatibility
       };
 
@@ -380,6 +416,16 @@ export function useFileUpload({ isOnboarding = false, mode = "folder", onSuccess
     if (mode == "files") {
       const file = event.target.files?.[0];
       if (!file) return;
+
+      console.log(`🎯 DASHBOARD FILE UPLOAD TRIGGERED:`, {
+        fileName: file.name,
+        fileSize: file.size,
+        fileSizeMB: (file.size / (1024 * 1024)).toFixed(2),
+        fileType: file.type,
+        mode,
+        isOnboarding,
+      });
+
       setIsLoading(true);
       await processSingleFile(file, false, undefined);
       setIsLoading(false);

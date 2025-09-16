@@ -167,6 +167,16 @@ export const uploadFile = async (
   userStoragePreference?: "neon" | "icp" | "dual"
 ): Promise<UploadResponse> => {
   console.log(`🚀 Starting upload for ${file.name}...`);
+  console.log(`🔍 Upload parameters:`, {
+    fileName: file.name,
+    fileSize: file.size,
+    fileType: file.type,
+    isOnboarding,
+    existingUserId,
+    mode,
+    storageBackend,
+    userStoragePreference,
+  });
 
   try {
     // Check if user prefers ICP-only backend
@@ -177,144 +187,203 @@ export const uploadFile = async (
       return await uploadToICPBackend(file);
     }
 
-    // Default to blob-first flow for neon/dual preferences
-    console.log(`☁️ Using blob-first flow for storage preference: ${userStoragePreference || "neon"}`);
+    // Implement file size decision matrix
+    const fileSizeMB = file.size / (1024 * 1024);
+    const isLargeFile = fileSizeMB > 4; // 4MB threshold
 
-    const storageManager = new StorageManager();
-    const memoryType = getMemoryTypeFromFile(file);
-
-    let assets: Array<{
-      assetType: "original" | "display" | "thumb" | "placeholder" | "poster" | "waveform";
-      url: string;
-      bytes: number;
-      mimeType: string;
-      storageBackend: string;
-      storageKey: string;
-      sha256: string | null;
-      variant: string | null;
-      width?: number;
-      height?: number;
-    }> = [];
-
-    if (memoryType === "image") {
-      // For images: Process and upload multiple versions (original, display, thumb)
-      console.log(`🖼️ Processing image ${file.name} for multiple assets...`);
-
-      const processedAssets = await processImageForMultipleAssets(file);
-      console.log(`✅ Image processing complete: original, display, thumb`);
-
-      // Upload all processed assets to blob storage using our StorageManager
-      const [originalResult, displayResult, thumbResult] = await Promise.all([
-        storageManager.upload(processedAssets.original.blob as File, storageBackend),
-        storageManager.upload(processedAssets.display.blob as File, storageBackend),
-        storageManager.upload(processedAssets.thumb.blob as File, storageBackend),
-      ]);
-
-      // Convert to API format
-      const originalUploads = Array.isArray(originalResult) ? originalResult : [originalResult];
-      const displayUploads = Array.isArray(displayResult) ? displayResult : [displayResult];
-      const thumbUploads = Array.isArray(thumbResult) ? thumbResult : [thumbResult];
-
-      assets = [
-        {
-          assetType: "original",
-          url: originalUploads[0].url,
-          bytes: processedAssets.original.size,
-          mimeType: processedAssets.original.mimeType,
-          storageBackend: originalUploads[0].provider,
-          storageKey: originalUploads[0].key,
-          sha256: null,
-          variant: null,
-          width: processedAssets.original.width,
-          height: processedAssets.original.height,
-        },
-        {
-          assetType: "display",
-          url: displayUploads[0].url,
-          bytes: processedAssets.display.size,
-          mimeType: processedAssets.display.mimeType,
-          storageBackend: displayUploads[0].provider,
-          storageKey: displayUploads[0].key,
-          sha256: null,
-          variant: null,
-          width: processedAssets.display.width,
-          height: processedAssets.display.height,
-        },
-        {
-          assetType: "thumb",
-          url: thumbUploads[0].url,
-          bytes: processedAssets.thumb.size,
-          mimeType: processedAssets.thumb.mimeType,
-          storageBackend: thumbUploads[0].provider,
-          storageKey: thumbUploads[0].key,
-          sha256: null,
-          variant: null,
-          width: processedAssets.thumb.width,
-          height: processedAssets.thumb.height,
-        },
-      ];
-
-      console.log(`📤 Uploaded ${assets.length} image assets to blob storage`);
-    } else {
-      // For non-images: Upload only the original file
-      console.log(
-        `📤 Uploading ${file.name} (${memoryType}) to ${
-          Array.isArray(storageBackend) ? storageBackend.join(", ") : storageBackend
-        }...`
-      );
-
-      const uploadResult = await storageManager.upload(file, storageBackend);
-      const uploadResults = Array.isArray(uploadResult) ? uploadResult : [uploadResult];
-      const primaryResult = uploadResults[0];
-
-      console.log(`✅ Blob upload successful: ${primaryResult.url}`);
-
-      // Create single asset for non-image files
-      assets = uploadResults.map((result) => ({
-        assetType: "original" as const,
-        url: result.url,
-        bytes: result.size,
-        mimeType: result.mimeType,
-        storageBackend: result.provider,
-        storageKey: result.key,
-        sha256: null,
-        variant: null,
-      }));
-    }
-
-    // 2. Call unified API with all assets
-    const response = await fetch("/api/memories", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        type: memoryType,
-        title: file.name.split(".")[0] || "Untitled",
-        description: "",
-        fileCreatedAt: new Date().toISOString(),
-        isPublic: false,
-        isOnboarding,
-        mode,
-        existingUserId,
-        assets,
-      }),
+    console.log(`📊 FILE SIZE ANALYSIS:`, {
+      fileName: file.name,
+      fileSizeBytes: file.size,
+      fileSizeMB: fileSizeMB.toFixed(2),
+      threshold: "4MB",
+      isLargeFile,
+      chosenPath: isLargeFile ? "LARGE_FILE_PATH" : "SMALL_FILE_PATH",
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || "API call failed");
+    if (isLargeFile) {
+      console.log(`📦 Large file detected (${fileSizeMB.toFixed(1)}MB), using direct-to-blob with server tokens...`);
+      return await uploadLargeFile(file, isOnboarding, existingUserId, mode);
+    } else {
+      console.log(`📦 Small file detected (${fileSizeMB.toFixed(1)}MB), using server-side upload...`);
+      return await uploadSmallFile(file);
     }
-
-    const data = await response.json();
-    console.log(`✅ Memory created successfully: ${data.data.id} with ${assets.length} assets`);
-
-    return data;
   } catch (error) {
-    console.error("❌ Blob-first upload failed:", error);
+    console.error("❌ Upload failed:", error);
     throw error;
   }
 };
+
+/**
+ * Upload small files using server-side approach
+ */
+async function uploadSmallFile(file: File): Promise<UploadResponse> {
+  console.log(`🖥️ Using server-side upload for small file: ${file.name}`);
+  console.log(`📊 SMALL FILE UPLOAD DETAILS:`, {
+    fileName: file.name,
+    fileSize: file.size,
+    fileSizeMB: (file.size / (1024 * 1024)).toFixed(2),
+    fileType: file.type,
+    endpoint: "/api/memories",
+  });
+
+  // Use the existing server-side approach (FormData upload)
+  const formData = new FormData();
+  formData.append("file", file);
+
+  console.log(`🚀 Sending FormData to /api/memories...`);
+  const response = await fetch("/api/memories", {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Server-side upload failed");
+  }
+
+  return await response.json();
+}
+
+/**
+ * Upload large files using direct-to-blob with server-issued tokens
+ */
+async function uploadLargeFile(
+  file: File,
+  isOnboarding: boolean,
+  existingUserId?: string,
+  mode: UploadMode = "files"
+): Promise<UploadResponse> {
+  console.log(`☁️ Using direct-to-blob upload for large file: ${file.name}`);
+
+  console.log(`🔧 Creating StorageManager instance...`);
+  const storageManager = new StorageManager();
+  console.log(`🔍 Available providers after initialization:`, storageManager.getAvailableProviders());
+  const memoryType = getMemoryTypeFromFile(file);
+
+  let assets: Array<{
+    assetType: "original" | "display" | "thumb" | "placeholder" | "poster" | "waveform";
+    url: string;
+    bytes: number;
+    mimeType: string;
+    storageBackend: string;
+    storageKey: string;
+    sha256: string | null;
+    variant: string | null;
+    width?: number;
+    height?: number;
+  }> = [];
+
+  if (memoryType === "image") {
+    // For images: Process and upload multiple versions (original, display, thumb)
+    console.log(`🖼️ Processing image ${file.name} for multiple assets...`);
+
+    const processedAssets = await processImageForMultipleAssets(file);
+    console.log(`✅ Image processing complete: original, display, thumb`);
+
+    // Upload all processed assets to blob storage using our StorageManager
+    const [originalResult, displayResult, thumbResult] = await Promise.all([
+      storageManager.upload(processedAssets.original.blob as File, "vercel_blob"),
+      storageManager.upload(processedAssets.display.blob as File, "vercel_blob"),
+      storageManager.upload(processedAssets.thumb.blob as File, "vercel_blob"),
+    ]);
+
+    // Convert to API format
+    const originalUploads = Array.isArray(originalResult) ? originalResult : [originalResult];
+    const displayUploads = Array.isArray(displayResult) ? displayResult : [displayResult];
+    const thumbUploads = Array.isArray(thumbResult) ? thumbResult : [thumbResult];
+
+    assets = [
+      {
+        assetType: "original",
+        url: originalUploads[0].url,
+        bytes: processedAssets.original.size,
+        mimeType: processedAssets.original.mimeType,
+        storageBackend: originalUploads[0].provider,
+        storageKey: originalUploads[0].key,
+        sha256: null,
+        variant: null,
+        width: processedAssets.original.width,
+        height: processedAssets.original.height,
+      },
+      {
+        assetType: "display",
+        url: displayUploads[0].url,
+        bytes: processedAssets.display.size,
+        mimeType: processedAssets.display.mimeType,
+        storageBackend: displayUploads[0].provider,
+        storageKey: displayUploads[0].key,
+        sha256: null,
+        variant: null,
+        width: processedAssets.display.width,
+        height: processedAssets.display.height,
+      },
+      {
+        assetType: "thumb",
+        url: thumbUploads[0].url,
+        bytes: processedAssets.thumb.size,
+        mimeType: processedAssets.thumb.mimeType,
+        storageBackend: thumbUploads[0].provider,
+        storageKey: thumbUploads[0].key,
+        sha256: null,
+        variant: null,
+        width: processedAssets.thumb.width,
+        height: processedAssets.thumb.height,
+      },
+    ];
+
+    console.log(`📤 Uploaded ${assets.length} image assets to blob storage`);
+  } else {
+    // For non-images: Upload only the original file
+    console.log(`📤 Uploading ${file.name} (${memoryType}) to vercel_blob...`);
+
+    const uploadResult = await storageManager.upload(file, "vercel_blob");
+    const uploadResults = Array.isArray(uploadResult) ? uploadResult : [uploadResult];
+    const primaryResult = uploadResults[0];
+
+    console.log(`✅ Blob upload successful: ${primaryResult.url}`);
+
+    // Create single asset for non-image files
+    assets = uploadResults.map((result) => ({
+      assetType: "original" as const,
+      url: result.url,
+      bytes: result.size,
+      mimeType: result.mimeType,
+      storageBackend: result.provider,
+      storageKey: result.key,
+      sha256: null,
+      variant: null,
+    }));
+  }
+
+  // 2. Call unified API with all assets
+  const response = await fetch("/api/memories", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      type: memoryType,
+      title: file.name.split(".")[0] || "Untitled",
+      description: "",
+      fileCreatedAt: new Date().toISOString(),
+      isPublic: false,
+      isOnboarding,
+      mode,
+      existingUserId,
+      assets,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || "API call failed");
+  }
+
+  const data = await response.json();
+  console.log(`✅ Memory created successfully: ${data.data.id} with ${assets.length} assets`);
+
+  return data;
+}
 
 /**
  * Upload multiple files (folder upload) using blob-first approach
