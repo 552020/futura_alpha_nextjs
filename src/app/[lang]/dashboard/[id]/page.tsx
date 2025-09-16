@@ -44,17 +44,20 @@ interface Memory {
 }
 
 // Helper function to extract URL from assets
-const getAssetUrl = (assets: MemoryAsset[] | undefined, preferredType: 'display' | 'original' = 'display'): string | undefined => {
+const getAssetUrl = (
+  assets: MemoryAsset[] | undefined,
+  preferredType: 'display' | 'original' = 'display'
+): string | undefined => {
   if (!assets || assets.length === 0) return undefined;
-  
+
   // Try to find the preferred asset type first
   const preferredAsset = assets.find(asset => asset.assetType === preferredType);
   if (preferredAsset) return preferredAsset.url;
-  
+
   // Fallback to original if preferred type not found
   const originalAsset = assets.find(asset => asset.assetType === 'original');
   if (originalAsset) return originalAsset.url;
-  
+
   // Fallback to first available asset
   return assets[0]?.url;
 };
@@ -62,14 +65,14 @@ const getAssetUrl = (assets: MemoryAsset[] | undefined, preferredType: 'display'
 // Helper function to extract MIME type from assets
 const getAssetMimeType = (assets: MemoryAsset[] | undefined): string | undefined => {
   if (!assets || assets.length === 0) return undefined;
-  
+
   // Try to find display asset first, then original
   const displayAsset = assets.find(asset => asset.assetType === 'display');
   if (displayAsset) return displayAsset.mimeType;
-  
+
   const originalAsset = assets.find(asset => asset.assetType === 'original');
   if (originalAsset) return originalAsset.mimeType;
-  
+
   return assets[0]?.mimeType;
 };
 
@@ -140,16 +143,16 @@ export default function MemoryDetailPage() {
       if (data.success && data.data) {
         const memoryData = data.data;
         const assets = memoryData.assets || [];
-        
+
         console.log('🔍 Memory assets:', assets);
-        
+
         // Extract URL and MIME type from assets
         const displayUrl = getAssetUrl(assets, 'display');
         const mimeType = getAssetMimeType(assets);
-        
+
         console.log('🔍 Extracted display URL:', displayUrl);
         console.log('🔍 Extracted MIME type:', mimeType);
-        
+
         const transformedMemory: Memory = {
           id: memoryData.id,
           type: memoryData.type,

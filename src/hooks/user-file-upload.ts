@@ -3,7 +3,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useOnboarding } from '@/contexts/onboarding-context';
 import { useSession } from 'next-auth/react';
 import { uploadFile } from '@/services/upload';
-import { icpUploadService } from '@/services/icp-upload';
+// Lazy import to avoid eager loading of ICP declarations
+// import { icpUploadService } from '@/services/icp-upload';
 // We'll need to create this context for post-onboarding state
 // import { useVault } from '@/contexts/vault-context';
 import { useUploadStorage, isUploadStorageExpired } from '@/hooks/use-upload-storage';
@@ -182,6 +183,7 @@ export function useFileUpload({ isOnboarding = false, mode = 'folder', onSuccess
       // ICP canister interactions require authenticated principals, so onboarding still needs II
       if (userStoragePreference === 'icp') {
         console.log(`🔐 Checking ICP authentication...`);
+        const { icpUploadService } = await import('@/services/icp-upload');
         const isAuthenticated = await icpUploadService.isAuthenticated();
         if (!isAuthenticated) {
           throw new Error('Please connect your Internet Identity to upload to ICP');
@@ -328,6 +330,7 @@ export function useFileUpload({ isOnboarding = false, mode = 'folder', onSuccess
         // 2) Route to appropriate upload service based on chosen storage
         if (storage.chosen_storage === 'icp-canister') {
           // Pre-check Internet Identity authentication before attempting ICP upload
+          const { icpUploadService } = await import('@/services/icp-upload');
           const isAuthenticated = await icpUploadService.isAuthenticated();
           if (!isAuthenticated) {
             throw new Error('Please connect your Internet Identity to upload to ICP');

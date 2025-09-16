@@ -14,8 +14,14 @@ export function createAgent(identity?: Identity): Promise<HttpAgent> {
       (async () => {
         const agent = await HttpAgent.create({ host, identity });
         if (process.env.NEXT_PUBLIC_DFX_NETWORK !== 'ic') {
-          // dev/local only
-          await agent.fetchRootKey();
+          // dev/local only - handle gracefully if ICP replica is not running
+          try {
+            await agent.fetchRootKey();
+          } catch (error) {
+            console.warn('⚠️ ICP replica not available. ICP features will be disabled.');
+            console.warn('To enable ICP features, run: dfx start');
+            // Don't throw - let the app continue without ICP functionality
+          }
         }
         return agent;
       })()
