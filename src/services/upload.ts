@@ -254,7 +254,7 @@ async function uploadFileToBlob(
   // we need to create the memory record client-side
   try {
     console.log('🔧 Creating memory record client-side (localhost workaround)...');
-    
+
     const memoryResponse = await fetch('/api/memories', {
       method: 'POST',
       headers: {
@@ -268,7 +268,7 @@ async function uploadFileToBlob(
         pathname: blob.pathname,
         isOnboarding,
         mode,
-        existingUserId,
+        ...(existingUserId && { userId: existingUserId }), // Only include userId if it exists
       }),
     });
 
@@ -278,14 +278,14 @@ async function uploadFileToBlob(
 
     const memoryData = await memoryResponse.json();
     console.log('✅ Memory created successfully:', memoryData);
-    
+
     return {
       success: true,
       data: memoryData.data,
     };
   } catch (error) {
     console.error('❌ Failed to create memory record:', error);
-    
+
     // Fallback: return the blob info even if memory creation failed
     // This allows the upload to appear successful, but the file won't show in dashboard
     return {

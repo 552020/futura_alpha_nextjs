@@ -427,7 +427,9 @@ export function useFileUpload({ isOnboarding = false, mode = 'folder', onSuccess
       });
 
       setIsLoading(true);
-      await processSingleFile(file, false, undefined);
+      // Get the authenticated user's ID from the session
+      const userId = session?.user?.id;
+      await processSingleFile(file, false, userId);
       setIsLoading(false);
     }
   };

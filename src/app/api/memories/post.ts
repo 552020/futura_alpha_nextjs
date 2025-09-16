@@ -60,6 +60,7 @@ export async function handleApiMemoryPost(request: NextRequest): Promise<NextRes
   try {
     // Check if this is a file upload (multipart/form-data) or JSON request
     const contentType = request.headers.get('content-type') || '';
+    console.log('📋 Request content type:', contentType);
 
     if (contentType.includes('multipart/form-data')) {
       // Parse FormData ONCE to avoid double parsing bug
@@ -102,68 +103,34 @@ export async function handleApiMemoryPost(request: NextRequest): Promise<NextRes
       // - Onboarding memory creation: { "type": "document", "title": "Welcome", "isOnboarding": true }
       // - Metadata-only memories: { "type": "document", "title": "Meeting Notes", "metadata": {...} }
 
+      console.log('📄 Handling JSON request...');
       // For JSON requests, check if this is an onboarding request
       const body = await request.json();
-      const { isOnboarding } = body;
+      console.log('📥 JSON request body keys:', Object.keys(body));
+      const { isOnboarding, blobUrl } = body;
+
+      if (blobUrl) {
+        console.log('🔧 Detected blob URL in JSON request - redirecting to blob handler...');
+        // This is actually a blob URL request, handle it in the blob section
+        return await handleBlobUrlRequest(body);
+      }
 
       if (isOnboarding) {
         console.log('🎯 Onboarding JSON request detected - bypassing authentication');
         // For onboarding, we don't need authentication - createMemoryFromJson will handle temporary user creation
-        return await createMemoryFromJson(request, ''); // Pass empty string, function will create temporary user
+        return await createMemoryFromJson(body, ''); // Pass parsed body, function will create temporary user
       } else {
         // For regular JSON requests, get the allUserId for the user (authenticated or temporary)
         const { allUserId, error } = await getAllUserId(request);
         if (error) {
           return error;
         }
-        return await createMemoryFromJson(request, allUserId);
+        return await createMemoryFromJson(body, allUserId);
       }
     } else {
-      // BLOB URL REQUESTS: Memory creation from already uploaded blob (localhost workaround)
-      // This handles the case where a file was uploaded to Vercel Blob via client-side upload
-      // but the onUploadCompleted callback failed due to localhost limitations
-      console.log('🔧 Handling blob URL request (localhost workaround)...');
-
-      const body = await request.json();
-      const { blobUrl, filename, contentType, size, pathname, isOnboarding, mode } = body;
-
-      if (!blobUrl) {
-        return NextResponse.json({ error: 'blobUrl is required' }, { status: 400 });
-      }
-
-      // Get user ID
-      const { allUserId, error } = await getAllUserId(request);
-      if (error) {
-        return error;
-      }
-
-      // Create memory from blob using the existing utility
-      const result = await createMemoryFromBlob(
-        {
-          url: blobUrl,
-          pathname: pathname || filename || 'unknown',
-          size: size || 0,
-          contentType: contentType || 'application/octet-stream',
-        },
-        {
-          allUserId,
-          isOnboarding: !!isOnboarding,
-          mode: mode || 'files',
-        }
-      );
-
-      if (!result.success) {
-        return NextResponse.json({ error: result.error || 'Failed to create memory from blob' }, { status: 500 });
-      }
-
-      // Return the created memory data
-      return NextResponse.json({
-        success: true,
-        data: {
-          id: result.memoryId,
-          // Add other memory fields as needed
-        },
-      });
+      // This should not happen anymore since blob URL requests are handled in the JSON section
+      console.log('❌ Unexpected request type - neither multipart nor JSON');
+      return NextResponse.json({ error: 'Invalid request type' }, { status: 400 });
     }
   } catch (error) {
     console.error('Error in memory creation:', error);
@@ -396,4 +363,61 @@ async function handleFileUpload(formData: FormData, ownerId: string): Promise<Ne
   console.log(`✅ Memory creation completed in ${duration}ms`);
 
   return createUploadResponse(successfulUploads, failedUploads, files.length, duration);
+}
+
+/**
+ * Handle blob URL requests (localhost workaround)
+ * This handles the case where a file was uploaded to Vercel Blob via client-side upload
+ * but the onUploadCompleted callback failed due to localhost limitations
+ */
+async function handleBlobUrlRequest(body: any): Promise<NextResponse> {
+  console.log('🔧 Handling blob URL request (localhost workaround)...');
+  console.log('📥 Received blob URL request body:', body);
+
+  const { blobUrl, filename, contentType, size, pathname, isOnboarding, mode, userId } = body;
+
+  if (!blobUrl) {
+    console.error('❌ Missing blobUrl in request');
+    return NextResponse.json({ error: 'blobUrl is required' }, { status: 400 });
+  }
+
+  // Get user ID using the user management utility
+  console.log('🔍 Getting user ID for upload, provided userId:', userId);
+  const { allUserId, error } = await getUserIdForUpload({ providedUserId: userId });
+  if (error) {
+    console.error('❌ Error getting user ID:', error);
+    return error;
+  }
+  console.log('✅ Got user ID:', allUserId);
+
+  // Create memory from blob using the existing utility
+  console.log('🏗️ Creating memory from blob...');
+  const result = await createMemoryFromBlob(
+    {
+      url: blobUrl,
+      pathname: pathname || filename || 'unknown',
+      size: size || 0,
+      contentType: contentType || 'application/octet-stream',
+    },
+    {
+      allUserId,
+      isOnboarding: !!isOnboarding,
+      mode: mode || 'files',
+    }
+  );
+
+  if (!result.success) {
+    console.error('❌ Failed to create memory from blob:', result.error);
+    return NextResponse.json({ error: result.error || 'Failed to create memory from blob' }, { status: 500 });
+  }
+
+  console.log('✅ Memory created successfully with ID:', result.memoryId);
+  // Return the created memory data
+  return NextResponse.json({
+    success: true,
+    data: {
+      id: result.memoryId,
+      // Add other memory fields as needed
+    },
+  });
 }

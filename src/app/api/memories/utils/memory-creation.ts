@@ -83,8 +83,7 @@ export async function getAllUserId(request: NextRequest): Promise<{ allUserId: s
  * Create a memory from JSON request data
  * Handles validation and database insertion for memory creation without files
  */
-export async function createMemoryFromJson(request: NextRequest, ownerId: string): Promise<NextResponse> {
-  const body = await request.json();
+export async function createMemoryFromJson(body: any, ownerId: string): Promise<NextResponse> {
   const {
     type,
     title,
