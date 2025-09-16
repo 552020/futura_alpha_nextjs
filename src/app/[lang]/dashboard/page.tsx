@@ -155,6 +155,10 @@ export default function VaultPage() {
 
   // Initialize filtered memories when memories are loaded
   useEffect(() => {
+    console.log('🔍 Dashboard useEffect - memories changed:', {
+      memoriesCount: memories.length,
+      memories: memories.map(m => ({ id: m.id, type: m.type, title: m.title })),
+    });
     setFilteredMemories(memories);
   }, [memories]);
 
@@ -214,6 +218,10 @@ export default function VaultPage() {
   };
 
   const handleFilteredMemoriesChange = useCallback((filtered: ExtendedMemory[]) => {
+    console.log('🔍 handleFilteredMemoriesChange called:', {
+      filteredCount: filtered.length,
+      filtered: filtered.map(f => ({ id: f.id, type: f.type, title: f.title })),
+    });
     setFilteredMemories(filtered as MemoryWithFolder[]);
   }, []);
 
@@ -304,13 +312,19 @@ export default function VaultPage() {
           <ItemUploadButton variant="large-icon" onSuccess={handleUploadSuccess} onError={handleUploadError} />
         </div>
       ) : (
-        <MemoryGrid
-          memories={filteredMemories}
-          onDelete={handleDelete}
-          onShare={handleShare}
-          onClick={handleMemoryClick}
-          viewMode={viewMode}
-        />
+        <>
+          {console.log('🔍 Rendering MemoryGrid with filteredMemories:', {
+            filteredMemoriesCount: filteredMemories.length,
+            filteredMemories: filteredMemories.map(f => ({ id: f.id, type: f.type, title: f.title })),
+          })}
+          <MemoryGrid
+            memories={filteredMemories}
+            onDelete={handleDelete}
+            onShare={handleShare}
+            onClick={handleMemoryClick}
+            viewMode={viewMode}
+          />
+        </>
       )}
 
       {/* Loading indicator */}
