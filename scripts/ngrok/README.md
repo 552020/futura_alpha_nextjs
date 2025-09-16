@@ -8,6 +8,18 @@ When developing with external services that need to call back to your applicatio
 
 **Example:** Vercel Blob's `onUploadCompleted` callback cannot reach `http://localhost:3000`, but it can reach `https://your-domain.ngrok-free.app`.
 
+## ⚠️ IMPORTANT: Manual Setup Recommended
+
+**For safety, you can manually add the ngrok configuration to your `.env.local` file instead of using the script:**
+
+```bash
+# Add these lines to your .env.local file:
+NEXT_PUBLIC_NGROK_URL=https://theological-damion-unpatronizing.ngrok-free.app
+NODE_ENV=development
+```
+
+**This prevents any risk of the script accidentally modifying your existing environment variables.**
+
 ## Quick Start
 
 ### Option 1: Use Shared Domain (Immediate)
