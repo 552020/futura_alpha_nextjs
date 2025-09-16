@@ -165,18 +165,118 @@ async function handleFolderUpload(formData: FormData, allUserId: string): Promis
 
     // Use the allUserId passed from the main handler
 
-    // Import the uploadFiles service for blob-first approach
-    const { uploadFiles } = await import('@/services/upload');
+    // For server-side folder uploads, use the server-side upload approach
+    // Process files in parallel (limit to 5 concurrent uploads)
+    const pLimit = (await import('p-limit')).default;
+    const limit = pLimit(5);
 
-    // Use the new blob-first uploadFiles service which handles multiple assets for images
-    const uploadResults = await uploadFiles(
-      files,
-      false, // isOnboarding - will be determined by the service
-      allUserId, // existingUserId
-      'folder', // mode
-      'vercel_blob', // storageBackend
-      'neon' // userStoragePreference - default to neon for now
+    const uploadTasks = files.map(file =>
+      limit(async () => {
+        try {
+          const name = String(file.name || 'Untitled');
+
+          // Log file details
+          logFileDetails(file);
+
+          // Validate file type first
+          const fileTypeError = validateFileType(file, isAcceptedMimeType);
+          if (fileTypeError.error) {
+            console.error(`❌ File type validation failed for ${name}:`, fileTypeError);
+            return { success: false, fileName: name, error: fileTypeError.error };
+          }
+
+          // Validate file
+          const { validationResult, error: validationError } = await validateFileWithErrorHandling(file, validateFile);
+          if (validationError) {
+            console.error(`❌ Validation failed for ${name}:`, validationError);
+            return { success: false, fileName: name, error: validationError };
+          }
+
+          // Upload file to storage
+          const { url, error: uploadError } = await uploadFileToStorageWithErrorHandling(
+            file,
+            validationResult!.buffer!,
+            uploadFileToStorage
+          );
+          if (uploadError) {
+            console.error(`❌ Upload failed for ${name}:`, uploadError);
+            return { success: false, fileName: name, error: uploadError };
+          }
+
+          // Determine memory type from file
+          const memoryType = getMemoryType(file.type as AcceptedMimeType);
+
+          // Store in database using the new unified schema
+          const mimeType = toAcceptedMimeType(file.type);
+          const result = await storeInNewDatabase({
+            type: memoryType,
+            ownerId: allUserId,
+            url,
+            file,
+            metadata: {
+              uploadedAt: new Date().toISOString(),
+              originalName: file.name,
+              size: file.size,
+              mimeType,
+            },
+          });
+
+          return {
+            success: true,
+            fileName: name,
+            url,
+            memory: result.data,
+          };
+        } catch (error) {
+          const name = String(file.name || 'Untitled');
+          console.error(`❌ Unexpected error for ${name}:`, error);
+          return { success: false, fileName: name, error };
+        }
+      })
     );
+
+    const results = await Promise.allSettled(uploadTasks);
+
+    // Process results
+    const folderSuccessfulUploads: Array<{
+      success: true;
+      fileName: string;
+      url: string;
+      memory: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+    }> = [];
+    const folderFailedUploads: Array<{
+      success: false;
+      fileName: string;
+      error: unknown;
+    }> = [];
+
+    for (const result of results) {
+      if (result.status === 'fulfilled' && result.value.success === true) {
+        folderSuccessfulUploads.push(result.value as (typeof folderSuccessfulUploads)[0]);
+      } else {
+        if (result.status === 'fulfilled') {
+          folderFailedUploads.push({
+            success: false,
+            fileName: result.value.fileName,
+            error: result.value.error,
+          });
+        } else {
+          folderFailedUploads.push({
+            success: false,
+            fileName: 'unknown',
+            error: result.reason,
+          });
+        }
+      }
+    }
+
+    const uploadResults = results.map(result => ({
+      success: result.status === 'fulfilled' && result.value.success === true,
+      data:
+        result.status === 'fulfilled' && result.value.success === true
+          ? result.value.memory
+          : { id: 'failed', assets: [] },
+    }));
 
     // Calculate statistics
     const stats = calculateUploadStats(files, startTime);
@@ -184,24 +284,24 @@ async function handleFolderUpload(formData: FormData, allUserId: string): Promis
     // Convert upload results to the expected format
     const formattedResults: UploadResult[] = uploadResults.map((result, index) => ({
       fileName: files[index]?.name || 'Unknown',
-      url: result.data.assets?.[0]?.url || '', // Use first asset URL
+      url: result.data?.assets?.[0]?.url || '', // Use first asset URL
       success: result.success,
       userId: allUserId,
-      memoryId: result.data.id,
-      assetId: result.data.assets?.[0]?.id || '',
+      memoryId: result.data?.id || 'failed',
+      assetId: result.data?.assets?.[0]?.id || '',
     }));
 
-    const successfulUploads = uploadResults.filter(r => r.success).length;
-    const failedUploads = uploadResults.length - successfulUploads;
+    const folderSuccessfulCount = uploadResults.filter(r => r.success).length;
+    const folderFailedCount = uploadResults.length - folderSuccessfulCount;
 
-    console.log('=== FOLDER UPLOAD COMPLETE (BLOB-FIRST) ===');
-    console.log(`📁 Files processed: ${successfulUploads}/${files.length} successful`);
+    console.log('=== FOLDER UPLOAD COMPLETE (SERVER-SIDE) ===');
+    console.log(`📁 Files processed: ${folderSuccessfulCount}/${files.length} successful`);
     console.log(`📦 Total size: ${stats.totalSizeMB} MB`);
     console.log(`⏱️ Total time: ${stats.totalTime.toFixed(1)} seconds`);
     console.log(`📊 Average: ${stats.averageTime.toFixed(1)} seconds per file`);
     console.log(`🚀 Upload speed: ${stats.uploadSpeedMBps} MB/s`);
     console.log(`👤 User ID: ${allUserId}`);
-    console.log(`❌ Failed uploads: ${failedUploads}`);
+    console.log(`❌ Failed uploads: ${folderFailedCount}`);
     console.log('=============================================');
 
     // Use extracted response formatting utility
