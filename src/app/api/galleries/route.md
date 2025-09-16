@@ -64,7 +64,6 @@
 ### ❓ **SIMPLIFY - Overkill for Demo**
 
 1. **POST `/api/galleries`** - Creates empty gallery
-
    - **Problem**: Users expect galleries with content
    - **Solution**: Create gallery only when adding first memory
 
@@ -75,7 +74,6 @@
 ### ❌ **REMOVE - Too Complex for Demo**
 
 1. **All sharing routes** (`/api/galleries/[id]/share/*`)
-
    - **Problem**: Complex access control, multiple sharing types
    - **Solution**: Remove for demo, add later if needed
 

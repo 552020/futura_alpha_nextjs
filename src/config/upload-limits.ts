@@ -7,9 +7,9 @@
 
 export const UPLOAD_LIMITS = {
   // File size limits
-  MAX_FILE_SIZE_MB: parseInt(process.env.NEXT_PUBLIC_MAX_FILE_SIZE_MB || "24"), // 20MB + 20% safety
-  MAX_FILES_PER_UPLOAD: parseInt(process.env.NEXT_PUBLIC_MAX_FILES_PER_UPLOAD || "600"), // 500 + 20% safety
-  MAX_TOTAL_UPLOAD_SIZE_MB: parseInt(process.env.NEXT_PUBLIC_MAX_TOTAL_UPLOAD_SIZE_MB || "12000"), // 10GB + 20% safety
+  MAX_FILE_SIZE_MB: parseInt(process.env.NEXT_PUBLIC_MAX_FILE_SIZE_MB || '24'), // 20MB + 20% safety
+  MAX_FILES_PER_UPLOAD: parseInt(process.env.NEXT_PUBLIC_MAX_FILES_PER_UPLOAD || '600'), // 500 + 20% safety
+  MAX_TOTAL_UPLOAD_SIZE_MB: parseInt(process.env.NEXT_PUBLIC_MAX_TOTAL_UPLOAD_SIZE_MB || '12000'), // 10GB + 20% safety
 
   // Derived values for easier use
   get MAX_FILE_SIZE_BYTES() {

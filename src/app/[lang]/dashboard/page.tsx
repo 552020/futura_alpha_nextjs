@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 /**
  * DASHBOARD PAGE (formerly "Vault")
@@ -15,17 +15,17 @@
  * - Search and filtering
  */
 
-import { useEffect, useState, useCallback } from "react";
-import { MemoryGrid } from "@/components/memory/memory-grid";
-import { Loader2 } from "lucide-react";
-import { useInView } from "react-intersection-observer";
-import { useAuthGuard } from "@/utils/authentication";
-import { Memory } from "@/types/memory";
-import { useRouter } from "next/navigation";
-import { useToast } from "@/hooks/use-toast";
-import { ItemUploadButton } from "@/components/memory/item-upload-button";
-import { useParams } from "next/navigation";
-import RequireAuth from "@/components/auth/require-auth";
+import { useEffect, useState, useCallback } from 'react';
+import { MemoryGrid } from '@/components/memory/memory-grid';
+import { Loader2 } from 'lucide-react';
+import { useInView } from 'react-intersection-observer';
+import { useAuthGuard } from '@/utils/authentication';
+import { Memory } from '@/types/memory';
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
+import { ItemUploadButton } from '@/components/memory/item-upload-button';
+import { useParams } from 'next/navigation';
+import RequireAuth from '@/components/auth/require-auth';
 import {
   fetchMemories,
   processDashboardItems,
@@ -33,8 +33,8 @@ import {
   deleteAllMemories,
   type NormalizedMemory,
   type DashboardItem,
-} from "@/services/memories";
-import { Memory as BaseMemory } from "@/types/memory";
+} from '@/services/memories';
+import { Memory as BaseMemory } from '@/types/memory';
 
 // Extended Memory interface for compatibility with DashboardTopBar
 interface ExtendedMemory extends BaseMemory {
@@ -42,12 +42,12 @@ interface ExtendedMemory extends BaseMemory {
   isFavorite?: boolean;
   views?: number;
 }
-import { TawkChat } from "@/components/chat/tawk-chat";
-import { DashboardTopBar } from "@/components/dashboard/dashboard-top-bar";
-import { sampleDashboardMemories } from "./sample-data";
+import { TawkChat } from '@/components/chat/tawk-chat';
+import { DashboardTopBar } from '@/components/dashboard/dashboard-top-bar';
+import { sampleDashboardMemories } from './sample-data';
 
 // Demo flag - set to true to use mock data for demo
-const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_DASHBOARD === "true";
+const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_DASHBOARD === 'true';
 
 export default function VaultPage() {
   // console.log("🔍 Dashboard component rendered");
@@ -60,7 +60,7 @@ export default function VaultPage() {
   const [hasMore, setHasMore] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [filteredMemories, setFilteredMemories] = useState<NormalizedMemory[]>([]);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Dashboard items are already processed by processDashboardItems
   const dashboardItems = memories;
@@ -103,16 +103,16 @@ export default function VaultPage() {
       // });
 
       // console.log("🔍 About to set memories with processedItems:", processedItems);
-      setMemories((prev) => {
+      setMemories(prev => {
         const newMemories = currentPage === 1 ? processedItems : [...prev, ...processedItems];
         // console.log("🔍 Setting memories to:", newMemories);
         return newMemories;
       });
       setHasMore(result.hasMore);
     } catch (error) {
-      console.error("❌ FETCH MEMORIES ERROR:", {
+      console.error('❌ FETCH MEMORIES ERROR:', {
         error,
-        message: error instanceof Error ? error.message : "Unknown error",
+        message: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
         status: (error as Error & { status?: number })?.status,
         statusText: (error as Error & { statusText?: string })?.statusText,
@@ -121,11 +121,11 @@ export default function VaultPage() {
       });
 
       // Show more specific error message if available
-      const errorMessage = error instanceof Error ? error.message : "Failed to load memories. Please try again.";
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load memories. Please try again.';
       toast({
-        title: "Error",
+        title: 'Error',
         description: errorMessage,
-        variant: "destructive",
+        variant: 'destructive',
       });
     } finally {
       setIsLoadingMemories(false);
@@ -150,13 +150,13 @@ export default function VaultPage() {
     const handleScroll = () => {
       if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 100) {
         if (!isLoadingMemories && hasMore) {
-          setCurrentPage((prev) => prev + 1);
+          setCurrentPage(prev => prev + 1);
         }
       }
     };
 
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, [isLoadingMemories, hasMore]);
 
   // Initialize filtered memories when memories are loaded
@@ -167,17 +167,17 @@ export default function VaultPage() {
   const handleDelete = async (id: string) => {
     try {
       await deleteMemory(id);
-      setMemories((prev) => prev.filter((memory) => memory.id !== id));
+      setMemories(prev => prev.filter(memory => memory.id !== id));
       toast({
-        title: "Success",
-        description: "Memory deleted successfully.",
+        title: 'Success',
+        description: 'Memory deleted successfully.',
       });
     } catch (error) {
-      console.error("Error deleting memory:", error);
+      console.error('Error deleting memory:', error);
       toast({
-        title: "Error",
-        description: "Failed to delete memory. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to delete memory. Please try again.',
+        variant: 'destructive',
       });
     }
   };
@@ -193,9 +193,9 @@ export default function VaultPage() {
     // console.log("🔍 Memory ID:", memory.id);
 
     // Check if it's a folder item
-    if (memory.type === "folder") {
+    if (memory.type === 'folder') {
       // For folders, we need to extract the folder name from the ID
-      const folderName = memory.id.replace("folder-", "");
+      const folderName = memory.id.replace('folder-', '');
       // console.log("🔍 Extracted folder name:", folderName);
       // console.log("🔍 Navigating to folder:", folderName);
       router.push(`/${params.lang}/dashboard/folder/${folderName}`);
@@ -213,9 +213,9 @@ export default function VaultPage() {
 
   const handleUploadError = (error: Error) => {
     toast({
-      title: "Error",
-      description: error.message || "Failed to upload memory",
-      variant: "destructive",
+      title: 'Error',
+      description: error.message || 'Failed to upload memory',
+      variant: 'destructive',
     });
   };
 
@@ -224,7 +224,7 @@ export default function VaultPage() {
   }, []);
 
   const handleClearAllMemories = async () => {
-    if (!confirm("Are you sure you want to delete ALL memories? This action cannot be undone.")) {
+    if (!confirm('Are you sure you want to delete ALL memories? This action cannot be undone.')) {
       return;
     }
 
@@ -233,15 +233,15 @@ export default function VaultPage() {
       setMemories([]);
       setFilteredMemories([]);
       toast({
-        title: "Success",
+        title: 'Success',
         description: `Successfully deleted ${result.deletedCount} memories.`,
       });
     } catch (error) {
-      console.error("Error clearing all memories:", error);
+      console.error('Error clearing all memories:', error);
       toast({
-        title: "Error",
-        description: "Failed to clear all memories. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to clear all memories. Please try again.',
+        variant: 'destructive',
       });
     }
   };

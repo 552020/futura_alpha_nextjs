@@ -1,4 +1,4 @@
-import { relations } from "drizzle-orm/relations";
+import { relations } from 'drizzle-orm/relations';
 import {
   allUser,
   businessRelationship,
@@ -24,57 +24,57 @@ import {
   familyMember,
   groupMember,
   account,
-} from "./schema";
+} from './schema';
 
 export const businessRelationshipRelations = relations(businessRelationship, ({ one }) => ({
   allUser_businessId: one(allUser, {
     fields: [businessRelationship.businessId],
     references: [allUser.id],
-    relationName: "businessRelationship_businessId_allUser_id",
+    relationName: 'businessRelationship_businessId_allUser_id',
   }),
   allUser_clientId: one(allUser, {
     fields: [businessRelationship.clientId],
     references: [allUser.id],
-    relationName: "businessRelationship_clientId_allUser_id",
+    relationName: 'businessRelationship_clientId_allUser_id',
   }),
 }));
 
 export const allUserRelations = relations(allUser, ({ many }) => ({
   businessRelationships_businessId: many(businessRelationship, {
-    relationName: "businessRelationship_businessId_allUser_id",
+    relationName: 'businessRelationship_businessId_allUser_id',
   }),
   businessRelationships_clientId: many(businessRelationship, {
-    relationName: "businessRelationship_clientId_allUser_id",
+    relationName: 'businessRelationship_clientId_allUser_id',
   }),
   familyRelationships: many(familyRelationship),
   galleryShares_ownerId: many(galleryShare, {
-    relationName: "galleryShare_ownerId_allUser_id",
+    relationName: 'galleryShare_ownerId_allUser_id',
   }),
   galleryShares_sharedWithId: many(galleryShare, {
-    relationName: "galleryShare_sharedWithId_allUser_id",
+    relationName: 'galleryShare_sharedWithId_allUser_id',
   }),
   folders: many(folders),
   memories: many(memories),
   galleries: many(gallery),
   memoryShares_ownerId: many(memoryShare, {
-    relationName: "memoryShare_ownerId_allUser_id",
+    relationName: 'memoryShare_ownerId_allUser_id',
   }),
   memoryShares_sharedWithId: many(memoryShare, {
-    relationName: "memoryShare_sharedWithId_allUser_id",
+    relationName: 'memoryShare_sharedWithId_allUser_id',
   }),
   temporaryUsers: many(temporaryUser),
   relationships_userId: many(relationship, {
-    relationName: "relationship_userId_allUser_id",
+    relationName: 'relationship_userId_allUser_id',
   }),
   relationships_relatedUserId: many(relationship, {
-    relationName: "relationship_relatedUserId_allUser_id",
+    relationName: 'relationship_relatedUserId_allUser_id',
   }),
   users: many(user),
   familyMembers_ownerId: many(familyMember, {
-    relationName: "familyMember_ownerId_allUser_id",
+    relationName: 'familyMember_ownerId_allUser_id',
   }),
   familyMembers_userId: many(familyMember, {
-    relationName: "familyMember_userId_allUser_id",
+    relationName: 'familyMember_userId_allUser_id',
   }),
 }));
 
@@ -114,12 +114,12 @@ export const relationshipRelations = relations(relationship, ({ one, many }) => 
   allUser_userId: one(allUser, {
     fields: [relationship.userId],
     references: [allUser.id],
-    relationName: "relationship_userId_allUser_id",
+    relationName: 'relationship_userId_allUser_id',
   }),
   allUser_relatedUserId: one(allUser, {
     fields: [relationship.relatedUserId],
     references: [allUser.id],
-    relationName: "relationship_relatedUserId_allUser_id",
+    relationName: 'relationship_relatedUserId_allUser_id',
   }),
 }));
 
@@ -148,10 +148,10 @@ export const userRelations = relations(user, ({ one, many }) => ({
   user: one(user, {
     fields: [user.parentId],
     references: [user.id],
-    relationName: "user_parentId_user_id",
+    relationName: 'user_parentId_user_id',
   }),
   users: many(user, {
-    relationName: "user_parentId_user_id",
+    relationName: 'user_parentId_user_id',
   }),
   groupMembers: many(groupMember),
   accounts: many(account),
@@ -181,12 +181,12 @@ export const galleryShareRelations = relations(galleryShare, ({ one }) => ({
   allUser_ownerId: one(allUser, {
     fields: [galleryShare.ownerId],
     references: [allUser.id],
-    relationName: "galleryShare_ownerId_allUser_id",
+    relationName: 'galleryShare_ownerId_allUser_id',
   }),
   allUser_sharedWithId: one(allUser, {
     fields: [galleryShare.sharedWithId],
     references: [allUser.id],
-    relationName: "galleryShare_sharedWithId_allUser_id",
+    relationName: 'galleryShare_sharedWithId_allUser_id',
   }),
   group: one(group, {
     fields: [galleryShare.groupId],
@@ -229,12 +229,12 @@ export const memoryShareRelations = relations(memoryShare, ({ one }) => ({
   allUser_ownerId: one(allUser, {
     fields: [memoryShare.ownerId],
     references: [allUser.id],
-    relationName: "memoryShare_ownerId_allUser_id",
+    relationName: 'memoryShare_ownerId_allUser_id',
   }),
   allUser_sharedWithId: one(allUser, {
     fields: [memoryShare.sharedWithId],
     references: [allUser.id],
-    relationName: "memoryShare_sharedWithId_allUser_id",
+    relationName: 'memoryShare_sharedWithId_allUser_id',
   }),
   group: one(group, {
     fields: [memoryShare.groupId],
@@ -274,12 +274,12 @@ export const familyMemberRelations = relations(familyMember, ({ one }) => ({
   allUser_ownerId: one(allUser, {
     fields: [familyMember.ownerId],
     references: [allUser.id],
-    relationName: "familyMember_ownerId_allUser_id",
+    relationName: 'familyMember_ownerId_allUser_id',
   }),
   allUser_userId: one(allUser, {
     fields: [familyMember.userId],
     references: [allUser.id],
-    relationName: "familyMember_userId_allUser_id",
+    relationName: 'familyMember_userId_allUser_id',
   }),
 }));
 

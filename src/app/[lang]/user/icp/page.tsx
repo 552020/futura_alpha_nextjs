@@ -1,33 +1,33 @@
-"use client";
+'use client';
 
-import { useAuthGuard } from "@/utils/authentication";
+import { useAuthGuard } from '@/utils/authentication';
 
-import { useState, useEffect, useRef } from "react";
-import type { BackendActor } from "@/ic/backend";
-import type { CapsuleInfo, Capsule } from "@/ic/declarations/backend/backend.did";
+import { useState, useEffect, useRef } from 'react';
+import type { BackendActor } from '@/ic/backend';
+import type { CapsuleInfo, Capsule } from '@/ic/declarations/backend/backend.did';
 
 // Prevent static generation of this page
-export const dynamic = "force-dynamic";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Copy } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { getAuthClient as getIiAuthClient, loginWithII, clearIiSession } from "@/ic/ii";
-import RequireAuth from "@/components/auth/require-auth";
-import { LinkedAccounts } from "@/components/user/linked-accounts";
-import { IICoAuthControls } from "@/components/user/ii-coauth-controls";
+export const dynamic = 'force-dynamic';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Copy } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { getAuthClient as getIiAuthClient, loginWithII, clearIiSession } from '@/ic/ii';
+import RequireAuth from '@/components/auth/require-auth';
+import { LinkedAccounts } from '@/components/user/linked-accounts';
+import { IICoAuthControls } from '@/components/user/ii-coauth-controls';
 
 export default function ICPPage() {
   const { isAuthorized, isLoading } = useAuthGuard();
-  const [greeting, setGreeting] = useState("");
-  const [whoamiResult, setWhoamiResult] = useState("");
+  const [greeting, setGreeting] = useState('');
+  const [whoamiResult, setWhoamiResult] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [principalId, setPrincipalId] = useState("");
+  const [principalId, setPrincipalId] = useState('');
   const [capsuleInfo, setCapsuleInfo] = useState<CapsuleInfo | null>(null);
   const [capsuleReadResult, setCapsuleReadResult] = useState<Capsule | null>(null);
-  const [capsuleIdInput, setCapsuleIdInput] = useState("");
+  const [capsuleIdInput, setCapsuleIdInput] = useState('');
   // UX safety: prevents double-clicks and provides visual feedback
   const [busy, setBusy] = useState(false);
   const [isRehydrating, setIsRehydrating] = useState(true);
@@ -65,7 +65,7 @@ export default function ICPPage() {
     const isAuth = await authClient.isAuthenticated();
 
     if (!isAuth) {
-      throw new Error("Not authenticated - please login first");
+      throw new Error('Not authenticated - please login first');
     }
 
     // If we have a cached actor, return it
@@ -75,7 +75,7 @@ export default function ICPPage() {
 
     // Create and cache new authenticated actor
     const identity = authClient.getIdentity();
-    const { backendActor } = await import("@/ic/backend");
+    const { backendActor } = await import('@/ic/backend');
     authenticatedActorRef.current = await backendActor(identity);
     return authenticatedActorRef.current;
   };
@@ -91,15 +91,15 @@ export default function ICPPage() {
       try {
         await navigator.clipboard.writeText(principalId);
         toast({
-          title: "Copied!",
-          description: "Principal ID copied to clipboard",
+          title: 'Copied!',
+          description: 'Principal ID copied to clipboard',
         });
       } catch (error) {
-        console.error("Failed to copy:", error);
+        console.error('Failed to copy:', error);
         toast({
-          title: "Copy Failed",
-          description: "Failed to copy principal ID to clipboard",
-          variant: "destructive",
+          title: 'Copy Failed',
+          description: 'Failed to copy principal ID to clipboard',
+          variant: 'destructive',
         });
       }
     }
@@ -119,20 +119,20 @@ export default function ICPPage() {
           const identity = authClient.getIdentity();
           const principal = identity.getPrincipal();
           setPrincipalId(principal.toString());
-          setGreeting("You are signed in!");
+          setGreeting('You are signed in!');
 
           // Rehydrate actor so "Test Backend" works immediately after refresh
           try {
-            const { backendActor } = await import("@/ic/backend");
+            const { backendActor } = await import('@/ic/backend');
             const actor = await backendActor(identity);
             authenticatedActorRef.current = actor;
           } catch (error) {
-            console.error("Failed to rehydrate actor:", error);
+            console.error('Failed to rehydrate actor:', error);
             // Don't break the flow if actor creation fails
           }
         }
       } catch (error) {
-        console.error("Failed to check auth state:", error);
+        console.error('Failed to check auth state:', error);
         // Don't show toast on mount errors - just log them
       } finally {
         setIsRehydrating(false);
@@ -147,9 +147,9 @@ export default function ICPPage() {
     setBusy(true);
     try {
       const formData = new FormData(event.currentTarget);
-      const name = formData.get("name") as string;
+      const name = formData.get('name') as string;
 
-      const { backendActor } = await import("@/ic/backend");
+      const { backendActor } = await import('@/ic/backend');
       const actor: BackendActor = await backendActor();
 
       const greeting = await actor.greet(name);
@@ -166,11 +166,11 @@ export default function ICPPage() {
       const { identity, principal } = await loginWithII();
 
       // Create and cache the authenticated actor
-      const { backendActor } = await import("@/ic/backend");
+      const { backendActor } = await import('@/ic/backend');
       const authenticatedActor: BackendActor = await backendActor(identity);
       authenticatedActorRef.current = authenticatedActor; // Cache it for future use
       setPrincipalId(principal.toString());
-      setGreeting("Successfully authenticated with Internet Identity!");
+      setGreeting('Successfully authenticated with Internet Identity!');
       setIsAuthenticated(true);
 
       // Automatically fetch capsule info after successful login
@@ -179,29 +179,29 @@ export default function ICPPage() {
         const capsuleResult = (await authenticatedActor.capsules_read_basic([])) as { Ok: any } | { Err: any }; // eslint-disable-line @typescript-eslint/no-explicit-any
         // console.log("Capsule result received:", capsuleResult);
 
-        if ("Ok" in capsuleResult) {
+        if ('Ok' in capsuleResult) {
           setCapsuleInfo((capsuleResult as { Ok: any }).Ok); // eslint-disable-line @typescript-eslint/no-explicit-any
           // console.log("Capsule info set to:", capsuleResult.Ok);
         } else {
-          console.warn("Capsule read failed:", (capsuleResult as { Err: any }).Err); // eslint-disable-line @typescript-eslint/no-explicit-any
+          console.warn('Capsule read failed:', (capsuleResult as { Err: any }).Err); // eslint-disable-line @typescript-eslint/no-explicit-any
           setCapsuleInfo(null);
         }
       } catch (error) {
-        console.warn("Failed to fetch capsule info on login:", error);
+        console.warn('Failed to fetch capsule info on login:', error);
         // Don't fail the login if capsule info fetch fails
       }
 
       toast({
-        title: "Login Successful",
-        description: "Successfully authenticated with Internet Identity!",
+        title: 'Login Successful',
+        description: 'Successfully authenticated with Internet Identity!',
       });
     } catch (error) {
-      console.error("Login failed:", error);
+      console.error('Login failed:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
       toast({
-        title: "Login Failed",
+        title: 'Login Failed',
         description: `Failed to authenticate with Internet Identity: ${errorMessage}`,
-        variant: "destructive",
+        variant: 'destructive',
       });
     } finally {
       setBusy(false);
@@ -217,9 +217,9 @@ export default function ICPPage() {
 
       if (!isAuthenticated) {
         toast({
-          title: "Not Authenticated",
-          description: "Please login first to call whoami",
-          variant: "destructive",
+          title: 'Not Authenticated',
+          description: 'Please login first to call whoami',
+          variant: 'destructive',
         });
         return;
       }
@@ -229,32 +229,32 @@ export default function ICPPage() {
       const backendPrincipal = await authenticatedActor.whoami();
       setWhoamiResult(`Backend whoami result: ${backendPrincipal.toString()}`);
     } catch (error) {
-      console.error("Whoami failed:", error);
+      console.error('Whoami failed:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
 
       // Handle expired/invalid delegation
       if (
-        errorMessage.includes("Invalid delegation") ||
-        errorMessage.includes("expired") ||
-        errorMessage.includes("401")
+        errorMessage.includes('Invalid delegation') ||
+        errorMessage.includes('expired') ||
+        errorMessage.includes('401')
       ) {
         // console.log("Delegation expired, prompting re-login");
         setIsAuthenticated(false);
-        setPrincipalId("");
-        setGreeting("");
+        setPrincipalId('');
+        setGreeting('');
         clearAuthenticatedActor();
         toast({
-          title: "Session Expired",
-          description: "Your session has expired. Please sign in again.",
-          variant: "destructive",
+          title: 'Session Expired',
+          description: 'Your session has expired. Please sign in again.',
+          variant: 'destructive',
         });
         return;
       }
 
       toast({
-        title: "Whoami Failed",
+        title: 'Whoami Failed',
         description: `Failed to get principal from backend: ${errorMessage}`,
-        variant: "destructive",
+        variant: 'destructive',
       });
     } finally {
       setBusy(false);
@@ -270,9 +270,9 @@ export default function ICPPage() {
 
       if (!isAuthenticated) {
         toast({
-          title: "Not Authenticated",
-          description: "Please login first to get capsule info",
-          variant: "destructive",
+          title: 'Not Authenticated',
+          description: 'Please login first to get capsule info',
+          variant: 'destructive',
         });
         return;
       }
@@ -282,48 +282,48 @@ export default function ICPPage() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const capsuleResult = (await authenticatedActor.capsules_read_basic([])) as { Ok: any } | { Err: any };
 
-      if ("Ok" in capsuleResult) {
+      if ('Ok' in capsuleResult) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         setCapsuleInfo((capsuleResult as { Ok: any }).Ok);
         toast({
-          title: "Capsule Info Retrieved",
-          description: "Successfully fetched your capsule information",
+          title: 'Capsule Info Retrieved',
+          description: 'Successfully fetched your capsule information',
         });
       } else {
         setCapsuleInfo(null);
         toast({
-          title: "No Capsule Found",
+          title: 'No Capsule Found',
           description: "You don't have a capsule yet. Register to create one.",
-          variant: "destructive",
+          variant: 'destructive',
         });
       }
     } catch (error) {
-      console.error("Get capsule info failed:", error);
+      console.error('Get capsule info failed:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
 
       // Handle expired/invalid delegation
       if (
-        errorMessage.includes("Invalid delegation") ||
-        errorMessage.includes("expired") ||
-        errorMessage.includes("401")
+        errorMessage.includes('Invalid delegation') ||
+        errorMessage.includes('expired') ||
+        errorMessage.includes('401')
       ) {
         // console.log("Delegation expired, prompting re-login");
         setIsAuthenticated(false);
-        setPrincipalId("");
-        setGreeting("");
+        setPrincipalId('');
+        setGreeting('');
         clearAuthenticatedActor();
         toast({
-          title: "Session Expired",
-          description: "Your session has expired. Please sign in again.",
-          variant: "destructive",
+          title: 'Session Expired',
+          description: 'Your session has expired. Please sign in again.',
+          variant: 'destructive',
         });
         return;
       }
 
       toast({
-        title: "Get Capsule Info Failed",
+        title: 'Get Capsule Info Failed',
         description: `Failed to get capsule info: ${errorMessage}`,
-        variant: "destructive",
+        variant: 'destructive',
       });
     } finally {
       setBusy(false);
@@ -334,9 +334,9 @@ export default function ICPPage() {
     if (busy) return; // UX safety: prevent double-clicks
     if (!capsuleIdInput.trim()) {
       toast({
-        title: "Input Required",
-        description: "Please enter a capsule ID",
-        variant: "destructive",
+        title: 'Input Required',
+        description: 'Please enter a capsule ID',
+        variant: 'destructive',
       });
       return;
     }
@@ -348,9 +348,9 @@ export default function ICPPage() {
 
       if (!isAuthenticated) {
         toast({
-          title: "Not Authenticated",
-          description: "Please login first to read capsule",
-          variant: "destructive",
+          title: 'Not Authenticated',
+          description: 'Please login first to read capsule',
+          variant: 'destructive',
         });
         return;
       }
@@ -364,50 +364,50 @@ export default function ICPPage() {
         Err: any;
       };
 
-      if ("Ok" in capsuleResult) {
+      if ('Ok' in capsuleResult) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         setCapsuleReadResult((capsuleResult as { Ok: any }).Ok);
         toast({
-          title: "Capsule Retrieved",
-          description: "Successfully fetched capsule data",
+          title: 'Capsule Retrieved',
+          description: 'Successfully fetched capsule data',
         });
       } else {
         setCapsuleReadResult(null);
         toast({
-          title: "Capsule Not Found",
+          title: 'Capsule Not Found',
           description: `No capsule found with that ID, or you don't have access: ${
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             JSON.stringify((capsuleResult as { Err: any }).Err)
           }`,
-          variant: "destructive",
+          variant: 'destructive',
         });
       }
     } catch (error) {
-      console.error("Read capsule failed:", error);
+      console.error('Read capsule failed:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
 
       // Handle expired/invalid delegation
       if (
-        errorMessage.includes("Invalid delegation") ||
-        errorMessage.includes("expired") ||
-        errorMessage.includes("401")
+        errorMessage.includes('Invalid delegation') ||
+        errorMessage.includes('expired') ||
+        errorMessage.includes('401')
       ) {
         setIsAuthenticated(false);
-        setPrincipalId("");
-        setGreeting("");
+        setPrincipalId('');
+        setGreeting('');
         clearAuthenticatedActor();
         toast({
-          title: "Session Expired",
-          description: "Your session has expired. Please sign in again.",
-          variant: "destructive",
+          title: 'Session Expired',
+          description: 'Your session has expired. Please sign in again.',
+          variant: 'destructive',
         });
         return;
       }
 
       toast({
-        title: "Read Capsule Failed",
+        title: 'Read Capsule Failed',
         description: `Failed to read capsule: ${errorMessage}`,
-        variant: "destructive",
+        variant: 'destructive',
       });
     } finally {
       setBusy(false);
@@ -423,21 +423,21 @@ export default function ICPPage() {
       clearAuthenticatedActor(); // Clear our cached actor
 
       setIsAuthenticated(false);
-      setPrincipalId("");
-      setGreeting("");
-      setWhoamiResult("");
+      setPrincipalId('');
+      setGreeting('');
+      setWhoamiResult('');
       setCapsuleInfo(null);
       toast({
-        title: "Signed Out",
-        description: "Successfully signed out",
+        title: 'Signed Out',
+        description: 'Successfully signed out',
       });
     } catch (error) {
-      console.error("Sign out failed:", error);
+      console.error('Sign out failed:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
       toast({
-        title: "Sign Out Failed",
+        title: 'Sign Out Failed',
         description: `Failed to sign out: ${errorMessage}`,
-        variant: "destructive",
+        variant: 'destructive',
       });
     } finally {
       setBusy(false);
@@ -477,7 +477,7 @@ export default function ICPPage() {
 
       <div className="mb-6 flex gap-4">
         <Button onClick={isAuthenticated ? handleSignOut : handleLogin} id="login" disabled={busy}>
-          {isAuthenticated ? "Sign Out" : "Continue with Internet Identity"}
+          {isAuthenticated ? 'Sign Out' : 'Continue with Internet Identity'}
         </Button>
         <Button onClick={handleWhoami} disabled={busy || !isAuthenticated || isRehydrating}>
           Test Backend Connection
@@ -495,7 +495,7 @@ export default function ICPPage() {
             <Input
               id="capsuleId"
               value={capsuleIdInput}
-              onChange={(e) => setCapsuleIdInput(e.target.value)}
+              onChange={e => setCapsuleIdInput(e.target.value)}
               placeholder="Enter capsule ID (e.g., capsule_1234567890)"
               className="w-80"
             />
@@ -521,7 +521,7 @@ export default function ICPPage() {
                 value={principalId}
                 readOnly
                 className="font-mono text-sm"
-                onClick={(e) => e.currentTarget.select()}
+                onClick={e => e.currentTarget.select()}
               />
               <Button
                 variant="outline"
@@ -581,26 +581,26 @@ export default function ICPPage() {
                 <div>
                   <Label className="text-sm font-medium">Subject</Label>
                   <p className="text-sm text-muted-foreground">
-                    {"Principal" in capsuleInfo.subject
+                    {'Principal' in capsuleInfo.subject
                       ? `Principal: ${capsuleInfo.subject.Principal}`
                       : `Opaque: ${capsuleInfo.subject.Opaque}`}
                   </p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium">Is Owner</Label>
-                  <p className="text-sm text-muted-foreground">{capsuleInfo.is_owner ? "Yes" : "No"}</p>
+                  <p className="text-sm text-muted-foreground">{capsuleInfo.is_owner ? 'Yes' : 'No'}</p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium">Is Controller</Label>
-                  <p className="text-sm text-muted-foreground">{capsuleInfo.is_controller ? "Yes" : "No"}</p>
+                  <p className="text-sm text-muted-foreground">{capsuleInfo.is_controller ? 'Yes' : 'No'}</p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium">Is Self Capsule</Label>
-                  <p className="text-sm text-muted-foreground">{capsuleInfo.is_self_capsule ? "Yes" : "No"}</p>
+                  <p className="text-sm text-muted-foreground">{capsuleInfo.is_self_capsule ? 'Yes' : 'No'}</p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium">Bound to Neon</Label>
-                  <p className="text-sm text-muted-foreground">{capsuleInfo.bound_to_neon ? "Yes" : "No"}</p>
+                  <p className="text-sm text-muted-foreground">{capsuleInfo.bound_to_neon ? 'Yes' : 'No'}</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -622,8 +622,8 @@ export default function ICPPage() {
             <div className="text-center py-4">
               <p className="text-muted-foreground">
                 {isAuthenticated
-                  ? "No capsule found. You may need to register first."
-                  : "Please sign in to view your capsule information."}
+                  ? 'No capsule found. You may need to register first.'
+                  : 'Please sign in to view your capsule information.'}
               </p>
             </div>
           )}
@@ -646,7 +646,7 @@ export default function ICPPage() {
                 <div>
                   <Label className="text-sm font-medium">Subject</Label>
                   <p className="text-sm text-muted-foreground">
-                    {"Principal" in capsuleReadResult.subject
+                    {'Principal' in capsuleReadResult.subject
                       ? `Principal: ${capsuleReadResult.subject.Principal}`
                       : `Opaque: ${capsuleReadResult.subject.Opaque}`}
                   </p>

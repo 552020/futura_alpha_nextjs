@@ -44,17 +44,17 @@
  * }
  */
 
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
-import { db } from "@/db/db";
-import { memories, memoryAssets } from "@/db/schema";
-import { randomUUID } from "crypto";
-import { getAllUserId } from "../utils/memory-creation";
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/auth';
+import { db } from '@/db/db';
+import { memories, memoryAssets } from '@/db/schema';
+import { randomUUID } from 'crypto';
+import { getAllUserId } from '../utils/memory-creation';
 
 export async function POST(request: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const startTime = Date.now();
@@ -71,11 +71,11 @@ export async function POST(request: NextRequest) {
     const { memories: memoriesData } = body;
 
     if (!memoriesData || !Array.isArray(memoriesData)) {
-      return NextResponse.json({ error: "Invalid request: memories array is required" }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid request: memories array is required' }, { status: 400 });
     }
 
     if (memoriesData.length === 0) {
-      return NextResponse.json({ error: "Invalid request: memories array cannot be empty" }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid request: memories array cannot be empty' }, { status: 400 });
     }
 
     console.log(`🚀 Starting batch upload for ${memoriesData.length} memories...`);
@@ -90,10 +90,10 @@ export async function POST(request: NextRequest) {
       try {
         // Validate memory data
         if (!memoryData.type || !memoryData.title) {
-          throw new Error("Missing required fields: type and title are required");
+          throw new Error('Missing required fields: type and title are required');
         }
 
-        if (!["image", "video", "document", "note", "audio"].includes(memoryData.type)) {
+        if (!['image', 'video', 'document', 'note', 'audio'].includes(memoryData.type)) {
           throw new Error(`Invalid memory type: ${memoryData.type}`);
         }
 
@@ -101,10 +101,10 @@ export async function POST(request: NextRequest) {
         if (memoryData.assets && Array.isArray(memoryData.assets)) {
           for (const asset of memoryData.assets) {
             if (!asset.assetType || !asset.url || !asset.bytes || !asset.mimeType) {
-              throw new Error("Invalid asset: assetType, url, bytes, and mimeType are required");
+              throw new Error('Invalid asset: assetType, url, bytes, and mimeType are required');
             }
 
-            if (!["original", "display", "thumb", "placeholder", "poster", "waveform"].includes(asset.assetType)) {
+            if (!['original', 'display', 'thumb', 'placeholder', 'poster', 'waveform'].includes(asset.assetType)) {
               throw new Error(`Invalid assetType: ${asset.assetType}`);
             }
           }
@@ -113,9 +113,9 @@ export async function POST(request: NextRequest) {
         // Create memory
         const newMemory = {
           ownerId: allUserId,
-          type: memoryData.type as "image" | "video" | "document" | "note" | "audio",
+          type: memoryData.type as 'image' | 'video' | 'document' | 'note' | 'audio',
           title: memoryData.title,
-          description: memoryData.description || "",
+          description: memoryData.description || '',
           fileCreatedAt: memoryData.fileCreatedAt ? new Date(memoryData.fileCreatedAt) : new Date(),
           isPublic: memoryData.isPublic || false,
           ownerSecureCode: randomUUID(),
@@ -148,17 +148,17 @@ export async function POST(request: NextRequest) {
               processingError?: string;
             }) => ({
               memoryId: createdMemory.id,
-              assetType: asset.assetType as "original" | "display" | "thumb" | "placeholder" | "poster" | "waveform",
+              assetType: asset.assetType as 'original' | 'display' | 'thumb' | 'placeholder' | 'poster' | 'waveform',
               variant: asset.variant || null,
               url: asset.url,
-              storageBackend: asset.storageBackend || "vercel_blob",
-              storageKey: asset.storageKey || asset.url.split("/").pop() || "",
+              storageBackend: asset.storageBackend || 'vercel_blob',
+              storageKey: asset.storageKey || asset.url.split('/').pop() || '',
               bytes: asset.bytes,
               width: asset.width || null,
               height: asset.height || null,
               mimeType: asset.mimeType,
               sha256: asset.sha256 || null,
-              processingStatus: asset.processingStatus || "completed",
+              processingStatus: asset.processingStatus || 'completed',
               processingError: asset.processingError || null,
             })
           );
@@ -217,7 +217,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error in batch upload:", error);
-    return NextResponse.json({ error: "Failed to process batch upload" }, { status: 500 });
+    console.error('Error in batch upload:', error);
+    return NextResponse.json({ error: 'Failed to process batch upload' }, { status: 500 });
   }
 }

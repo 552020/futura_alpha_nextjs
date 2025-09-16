@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
-import { db } from "@/db/db";
-import { allUsers, memories, memoryShares } from "@/db/schema";
-import { eq, desc, sql } from "drizzle-orm";
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/auth';
+import { db } from '@/db/db';
+import { allUsers, memories, memoryShares } from '@/db/schema';
+import { eq, desc, sql } from 'drizzle-orm';
 
 /**
  * GET /api/memories/shared
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!allUserRecord) {
-      return NextResponse.json({ error: "User record not found" }, { status: 404 });
+      return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
     allUserId = allUserRecord.id;
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
 
     if (!body?.allUserId) {
       return NextResponse.json(
-        { error: "For temporary users, allUserId must be provided in the request body" },
+        { error: 'For temporary users, allUserId must be provided in the request body' },
         { status: 401 }
       );
     }
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!tempUserRecord) {
-      return NextResponse.json({ error: "Invalid temporary user ID" }, { status: 404 });
+      return NextResponse.json({ error: 'Invalid temporary user ID' }, { status: 404 });
     }
 
     allUserId = body.allUserId;
@@ -61,19 +61,19 @@ export async function GET(request: NextRequest) {
   try {
     // Get query parameters
     const searchParams = request.nextUrl.searchParams;
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "12");
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '12');
     const offset = (page - 1) * limit;
-    const orderBy = searchParams.get("orderBy") || "sharedAt"; // "sharedAt" or "createdAt"
+    const orderBy = searchParams.get('orderBy') || 'sharedAt'; // "sharedAt" or "createdAt"
 
     // Get all memory shares for this user with ordering
     const shares = await db.query.memoryShares.findMany({
       where: eq(memoryShares.sharedWithId, allUserId),
-      orderBy: orderBy === "sharedAt" ? desc(memoryShares.createdAt) : desc(memoryShares.createdAt),
+      orderBy: orderBy === 'sharedAt' ? desc(memoryShares.createdAt) : desc(memoryShares.createdAt),
     });
 
     // Get memory IDs from shares (already ordered)
-    const memoryIds = shares.map((share) => share.memoryId);
+    const memoryIds = shares.map(share => share.memoryId);
 
     if (memoryIds.length === 0) {
       return NextResponse.json({
@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
 
     // Sort memories by the order they appear in memoryIds (which is ordered by shares)
     const orderedMemories = memoryIds
-      .map((id) => sharedMemories.find((memory) => memory.id === id))
+      .map(id => sharedMemories.find(memory => memory.id === id))
       .filter(Boolean) as typeof sharedMemories;
 
     // Apply pagination to the ordered results
@@ -106,9 +106,9 @@ export async function GET(request: NextRequest) {
 
     // Calculate share counts and add sharing info
     const memoriesWithShareInfo = await Promise.all(
-      paginatedMemories.map(async (memory) => {
+      paginatedMemories.map(async memory => {
         // Find the share record for this memory and user
-        const share = shares.find((s) => s.memoryId === memory.id);
+        const share = shares.find(s => s.memoryId === memory.id);
 
         // Get total share count for this memory
         const shareCount = await db
@@ -122,19 +122,19 @@ export async function GET(request: NextRequest) {
             id: share?.ownerId || memory.ownerId,
             name: await getOwnerName(share?.ownerId || memory.ownerId),
           },
-          accessLevel: share?.accessLevel || "read",
-          status: "shared" as const,
+          accessLevel: share?.accessLevel || 'read',
+          status: 'shared' as const,
           sharedWithCount: shareCount[0]?.count || 0,
         };
       })
     );
 
     // Filter memories by type for backward compatibility
-    const images = memoriesWithShareInfo.filter((m) => m.type === "image");
-    const documents = memoriesWithShareInfo.filter((m) => m.type === "document");
-    const notes = memoriesWithShareInfo.filter((m) => m.type === "note");
-    const videos = memoriesWithShareInfo.filter((m) => m.type === "video");
-    const audio = memoriesWithShareInfo.filter((m) => m.type === "audio");
+    const images = memoriesWithShareInfo.filter(m => m.type === 'image');
+    const documents = memoriesWithShareInfo.filter(m => m.type === 'document');
+    const notes = memoriesWithShareInfo.filter(m => m.type === 'note');
+    const videos = memoriesWithShareInfo.filter(m => m.type === 'video');
+    const audio = memoriesWithShareInfo.filter(m => m.type === 'audio');
 
     const hasMore = orderedMemories.length > offset + limit;
 
@@ -152,8 +152,8 @@ export async function GET(request: NextRequest) {
       total: memoriesWithShareInfo.length,
     });
   } catch (error) {
-    console.error("Error fetching shared memories:", error);
-    return NextResponse.json({ error: "Failed to fetch shared memories" }, { status: 500 });
+    console.error('Error fetching shared memories:', error);
+    return NextResponse.json({ error: 'Failed to fetch shared memories' }, { status: 500 });
   }
 }
 
@@ -169,14 +169,14 @@ async function getOwnerName(ownerId: string): Promise<string> {
     });
 
     if (owner?.user) {
-      return (owner.user as { name?: string }).name || "Unknown User";
+      return (owner.user as { name?: string }).name || 'Unknown User';
     } else if (owner?.temporaryUser) {
-      return (owner.temporaryUser as { name?: string }).name || "Temporary User";
+      return (owner.temporaryUser as { name?: string }).name || 'Temporary User';
     }
 
-    return "Unknown";
+    return 'Unknown';
   } catch (error) {
-    console.error("Error getting owner name:", error);
-    return "Unknown";
+    console.error('Error getting owner name:', error);
+    return 'Unknown';
   }
 }

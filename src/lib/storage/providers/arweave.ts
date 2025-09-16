@@ -5,10 +5,10 @@
  * It provides permanent, immutable storage with pay-once pricing.
  */
 
-import type { StorageProvider, UploadOptions, UploadResult, DeleteOptions } from "../types";
+import type { StorageProvider, UploadOptions, UploadResult, DeleteOptions } from '../types';
 
 export class ArweaveProvider implements StorageProvider {
-  readonly name = "arweave";
+  readonly name = 'arweave';
 
   /**
    * Check if Arweave is available
@@ -27,11 +27,11 @@ export class ArweaveProvider implements StorageProvider {
     void _file;
     void _options;
     if (!this.isAvailable()) {
-      throw new Error("Arweave is not available. Wallet key and gateway URL are required.");
+      throw new Error('Arweave is not available. Wallet key and gateway URL are required.');
     }
 
     // TODO: Implement Arweave upload
-    throw new Error("Arweave upload not yet implemented");
+    throw new Error('Arweave upload not yet implemented');
   }
 
   /**
@@ -41,14 +41,14 @@ export class ArweaveProvider implements StorageProvider {
   async delete(_options: DeleteOptions): Promise<void> {
     // Suppress unused parameter warnings for placeholder implementation
     void _options;
-    throw new Error("Arweave is immutable. Files cannot be deleted.");
+    throw new Error('Arweave is immutable. Files cannot be deleted.');
   }
 
   /**
    * Get the public URL for a storage key (transaction ID)
    */
   getUrl(key: string): string {
-    const gateway = process.env.ARWEAVE_GATEWAY_URL || "https://arweave.net";
+    const gateway = process.env.ARWEAVE_GATEWAY_URL || 'https://arweave.net';
     return `${gateway}/${key}`;
   }
 }

@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
 import {
   useStoragePreferences,
   useUpdateStoragePreferences,
   prefToToggles,
   togglesToPref,
-} from "@/hooks/use-storage-preferences";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
+} from '@/hooks/use-storage-preferences';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export function StorageSettings() {
   const { data: preferences, isLoading, error } = useStoragePreferences();
@@ -24,7 +24,7 @@ export function StorageSettings() {
 
     updatePreferences.mutate({
       preference: newPreference,
-      primary: preferences?.primary || "neon-db",
+      primary: preferences?.primary || 'neon-db',
     });
   };
 
@@ -36,7 +36,7 @@ export function StorageSettings() {
 
     updatePreferences.mutate({
       preference: newPreference,
-      primary: preferences?.primary || "neon-db",
+      primary: preferences?.primary || 'neon-db',
     });
   };
 
@@ -84,7 +84,7 @@ export function StorageSettings() {
         {hasInitialError && (
           <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-3 text-yellow-800 dark:border-yellow-800 dark:bg-yellow-950/20 dark:text-yellow-200">
             <p className="text-sm font-medium">Warning</p>
-            <p className="text-sm">{error ? error.userMessage : "No preferences found"}</p>
+            <p className="text-sm">{error ? error.userMessage : 'No preferences found'}</p>
             {error?.isRetryable && (
               <p className="text-xs text-yellow-600 dark:text-yellow-300 mt-1">
                 This error may be temporary. Please try again.

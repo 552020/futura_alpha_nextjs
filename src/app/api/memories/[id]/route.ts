@@ -1,15 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
-import { db } from "@/db/db";
-import { eq, and } from "drizzle-orm";
-import { allUsers, memories } from "@/db/schema";
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/auth';
+import { db } from '@/db/db';
+import { eq, and } from 'drizzle-orm';
+import { allUsers, memories } from '@/db/schema';
 
 // GET /api/memories/[id] - Get memory with all assets
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   // Check authentication
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
@@ -19,8 +19,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     });
 
     if (!allUserRecord) {
-      console.error("No allUsers record found for user:", session.user.id);
-      return NextResponse.json({ error: "User record not found" }, { status: 404 });
+      console.error('No allUsers record found for user:', session.user.id);
+      return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
     const { id: memoryId } = await params;
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     });
 
     if (!memory) {
-      return NextResponse.json({ error: "Memory not found" }, { status: 404 });
+      return NextResponse.json({ error: 'Memory not found' }, { status: 404 });
     }
 
     return NextResponse.json({
@@ -42,8 +42,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       data: memory,
     });
   } catch (error) {
-    console.error("Error fetching memory:", error);
-    return NextResponse.json({ error: "Failed to fetch memory" }, { status: 500 });
+    console.error('Error fetching memory:', error);
+    return NextResponse.json({ error: 'Failed to fetch memory' }, { status: 500 });
   }
 }
 
@@ -52,7 +52,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   // Check authentication
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
@@ -62,8 +62,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     });
 
     if (!allUserRecord) {
-      console.error("No allUsers record found for user:", session.user.id);
-      return NextResponse.json({ error: "User record not found" }, { status: 404 });
+      console.error('No allUsers record found for user:', session.user.id);
+      return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
     const { id: memoryId } = await params;
@@ -74,7 +74,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     });
 
     if (!existingMemory) {
-      return NextResponse.json({ error: "Memory not found" }, { status: 404 });
+      return NextResponse.json({ error: 'Memory not found' }, { status: 404 });
     }
 
     // Parse request body
@@ -100,8 +100,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       data: updatedMemory,
     });
   } catch (error) {
-    console.error("Error updating memory:", error);
-    return NextResponse.json({ error: "Failed to update memory" }, { status: 500 });
+    console.error('Error updating memory:', error);
+    return NextResponse.json({ error: 'Failed to update memory' }, { status: 500 });
   }
 }
 
@@ -110,7 +110,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   // Check authentication
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
@@ -120,8 +120,8 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     });
 
     if (!allUserRecord) {
-      console.error("No allUsers record found for user:", session.user.id);
-      return NextResponse.json({ error: "User record not found" }, { status: 404 });
+      console.error('No allUsers record found for user:', session.user.id);
+      return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
     const { id: memoryId } = await params;
@@ -132,14 +132,14 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     });
 
     if (!existingMemory) {
-      return NextResponse.json({ error: "Memory not found" }, { status: 404 });
+      return NextResponse.json({ error: 'Memory not found' }, { status: 404 });
     }
 
     // Delete memory (this will cascade delete assets due to foreign key constraint)
     await db.delete(memories).where(eq(memories.id, memoryId));
 
     // Clean up storage edges
-    const { cleanupStorageEdgesForMemory } = await import("../utils/memory-database");
+    const { cleanupStorageEdgesForMemory } = await import('../utils/memory-database');
     await cleanupStorageEdgesForMemory({
       memoryId,
       memoryType: existingMemory.type,
@@ -147,10 +147,10 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     return NextResponse.json({
       success: true,
-      message: "Memory deleted successfully",
+      message: 'Memory deleted successfully',
     });
   } catch (error) {
-    console.error("Error deleting memory:", error);
-    return NextResponse.json({ error: "Failed to delete memory" }, { status: 500 });
+    console.error('Error deleting memory:', error);
+    return NextResponse.json({ error: 'Failed to delete memory' }, { status: 500 });
   }
 }

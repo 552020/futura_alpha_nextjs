@@ -1,9 +1,9 @@
-import { sql } from "drizzle-orm";
-import { db } from "@/db/db";
+import { sql } from 'drizzle-orm';
+import { db } from '@/db/db';
 
 export type MemoryWithGalleries = {
   id: string;
-  type: "image" | "video" | "document" | "note" | "audio";
+  type: 'image' | 'video' | 'document' | 'note' | 'audio';
   owner_id: string;
   title: string | null;
   description: string | null;
@@ -50,9 +50,9 @@ export async function fetchMemoriesWithGalleries(ownerAllUserId: string): Promis
     owner_id: r.owner_id,
     title: r.title ?? null,
     description: r.description ?? null,
-    url: r.url ?? "",
+    url: r.url ?? '',
     created_at: r.created_at?.toISOString ? r.created_at.toISOString() : String(r.created_at),
     updated_at: r.updated_at ? (r.updated_at.toISOString ? r.updated_at.toISOString() : String(r.updated_at)) : null,
-    galleries: Array.isArray(r.galleries) ? r.galleries : JSON.parse(r.galleries ?? "[]"),
+    galleries: Array.isArray(r.galleries) ? r.galleries : JSON.parse(r.galleries ?? '[]'),
   })) as MemoryWithGalleries[];
 }

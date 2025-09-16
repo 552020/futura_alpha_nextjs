@@ -16,14 +16,14 @@ import type {
   UploadOptions,
   UploadResult,
   DeleteOptions,
-} from "./types";
-import { VercelBlobGrantProvider } from "./providers/vercel-blob-grant";
+} from './types';
+import { VercelBlobGrantProvider } from './providers/vercel-blob-grant';
 // import { AWSS3Provider } from "./providers/aws-s3";
 // import { ArweaveProvider } from "./providers/arweave";
 // import { IPFSProvider } from "./providers/ipfs";
 // import { CloudinaryProvider } from "./providers/cloudinary";
 // import { ICPProvider } from "./providers/icp";
-import { UploadError } from "./types";
+import { UploadError } from './types';
 
 export class StorageManager {
   private providers: Map<StorageBackend, StorageProvider> = new Map();
@@ -31,7 +31,7 @@ export class StorageManager {
 
   constructor(config: StorageManagerConfig = {}) {
     this.config = {
-      defaultBackend: config.defaultBackend || "vercel_blob",
+      defaultBackend: config.defaultBackend || 'vercel_blob',
       fallbackBackends: config.fallbackBackends || [], // No fallbacks for now - only use working providers
       maxRetries: config.maxRetries || 3,
       retryDelay: config.retryDelay || 1000,
@@ -44,14 +44,14 @@ export class StorageManager {
    * Initialize all available storage providers
    */
   private initializeProviders(): void {
-    console.log("🔧 Initializing storage providers...");
+    console.log('🔧 Initializing storage providers...');
 
     // Register grant-based provider for client-side uploads (secure)
     const vercelBlobGrantProvider = new VercelBlobGrantProvider();
-    this.providers.set("vercel_blob", vercelBlobGrantProvider);
+    this.providers.set('vercel_blob', vercelBlobGrantProvider);
 
-    console.log("🔍 Checking Vercel Blob Grant provider availability...");
-    console.log("🔍 Vercel Blob Grant isAvailable:", vercelBlobGrantProvider.isAvailable());
+    console.log('🔍 Checking Vercel Blob Grant provider availability...');
+    console.log('🔍 Vercel Blob Grant isAvailable:', vercelBlobGrantProvider.isAvailable());
 
     // Note: S3, Arweave, IPFS, Cloudinary, ICP are not fully implemented yet
     // Only register them if they have proper implementations
@@ -61,14 +61,14 @@ export class StorageManager {
       .filter(([, provider]) => provider.isAvailable())
       .map(([backend]) => backend);
 
-    console.log(`📦 Storage Manager initialized with providers: ${availableProviders.join(", ")}`);
+    console.log(`📦 Storage Manager initialized with providers: ${availableProviders.join(', ')}`);
     console.log(`📦 Total registered providers: ${this.providers.size}`);
 
     if (availableProviders.length === 0) {
-      console.error("❌ No storage providers are available! Check your environment variables.");
-      console.error("❌ Environment check:");
-      console.error("   - NODE_ENV:", process.env.NODE_ENV);
-      console.error("   - BLOB_READ_WRITE_TOKEN:", process.env.BLOB_READ_WRITE_TOKEN ? "SET" : "NOT SET");
+      console.error('❌ No storage providers are available! Check your environment variables.');
+      console.error('❌ Environment check:');
+      console.error('   - NODE_ENV:', process.env.NODE_ENV);
+      console.error('   - BLOB_READ_WRITE_TOKEN:', process.env.BLOB_READ_WRITE_TOKEN ? 'SET' : 'NOT SET');
     }
   }
 
@@ -122,31 +122,31 @@ export class StorageManager {
     backends: StorageBackend[],
     options?: UploadOptions
   ): Promise<UploadResult[]> {
-    const availableBackends = backends.filter((backend) => {
+    const availableBackends = backends.filter(backend => {
       const provider = this.providers.get(backend);
       return provider?.isAvailable() ?? false;
     });
 
     if (availableBackends.length === 0) {
-      throw new Error("No available storage providers found");
+      throw new Error('No available storage providers found');
     }
 
-    console.log(`📤 Uploading to ${availableBackends.length} providers: ${availableBackends.join(", ")}`);
+    console.log(`📤 Uploading to ${availableBackends.length} providers: ${availableBackends.join(', ')}`);
 
-    const uploads = availableBackends.map((backend) => this.uploadToSingleProvider(file, backend, options));
+    const uploads = availableBackends.map(backend => this.uploadToSingleProvider(file, backend, options));
 
     const results = await Promise.allSettled(uploads);
 
     const successful = results
-      .filter((result): result is PromiseFulfilledResult<UploadResult> => result.status === "fulfilled")
-      .map((result) => result.value);
+      .filter((result): result is PromiseFulfilledResult<UploadResult> => result.status === 'fulfilled')
+      .map(result => result.value);
 
     if (successful.length === 0) {
       const errors = results
-        .filter((result): result is PromiseRejectedResult => result.status === "rejected")
-        .map((result) => result.reason);
+        .filter((result): result is PromiseRejectedResult => result.status === 'rejected')
+        .map(result => result.reason);
 
-      throw new Error(`All uploads failed: ${errors.map((e) => e.message).join(", ")}`);
+      throw new Error(`All uploads failed: ${errors.map(e => e.message).join(', ')}`);
     }
 
     console.log(`✅ Successfully uploaded to ${successful.length}/${availableBackends.length} providers`);
@@ -160,8 +160,8 @@ export class StorageManager {
     const fallbackBackends = this.config.fallbackBackends;
     const availableProviders = this.getAvailableProviders();
 
-    console.log(`🔄 Available providers for fallback: ${availableProviders.join(", ")}`);
-    console.log(`🔄 Configured fallback backends: ${fallbackBackends.join(", ")}`);
+    console.log(`🔄 Available providers for fallback: ${availableProviders.join(', ')}`);
+    console.log(`🔄 Configured fallback backends: ${fallbackBackends.join(', ')}`);
 
     // Try fallback backends that are actually available
     for (const backend of fallbackBackends) {
@@ -201,7 +201,7 @@ export class StorageManager {
     const triedCount = fallbackBackends.length;
     throw new Error(
       `All storage providers failed. Available: ${availableCount}, Tried: ${triedCount}. Available providers: ${availableProviders.join(
-        ", "
+        ', '
       )}`
     );
   }
@@ -232,7 +232,7 @@ export class StorageManager {
       `Upload failed after ${this.config.maxRetries} attempts`,
       provider.name,
       file,
-      "MAX_RETRIES_EXCEEDED",
+      'MAX_RETRIES_EXCEEDED',
       lastError || undefined
     );
   }
@@ -286,6 +286,6 @@ export class StorageManager {
    * Sleep utility for retry delays
    */
   private sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 }

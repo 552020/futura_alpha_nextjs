@@ -11,12 +11,12 @@
  * - Handle upload progress and error states
  */
 
-import { processImageForMultipleAssets, uploadProcessedAssetsToBlob } from "@/app/api/memories/utils/image-processing";
+import { processImageForMultipleAssets, uploadProcessedAssetsToBlob } from '@/app/api/memories/utils/image-processing';
 
 export interface UploadProgress {
   fileIndex: number;
   fileName: string;
-  stage: "processing" | "uploading" | "creating-memory" | "adding-assets" | "completed" | "error";
+  stage: 'processing' | 'uploading' | 'creating-memory' | 'adding-assets' | 'completed' | 'error';
   progress: number; // 0-100
   error?: string;
 }
@@ -63,7 +63,7 @@ export async function uploadImageWithMultipleAssets(
     onProgress?.({
       fileIndex: 0,
       fileName: file.name,
-      stage: "processing",
+      stage: 'processing',
       progress: 10,
     });
 
@@ -72,7 +72,7 @@ export async function uploadImageWithMultipleAssets(
     onProgress?.({
       fileIndex: 0,
       fileName: file.name,
-      stage: "processing",
+      stage: 'processing',
       progress: 30,
     });
 
@@ -80,17 +80,17 @@ export async function uploadImageWithMultipleAssets(
     onProgress?.({
       fileIndex: 0,
       fileName: file.name,
-      stage: "uploading",
+      stage: 'uploading',
       progress: 40,
     });
 
-    const baseFileName = file.name.replace(/[^a-zA-Z0-9-_\.]/g, "_");
+    const baseFileName = file.name.replace(/[^a-zA-Z0-9-_\.]/g, '_');
     const blobResults = await uploadProcessedAssetsToBlob(processedAssets, baseFileName);
 
     onProgress?.({
       fileIndex: 0,
       fileName: file.name,
-      stage: "uploading",
+      stage: 'uploading',
       progress: 70,
     });
 
@@ -98,19 +98,19 @@ export async function uploadImageWithMultipleAssets(
     onProgress?.({
       fileIndex: 0,
       fileName: file.name,
-      stage: "creating-memory",
+      stage: 'creating-memory',
       progress: 80,
     });
 
-    const memoryResponse = await fetch("/api/memories", {
-      method: "POST",
+    const memoryResponse = await fetch('/api/memories', {
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        type: "image",
-        title: file.name.split(".")[0],
-        description: "",
+        type: 'image',
+        title: file.name.split('.')[0],
+        description: '',
         fileCreatedAt: new Date().toISOString(),
         isPublic: false,
         parentFolderId: parentFolderId || null,
@@ -131,49 +131,49 @@ export async function uploadImageWithMultipleAssets(
     onProgress?.({
       fileIndex: 0,
       fileName: file.name,
-      stage: "adding-assets",
+      stage: 'adding-assets',
       progress: 90,
     });
 
     const assetsResponse = await fetch(`/api/memories/${memory.id}/assets`, {
-      method: "PUT",
+      method: 'PUT',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         assets: [
           {
-            assetType: "original",
+            assetType: 'original',
             url: blobResults.original.url,
             bytes: processedAssets.original.size,
             width: processedAssets.original.width,
             height: processedAssets.original.height,
             mimeType: processedAssets.original.mimeType,
-            storageBackend: "vercel_blob",
+            storageBackend: 'vercel_blob',
             storageKey: blobResults.original.storageKey,
             sha256: null, // Could be calculated if needed
             variant: null,
           },
           {
-            assetType: "display",
+            assetType: 'display',
             url: blobResults.display.url,
             bytes: processedAssets.display.size,
             width: processedAssets.display.width,
             height: processedAssets.display.height,
             mimeType: processedAssets.display.mimeType,
-            storageBackend: "vercel_blob",
+            storageBackend: 'vercel_blob',
             storageKey: blobResults.display.storageKey,
             sha256: null,
             variant: null,
           },
           {
-            assetType: "thumb",
+            assetType: 'thumb',
             url: blobResults.thumb.url,
             bytes: processedAssets.thumb.size,
             width: processedAssets.thumb.width,
             height: processedAssets.thumb.height,
             mimeType: processedAssets.thumb.mimeType,
-            storageBackend: "vercel_blob",
+            storageBackend: 'vercel_blob',
             storageKey: blobResults.thumb.storageKey,
             sha256: null,
             variant: null,
@@ -191,7 +191,7 @@ export async function uploadImageWithMultipleAssets(
     onProgress?.({
       fileIndex: 0,
       fileName: file.name,
-      stage: "completed",
+      stage: 'completed',
       progress: 100,
     });
 
@@ -216,7 +216,7 @@ export async function uploadImageWithMultipleAssets(
     onProgress?.({
       fileIndex: 0,
       fileName: file.name,
-      stage: "error",
+      stage: 'error',
       progress: 0,
       error: error instanceof Error ? error.message : String(error),
     });
@@ -255,7 +255,7 @@ export async function uploadMultipleImagesWithAssets(
 
       const result = await uploadImageWithMultipleAssets(file, {
         parentFolderId,
-        onProgress: (progress) => {
+        onProgress: progress => {
           onProgress?.(fileIndex, progress);
         },
       });
@@ -299,7 +299,7 @@ export async function uploadImageWithMultipleAssetsSimplified(
     onProgress?.({
       fileIndex: 0,
       fileName: file.name,
-      stage: "processing",
+      stage: 'processing',
       progress: 20,
     });
 
@@ -309,7 +309,7 @@ export async function uploadImageWithMultipleAssetsSimplified(
     onProgress?.({
       fileIndex: 0,
       fileName: file.name,
-      stage: "uploading",
+      stage: 'uploading',
       progress: 50,
     });
 
@@ -320,21 +320,21 @@ export async function uploadImageWithMultipleAssetsSimplified(
     onProgress?.({
       fileIndex: 0,
       fileName: file.name,
-      stage: "creating-memory",
+      stage: 'creating-memory',
       progress: 80,
     });
 
     // Create FormData with multiple assets flag
     const formData = new FormData();
-    formData.append("file", file);
-    formData.append("multipleAssets", "true");
+    formData.append('file', file);
+    formData.append('multipleAssets', 'true');
     if (parentFolderId) {
-      formData.append("parentFolderId", parentFolderId);
+      formData.append('parentFolderId', parentFolderId);
     }
 
     // Upload using the simplified endpoint
-    const response = await fetch("/api/memories", {
-      method: "POST",
+    const response = await fetch('/api/memories', {
+      method: 'POST',
       body: formData,
     });
 
@@ -347,7 +347,7 @@ export async function uploadImageWithMultipleAssetsSimplified(
     onProgress?.({
       fileIndex: 0,
       fileName: file.name,
-      stage: "completed",
+      stage: 'completed',
       progress: 100,
     });
 
@@ -359,7 +359,7 @@ export async function uploadImageWithMultipleAssetsSimplified(
     onProgress?.({
       fileIndex: 0,
       fileName: file.name,
-      stage: "error",
+      stage: 'error',
       progress: 0,
       error: error instanceof Error ? error.message : String(error),
     });
@@ -382,31 +382,31 @@ export function getOptimalAssetUrl(
     height: number;
     bytes: number;
   }>,
-  useCase: "grid" | "lightbox" | "fullscreen" | "original"
+  useCase: 'grid' | 'lightbox' | 'fullscreen' | 'original'
 ): string {
   switch (useCase) {
-    case "grid":
+    case 'grid':
       // Use thumbnail for grid view
-      const thumb = assets.find((a) => a.assetType === "thumb");
-      return thumb?.url || assets[0]?.url || "";
+      const thumb = assets.find(a => a.assetType === 'thumb');
+      return thumb?.url || assets[0]?.url || '';
 
-    case "lightbox":
+    case 'lightbox':
       // Use display version for lightbox
-      const display = assets.find((a) => a.assetType === "display");
-      return display?.url || assets[0]?.url || "";
+      const display = assets.find(a => a.assetType === 'display');
+      return display?.url || assets[0]?.url || '';
 
-    case "fullscreen":
+    case 'fullscreen':
       // Use display version for fullscreen (could be original for very high-res displays)
-      const fullscreen = assets.find((a) => a.assetType === "display");
-      return fullscreen?.url || assets[0]?.url || "";
+      const fullscreen = assets.find(a => a.assetType === 'display');
+      return fullscreen?.url || assets[0]?.url || '';
 
-    case "original":
+    case 'original':
       // Use original for editing/downloading
-      const original = assets.find((a) => a.assetType === "original");
-      return original?.url || assets[0]?.url || "";
+      const original = assets.find(a => a.assetType === 'original');
+      return original?.url || assets[0]?.url || '';
 
     default:
-      return assets[0]?.url || "";
+      return assets[0]?.url || '';
   }
 }
 

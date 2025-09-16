@@ -5,10 +5,10 @@
  * It provides decentralized, content-addressed storage.
  */
 
-import type { StorageProvider, UploadOptions, UploadResult, DeleteOptions } from "../types";
+import type { StorageProvider, UploadOptions, UploadResult, DeleteOptions } from '../types';
 
 export class IPFSProvider implements StorageProvider {
-  readonly name = "ipfs";
+  readonly name = 'ipfs';
 
   /**
    * Check if IPFS is available
@@ -27,11 +27,11 @@ export class IPFSProvider implements StorageProvider {
     void _file;
     void _options;
     if (!this.isAvailable()) {
-      throw new Error("IPFS is not available. Gateway URL and API/Node URL are required.");
+      throw new Error('IPFS is not available. Gateway URL and API/Node URL are required.');
     }
 
     // TODO: Implement IPFS upload
-    throw new Error("IPFS upload not yet implemented");
+    throw new Error('IPFS upload not yet implemented');
   }
 
   /**
@@ -41,14 +41,14 @@ export class IPFSProvider implements StorageProvider {
   async delete(_options: DeleteOptions): Promise<void> {
     // Suppress unused parameter warnings for placeholder implementation
     void _options;
-    throw new Error("IPFS is content-addressed. Files cannot be deleted.");
+    throw new Error('IPFS is content-addressed. Files cannot be deleted.');
   }
 
   /**
    * Get the public URL for a storage key (content hash)
    */
   getUrl(key: string): string {
-    const gateway = process.env.IPFS_GATEWAY_URL || "https://ipfs.io/ipfs";
+    const gateway = process.env.IPFS_GATEWAY_URL || 'https://ipfs.io/ipfs';
     return `${gateway}/${key}`;
   }
 }

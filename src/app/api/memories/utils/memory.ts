@@ -11,10 +11,10 @@
  * - Support all memory types: image, video, document, note, audio
  */
 
-import { db } from "@/db/db";
-import { memories } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import type { DBMemoryWithAssets } from "@/db/schema";
+import { db } from '@/db/db';
+import { memories } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+import type { DBMemoryWithAssets } from '@/db/schema';
 
 // With unified schema, MemoryWithType includes assets
 export type MemoryWithType = DBMemoryWithAssets;

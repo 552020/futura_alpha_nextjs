@@ -1,7 +1,7 @@
-import { createHmac, randomBytes, timingSafeEqual } from "crypto";
-import { db } from "@/db/db";
-import { iiNonces, type NewDBIINonce } from "@/db/schema";
-import { eq, and, lt, gt, isNull, isNotNull, gte, count, sql } from "drizzle-orm";
+import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
+import { db } from '@/db/db';
+import { iiNonces, type NewDBIINonce } from '@/db/schema';
+import { eq, and, lt, gt, isNull, isNotNull, gte, count, sql } from 'drizzle-orm';
 
 /**
  * Enhanced nonce management for Internet Identity authentication
@@ -35,9 +35,9 @@ export const NONCE_CONFIG = {
   // Nonce length in bytes (256 bits for future-proofing)
   NONCE_LENGTH_BYTES: 32,
   // Hash algorithm for storing nonces
-  HASH_ALGORITHM: "sha256" as const,
+  HASH_ALGORITHM: 'sha256' as const,
   // Server secret for HMAC (should be from env in production)
-  HMAC_SECRET: process.env.NONCE_HMAC_SECRET || "fallback-secret-change-in-production",
+  HMAC_SECRET: process.env.NONCE_HMAC_SECRET || 'fallback-secret-change-in-production',
   // Rate limiting configuration
   RATE_LIMIT_WINDOW_MS: 60 * 1000, // 1 minute window
   RATE_LIMIT_MAX_REQUESTS: 10, // Max 10 nonces per IP per minute
@@ -47,14 +47,14 @@ export const NONCE_CONFIG = {
  * Generate a cryptographically secure random nonce
  */
 export function generateNonce(): string {
-  return randomBytes(NONCE_CONFIG.NONCE_LENGTH_BYTES).toString("base64url");
+  return randomBytes(NONCE_CONFIG.NONCE_LENGTH_BYTES).toString('base64url');
 }
 
 /**
  * Hash a nonce for secure storage using HMAC-SHA-256
  */
 export function hashNonce(nonce: string): string {
-  return createHmac(NONCE_CONFIG.HASH_ALGORITHM, NONCE_CONFIG.HMAC_SECRET).update(nonce, "utf8").digest("hex");
+  return createHmac(NONCE_CONFIG.HASH_ALGORITHM, NONCE_CONFIG.HMAC_SECRET).update(nonce, 'utf8').digest('hex');
 }
 
 /**
@@ -62,8 +62,8 @@ export function hashNonce(nonce: string): string {
  */
 export function verifyNonceHash(nonce: string, storedHash: string): boolean {
   const computedHash = hashNonce(nonce);
-  const computedBuffer = Buffer.from(computedHash, "hex");
-  const storedBuffer = Buffer.from(storedHash, "hex");
+  const computedBuffer = Buffer.from(computedHash, 'hex');
+  const storedBuffer = Buffer.from(storedHash, 'hex');
 
   // Ensure both buffers are the same length for timing-safe comparison
   if (computedBuffer.length !== storedBuffer.length) {
@@ -110,7 +110,7 @@ export async function createNonce(context: {
   // Check rate limit
   const rateLimitOk = await checkRateLimit(context.ipAddress);
   if (!rateLimitOk) {
-    throw new Error("Rate limit exceeded for nonce creation");
+    throw new Error('Rate limit exceeded for nonce creation');
   }
   const nonce = generateNonce();
   const nonceHash = hashNonce(nonce);
@@ -190,7 +190,7 @@ export async function consumeNonceIfValid(
   nonce: string
 ): Promise<{
   ok: boolean;
-  reason?: "not_found" | "already_used" | "expired" | "invalid_hash";
+  reason?: 'not_found' | 'already_used' | 'expired' | 'invalid_hash';
   context?: NonceContext | null;
 }> {
   const nonceHash = hashNonce(nonce);
@@ -222,19 +222,19 @@ export async function consumeNonceIfValid(
   });
 
   if (!record) {
-    return { ok: false, reason: "not_found" };
+    return { ok: false, reason: 'not_found' };
   }
 
   if (record.usedAt) {
-    return { ok: false, reason: "already_used", context: record.context };
+    return { ok: false, reason: 'already_used', context: record.context };
   }
 
   if (record.expiresAt < now) {
-    return { ok: false, reason: "expired", context: record.context };
+    return { ok: false, reason: 'expired', context: record.context };
   }
 
   // Must be invalid hash
-  return { ok: false, reason: "invalid_hash", context: record.context };
+  return { ok: false, reason: 'invalid_hash', context: record.context };
 }
 
 /**
@@ -326,7 +326,7 @@ export type NonceValidationResult = {
 
 export type NonceConsumptionResult = {
   ok: boolean;
-  reason?: "not_found" | "already_used" | "expired" | "invalid_hash";
+  reason?: 'not_found' | 'already_used' | 'expired' | 'invalid_hash';
   context?: NonceContext | null;
 };
 
@@ -341,7 +341,7 @@ export async function opportunisticCleanup(): Promise<void> {
       await cleanupExpiredNonces();
     } catch (error) {
       // Don't let cleanup failures affect the main operation
-      console.warn("Opportunistic nonce cleanup failed:", error);
+      console.warn('Opportunistic nonce cleanup failed:', error);
     }
   }
 }

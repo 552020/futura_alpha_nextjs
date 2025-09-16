@@ -18,12 +18,12 @@
  * - waveform: Audio visualizations
  */
 
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
-import { db } from "@/db/db";
-import { allUsers, memories, memoryAssets } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import { getMemoryAccessLevel } from "../../utils/access";
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/auth';
+import { db } from '@/db/db';
+import { allUsers, memories, memoryAssets } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+import { getMemoryAccessLevel } from '../../utils/access';
 
 /**
  * PUT /api/memories/:id/assets - Upsert multiple assets for a memory
@@ -61,7 +61,7 @@ import { getMemoryAccessLevel } from "../../utils/access";
 export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
@@ -74,7 +74,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
     });
 
     if (!allUserRecord) {
-      return NextResponse.json({ error: "User record not found" }, { status: 404 });
+      return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
     // Check if user has write access to this memory
@@ -83,8 +83,8 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
       memoryId,
     });
 
-    if (!accessLevel || (accessLevel !== "owner" && accessLevel !== "write")) {
-      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    if (!accessLevel || (accessLevel !== 'owner' && accessLevel !== 'write')) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
     // Verify memory exists
@@ -93,7 +93,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
     });
 
     if (!memory) {
-      return NextResponse.json({ error: "Memory not found" }, { status: 404 });
+      return NextResponse.json({ error: 'Memory not found' }, { status: 404 });
     }
 
     // Parse request body
@@ -101,19 +101,19 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
     const { assets } = body;
 
     if (!assets || !Array.isArray(assets)) {
-      return NextResponse.json({ error: "Invalid request: assets array is required" }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid request: assets array is required' }, { status: 400 });
     }
 
     // Validate asset data
     for (const asset of assets) {
       if (!asset.assetType || !asset.url || !asset.bytes || !asset.mimeType) {
         return NextResponse.json(
-          { error: "Invalid asset: assetType, url, bytes, and mimeType are required" },
+          { error: 'Invalid asset: assetType, url, bytes, and mimeType are required' },
           { status: 400 }
         );
       }
 
-      if (!["original", "display", "thumb", "placeholder", "poster", "waveform"].includes(asset.assetType)) {
+      if (!['original', 'display', 'thumb', 'placeholder', 'poster', 'waveform'].includes(asset.assetType)) {
         return NextResponse.json(
           {
             error: `Invalid assetType: ${asset.assetType}. Must be one of: original, display, thumb, placeholder, poster, waveform`,
@@ -129,17 +129,17 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
     for (const asset of assets) {
       const assetData = {
         memoryId,
-        assetType: asset.assetType as "original" | "display" | "thumb" | "placeholder" | "poster" | "waveform",
+        assetType: asset.assetType as 'original' | 'display' | 'thumb' | 'placeholder' | 'poster' | 'waveform',
         variant: asset.variant || null,
         url: asset.url,
-        storageBackend: asset.storageBackend || "vercel_blob",
-        storageKey: asset.storageKey || asset.url.split("/").pop() || "",
+        storageBackend: asset.storageBackend || 'vercel_blob',
+        storageKey: asset.storageKey || asset.url.split('/').pop() || '',
         bytes: asset.bytes,
         width: asset.width || null,
         height: asset.height || null,
         mimeType: asset.mimeType,
         sha256: asset.sha256 || null,
-        processingStatus: asset.processingStatus || "completed",
+        processingStatus: asset.processingStatus || 'completed',
         processingError: asset.processingError || null,
       };
 
@@ -176,8 +176,8 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
       },
     });
   } catch (error) {
-    console.error("Error managing assets:", error);
-    return NextResponse.json({ error: "Failed to manage assets" }, { status: 500 });
+    console.error('Error managing assets:', error);
+    return NextResponse.json({ error: 'Failed to manage assets' }, { status: 500 });
   }
 }
 
@@ -187,7 +187,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
 export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
@@ -200,7 +200,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     });
 
     if (!allUserRecord) {
-      return NextResponse.json({ error: "User record not found" }, { status: 404 });
+      return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
     // Check if user has read access to this memory
@@ -210,7 +210,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     });
 
     if (!accessLevel) {
-      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
     // Get all assets for the memory
@@ -227,8 +227,8 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       },
     });
   } catch (error) {
-    console.error("Error fetching assets:", error);
-    return NextResponse.json({ error: "Failed to fetch assets" }, { status: 500 });
+    console.error('Error fetching assets:', error);
+    return NextResponse.json({ error: 'Failed to fetch assets' }, { status: 500 });
   }
 }
 
@@ -244,7 +244,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
 export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
@@ -257,7 +257,7 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
     });
 
     if (!allUserRecord) {
-      return NextResponse.json({ error: "User record not found" }, { status: 404 });
+      return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
     // Check if user has write access to this memory
@@ -266,8 +266,8 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
       memoryId,
     });
 
-    if (!accessLevel || (accessLevel !== "owner" && accessLevel !== "write")) {
-      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    if (!accessLevel || (accessLevel !== 'owner' && accessLevel !== 'write')) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
     // Parse request body to get asset types to delete
@@ -293,7 +293,7 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
 
     // Filter by asset types if specified
     const filteredDeletedAssets =
-      assetTypes.length > 0 ? deletedAssets.filter((asset) => assetTypes.includes(asset.assetType)) : deletedAssets;
+      assetTypes.length > 0 ? deletedAssets.filter(asset => assetTypes.includes(asset.assetType)) : deletedAssets;
 
     return NextResponse.json({
       success: true,
@@ -304,7 +304,7 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
       },
     });
   } catch (error) {
-    console.error("Error deleting assets:", error);
-    return NextResponse.json({ error: "Failed to delete assets" }, { status: 500 });
+    console.error('Error deleting assets:', error);
+    return NextResponse.json({ error: 'Failed to delete assets' }, { status: 500 });
   }
 }

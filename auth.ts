@@ -1,24 +1,24 @@
 // import NextAuth, { DefaultSession } from "next-auth";
 
-import NextAuth, { type DefaultSession } from "next-auth";
-import "next-auth/jwt";
-import GitHub from "next-auth/providers/github";
-import Google from "next-auth/providers/google";
-import { DrizzleAdapter } from "@auth/drizzle-adapter";
-import { db } from "@/db/db";
-import CredentialsProvider from "next-auth/providers/credentials";
-import { compare } from "bcrypt"; // make sure bcrypt is installed
-import { allUsers, temporaryUsers, users, accounts, iiNonces } from "@/db/schema";
-import { eq, and, isNull, gt } from "drizzle-orm";
-import { backendActor } from "@/ic/backend";
-import { validateNonce, consumeNonce } from "@/lib/ii-nonce";
+import NextAuth, { type DefaultSession } from 'next-auth';
+import 'next-auth/jwt';
+import GitHub from 'next-auth/providers/github';
+import Google from 'next-auth/providers/google';
+import { DrizzleAdapter } from '@auth/drizzle-adapter';
+import { db } from '@/db/db';
+import CredentialsProvider from 'next-auth/providers/credentials';
+import { compare } from 'bcrypt'; // make sure bcrypt is installed
+import { allUsers, temporaryUsers, users, accounts, iiNonces } from '@/db/schema';
+import { eq, and, isNull, gt } from 'drizzle-orm';
+import { backendActor } from '@/ic/backend';
+import { validateNonce, consumeNonce } from '@/lib/ii-nonce';
 
 // console.log("--------------------------------");
 // console.log("auth.ts");
 // console.log("--------------------------------");
 // console.log("NODE_ENV:", process.env.NODE_ENV);
 
-declare module "next-auth" {
+declare module 'next-auth' {
   interface User {
     role?: string;
   }
@@ -32,11 +32,11 @@ declare module "next-auth" {
       icpPrincipal?: string; // Only when II co-auth is active (activeIcPrincipal)
       linkedIcPrincipal?: string; // Always available if user has linked II
       loginProvider?: string; // Base session provider for UI logic
-    } & DefaultSession["user"];
+    } & DefaultSession['user'];
   }
 }
 
-declare module "next-auth/jwt" {
+declare module 'next-auth/jwt' {
   interface JWT {
     /** Add role to JWT */
     role?: string;
@@ -52,7 +52,7 @@ declare module "next-auth/jwt" {
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: DrizzleAdapter(db),
-  session: { strategy: "jwt" },
+  session: { strategy: 'jwt' },
   providers: [
     GitHub({
       clientId: process.env.AUTH_GITHUB_ID!,
@@ -63,7 +63,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           email: profile.email,
           name: profile.name,
           image: profile.avatar_url,
-          role: "user" as string,
+          role: 'user' as string,
         };
       },
     }),
@@ -80,23 +80,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           email: profile.email,
           name: profile.name,
           image: profile.picture,
-          role: "user",
+          role: 'user',
         };
       },
     }),
     CredentialsProvider({
-      name: "credentials",
+      name: 'credentials',
       credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
         // Early return with type narrowing
         if (
           !credentials?.email ||
           !credentials?.password ||
-          typeof credentials.email !== "string" ||
-          typeof credentials.password !== "string"
+          typeof credentials.email !== 'string' ||
+          typeof credentials.password !== 'string'
         ) {
           return null;
         }
@@ -123,26 +123,26 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
     CredentialsProvider({
-      id: "ii",
-      name: "Internet Identity",
+      id: 'ii',
+      name: 'Internet Identity',
       credentials: {
-        principal: { label: "Principal", type: "text" },
-        nonceId: { label: "Nonce ID", type: "text" },
-        nonce: { label: "Nonce", type: "text" },
+        principal: { label: 'Principal', type: 'text' },
+        nonceId: { label: 'Nonce ID', type: 'text' },
+        nonce: { label: 'Nonce', type: 'text' },
       },
       async authorize(credentials) {
         const { principal, nonceId, nonce } = credentials;
         // console.log("[II] authorize:start", { principal, nonceId });
 
         // Validate inputs
-        if (!principal || typeof principal !== "string" || principal.length < 5) {
+        if (!principal || typeof principal !== 'string' || principal.length < 5) {
           // console.log("[II] authorize:invalid-principal", { principal });
-          throw new Error("Invalid principal provided. Please try signing in again.");
+          throw new Error('Invalid principal provided. Please try signing in again.');
         }
 
-        if (!nonceId || typeof nonceId !== "string") {
+        if (!nonceId || typeof nonceId !== 'string') {
           // console.log("[II] authorize:invalid-nonceId", { nonceId });
-          throw new Error("Invalid authentication challenge. Please try signing in again.");
+          throw new Error('Invalid authentication challenge. Please try signing in again.');
         }
 
         // 5.2: Check nonce exists, unexpired, unused
@@ -153,47 +153,47 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         if (!nonceRecord) {
           // console.log("[II] authorize:nonce-not-found", { nonceId });
-          throw new Error("Authentication challenge not found. Please try signing in again.");
+          throw new Error('Authentication challenge not found. Please try signing in again.');
         }
 
         if (nonceRecord.usedAt) {
           // console.log("[II] authorize:nonce-already-used", { nonceId });
-          throw new Error("Authentication challenge already used. Please try signing in again.");
+          throw new Error('Authentication challenge already used. Please try signing in again.');
         }
 
         if (nonceRecord.expiresAt < new Date()) {
           // console.log("[II] authorize:nonce-expired", { nonceId });
-          throw new Error("Authentication challenge expired. Please try signing in again.");
+          throw new Error('Authentication challenge expired. Please try signing in again.');
         }
 
         // 5.3: Call API route to verify nonce proof
         try {
           if (!nonce) {
             // console.log("[II] authorize:no-nonce-provided", { nonceId, principal });
-            throw new Error("Authentication nonce not provided. Please try signing in again.");
+            throw new Error('Authentication nonce not provided. Please try signing in again.');
           }
 
           const nonceStr = nonce as string;
           // console.log("[II] authorize:verifying-nonce", { nonceId, principal, nonceLength: nonceStr.length });
 
           // Call our API route to verify the nonce
-          const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+          const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
           const response = await fetch(`${baseUrl}/api/ii/verify-nonce`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ nonce: nonceStr }),
           });
 
           if (!response.ok) {
             // console.error("[II] authorize:api-error", { status: response.status, statusText: response.statusText });
-            throw new Error("Authentication verification service unavailable. Please try signing in again.");
+            throw new Error('Authentication verification service unavailable. Please try signing in again.');
           }
 
           const result = await response.json();
 
           if (!result.success) {
             // console.log("[II] authorize:verification-failed", { error: result.error });
-            throw new Error("Authentication proof verification failed. Please try signing in again.");
+            throw new Error('Authentication proof verification failed. Please try signing in again.');
           }
 
           const provedPrincipal = result.principal;
@@ -202,13 +202,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             //   claimed: principal,
             //   proved: provedPrincipal,
             // });
-            throw new Error("Authentication proof mismatch. Please try signing in again.");
+            throw new Error('Authentication proof mismatch. Please try signing in again.');
           }
 
           // console.log("[II] authorize:nonce-verified", { principal, nonceId });
         } catch (error) {
           // console.error("[II] authorize:verification-error", error);
-          throw new Error("Unable to verify authentication. Please try signing in again.");
+          throw new Error('Unable to verify authentication. Please try signing in again.');
         }
 
         // 5.5: In single transaction - mark nonce used, create/link user + account, issue session
@@ -218,7 +218,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           // Try to find an existing II account mapping
           const existingAccount = await db.query.accounts.findFirst({
-            where: (a, { and, eq }) => and(eq(a.provider, "internet-identity"), eq(a.providerAccountId, principal)),
+            where: (a, { and, eq }) => and(eq(a.provider, 'internet-identity'), eq(a.providerAccountId, principal)),
           });
 
           if (existingAccount) {
@@ -246,13 +246,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           await db.insert(accounts).values({
             userId: newUser.id,
-            type: "oidc",
-            provider: "internet-identity",
+            type: 'oidc',
+            provider: 'internet-identity',
             providerAccountId: principal,
           });
 
           // Ensure allUsers entry exists for business linkage
-          await db.insert(allUsers).values({ type: "user", userId: newUser.id }).onConflictDoNothing?.();
+          await db.insert(allUsers).values({ type: 'user', userId: newUser.id }).onConflictDoNothing?.();
 
           // console.log("[II] authorize:created", { userId: newUser.id, principal });
 
@@ -265,7 +265,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           };
         } catch (error) {
           // console.error("[II] authorize:db-error", error);
-          throw new Error("Unable to create user account. Please try signing in again.");
+          throw new Error('Unable to create user account. Please try signing in again.');
         }
       },
     }),
@@ -279,16 +279,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     //   return `${baseUrl}/user/profile`;
     // },
     redirect({ url, baseUrl }) {
-      const isLoginFlow = url.includes("/api/auth/signin") || url.includes("/api/auth/callback");
+      const isLoginFlow = url.includes('/api/auth/signin') || url.includes('/api/auth/callback');
 
       if (isLoginFlow) {
         // Extract language from URL if available, default to 'en'
-        let lang = "en"; // default fallback
+        let lang = 'en'; // default fallback
         let urlParseSuccess = false;
 
         try {
           const urlObj = new URL(url);
-          lang = urlObj.searchParams.get("lang") || "en";
+          lang = urlObj.searchParams.get('lang') || 'en';
           urlParseSuccess = true;
           // console.log("[NextAuth] Successfully parsed URL:", { url, lang });
         } catch (error) {
@@ -299,7 +299,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           //   baseUrl,
           // });
           // Fallback to default language if URL is invalid
-          lang = "en";
+          lang = 'en';
         }
 
         const redirectTo = `${baseUrl}/${lang}/dashboard`;
@@ -322,17 +322,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // console.log("NextAuth authorized callback called with pathname:", pathname);
 
       // Tests route check
-      if (pathname.startsWith("/tests")) {
-        return ["admin", "superadmin", "developer"].includes(auth?.user?.role ?? "");
+      if (pathname.startsWith('/tests')) {
+        return ['admin', 'superadmin', 'developer'].includes(auth?.user?.role ?? '');
       }
 
       // Admin routes check
-      if (pathname.startsWith("/admin")) {
-        return ["admin", "superadmin"].includes(auth?.user?.role ?? "");
+      if (pathname.startsWith('/admin')) {
+        return ['admin', 'superadmin'].includes(auth?.user?.role ?? '');
       }
 
       // Other protected routes
-      if (pathname.startsWith("/user/")) {
+      if (pathname.startsWith('/user/')) {
         return !!auth;
       }
 
@@ -340,27 +340,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
 
     async jwt({ token, account, user, trigger, session }) {
-      console.log("🔐 [JWT] Callback triggered with:", {
+      console.log('🔐 [JWT] Callback triggered with:', {
         trigger,
         hasUser: !!user,
         tokenKeys: Object.keys(token),
-        userKeys: user ? Object.keys(user) : "no user",
+        userKeys: user ? Object.keys(user) : 'no user',
       });
 
       // 🚫 CRITICAL: NO database writes in JWT callback
       // Linking/unlinking happens in API routes or events.linkAccount/unlinkAccount
 
       // Handle fresh sign-in (new session) - v5
-      if (trigger === "signIn" && account) {
-        console.log("🆕 [JWT] Fresh sign-in detected (v5)");
+      if (trigger === 'signIn' && account) {
+        console.log('🆕 [JWT] Fresh sign-in detected (v5)');
 
         // Set base session provider (authoritative on each fresh sign-in)
         token.loginProvider = account.provider;
-        console.log("🔑 [JWT] Set loginProvider:", token.loginProvider);
+        console.log('🔑 [JWT] Set loginProvider:', token.loginProvider);
 
         // Clear any existing II co-auth flags on fresh sign-in
-        if (account.provider !== "internet-identity") {
-          console.log("🧹 [JWT] Clearing II co-auth flags (non-II sign-in)");
+        if (account.provider !== 'internet-identity') {
+          console.log('🧹 [JWT] Clearing II co-auth flags (non-II sign-in)');
           delete token.activeIcPrincipal;
           delete token.activeIcPrincipalAssertedAt;
         }
@@ -371,36 +371,36 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           if (uid) {
             try {
               const iiAccount = await db.query.accounts.findFirst({
-                where: (a, { and, eq }) => and(eq(a.userId, uid), eq(a.provider, "internet-identity")),
+                where: (a, { and, eq }) => and(eq(a.userId, uid), eq(a.provider, 'internet-identity')),
                 columns: { providerAccountId: true },
               });
               if (iiAccount?.providerAccountId) {
                 token.linkedIcPrincipal = iiAccount.providerAccountId;
-                console.log("🔗 [JWT] Set linkedIcPrincipal from DB:", token.linkedIcPrincipal);
+                console.log('🔗 [JWT] Set linkedIcPrincipal from DB:', token.linkedIcPrincipal);
               }
             } catch (error) {
-              console.warn("⚠️ [JWT] Failed to fetch linkedIcPrincipal:", error);
+              console.warn('⚠️ [JWT] Failed to fetch linkedIcPrincipal:', error);
             }
           }
         }
       }
 
       // Handle session update (II co-auth activation/clearing) - NextAuth v5
-      if (trigger === "update" && session) {
-        console.log("🔄 [JWT] Session update triggered (v5)");
+      if (trigger === 'update' && session) {
+        console.log('🔄 [JWT] Session update triggered (v5)');
 
         // Set co-auth when provided
         if ((session as any).activeIcPrincipal) {
           token.activeIcPrincipal = (session as any).activeIcPrincipal as string;
           token.activeIcPrincipalAssertedAt = Date.now();
-          console.log("✅ [JWT] Set activeIcPrincipal via update():", token.activeIcPrincipal);
+          console.log('✅ [JWT] Set activeIcPrincipal via update():', token.activeIcPrincipal);
         }
 
         // Clear co-auth when explicitly requested
         if ((session as any).clearActiveIc === true) {
           delete token.activeIcPrincipal;
           delete token.activeIcPrincipalAssertedAt;
-          console.log("🧹 [JWT] Cleared activeIcPrincipal via update()");
+          console.log('🧹 [JWT] Cleared activeIcPrincipal via update()');
         }
       }
 
@@ -448,7 +448,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = token.sub as string;
 
         // Add business user ID
-        if (token.businessUserId && typeof token.businessUserId === "string") {
+        if (token.businessUserId && typeof token.businessUserId === 'string') {
           (session.user as { businessUserId?: string }).businessUserId = token.businessUserId;
         }
         // Add ICP Principal Co-Auth System fields
@@ -506,7 +506,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         await db
           .update(allUsers)
           .set({
-            type: "user",
+            type: 'user',
             userId: user.id,
             temporaryUserId: null,
           })
@@ -529,7 +529,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // });
 
         await db.insert(allUsers).values({
-          type: "user",
+          type: 'user',
           userId: user.id,
         });
 
@@ -537,7 +537,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
     },
     async linkAccount(account) {
-      console.log("[Auth] 🔗 Account linked:", account);
+      console.log('[Auth] 🔗 Account linked:', account);
       // Note: linkedIcPrincipal will be fetched on next sign-in
       // No need to update token here - JWT callback handles it
     },
@@ -545,9 +545,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // console.log("[Auth] 👋 User signed in:", { user, account, profile });
     },
     async signOut(message) {
-      if ("session" in message) {
+      if ('session' in message) {
         // console.log("[Auth] User signed out, session object:", message.session);
-      } else if ("token" in message) {
+      } else if ('token' in message) {
         // console.log("[Auth] User signed out, JWT token:", message.token);
       }
     },

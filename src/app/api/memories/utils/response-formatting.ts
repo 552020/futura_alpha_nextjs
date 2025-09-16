@@ -11,7 +11,7 @@
  * - Calculate upload statistics
  */
 
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
 
 export type UploadResult = {
   fileName: string;
@@ -55,8 +55,8 @@ export function formatFolderUploadResponse(params: {
   const uploadSpeedMBps = (parseFloat(totalSizeMB) / totalTime).toFixed(2);
 
   return {
-    message: "Folder upload completed successfully",
-    status: "success",
+    message: 'Folder upload completed successfully',
+    status: 'success',
     totalFiles,
     successfulUploads,
     failedUploads,
@@ -72,8 +72,8 @@ export function formatFolderUploadResponse(params: {
 /**
  * Format error response
  */
-export function formatErrorResponse(error: unknown, message: string = "Unexpected error occurred"): NextResponse {
-  console.error("❌ Error:", error);
+export function formatErrorResponse(error: unknown, message: string = 'Unexpected error occurred'): NextResponse {
+  console.error('❌ Error:', error);
   return NextResponse.json(
     {
       error: message,

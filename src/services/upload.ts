@@ -9,9 +9,9 @@
  * This replaces the old approach of sending files directly to backend endpoints.
  */
 
-import { StorageManager, type StorageBackend } from "@/lib/storage";
-import { processImageForMultipleAssets } from "@/app/api/memories/utils/image-processing";
-import { icpUploadService } from "@/services/icp-upload";
+import { StorageManager, type StorageBackend } from '@/lib/storage';
+import { processImageForMultipleAssets } from '@/app/api/memories/utils/image-processing';
+import { icpUploadService } from '@/services/icp-upload';
 // import type { UploadStorage } from "@/hooks/use-upload-storage"; // Unused
 
 interface UploadResponse {
@@ -41,25 +41,25 @@ interface UploadResponse {
   };
 }
 
-type UploadMode = "files" | "folder";
+type UploadMode = 'files' | 'folder';
 
 /**
  * Get memory type from file extension
  */
-function getMemoryTypeFromFile(file: File): "image" | "video" | "document" | "note" | "audio" {
-  const extension = file.name.split(".").pop()?.toLowerCase();
+function getMemoryTypeFromFile(file: File): 'image' | 'video' | 'document' | 'note' | 'audio' {
+  const extension = file.name.split('.').pop()?.toLowerCase();
 
-  if (!extension) return "document";
+  if (!extension) return 'document';
 
-  const imageExtensions = ["jpg", "jpeg", "png", "gif", "webp", "svg", "bmp", "tiff"];
-  const videoExtensions = ["mp4", "avi", "mov", "wmv", "flv", "webm", "mkv"];
-  const audioExtensions = ["mp3", "wav", "flac", "aac", "ogg", "m4a"];
+  const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'tiff'];
+  const videoExtensions = ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv'];
+  const audioExtensions = ['mp3', 'wav', 'flac', 'aac', 'ogg', 'm4a'];
 
-  if (imageExtensions.includes(extension)) return "image";
-  if (videoExtensions.includes(extension)) return "video";
-  if (audioExtensions.includes(extension)) return "audio";
+  if (imageExtensions.includes(extension)) return 'image';
+  if (videoExtensions.includes(extension)) return 'video';
+  if (audioExtensions.includes(extension)) return 'audio';
 
-  return "document";
+  return 'document';
 }
 
 /**
@@ -77,11 +77,11 @@ async function uploadToICPBackend(file: File): Promise<UploadResponse> {
 
   try {
     // Get proper upload storage from the upload intent API
-    const uploadStorageResponse = await fetch("/api/upload/intent", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    const uploadStorageResponse = await fetch('/api/upload/intent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        storagePreference: { preferred: "icp-canister" },
+        storagePreference: { preferred: 'icp-canister' },
       }),
     });
 
@@ -91,12 +91,12 @@ async function uploadToICPBackend(file: File): Promise<UploadResponse> {
 
     const { uploadStorage } = await uploadStorageResponse.json();
 
-    if (uploadStorage.chosen_storage !== "icp-canister") {
-      throw new Error("Expected ICP canister storage but got different backend");
+    if (uploadStorage.chosen_storage !== 'icp-canister') {
+      throw new Error('Expected ICP canister storage but got different backend');
     }
 
     // Upload to ICP canister using the real service
-    const icpResult = await icpUploadService.uploadFile(file, uploadStorage, (progress) => {
+    const icpResult = await icpUploadService.uploadFile(file, uploadStorage, progress => {
       console.log(`📤 ICP Upload progress: ${progress.percentage}%`);
     });
 
@@ -104,12 +104,12 @@ async function uploadToICPBackend(file: File): Promise<UploadResponse> {
 
     // Verify upload (best-effort, don't block on failure)
     try {
-      await fetch("/api/upload/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      await fetch('/api/upload/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           app_memory_id: icpResult.memoryId,
-          backend: "icp-canister",
+          backend: 'icp-canister',
           idem: uploadStorage.idem,
           checksum_sha256: icpResult.checksum_sha256,
           size: icpResult.size,
@@ -117,7 +117,7 @@ async function uploadToICPBackend(file: File): Promise<UploadResponse> {
         }),
       });
     } catch (verifyError) {
-      console.warn("⚠️ Upload verification failed (non-blocking):", verifyError);
+      console.warn('⚠️ Upload verification failed (non-blocking):', verifyError);
     }
 
     // Convert ICP result to expected format
@@ -126,8 +126,8 @@ async function uploadToICPBackend(file: File): Promise<UploadResponse> {
       data: {
         id: icpResult.memoryId,
         type: getMemoryTypeFromFile(file),
-        title: file.name.split(".")[0] || "Untitled",
-        description: "",
+        title: file.name.split('.')[0] || 'Untitled',
+        description: '',
         fileCreatedAt: new Date().toISOString(),
         isPublic: false,
         parentFolderId: null,
@@ -139,18 +139,18 @@ async function uploadToICPBackend(file: File): Promise<UploadResponse> {
         assets: [
           {
             id: `asset-${icpResult.memoryId}`,
-            assetType: "original",
+            assetType: 'original',
             url: `icp://${icpResult.memoryId}`, // ICP URL format
             bytes: icpResult.size,
             mimeType: file.type,
-            storageBackend: "icp",
+            storageBackend: 'icp',
             storageKey: icpResult.remote_id,
           },
         ],
       },
     };
   } catch (error) {
-    console.error("❌ ICP backend upload failed:", error);
+    console.error('❌ ICP backend upload failed:', error);
     throw error;
   }
 }
@@ -162,9 +162,9 @@ export const uploadFile = async (
   file: File,
   isOnboarding: boolean,
   existingUserId?: string,
-  mode: UploadMode = "files",
-  storageBackend: StorageBackend | StorageBackend[] = "vercel_blob",
-  userStoragePreference?: "neon" | "icp" | "dual"
+  mode: UploadMode = 'files',
+  storageBackend: StorageBackend | StorageBackend[] = 'vercel_blob',
+  userStoragePreference?: 'neon' | 'icp' | 'dual'
 ): Promise<UploadResponse> => {
   console.log(`🚀 Starting upload for ${file.name}...`);
   console.log(`🔍 Upload parameters:`, {
@@ -180,7 +180,7 @@ export const uploadFile = async (
 
   try {
     // Check if user prefers ICP-only backend
-    if (userStoragePreference === "icp") {
+    if (userStoragePreference === 'icp') {
       console.log(`🔗 User prefers ICP backend, routing to ICP canister...`);
       // NOTE: For ICP users, isOnboarding is ignored because ICP always requires Internet Identity auth
       // Even "onboarding" users must authenticate with II to interact with ICP canister
@@ -190,7 +190,7 @@ export const uploadFile = async (
     // Implement file type and size decision matrix
     const fileSizeMB = file.size / (1024 * 1024);
     const isLargeFile = fileSizeMB > 4; // 4MB threshold
-    const isImage = file.type.startsWith("image/");
+    const isImage = file.type.startsWith('image/');
 
     console.log(`📊 FILE ANALYSIS:`, {
       fileName: file.name,
@@ -199,7 +199,7 @@ export const uploadFile = async (
       fileType: file.type,
       isImage,
       isLargeFile,
-      chosenPath: isImage ? "MULTI_ASSET_PATH" : isLargeFile ? "LARGE_FILE_PATH" : "SMALL_FILE_PATH",
+      chosenPath: isImage ? 'MULTI_ASSET_PATH' : isLargeFile ? 'LARGE_FILE_PATH' : 'SMALL_FILE_PATH',
     });
 
     // For images: Always use multi-asset approach (original, display, thumb) regardless of size
@@ -214,7 +214,7 @@ export const uploadFile = async (
       return await uploadSmallFile(file);
     }
   } catch (error) {
-    console.error("❌ Upload failed:", error);
+    console.error('❌ Upload failed:', error);
     throw error;
   }
 };
@@ -229,22 +229,22 @@ async function uploadSmallFile(file: File): Promise<UploadResponse> {
     fileSize: file.size,
     fileSizeMB: (file.size / (1024 * 1024)).toFixed(2),
     fileType: file.type,
-    endpoint: "/api/memories",
+    endpoint: '/api/memories',
   });
 
   // Use the existing server-side approach (FormData upload)
   const formData = new FormData();
-  formData.append("file", file);
+  formData.append('file', file);
 
   console.log(`🚀 Sending FormData to /api/memories...`);
-  const response = await fetch("/api/memories", {
-    method: "POST",
+  const response = await fetch('/api/memories', {
+    method: 'POST',
     body: formData,
   });
 
   if (!response.ok) {
     const errorData = await response.json();
-    throw new Error(errorData.error || "Server-side upload failed");
+    throw new Error(errorData.error || 'Server-side upload failed');
   }
 
   return await response.json();
@@ -258,7 +258,7 @@ async function uploadLargeFile(
   file: File,
   isOnboarding: boolean,
   existingUserId?: string,
-  mode: UploadMode = "files"
+  mode: UploadMode = 'files'
 ): Promise<UploadResponse> {
   console.log(`☁️ Using multi-asset upload approach for: ${file.name}`);
 
@@ -268,7 +268,7 @@ async function uploadLargeFile(
   const memoryType = getMemoryTypeFromFile(file);
 
   let assets: Array<{
-    assetType: "original" | "display" | "thumb" | "placeholder" | "poster" | "waveform";
+    assetType: 'original' | 'display' | 'thumb' | 'placeholder' | 'poster' | 'waveform';
     url: string;
     bytes: number;
     mimeType: string;
@@ -280,7 +280,7 @@ async function uploadLargeFile(
     height?: number;
   }> = [];
 
-  if (memoryType === "image") {
+  if (memoryType === 'image') {
     // For images: Process and upload multiple versions (original, display, thumb)
     console.log(`🖼️ Processing image ${file.name} for multiple assets...`);
 
@@ -289,9 +289,9 @@ async function uploadLargeFile(
 
     // Upload all processed assets to blob storage using our StorageManager
     const [originalResult, displayResult, thumbResult] = await Promise.all([
-      storageManager.upload(processedAssets.original.blob as File, "vercel_blob"),
-      storageManager.upload(processedAssets.display.blob as File, "vercel_blob"),
-      storageManager.upload(processedAssets.thumb.blob as File, "vercel_blob"),
+      storageManager.upload(processedAssets.original.blob as File, 'vercel_blob'),
+      storageManager.upload(processedAssets.display.blob as File, 'vercel_blob'),
+      storageManager.upload(processedAssets.thumb.blob as File, 'vercel_blob'),
     ]);
 
     // Convert to API format
@@ -301,7 +301,7 @@ async function uploadLargeFile(
 
     assets = [
       {
-        assetType: "original",
+        assetType: 'original',
         url: originalUploads[0].url,
         bytes: processedAssets.original.size,
         mimeType: processedAssets.original.mimeType,
@@ -313,7 +313,7 @@ async function uploadLargeFile(
         height: processedAssets.original.height,
       },
       {
-        assetType: "display",
+        assetType: 'display',
         url: displayUploads[0].url,
         bytes: processedAssets.display.size,
         mimeType: processedAssets.display.mimeType,
@@ -325,7 +325,7 @@ async function uploadLargeFile(
         height: processedAssets.display.height,
       },
       {
-        assetType: "thumb",
+        assetType: 'thumb',
         url: thumbUploads[0].url,
         bytes: processedAssets.thumb.size,
         mimeType: processedAssets.thumb.mimeType,
@@ -343,15 +343,15 @@ async function uploadLargeFile(
     // For non-images: Upload only the original file
     console.log(`📤 Uploading ${file.name} (${memoryType}) to vercel_blob...`);
 
-    const uploadResult = await storageManager.upload(file, "vercel_blob");
+    const uploadResult = await storageManager.upload(file, 'vercel_blob');
     const uploadResults = Array.isArray(uploadResult) ? uploadResult : [uploadResult];
     const primaryResult = uploadResults[0];
 
     console.log(`✅ Blob upload successful: ${primaryResult.url}`);
 
     // Create single asset for non-image files
-    assets = uploadResults.map((result) => ({
-      assetType: "original" as const,
+    assets = uploadResults.map(result => ({
+      assetType: 'original' as const,
       url: result.url,
       bytes: result.size,
       mimeType: result.mimeType,
@@ -363,15 +363,15 @@ async function uploadLargeFile(
   }
 
   // 2. Call unified API with all assets
-  const response = await fetch("/api/memories", {
-    method: "POST",
+  const response = await fetch('/api/memories', {
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify({
       type: memoryType,
-      title: file.name.split(".")[0] || "Untitled",
-      description: "",
+      title: file.name.split('.')[0] || 'Untitled',
+      description: '',
       fileCreatedAt: new Date().toISOString(),
       isPublic: false,
       isOnboarding,
@@ -383,7 +383,7 @@ async function uploadLargeFile(
 
   if (!response.ok) {
     const errorData = await response.json();
-    throw new Error(errorData.error || "API call failed");
+    throw new Error(errorData.error || 'API call failed');
   }
 
   const data = await response.json();
@@ -399,9 +399,9 @@ export const uploadFiles = async (
   files: File[],
   isOnboarding: boolean,
   existingUserId?: string,
-  mode: UploadMode = "folder",
-  storageBackend: StorageBackend | StorageBackend[] = "vercel_blob",
-  userStoragePreference?: "neon" | "icp" | "dual"
+  mode: UploadMode = 'folder',
+  storageBackend: StorageBackend | StorageBackend[] = 'vercel_blob',
+  userStoragePreference?: 'neon' | 'icp' | 'dual'
 ): Promise<UploadResponse[]> => {
   console.log(`🚀 Starting folder upload for ${files.length} files...`);
 
@@ -414,11 +414,11 @@ export const uploadFiles = async (
     const results = await Promise.allSettled(uploadPromises);
 
     const successful = results
-      .filter((result): result is PromiseFulfilledResult<UploadResponse> => result.status === "fulfilled")
-      .map((result) => result.value);
+      .filter((result): result is PromiseFulfilledResult<UploadResponse> => result.status === 'fulfilled')
+      .map(result => result.value);
 
     const failed = results
-      .filter((result): result is PromiseRejectedResult => result.status === "rejected")
+      .filter((result): result is PromiseRejectedResult => result.status === 'rejected')
       .map((result, index) => ({
         file: files[index].name,
         error: result.reason.message,
@@ -431,7 +431,7 @@ export const uploadFiles = async (
     console.log(`✅ Folder upload completed: ${successful.length}/${files.length} successful`);
     return successful;
   } catch (error) {
-    console.error("❌ Folder upload failed:", error);
+    console.error('❌ Folder upload failed:', error);
     throw error;
   }
 };

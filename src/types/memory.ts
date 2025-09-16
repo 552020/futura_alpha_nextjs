@@ -1,6 +1,6 @@
 export interface Memory {
   id: string;
-  type: "image" | "video" | "note" | "audio" | "document" | "folder";
+  type: 'image' | 'video' | 'note' | 'audio' | 'document' | 'folder';
   title: string;
   description?: string;
   createdAt: string;

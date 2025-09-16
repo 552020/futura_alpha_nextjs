@@ -10,7 +10,7 @@
  * - Process images in the browser (frontend) or server (backend) before upload
  */
 
-import { generateProcessedImageFilename } from "@/lib/storage/blob-config";
+import { generateProcessedImageFilename } from '@/lib/storage/blob-config';
 
 /**
  * - Support multiple image formats (JPEG, PNG, WebP)
@@ -28,7 +28,7 @@ export const DISPLAY_QUALITY = 0.85; // JPEG/WebP quality for display
 export const THUMB_QUALITY = 0.8; // JPEG/WebP quality for thumbnail
 
 export interface ProcessedImageAsset {
-  assetType: "original" | "display" | "thumb";
+  assetType: 'original' | 'display' | 'thumb';
   blob: Blob;
   width: number;
   height: number;
@@ -48,8 +48,8 @@ export interface ImageProcessingResult {
  */
 export async function processImageForMultipleAssets(file: File): Promise<ImageProcessingResult> {
   // Validate file type
-  if (!file.type.startsWith("image/")) {
-    throw new Error("File is not an image");
+  if (!file.type.startsWith('image/')) {
+    throw new Error('File is not an image');
   }
 
   // Frontend implementation using browser APIs
@@ -62,17 +62,17 @@ export async function processImageForMultipleAssets(file: File): Promise<ImagePr
 async function processImageForMultipleAssetsFrontend(file: File): Promise<ImageProcessingResult> {
   // Create image element and load the file
   const img = new Image();
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d");
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
 
   if (!ctx) {
-    throw new Error("Could not get canvas context");
+    throw new Error('Could not get canvas context');
   }
 
   // Load image
   const imageDataUrl = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = (e) => resolve(e.target?.result as string);
+    reader.onload = e => resolve(e.target?.result as string);
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
@@ -88,7 +88,7 @@ async function processImageForMultipleAssetsFrontend(file: File): Promise<ImageP
 
   // Create original asset (no processing needed)
   const originalAsset: ProcessedImageAsset = {
-    assetType: "original",
+    assetType: 'original',
     blob: file,
     width: originalWidth,
     height: originalHeight,
@@ -97,10 +97,10 @@ async function processImageForMultipleAssetsFrontend(file: File): Promise<ImageP
   };
 
   // Create display version
-  const displayAsset = await createOptimizedVersion(img, canvas, ctx, DISPLAY_MAX_SIZE, DISPLAY_QUALITY, "display");
+  const displayAsset = await createOptimizedVersion(img, canvas, ctx, DISPLAY_MAX_SIZE, DISPLAY_QUALITY, 'display');
 
   // Create thumbnail version
-  const thumbAsset = await createOptimizedVersion(img, canvas, ctx, THUMB_MAX_SIZE, THUMB_QUALITY, "thumb");
+  const thumbAsset = await createOptimizedVersion(img, canvas, ctx, THUMB_MAX_SIZE, THUMB_QUALITY, 'thumb');
 
   return {
     original: originalAsset,
@@ -118,7 +118,7 @@ async function createOptimizedVersion(
   ctx: CanvasRenderingContext2D,
   maxSize: number,
   quality: number,
-  assetType: "display" | "thumb"
+  assetType: 'display' | 'thumb'
 ): Promise<ProcessedImageAsset> {
   const { width, height } = calculateDimensions(img.naturalWidth, img.naturalHeight, maxSize);
 
@@ -135,14 +135,14 @@ async function createOptimizedVersion(
   // Convert to blob
   const blob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
-      (blob) => {
+      blob => {
         if (blob) {
           resolve(blob);
         } else {
-          reject(new Error("Failed to create blob"));
+          reject(new Error('Failed to create blob'));
         }
       },
-      "image/webp", // Use WebP for better compression
+      'image/webp', // Use WebP for better compression
       quality
     );
   });
@@ -153,7 +153,7 @@ async function createOptimizedVersion(
     width,
     height,
     size: blob.size,
-    mimeType: "image/webp",
+    mimeType: 'image/webp',
   };
 }
 
@@ -198,28 +198,28 @@ export async function uploadProcessedAssetsToBlob(
   display: { url: string; storageKey: string };
   thumb: { url: string; storageKey: string };
 }> {
-  const { put } = await import("@vercel/blob");
+  const { put } = await import('@vercel/blob');
 
   // Generate unique file names
-  const originalFileName = generateProcessedImageFilename(baseFileName, "original");
-  const displayFileName = generateProcessedImageFilename(baseFileName, "display");
-  const thumbFileName = generateProcessedImageFilename(baseFileName, "thumb");
+  const originalFileName = generateProcessedImageFilename(baseFileName, 'original');
+  const displayFileName = generateProcessedImageFilename(baseFileName, 'display');
+  const thumbFileName = generateProcessedImageFilename(baseFileName, 'thumb');
 
   // Upload all three versions in parallel
   const [originalResult, displayResult, thumbResult] = await Promise.all([
     // Upload original
     put(originalFileName, processedAssets.original.blob, {
-      access: "public",
+      access: 'public',
       contentType: processedAssets.original.mimeType,
     }),
     // Upload display
     put(displayFileName, processedAssets.display.blob, {
-      access: "public",
+      access: 'public',
       contentType: processedAssets.display.mimeType,
     }),
     // Upload thumbnail
     put(thumbFileName, processedAssets.thumb.blob, {
-      access: "public",
+      access: 'public',
       contentType: processedAssets.thumb.mimeType,
     }),
   ]);
@@ -256,47 +256,47 @@ export function createAssetDataFromProcessed(
   return [
     {
       memoryId,
-      assetType: "original" as const,
+      assetType: 'original' as const,
       variant: null,
       url: blobResults.original.url,
-      storageBackend: "vercel_blob" as const,
+      storageBackend: 'vercel_blob' as const,
       storageKey: blobResults.original.storageKey,
       bytes: processedAssets.original.size,
       width: processedAssets.original.width,
       height: processedAssets.original.height,
       mimeType: processedAssets.original.mimeType,
       sha256: null, // Will be calculated by client-side processing
-      processingStatus: "completed" as const,
+      processingStatus: 'completed' as const,
       processingError: null,
     },
     {
       memoryId,
-      assetType: "display" as const,
+      assetType: 'display' as const,
       variant: null,
       url: blobResults.display.url,
-      storageBackend: "vercel_blob" as const,
+      storageBackend: 'vercel_blob' as const,
       storageKey: blobResults.display.storageKey,
       bytes: processedAssets.display.size,
       width: processedAssets.display.width,
       height: processedAssets.display.height,
       mimeType: processedAssets.display.mimeType,
       sha256: null, // Will be calculated by client-side processing
-      processingStatus: "completed" as const,
+      processingStatus: 'completed' as const,
       processingError: null,
     },
     {
       memoryId,
-      assetType: "thumb" as const,
+      assetType: 'thumb' as const,
       variant: null,
       url: blobResults.thumb.url,
-      storageBackend: "vercel_blob" as const,
+      storageBackend: 'vercel_blob' as const,
       storageKey: blobResults.thumb.storageKey,
       bytes: processedAssets.thumb.size,
       width: processedAssets.thumb.width,
       height: processedAssets.thumb.height,
       mimeType: processedAssets.thumb.mimeType,
       sha256: null, // Will be calculated by client-side processing
-      processingStatus: "completed" as const,
+      processingStatus: 'completed' as const,
       processingError: null,
     },
   ];
@@ -311,7 +311,7 @@ export async function processAndUploadImageWithMultipleAssets(
   memoryId: string
 ): Promise<{
   assets: Array<{
-    assetType: "original" | "display" | "thumb";
+    assetType: 'original' | 'display' | 'thumb';
     url: string;
     storageKey: string;
     bytes: number;
@@ -324,14 +324,14 @@ export async function processAndUploadImageWithMultipleAssets(
   const processedAssets = await processImageForMultipleAssets(file);
 
   // Upload to blob storage
-  const baseFileName = file.name.replace(/[^a-zA-Z0-9-_\.]/g, "_");
+  const baseFileName = file.name.replace(/[^a-zA-Z0-9-_\.]/g, '_');
   const blobResults = await uploadProcessedAssetsToBlob(processedAssets, baseFileName);
 
   // Create asset data
   const assetData = createAssetDataFromProcessed(memoryId, processedAssets, blobResults);
 
   return {
-    assets: assetData.map((asset) => ({
+    assets: assetData.map(asset => ({
       assetType: asset.assetType,
       url: asset.url,
       storageKey: asset.storageKey,

@@ -1,30 +1,30 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const memoryType = searchParams.get("type");
-    const memoryId = searchParams.get("id");
+    const memoryType = searchParams.get('type');
+    const memoryId = searchParams.get('id');
 
     // Validate memoryId exists and has valid UUID format
     if (!memoryId) {
-      return NextResponse.json({ error: "Missing required parameter: id" }, { status: 400 });
+      return NextResponse.json({ error: 'Missing required parameter: id' }, { status: 400 });
     }
 
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(memoryId)) {
-      return NextResponse.json({ error: "Invalid memoryId format. Must be a valid UUID" }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid memoryId format. Must be a valid UUID' }, { status: 400 });
     }
 
     // Validate memory type
     if (!memoryType) {
-      return NextResponse.json({ error: "Missing required parameter: type" }, { status: 400 });
+      return NextResponse.json({ error: 'Missing required parameter: type' }, { status: 400 });
     }
 
-    const validMemoryTypes = ["image", "video", "note", "document", "audio"];
+    const validMemoryTypes = ['image', 'video', 'note', 'document', 'audio'];
     if (!validMemoryTypes.includes(memoryType)) {
       return NextResponse.json(
-        { error: `Invalid memory type. Must be one of: ${validMemoryTypes.join(", ")}` },
+        { error: `Invalid memory type. Must be one of: ${validMemoryTypes.join(', ')}` },
         { status: 400 }
       );
     }
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
         icpPartial: false,
       },
       // Overall status summary
-      overallStatus: "web2_only" as const,
+      overallStatus: 'web2_only' as const,
     };
 
     return NextResponse.json({
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
       data: mockPresenceData,
     });
   } catch (error) {
-    console.error("Error querying memory presence:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    console.error('Error querying memory presence:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

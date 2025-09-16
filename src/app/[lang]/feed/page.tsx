@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 /**
  * FEED PAGE - STUB IMPLEMENTATION
@@ -23,18 +23,18 @@
  * adjustments based on real usage patterns.
  */
 
-import { useEffect, useState, useCallback, use, useMemo } from "react";
-import { useInView } from "react-intersection-observer";
-import { useAuthGuard } from "@/utils/authentication";
-import { Loader2 } from "lucide-react";
-import RequireAuth from "@/components/auth/require-auth";
-import { Memory } from "@/types/memory";
-import { useRouter } from "next/navigation";
-import { useToast } from "@/hooks/use-toast";
-import Image from "next/image";
+import { useEffect, useState, useCallback, use, useMemo } from 'react';
+import { useInView } from 'react-intersection-observer';
+import { useAuthGuard } from '@/utils/authentication';
+import { Loader2 } from 'lucide-react';
+import RequireAuth from '@/components/auth/require-auth';
+import { Memory } from '@/types/memory';
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
+import Image from 'next/image';
 
 interface FeedItem extends Memory {
-  status: "shared";
+  status: 'shared';
   sharedBy: { id: string; name: string };
   sharedWithCount: number;
   sharedAt: string; // When it was shared with the user
@@ -54,39 +54,39 @@ export default function FeedPage({ params }: { params: Promise<{ lang: string }>
   const { ref } = useInView();
 
   // Mock data flag - set to true to use mock data for demo
-  const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_FEED === "true";
+  const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_FEED === 'true';
 
   // Sample feed data - Rick Astley video and welcome message
   const sampleFeedItems: FeedItem[] = useMemo(
     () => [
       {
-        id: "mock-1",
-        type: "video",
-        title: "Rick Astley - Never Gonna Give You Up",
-        description: "A classic music video that never gets old",
-        url: "https://www.youtube.com/embed/dQw4w9WgXcQ?si=rKeJHC7Y8EuIaKLH",
-        thumbnail: "https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
+        id: 'mock-1',
+        type: 'video',
+        title: 'Rick Astley - Never Gonna Give You Up',
+        description: 'A classic music video that never gets old',
+        url: 'https://www.youtube.com/embed/dQw4w9WgXcQ?si=rKeJHC7Y8EuIaKLH',
+        thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        ownerId: "mock-user-1",
-        status: "shared",
-        sharedBy: { id: "mock-user-1", name: "Rick Astley" },
+        ownerId: 'mock-user-1',
+        status: 'shared',
+        sharedBy: { id: 'mock-user-1', name: 'Rick Astley' },
         sharedWithCount: 1,
         sharedAt: new Date().toISOString(),
       },
       {
-        id: "mock-2",
-        type: "note",
-        title: "Welcome to the Feed!",
+        id: 'mock-2',
+        type: 'note',
+        title: 'Welcome to the Feed!',
         description:
-          "This is where you can see shared content from your family and friends. You can embed YouTube videos, share photos, and post updates.",
-        url: "",
-        thumbnail: "",
+          'This is where you can see shared content from your family and friends. You can embed YouTube videos, share photos, and post updates.',
+        url: '',
+        thumbnail: '',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        ownerId: "mock-user-2",
-        status: "shared",
-        sharedBy: { id: "mock-user-2", name: "Futura Team" },
+        ownerId: 'mock-user-2',
+        status: 'shared',
+        sharedBy: { id: 'mock-user-2', name: 'Futura Team' },
         sharedWithCount: 1,
         sharedAt: new Date().toISOString(),
       },
@@ -106,7 +106,7 @@ export default function FeedPage({ params }: { params: Promise<{ lang: string }>
     try {
       const response = await fetch(`/api/memories/shared?page=${currentPage}&orderBy=sharedAt`);
       if (!response.ok) {
-        throw new Error("Failed to fetch feed items");
+        throw new Error('Failed to fetch feed items');
       }
 
       const data = await response.json();
@@ -116,24 +116,24 @@ export default function FeedPage({ params }: { params: Promise<{ lang: string }>
         const m = memory as Record<string, unknown>;
         return {
           ...m,
-          status: "shared" as const,
-          sharedBy: m.sharedBy || { id: "unknown", name: "Unknown" },
+          status: 'shared' as const,
+          sharedBy: m.sharedBy || { id: 'unknown', name: 'Unknown' },
           sharedWithCount: m.sharedWithCount || 1,
           sharedAt: m.sharedAt || m.createdAt, // Use sharing date or fallback to creation date
         };
       });
 
-      setFeedItems((prev) => {
+      setFeedItems(prev => {
         if (currentPage === 1) return feedItems;
         return [...prev, ...feedItems];
       });
       setHasMore(data.hasMore);
     } catch (error) {
-      console.error("Error fetching feed items:", error);
+      console.error('Error fetching feed items:', error);
       toast({
-        title: "Error",
-        description: "Failed to load feed items. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to load feed items. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setIsLoadingFeed(false);
@@ -150,36 +150,36 @@ export default function FeedPage({ params }: { params: Promise<{ lang: string }>
     const handleScroll = () => {
       if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 100) {
         if (!isLoadingFeed && hasMore) {
-          setCurrentPage((prev) => prev + 1);
+          setCurrentPage(prev => prev + 1);
         }
       }
     };
 
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, [isLoadingFeed, hasMore]);
 
   const renderMemoryPreview = (item: FeedItem) => {
     switch (item.type) {
-      case "image":
+      case 'image':
         return (
           <div className="relative w-full h-48 rounded-lg overflow-hidden bg-gray-100">
             {item.thumbnail ? (
-              <Image src={item.thumbnail} alt={item.title || "Shared image"} fill className="object-cover" />
+              <Image src={item.thumbnail} alt={item.title || 'Shared image'} fill className="object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-gray-400">📷 Image</div>
             )}
           </div>
         );
-      case "video":
+      case 'video':
         return (
           <div className="relative w-full h-48 rounded-lg overflow-hidden bg-gray-100">
-            {item.url && item.url.includes("youtube.com") ? (
+            {item.url && item.url.includes('youtube.com') ? (
               <iframe
                 width="100%"
                 height="100%"
                 src={item.url}
-                title={item.title || "Shared video"}
+                title={item.title || 'Shared video'}
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 referrerPolicy="strict-origin-when-cross-origin"
@@ -187,25 +187,25 @@ export default function FeedPage({ params }: { params: Promise<{ lang: string }>
                 className="rounded-lg"
               />
             ) : item.thumbnail ? (
-              <Image src={item.thumbnail} alt={item.title || "Shared video"} fill className="object-cover" />
+              <Image src={item.thumbnail} alt={item.title || 'Shared video'} fill className="object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-gray-400">🎥 Video</div>
             )}
           </div>
         );
-      case "document":
+      case 'document':
         return (
           <div className="w-full h-24 rounded-lg bg-gray-100 flex items-center justify-center">
             <div className="text-gray-400 text-2xl">📄</div>
           </div>
         );
-      case "note":
+      case 'note':
         return (
           <div className="w-full h-24 rounded-lg bg-gray-100 flex items-center justify-center">
             <div className="text-gray-400 text-2xl">📝</div>
           </div>
         );
-      case "audio":
+      case 'audio':
         return (
           <div className="w-full h-24 rounded-lg bg-gray-100 flex items-center justify-center">
             <div className="text-gray-400 text-2xl">🎵</div>
@@ -275,7 +275,7 @@ export default function FeedPage({ params }: { params: Promise<{ lang: string }>
         </div>
       ) : (
         <div className="space-y-6">
-          {feedItems.map((item) => (
+          {feedItems.map(item => (
             <div
               key={item.id}
               className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 cursor-pointer hover:shadow-md transition-shadow"

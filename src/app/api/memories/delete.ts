@@ -18,20 +18,20 @@
  * - Validates user permissions before deletion
  */
 
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
-import { db } from "@/db/db";
-import { allUsers, memories } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/auth';
+import { db } from '@/db/db';
+import { allUsers, memories } from '@/db/schema';
+import { eq, and } from 'drizzle-orm';
 
 // Helper function to clean up storage edges for deleted memories
 async function cleanupStorageEdgesForMemories(memories: Array<{ id: string; type: string }>) {
-  const { cleanupStorageEdgesForMemory } = await import("./utils");
+  const { cleanupStorageEdgesForMemory } = await import('./utils');
 
   const cleanupPromises = memories.map(({ id, type }) =>
     cleanupStorageEdgesForMemory({
       memoryId: id,
-      memoryType: type as "image" | "video" | "note" | "document" | "audio",
+      memoryType: type as 'image' | 'video' | 'note' | 'document' | 'audio',
     })
   );
 
@@ -40,8 +40,8 @@ async function cleanupStorageEdgesForMemories(memories: Array<{ id: string; type
   let successCount = 0;
   let errorCount = 0;
 
-  results.forEach((result) => {
-    if (result.status === "fulfilled" && result.value.success) {
+  results.forEach(result => {
+    if (result.status === 'fulfilled' && result.value.success) {
       successCount++;
     } else {
       errorCount++;
@@ -59,7 +59,7 @@ export async function handleApiMemoryDelete(request: NextRequest): Promise<NextR
   // Check authentication
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
@@ -69,26 +69,26 @@ export async function handleApiMemoryDelete(request: NextRequest): Promise<NextR
     });
 
     if (!allUserRecord) {
-      console.error("No allUsers record found for user:", session.user.id);
-      return NextResponse.json({ error: "User record not found" }, { status: 404 });
+      console.error('No allUsers record found for user:', session.user.id);
+      return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
     // Get query parameters for selective deletion
     const searchParams = request.nextUrl.searchParams;
-    const type = searchParams.get("type");
-    const folder = searchParams.get("folder"); // folder name to delete
-    const all = searchParams.get("all");
+    const type = searchParams.get('type');
+    const folder = searchParams.get('folder'); // folder name to delete
+    const all = searchParams.get('all');
 
     let deletedCount = 0;
 
-    if (all === "true") {
+    if (all === 'true') {
       // Delete all memories for the user
       const deletedMemories = await db.delete(memories).where(eq(memories.ownerId, allUserRecord.id)).returning();
 
       deletedCount = deletedMemories.length;
 
       // Clean up storage edges for deleted memories
-      const memoriesToCleanup = deletedMemories.map((memory) => ({
+      const memoriesToCleanup = deletedMemories.map(memory => ({
         id: memory.id,
         type: memory.type,
       }));
@@ -103,7 +103,7 @@ export async function handleApiMemoryDelete(request: NextRequest): Promise<NextR
         .where(
           and(
             eq(memories.ownerId, allUserRecord.id),
-            eq(memories.type, type as "image" | "video" | "document" | "note" | "audio")
+            eq(memories.type, type as 'image' | 'video' | 'document' | 'note' | 'audio')
           )
         )
         .returning();
@@ -111,7 +111,7 @@ export async function handleApiMemoryDelete(request: NextRequest): Promise<NextR
       deletedCount = deletedMemories.length;
 
       // Clean up storage edges for deleted memories
-      const memoriesToCleanup = deletedMemories.map((memory) => ({
+      const memoriesToCleanup = deletedMemories.map(memory => ({
         id: memory.id,
         type: memory.type,
       }));
@@ -129,7 +129,7 @@ export async function handleApiMemoryDelete(request: NextRequest): Promise<NextR
       deletedCount = deletedMemories.length;
 
       // Clean up storage edges for deleted memories
-      const memoriesToCleanup = deletedMemories.map((memory) => ({
+      const memoriesToCleanup = deletedMemories.map(memory => ({
         id: memory.id,
         type: memory.type,
       }));
@@ -155,7 +155,7 @@ export async function handleApiMemoryDelete(request: NextRequest): Promise<NextR
       all,
     });
   } catch (error) {
-    console.error("Error in bulk delete:", error);
-    return NextResponse.json({ error: "Failed to delete memories" }, { status: 500 });
+    console.error('Error in bulk delete:', error);
+    return NextResponse.json({ error: 'Failed to delete memories' }, { status: 500 });
   }
 }

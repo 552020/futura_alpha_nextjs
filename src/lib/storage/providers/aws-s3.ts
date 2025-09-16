@@ -5,10 +5,10 @@
  * It provides enterprise-grade, cost-effective storage for large files.
  */
 
-import type { StorageProvider, UploadOptions, UploadResult, DeleteOptions } from "../types";
+import type { StorageProvider, UploadOptions, UploadResult, DeleteOptions } from '../types';
 
 export class AWSS3Provider implements StorageProvider {
-  readonly name = "s3";
+  readonly name = 's3';
 
   /**
    * Check if AWS S3 is available
@@ -27,11 +27,11 @@ export class AWSS3Provider implements StorageProvider {
     void _file;
     void _options;
     if (!this.isAvailable()) {
-      throw new Error("AWS S3 is not available. AWS credentials and bucket are required.");
+      throw new Error('AWS S3 is not available. AWS credentials and bucket are required.');
     }
 
     // TODO: Implement AWS S3 upload
-    throw new Error("AWS S3 upload not yet implemented");
+    throw new Error('AWS S3 upload not yet implemented');
   }
 
   /**
@@ -42,11 +42,11 @@ export class AWSS3Provider implements StorageProvider {
     // Suppress unused parameter warnings for placeholder implementation
     void _options;
     if (!this.isAvailable()) {
-      throw new Error("AWS S3 is not available. AWS credentials and bucket are required.");
+      throw new Error('AWS S3 is not available. AWS credentials and bucket are required.');
     }
 
     // TODO: Implement AWS S3 delete
-    throw new Error("AWS S3 delete not yet implemented");
+    throw new Error('AWS S3 delete not yet implemented');
   }
 
   /**
@@ -55,10 +55,10 @@ export class AWSS3Provider implements StorageProvider {
    */
   getUrl(key: string): string {
     const bucket = process.env.AWS_S3_BUCKET;
-    const region = process.env.AWS_REGION || "us-east-1";
+    const region = process.env.AWS_REGION || 'us-east-1';
 
     if (!bucket) {
-      throw new Error("AWS S3 bucket not configured");
+      throw new Error('AWS S3 bucket not configured');
     }
 
     return `https://${bucket}.s3.${region}.amazonaws.com/${key}`;

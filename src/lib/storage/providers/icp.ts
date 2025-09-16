@@ -5,10 +5,10 @@
  * It provides decentralized, Web3-native storage on the Internet Computer.
  */
 
-import type { StorageProvider, UploadOptions, UploadResult, DeleteOptions } from "../types";
+import type { StorageProvider, UploadOptions, UploadResult, DeleteOptions } from '../types';
 
 export class ICPProvider implements StorageProvider {
-  readonly name = "icp";
+  readonly name = 'icp';
 
   /**
    * Check if ICP is available
@@ -27,11 +27,11 @@ export class ICPProvider implements StorageProvider {
     void _file;
     void _options;
     if (!this.isAvailable()) {
-      throw new Error("ICP is not available. Canister ID and network URL are required.");
+      throw new Error('ICP is not available. Canister ID and network URL are required.');
     }
 
     // TODO: Implement ICP upload
-    throw new Error("ICP upload not yet implemented");
+    throw new Error('ICP upload not yet implemented');
   }
 
   /**
@@ -42,11 +42,11 @@ export class ICPProvider implements StorageProvider {
     // Suppress unused parameter warnings for placeholder implementation
     void _options;
     if (!this.isAvailable()) {
-      throw new Error("ICP is not available. Canister ID and network URL are required.");
+      throw new Error('ICP is not available. Canister ID and network URL are required.');
     }
 
     // TODO: Implement ICP delete
-    throw new Error("ICP delete not yet implemented");
+    throw new Error('ICP delete not yet implemented');
   }
 
   /**
@@ -54,10 +54,10 @@ export class ICPProvider implements StorageProvider {
    */
   getUrl(key: string): string {
     const canisterId = process.env.ICP_CANISTER_ID;
-    const networkUrl = process.env.ICP_NETWORK_URL || "https://ic0.app";
+    const networkUrl = process.env.ICP_NETWORK_URL || 'https://ic0.app';
 
     if (!canisterId) {
-      throw new Error("ICP canister ID not configured");
+      throw new Error('ICP canister ID not configured');
     }
 
     return `${networkUrl}/?canisterId=${canisterId}&path=${encodeURIComponent(key)}`;

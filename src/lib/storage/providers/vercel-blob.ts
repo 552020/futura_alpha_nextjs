@@ -5,19 +5,19 @@
  * It provides fast, CDN-backed file storage with easy integration.
  */
 
-import { put, del } from "@vercel/blob";
-import type { StorageProvider, UploadOptions, UploadResult, DeleteOptions } from "../types";
-import { generateBlobFilename } from "../blob-config";
+import { put, del } from '@vercel/blob';
+import type { StorageProvider, UploadOptions, UploadResult, DeleteOptions } from '../types';
+import { generateBlobFilename } from '../blob-config';
 
 export class VercelBlobProvider implements StorageProvider {
-  readonly name = "vercel_blob";
+  readonly name = 'vercel_blob';
 
   /**
    * Check if Vercel Blob is available
    * Vercel Blob requires the BLOB_READ_WRITE_TOKEN environment variable
    */
   isAvailable(): boolean {
-    return typeof process !== "undefined" && !!process.env.BLOB_READ_WRITE_TOKEN;
+    return typeof process !== 'undefined' && !!process.env.BLOB_READ_WRITE_TOKEN;
   }
 
   /**
@@ -25,7 +25,7 @@ export class VercelBlobProvider implements StorageProvider {
    */
   async upload(file: File, options?: UploadOptions): Promise<UploadResult> {
     if (!this.isAvailable()) {
-      throw new Error("Vercel Blob is not available. BLOB_READ_WRITE_TOKEN is required.");
+      throw new Error('Vercel Blob is not available. BLOB_READ_WRITE_TOKEN is required.');
     }
 
     try {
@@ -34,14 +34,14 @@ export class VercelBlobProvider implements StorageProvider {
 
       // Upload to Vercel Blob
       const { url } = await put(filename, file, {
-        access: options?.public ? "public" : "public", // Vercel Blob is always public
+        access: options?.public ? 'public' : 'public', // Vercel Blob is always public
         contentType: options?.contentType || file.type,
         // Note: Vercel Blob doesn't support custom metadata in the same way
         // We'll include it in the result metadata instead
       });
 
       // Extract the key from the URL (everything after the last slash)
-      const key = url.split("/").pop() || filename;
+      const key = url.split('/').pop() || filename;
 
       return {
         url,
@@ -66,7 +66,7 @@ export class VercelBlobProvider implements StorageProvider {
    */
   async delete(options: DeleteOptions): Promise<void> {
     if (!this.isAvailable()) {
-      throw new Error("Vercel Blob is not available. BLOB_READ_WRITE_TOKEN is required.");
+      throw new Error('Vercel Blob is not available. BLOB_READ_WRITE_TOKEN is required.');
     }
 
     try {
@@ -84,13 +84,13 @@ export class VercelBlobProvider implements StorageProvider {
     // Vercel Blob URLs follow the pattern: https://[hash].public.blob.vercel-storage.com/[filename]
     // We need the full URL, so we'll need to store it or reconstruct it
     // For now, we'll assume the key is the full URL or we need to reconstruct it
-    if (key.startsWith("http")) {
+    if (key.startsWith('http')) {
       return key;
     }
 
     // If we only have the filename, we can't reconstruct the full URL
     // This is a limitation of Vercel Blob - we need to store the full URL
-    throw new Error("Cannot reconstruct Vercel Blob URL from key alone. Store the full URL.");
+    throw new Error('Cannot reconstruct Vercel Blob URL from key alone. Store the full URL.');
   }
 
   /**

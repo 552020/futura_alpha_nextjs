@@ -31,7 +31,7 @@ export async function parseApiError(response: Response): Promise<ApiError> {
     };
   } catch {
     // Fallback for non-JSON responses
-    const text = await response.text().catch(() => "");
+    const text = await response.text().catch(() => '');
     return {
       code: `HTTP_${response.status}`,
       message: text || response.statusText || `HTTP ${response.status}`,
@@ -46,7 +46,7 @@ export async function parseApiError(response: Response): Promise<ApiError> {
  */
 export function normalizeError(error: ApiError | Error): NormalizedError {
   // Handle ApiError objects
-  if ("code" in error && "statusCode" in error) {
+  if ('code' in error && 'statusCode' in error) {
     const apiError = error as ApiError;
 
     return {
@@ -61,11 +61,11 @@ export function normalizeError(error: ApiError | Error): NormalizedError {
   // Handle generic Error objects
   const genericError = error as Error;
   return {
-    code: "UNKNOWN_ERROR",
+    code: 'UNKNOWN_ERROR',
     message: genericError.message,
     details: {},
     isRetryable: false,
-    userMessage: "An unexpected error occurred. Please try again.",
+    userMessage: 'An unexpected error occurred. Please try again.',
   };
 }
 
@@ -73,7 +73,7 @@ export function normalizeError(error: ApiError | Error): NormalizedError {
  * Determine if an error is retryable
  */
 function isRetryableError(error: ApiError): boolean {
-  const retryableCodes = ["NETWORK_ERROR", "TIMEOUT", "HTTP_500", "HTTP_502", "HTTP_503", "HTTP_504"];
+  const retryableCodes = ['NETWORK_ERROR', 'TIMEOUT', 'HTTP_500', 'HTTP_502', 'HTTP_503', 'HTTP_504'];
 
   return retryableCodes.includes(error.code) || (error.statusCode !== undefined && error.statusCode >= 500);
 }
@@ -83,23 +83,23 @@ function isRetryableError(error: ApiError): boolean {
  */
 function getUserFriendlyMessage(error: ApiError): string {
   const userMessages: Record<string, string> = {
-    PREFERENCE_DENIED: "Your storage preference was denied. Please try a different option.",
-    QUOTA_EXCEEDED: "You have reached your storage quota. Please upgrade your plan.",
-    FEATURE_DISABLED: "This feature is currently disabled for your account.",
-    INVALID_PREFERENCE: "Invalid storage preference. Please select a valid option.",
-    HTTP_401: "Please sign in to continue.",
-    HTTP_403: "You do not have permission to perform this action.",
-    HTTP_404: "The requested resource was not found.",
-    HTTP_409: "There was a conflict with your request. Please try again.",
-    HTTP_422: "Invalid data provided. Please check your input.",
-    HTTP_429: "Too many requests. Please wait a moment and try again.",
-    HTTP_500: "Server error. Please try again later.",
-    HTTP_502: "Service temporarily unavailable. Please try again later.",
-    HTTP_503: "Service temporarily unavailable. Please try again later.",
-    HTTP_504: "Request timeout. Please try again later.",
+    PREFERENCE_DENIED: 'Your storage preference was denied. Please try a different option.',
+    QUOTA_EXCEEDED: 'You have reached your storage quota. Please upgrade your plan.',
+    FEATURE_DISABLED: 'This feature is currently disabled for your account.',
+    INVALID_PREFERENCE: 'Invalid storage preference. Please select a valid option.',
+    HTTP_401: 'Please sign in to continue.',
+    HTTP_403: 'You do not have permission to perform this action.',
+    HTTP_404: 'The requested resource was not found.',
+    HTTP_409: 'There was a conflict with your request. Please try again.',
+    HTTP_422: 'Invalid data provided. Please check your input.',
+    HTTP_429: 'Too many requests. Please wait a moment and try again.',
+    HTTP_500: 'Server error. Please try again later.',
+    HTTP_502: 'Service temporarily unavailable. Please try again later.',
+    HTTP_503: 'Service temporarily unavailable. Please try again later.',
+    HTTP_504: 'Request timeout. Please try again later.',
   };
 
-  return userMessages[error.code] || userMessages[`HTTP_${error.statusCode}`] || "An error occurred. Please try again.";
+  return userMessages[error.code] || userMessages[`HTTP_${error.statusCode}`] || 'An error occurred. Please try again.';
 }
 
 /**
@@ -123,10 +123,10 @@ export function createStoragePreferenceError(
  * Error codes for storage preferences
  */
 export const STORAGE_ERROR_CODES = {
-  PREFERENCE_DENIED: "PREFERENCE_DENIED",
-  QUOTA_EXCEEDED: "QUOTA_EXCEEDED",
-  FEATURE_DISABLED: "FEATURE_DISABLED",
-  INVALID_PREFERENCE: "INVALID_PREFERENCE",
-  NETWORK_ERROR: "NETWORK_ERROR",
-  TIMEOUT: "TIMEOUT",
+  PREFERENCE_DENIED: 'PREFERENCE_DENIED',
+  QUOTA_EXCEEDED: 'QUOTA_EXCEEDED',
+  FEATURE_DISABLED: 'FEATURE_DISABLED',
+  INVALID_PREFERENCE: 'INVALID_PREFERENCE',
+  NETWORK_ERROR: 'NETWORK_ERROR',
+  TIMEOUT: 'TIMEOUT',
 } as const;

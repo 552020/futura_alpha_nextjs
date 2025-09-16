@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/db/db";
-import { allUsers, temporaryUsers, users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { NextRequest, NextResponse } from 'next/server';
+import { db } from '@/db/db';
+import { allUsers, temporaryUsers, users } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 
 export async function PATCH(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -15,10 +15,10 @@ export async function PATCH(_request: NextRequest, { params }: { params: Promise
     });
 
     if (!allUser) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    if (allUser.type === "temporary") {
+    if (allUser.type === 'temporary') {
       // Update temporary user
       const [updatedTemporaryUser] = await db
         .update(temporaryUsers)
@@ -52,8 +52,8 @@ export async function PATCH(_request: NextRequest, { params }: { params: Promise
       });
     }
   } catch (error) {
-    console.error("Error updating user:", error);
-    return NextResponse.json({ error: "Failed to update user" }, { status: 500 });
+    console.error('Error updating user:', error);
+    return NextResponse.json({ error: 'Failed to update user' }, { status: 500 });
   }
 }
 
@@ -66,10 +66,10 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
     });
 
     if (!allUser) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    if (allUser.type === "temporary") {
+    if (allUser.type === 'temporary') {
       // Delete temporary user
       await db.delete(temporaryUsers).where(eq(temporaryUsers.id, allUser.temporaryUserId!));
     } else {
@@ -82,7 +82,7 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting user:", error);
-    return NextResponse.json({ error: "Failed to delete user" }, { status: 500 });
+    console.error('Error deleting user:', error);
+    return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 });
   }
 }

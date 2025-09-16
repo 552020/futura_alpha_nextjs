@@ -11,13 +11,13 @@
  * - Standardize response formats
  */
 
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
-import { db } from "@/db/db";
-import { allUsers, memories, users } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import { randomUUID } from "crypto";
-import type { NewDBMemory } from "@/db/schema";
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/auth';
+import { db } from '@/db/db';
+import { allUsers, memories, users } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+import { randomUUID } from 'crypto';
+import type { NewDBMemory } from '@/db/schema';
 
 /**
  * Helper function to get allUserId for both authenticated and temporary users
@@ -28,24 +28,24 @@ export async function getAllUserId(request: NextRequest): Promise<{ allUserId: s
 
   if (session?.user?.id) {
     // Handle authenticated user
-    console.log("👤 Looking up authenticated user in users table...");
+    console.log('👤 Looking up authenticated user in users table...');
 
     // First get the user from users table
     const [permanentUser] = await db.select().from(users).where(eq(users.id, session.user.id));
-    console.log("Found permanent user:", { userId: permanentUser?.id });
+    console.log('Found permanent user:', { userId: permanentUser?.id });
 
     if (!permanentUser) {
-      console.error("❌ Permanent user not found");
-      return { allUserId: "", error: NextResponse.json({ error: "User not found" }, { status: 404 }) };
+      console.error('❌ Permanent user not found');
+      return { allUserId: '', error: NextResponse.json({ error: 'User not found' }, { status: 404 }) };
     }
 
     // Then get their allUserId
     const [allUserRecord] = await db.select().from(allUsers).where(eq(allUsers.userId, permanentUser.id));
-    console.log("Found all_users record:", { allUserId: allUserRecord?.id });
+    console.log('Found all_users record:', { allUserId: allUserRecord?.id });
 
     if (!allUserRecord) {
-      console.error("❌ No all_users record found for permanent user");
-      return { allUserId: "", error: NextResponse.json({ error: "User record not found" }, { status: 404 }) };
+      console.error('❌ No all_users record found for permanent user');
+      return { allUserId: '', error: NextResponse.json({ error: 'User record not found' }, { status: 404 }) };
     }
 
     return { allUserId: allUserRecord.id };
@@ -53,28 +53,28 @@ export async function getAllUserId(request: NextRequest): Promise<{ allUserId: s
     // Handle temporary user - check for provided allUserId in form data
     try {
       const formData = await request.formData();
-      const providedAllUserId = formData.get("userId") as string;
+      const providedAllUserId = formData.get('userId') as string;
 
       if (providedAllUserId) {
-        console.log("👤 Using provided allUserId for temporary user...");
+        console.log('👤 Using provided allUserId for temporary user...');
         // For temporary users, directly check the allUsers table
         const [tempUser] = await db.select().from(allUsers).where(eq(allUsers.id, providedAllUserId));
-        console.log("Found temporary user:", { allUserId: tempUser?.id, type: tempUser?.type });
+        console.log('Found temporary user:', { allUserId: tempUser?.id, type: tempUser?.type });
 
-        if (!tempUser || tempUser.type !== "temporary") {
-          console.error("❌ Valid temporary user not found");
-          return { allUserId: "", error: NextResponse.json({ error: "Invalid temporary user" }, { status: 404 }) };
+        if (!tempUser || tempUser.type !== 'temporary') {
+          console.error('❌ Valid temporary user not found');
+          return { allUserId: '', error: NextResponse.json({ error: 'Invalid temporary user' }, { status: 404 }) };
         }
 
         return { allUserId: tempUser.id };
       } else {
-        console.error("❌ No valid user identification provided");
-        return { allUserId: "", error: NextResponse.json({ error: "User identification required" }, { status: 401 }) };
+        console.error('❌ No valid user identification provided');
+        return { allUserId: '', error: NextResponse.json({ error: 'User identification required' }, { status: 401 }) };
       }
     } catch {
       // If form parsing fails, it might be a JSON request - return auth error
-      console.error("❌ No valid user identification provided");
-      return { allUserId: "", error: NextResponse.json({ error: "User identification required" }, { status: 401 }) };
+      console.error('❌ No valid user identification provided');
+      return { allUserId: '', error: NextResponse.json({ error: 'User identification required' }, { status: 401 }) };
     }
   }
 }
@@ -105,17 +105,17 @@ export async function createMemoryFromJson(request: NextRequest, ownerId: string
   if (!type || !title) {
     return NextResponse.json(
       {
-        error: "Missing required fields: type and title are required",
+        error: 'Missing required fields: type and title are required',
       },
       { status: 400 }
     );
   }
 
   // Validate memory type
-  if (!["image", "video", "document", "note", "audio"].includes(type)) {
+  if (!['image', 'video', 'document', 'note', 'audio'].includes(type)) {
     return NextResponse.json(
       {
-        error: "Invalid memory type. Must be one of: image, video, document, note, audio",
+        error: 'Invalid memory type. Must be one of: image, video, document, note, audio',
       },
       { status: 400 }
     );
@@ -124,23 +124,23 @@ export async function createMemoryFromJson(request: NextRequest, ownerId: string
   // Handle onboarding logic
   let finalOwnerId = ownerId;
   if (isOnboarding || !ownerId) {
-    console.log("🎯 Onboarding upload detected - creating temporary user");
+    console.log('🎯 Onboarding upload detected - creating temporary user');
 
     try {
       // Import the temporary user creation function
-      const { createTemporaryUserBase } = await import("@/app/api/utils");
-      const result = await createTemporaryUserBase("inviter");
+      const { createTemporaryUserBase } = await import('@/app/api/utils');
+      const result = await createTemporaryUserBase('inviter');
       finalOwnerId = result.allUser.id;
-      console.log("✅ Temporary user created for onboarding:", { userId: finalOwnerId });
+      console.log('✅ Temporary user created for onboarding:', { userId: finalOwnerId });
     } catch (error) {
-      console.error("❌ Failed to create temporary user for onboarding:", error);
-      return NextResponse.json({ error: "Failed to create temporary user for onboarding" }, { status: 500 });
+      console.error('❌ Failed to create temporary user for onboarding:', error);
+      return NextResponse.json({ error: 'Failed to create temporary user for onboarding' }, { status: 500 });
     }
   }
 
   // Handle mode logic
-  if (mode === "folder") {
-    console.log("📁 Folder upload mode detected");
+  if (mode === 'folder') {
+    console.log('📁 Folder upload mode detected');
     // Note: Current folder upload just processes multiple files without creating a folder
     // TODO: In the future, we could create a folder here and set parentFolderId
   }
@@ -148,9 +148,9 @@ export async function createMemoryFromJson(request: NextRequest, ownerId: string
   // Create memory
   const newMemory: NewDBMemory = {
     ownerId: finalOwnerId, // Use the final owner ID (temporary user if onboarding)
-    type: type as "image" | "video" | "document" | "note" | "audio",
+    type: type as 'image' | 'video' | 'document' | 'note' | 'audio',
     title,
-    description: description || "",
+    description: description || '',
     fileCreatedAt: fileCreatedAt ? new Date(fileCreatedAt) : new Date(),
     isPublic: isPublic || false,
     ownerSecureCode: randomUUID(),
@@ -162,29 +162,29 @@ export async function createMemoryFromJson(request: NextRequest, ownerId: string
   };
 
   const [createdMemory] = await db.insert(memories).values(newMemory).returning();
-  console.log("✅ Memory created:", { id: createdMemory.id, ownerId: finalOwnerId });
+  console.log('✅ Memory created:', { id: createdMemory.id, ownerId: finalOwnerId });
 
   // Create assets if provided (from blob-first upload)
   let createdAssets: unknown[] = [];
   if (assets && assets.length > 0) {
     console.log(`📦 Creating ${assets.length} assets for memory ${createdMemory.id}`);
 
-    const { memoryAssets } = await import("@/db/schema");
+    const { memoryAssets } = await import('@/db/schema');
     const assetData = assets.map((asset: unknown) => {
       const a = asset as Record<string, unknown>;
       return {
         memoryId: createdMemory.id,
-        assetType: a.assetType as "original" | "display" | "thumb" | "placeholder" | "poster" | "waveform",
+        assetType: a.assetType as 'original' | 'display' | 'thumb' | 'placeholder' | 'poster' | 'waveform',
         variant: a.variant || null,
         url: a.url as string,
-        storageBackend: a.storageBackend || "vercel_blob",
-        storageKey: a.storageKey || (a.url as string).split("/").pop() || "",
+        storageBackend: a.storageBackend || 'vercel_blob',
+        storageKey: a.storageKey || (a.url as string).split('/').pop() || '',
         bytes: a.bytes as number,
         width: a.width || null,
         height: a.height || null,
         mimeType: a.mimeType as string,
         sha256: a.sha256 || null,
-        processingStatus: a.processingStatus || "completed",
+        processingStatus: a.processingStatus || 'completed',
         processingError: a.processingError || null,
       };
     });
@@ -234,7 +234,7 @@ export function createUploadResponse(
 ): NextResponse {
   return NextResponse.json({
     success: true,
-    data: successfulUploads.map((upload) => upload.memory),
+    data: successfulUploads.map(upload => upload.memory),
     summary: {
       totalFiles,
       successfulUploads: successfulUploads.length,

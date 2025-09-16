@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useRouter, useParams } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { useRouter, useParams } from 'next/navigation';
+import { Button } from '@/components/ui/button';
 
 interface RequireAuthProps {
   title?: string;
@@ -10,13 +10,13 @@ interface RequireAuthProps {
 }
 
 export default function RequireAuth({
-  title = "Please Sign In",
-  message = "To access this page, you need to be signed in to your account.",
-  buttonText = "Go to Sign In",
+  title = 'Please Sign In',
+  message = 'To access this page, you need to be signed in to your account.',
+  buttonText = 'Go to Sign In',
 }: RequireAuthProps) {
   const router = useRouter();
   const params = useParams();
-  const lang = (params.lang as string) || "en";
+  const lang = (params.lang as string) || 'en';
 
   return (
     <div className="fixed inset-0 z-40 min-h-screen flex items-center justify-center bg-white dark:bg-slate-950">

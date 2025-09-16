@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { MapPin, Globe, Crown, User } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { MapPin, Globe, Crown, User } from 'lucide-react';
 
-import { useState } from "react";
+import { useState } from 'react';
 
 interface ProfileHeaderProps {
   user: {
@@ -31,23 +31,23 @@ export function ProfileHeader({ user }: ProfileHeaderProps) {
 
   const getInitials = (name: string) => {
     return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
+      .split(' ')
+      .map(n => n[0])
+      .join('')
       .toUpperCase()
       .slice(0, 2);
   };
 
   const formatDate = (date: Date | string | null | undefined) => {
-    if (!date) return "N/A";
-    return new Date(date).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
+    if (!date) return 'N/A';
+    return new Date(date).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
     });
   };
 
-  const isPremium = user.plan === "premium" && user.premiumExpiresAt && new Date(user.premiumExpiresAt) > new Date();
+  const isPremium = user.plan === 'premium' && user.premiumExpiresAt && new Date(user.premiumExpiresAt) > new Date();
 
   return (
     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-8 border border-slate-200 dark:border-slate-700">
@@ -55,9 +55,9 @@ export function ProfileHeader({ user }: ProfileHeaderProps) {
         {/* Avatar Section */}
         <div className="flex-shrink-0">
           <Avatar className="h-24 w-24 border-4 border-white dark:border-slate-700 shadow-lg">
-            <AvatarImage src={user.image || undefined} alt={user.name || "User"} />
+            <AvatarImage src={user.image || undefined} alt={user.name || 'User'} />
             <AvatarFallback className="text-2xl font-bold bg-gradient-to-br from-blue-500 to-purple-600 text-white">
-              {user.name ? getInitials(user.name) : "U"}
+              {user.name ? getInitials(user.name) : 'U'}
             </AvatarFallback>
           </Avatar>
         </div>
@@ -67,14 +67,14 @@ export function ProfileHeader({ user }: ProfileHeaderProps) {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{user.name || "Anonymous User"}</h1>
+                <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{user.name || 'Anonymous User'}</h1>
                 {isPremium && (
                   <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white border-0">
                     <Crown className="h-3 w-3 mr-1" />
                     Premium
                   </Badge>
                 )}
-                {user.role && user.role !== "user" && (
+                {user.role && user.role !== 'user' && (
                   <Badge variant="secondary" className="capitalize">
                     {user.role}
                   </Badge>
@@ -108,7 +108,7 @@ export function ProfileHeader({ user }: ProfileHeaderProps) {
                 <Globe className="h-4 w-4" />
                 <a
                   href={
-                    user.metadata.website.startsWith("http")
+                    user.metadata.website.startsWith('http')
                       ? user.metadata.website
                       : `https://${user.metadata.website}`
                   }
@@ -123,7 +123,7 @@ export function ProfileHeader({ user }: ProfileHeaderProps) {
           </div>
 
           {/* Premium Status */}
-          {user.plan === "premium" && user.premiumExpiresAt && (
+          {user.plan === 'premium' && user.premiumExpiresAt && (
             <div className="mt-4 p-3 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
               <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
                 <Crown className="h-4 w-4" />

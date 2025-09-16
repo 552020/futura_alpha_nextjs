@@ -1,13 +1,13 @@
-import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Pencil, Trash2, Share2 } from "lucide-react";
+import { Button } from '@/components/ui/button';
+import { MoreHorizontal, Pencil, Trash2, Share2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+} from '@/components/ui/dropdown-menu';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -15,7 +15,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 
 interface MemoryActionsProps {
   id: string;

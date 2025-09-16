@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 
-export type MemoryStorageStatus = "stored_forever" | "partially_stored" | "web2_only" | "loading" | "error";
+export type MemoryStorageStatus = 'stored_forever' | 'partially_stored' | 'web2_only' | 'loading' | 'error';
 
 interface MemoryPresenceData {
   memoryId: string;
@@ -15,7 +15,7 @@ interface MemoryPresenceData {
     icp: boolean;
     icpPartial: boolean;
   };
-  overallStatus: "stored_forever" | "partially_stored" | "web2_only";
+  overallStatus: 'stored_forever' | 'partially_stored' | 'web2_only';
 }
 
 interface MemoryStatusMap {
@@ -27,18 +27,18 @@ interface MemoryStatusMap {
 
 // Hook for single memory storage status
 export function useMemoryStorageStatus(memoryId: string, memoryType: string) {
-  const [status, setStatus] = useState<MemoryStorageStatus>("loading");
+  const [status, setStatus] = useState<MemoryStorageStatus>('loading');
   const [data, setData] = useState<MemoryPresenceData | null>(null);
 
   useEffect(() => {
     async function fetchStatus() {
       if (!memoryId || !memoryType) {
-        setStatus("error");
+        setStatus('error');
         return;
       }
 
       try {
-        setStatus("loading");
+        setStatus('loading');
         const response = await fetch(`/api/memories/presence?id=${memoryId}&type=${memoryType}`);
 
         if (!response.ok) {
@@ -51,11 +51,11 @@ export function useMemoryStorageStatus(memoryId: string, memoryType: string) {
           setData(result.data);
           setStatus(result.data.overallStatus);
         } else {
-          setStatus("error");
+          setStatus('error');
         }
       } catch (error) {
-        console.error("Error fetching memory storage status:", error);
-        setStatus("error");
+        console.error('Error fetching memory storage status:', error);
+        setStatus('error');
       }
     }
 
@@ -72,9 +72,9 @@ export function useBatchMemoryStorageStatus(memories: Array<{ id: string; type: 
 
   // Create a stable key from memories array to prevent infinite re-renders
   const memoriesKey = memories
-    .map((m) => `${m.id}:${m.type}`)
+    .map(m => `${m.id}:${m.type}`)
     .sort()
-    .join(",");
+    .join(',');
 
   useEffect(() => {
     async function fetchBatchStatus() {
@@ -88,14 +88,14 @@ export function useBatchMemoryStorageStatus(memories: Array<{ id: string; type: 
 
         // Initialize loading state for all memories
         const initialMap: MemoryStatusMap = {};
-        memories.forEach((memory) => {
+        memories.forEach(memory => {
           const key = `${memory.id}:${memory.type}`;
-          initialMap[key] = { status: "loading", data: null };
+          initialMap[key] = { status: 'loading', data: null };
         });
         setStatusMap(initialMap);
 
         // For now, fetch individually (can be optimized with batch endpoint later)
-        const promises = memories.map(async (memory) => {
+        const promises = memories.map(async memory => {
           const key = `${memory.id}:${memory.type}`;
           try {
             const response = await fetch(`/api/memories/presence?id=${memory.id}&type=${memory.type}`);
@@ -113,20 +113,20 @@ export function useBatchMemoryStorageStatus(memories: Array<{ id: string; type: 
                 data: result.data as MemoryPresenceData,
               };
             } else {
-              return { key, status: "error" as MemoryStorageStatus, data: null };
+              return { key, status: 'error' as MemoryStorageStatus, data: null };
             }
           } catch (error) {
             console.error(`Error fetching status for memory ${memory.id}:`, error);
-            return { key, status: "error" as MemoryStorageStatus, data: null };
+            return { key, status: 'error' as MemoryStorageStatus, data: null };
           }
         });
 
         const results = await Promise.all(promises);
 
         // Update status map with results
-        setStatusMap((prevMap) => {
+        setStatusMap(prevMap => {
           const newMap = { ...prevMap };
-          results.forEach((result) => {
+          results.forEach(result => {
             newMap[result.key] = {
               status: result.status,
               data: result.data,
@@ -135,12 +135,12 @@ export function useBatchMemoryStorageStatus(memories: Array<{ id: string; type: 
           return newMap;
         });
       } catch (error) {
-        console.error("Error in batch memory status fetch:", error);
+        console.error('Error in batch memory status fetch:', error);
         // Set all to error state
-        setStatusMap((prevMap) => {
+        setStatusMap(prevMap => {
           const newMap = { ...prevMap };
-          Object.keys(newMap).forEach((key) => {
-            newMap[key] = { status: "error", data: null };
+          Object.keys(newMap).forEach(key => {
+            newMap[key] = { status: 'error', data: null };
           });
           return newMap;
         });
@@ -154,7 +154,7 @@ export function useBatchMemoryStorageStatus(memories: Array<{ id: string; type: 
 
   const getMemoryStatus = (memoryId: string, memoryType: string) => {
     const key = `${memoryId}:${memoryType}`;
-    return statusMap[key] || { status: "loading" as MemoryStorageStatus, data: null };
+    return statusMap[key] || { status: 'loading' as MemoryStorageStatus, data: null };
   };
 
   return { statusMap, isLoading, getMemoryStatus };
@@ -169,24 +169,24 @@ export function getGalleryStorageSummary(statusMap: MemoryStatusMap, memories: A
   let loading = 0;
   let error = 0;
 
-  memories.forEach((memory) => {
+  memories.forEach(memory => {
     const key = `${memory.id}:${memory.type}`;
-    const status = statusMap[key]?.status || "loading";
+    const status = statusMap[key]?.status || 'loading';
 
     switch (status) {
-      case "stored_forever":
+      case 'stored_forever':
         icpComplete++;
         break;
-      case "partially_stored":
+      case 'partially_stored':
         icpPartial++;
         break;
-      case "web2_only":
+      case 'web2_only':
         web2Only++;
         break;
-      case "loading":
+      case 'loading':
         loading++;
         break;
-      case "error":
+      case 'error':
         error++;
         break;
     }
@@ -206,6 +206,6 @@ export function getGalleryStorageSummary(statusMap: MemoryStatusMap, memories: A
     icpCompletePercentage,
     hasAnyIcp,
     isFullyOnIcp,
-    overallStatus: isFullyOnIcp ? "stored_forever" : hasAnyIcp ? "partially_stored" : "web2_only",
+    overallStatus: isFullyOnIcp ? 'stored_forever' : hasAnyIcp ? 'partially_stored' : 'web2_only',
   };
 }

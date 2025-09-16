@@ -1,6 +1,6 @@
-import { db } from "@/db/db";
-import { getGalleryPresenceById, DBGalleryPresence } from "@/db/schema";
-import { DBGallery } from "@/db/schema";
+import { db } from '@/db/db';
+import { getGalleryPresenceById, DBGalleryPresence } from '@/db/schema';
+import { DBGallery } from '@/db/schema';
 
 export type GalleryWithStorageStatus = DBGallery & {
   storageStatus: {
@@ -9,7 +9,7 @@ export type GalleryWithStorageStatus = DBGallery & {
     icpComplete: boolean;
     icpAny: boolean;
     icpCompletePercentage: number;
-    status: "stored_forever" | "partially_stored" | "web2_only";
+    status: 'stored_forever' | 'partially_stored' | 'web2_only';
   };
 };
 
@@ -32,7 +32,7 @@ export async function addStorageStatusToGallery(gallery: DBGallery): Promise<Gal
           icpComplete: false,
           icpAny: false,
           icpCompletePercentage: 0,
-          status: "web2_only" as const,
+          status: 'web2_only' as const,
         },
       };
     }
@@ -50,11 +50,11 @@ export async function addStorageStatusToGallery(gallery: DBGallery): Promise<Gal
           presenceData.total_memories > 0
             ? Math.round((presenceData.icp_complete_memories / presenceData.total_memories) * 100)
             : 0,
-        status: presenceData.icp_complete ? "stored_forever" : presenceData.icp_any ? "partially_stored" : "web2_only",
+        status: presenceData.icp_complete ? 'stored_forever' : presenceData.icp_any ? 'partially_stored' : 'web2_only',
       },
     };
   } catch (error) {
-    console.error("Error adding storage status to gallery:", gallery.id, error);
+    console.error('Error adding storage status to gallery:', gallery.id, error);
 
     // Return gallery with default storage status on error
     return {
@@ -65,7 +65,7 @@ export async function addStorageStatusToGallery(gallery: DBGallery): Promise<Gal
         icpComplete: false,
         icpAny: false,
         icpCompletePercentage: 0,
-        status: "web2_only" as const,
+        status: 'web2_only' as const,
       },
     };
   }
@@ -75,13 +75,13 @@ export async function addStorageStatusToGallery(gallery: DBGallery): Promise<Gal
  * Enhance multiple galleries with computed storage status
  */
 export async function addStorageStatusToGalleries(galleries: DBGallery[]): Promise<GalleryWithStorageStatus[]> {
-  const enhancedGalleries = await Promise.allSettled(galleries.map((gallery) => addStorageStatusToGallery(gallery)));
+  const enhancedGalleries = await Promise.allSettled(galleries.map(gallery => addStorageStatusToGallery(gallery)));
 
-  return enhancedGalleries.map((result) => {
-    if (result.status === "fulfilled") {
+  return enhancedGalleries.map(result => {
+    if (result.status === 'fulfilled') {
       return result.value;
     } else {
-      console.error("Error enhancing gallery with storage status:", result.reason);
+      console.error('Error enhancing gallery with storage status:', result.reason);
       // Return original gallery with default storage status on error
       return {
         ...galleries[0], // This is a fallback, should be the corresponding gallery
@@ -91,7 +91,7 @@ export async function addStorageStatusToGalleries(galleries: DBGallery[]): Promi
           icpComplete: false,
           icpAny: false,
           icpCompletePercentage: 0,
-          status: "web2_only" as const,
+          status: 'web2_only' as const,
         },
       };
     }

@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
-import { put } from "@vercel/blob";
-import { generateBlobFilename } from "@/lib/storage/blob-config";
+import { NextRequest, NextResponse } from 'next/server';
+import { put } from '@vercel/blob';
+import { generateBlobFilename } from '@/lib/storage/blob-config';
 
 /**
  * UPLOAD GRANT API
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
 
     // Validate request
     if (!filename || !size || !mimeType) {
-      return NextResponse.json({ error: "Missing required fields: filename, size, mimeType" }, { status: 400 });
+      return NextResponse.json({ error: 'Missing required fields: filename, size, mimeType' }, { status: 400 });
     }
 
     // Check file size limits (4MB for small files, 100MB for large files)
@@ -43,19 +43,19 @@ export async function POST(request: NextRequest) {
 
     // Validate MIME type
     const allowedMimeTypes = [
-      "image/jpeg",
-      "image/png",
-      "image/gif",
-      "image/webp",
-      "image/svg+xml",
-      "video/mp4",
-      "video/webm",
-      "video/quicktime",
-      "application/pdf",
-      "text/plain",
-      "text/markdown",
-      "application/msword",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'image/svg+xml',
+      'video/mp4',
+      'video/webm',
+      'video/quicktime',
+      'application/pdf',
+      'text/plain',
+      'text/markdown',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     ];
 
     if (!allowedMimeTypes.includes(mimeType)) {
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
 
     // Generate presigned URL for Vercel Blob
     const blob = await put(uniqueFilename, Buffer.alloc(0), {
-      access: "public",
+      access: 'public',
       contentType: mimeType,
     });
 
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
       size,
       checksum,
       expiresAt: Date.now() + 60 * 60 * 1000, // 1 hour expiry
-      userId: "temp", // TODO: Get from session/auth
+      userId: 'temp', // TODO: Get from session/auth
     };
 
     const response: GrantResponse = {
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error("❌ Upload grant failed:", error);
-    return NextResponse.json({ error: "Failed to generate upload grant" }, { status: 500 });
+    console.error('❌ Upload grant failed:', error);
+    return NextResponse.json({ error: 'Failed to generate upload grant' }, { status: 500 });
   }
 }

@@ -1,4 +1,4 @@
-import { auth } from "../../auth";
+import { auth } from '../../auth';
 
 export type SessionLike = {
   user: {
@@ -22,13 +22,13 @@ export type SessionLike = {
  */
 export async function requireAuth(req: Request): Promise<SessionLike> {
   // 🧪 TEST MODE: Bypass NextAuth for automated testing
-  if (process.env.TEST_AUTH_BYPASS === "1") {
-    const testUserId = req.headers.get("x-test-user-id")?.toString() || "test-user-id";
-    const testEmail = req.headers.get("x-test-user-email")?.toString() || "test@example.com";
-    const testName = req.headers.get("x-test-user-name")?.toString() || "Test User";
-    const testRole = req.headers.get("x-test-user-role")?.toString() || "user";
-    const testLinkedPrincipal = req.headers.get("x-test-linked-principal")?.toString();
-    const testActivePrincipal = req.headers.get("x-test-active-principal")?.toString();
+  if (process.env.TEST_AUTH_BYPASS === '1') {
+    const testUserId = req.headers.get('x-test-user-id')?.toString() || 'test-user-id';
+    const testEmail = req.headers.get('x-test-user-email')?.toString() || 'test@example.com';
+    const testName = req.headers.get('x-test-user-name')?.toString() || 'Test User';
+    const testRole = req.headers.get('x-test-user-role')?.toString() || 'user';
+    const testLinkedPrincipal = req.headers.get('x-test-linked-principal')?.toString();
+    const testActivePrincipal = req.headers.get('x-test-active-principal')?.toString();
 
     return {
       user: {
@@ -36,7 +36,7 @@ export async function requireAuth(req: Request): Promise<SessionLike> {
         email: testEmail,
         name: testName,
         role: testRole,
-        loginProvider: "google",
+        loginProvider: 'google',
         linkedIcPrincipal: testLinkedPrincipal,
         icpPrincipal: testActivePrincipal,
         icpPrincipalAssertedAt: testActivePrincipal ? Date.now() : undefined,

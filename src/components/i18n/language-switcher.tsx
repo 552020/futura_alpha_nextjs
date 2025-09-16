@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
-import { useParams, usePathname } from "next/navigation";
-import { locales } from "@/middleware";
-import { Button } from "@/components/ui/button";
+import { useParams, usePathname } from 'next/navigation';
+import { locales } from '@/middleware';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Globe } from "lucide-react";
-import { useState } from "react";
+} from '@/components/ui/dropdown-menu';
+import { Globe } from 'lucide-react';
+import { useState } from 'react';
 
 // Language display names and flags
 // const languageInfo: Record<string, { name: string; flag: string }> = {
@@ -32,9 +32,9 @@ export function LanguageSwitcher() {
 
   // Function to get the new path with the selected language
   const getPathWithNewLocale = (locale: string) => {
-    const segments = pathname.split("/");
+    const segments = pathname.split('/');
     segments[1] = locale; // Replace the language segment
-    return segments.join("/");
+    return segments.join('/');
   };
 
   // Function to handle language change with a full page reload
@@ -53,12 +53,12 @@ export function LanguageSwitcher() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {locales.map((locale) => (
+        {locales.map(locale => (
           <DropdownMenuItem
             key={locale}
             disabled={isChanging}
             onClick={() => handleLanguageChange(locale)}
-            className={`cursor-pointer ${locale === lang ? "font-bold" : ""}`}
+            className={`cursor-pointer ${locale === lang ? 'font-bold' : ''}`}
           >
             <span className="uppercase text-xs">{locale}</span>
           </DropdownMenuItem>

@@ -1,23 +1,23 @@
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/db/db";
-import { memoryShares } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
-import { findMemory } from "@/app/api/memories/utils/memory";
+import { NextRequest, NextResponse } from 'next/server';
+import { db } from '@/db/db';
+import { memoryShares } from '@/db/schema';
+import { eq, and } from 'drizzle-orm';
+import { findMemory } from '@/app/api/memories/utils/memory';
 
 export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
   const { searchParams } = new URL(request.url);
-  const secureCode = searchParams.get("code");
+  const secureCode = searchParams.get('code');
 
   if (!secureCode) {
-    return NextResponse.json({ error: "Secure code is required" }, { status: 400 });
+    return NextResponse.json({ error: 'Secure code is required' }, { status: 400 });
   }
 
   try {
     // First try to find the memory
     const memory = await findMemory(id);
     if (!memory) {
-      return NextResponse.json({ error: "Memory not found" }, { status: 404 });
+      return NextResponse.json({ error: 'Memory not found' }, { status: 404 });
     }
 
     // Check if this is an owner's secure code
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     });
 
     if (!share) {
-      return NextResponse.json({ error: "Invalid secure code" }, { status: 403 });
+      return NextResponse.json({ error: 'Invalid secure code' }, { status: 403 });
     }
 
     // Valid share code - return memory data with appropriate access level
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       accessLevel: share.accessLevel,
     });
   } catch (error) {
-    console.error("Error accessing shared memory:", error);
-    return NextResponse.json({ error: "Failed to access memory" }, { status: 500 });
+    console.error('Error accessing shared memory:', error);
+    return NextResponse.json({ error: 'Failed to access memory' }, { status: 500 });
   }
 }

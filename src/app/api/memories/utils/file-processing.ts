@@ -18,35 +18,35 @@ export const MAX_VIDEO_SIZE = 25 * 1024 * 1024; // 25MB
 // Self written notes are dealt in another route
 export const ACCEPTED_MIME_TYPES = {
   image: [
-    "image/jpeg", // .jpg, .jpeg
-    "image/png", // .png
-    "image/gif", // .gif
-    "image/webp", // .webp
-    "image/tiff", // .tiff
+    'image/jpeg', // .jpg, .jpeg
+    'image/png', // .png
+    'image/gif', // .gif
+    'image/webp', // .webp
+    'image/tiff', // .tiff
   ],
   document: [
-    "application/pdf", // .pdf
-    "application/msword", // .doc
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
-    "application/rtf", // .rtf
-    "application/epub+zip", // .epub
+    'application/pdf', // .pdf
+    'application/msword', // .doc
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+    'application/rtf', // .rtf
+    'application/epub+zip', // .epub
 
     // OpenDocument
-    "application/vnd.oasis.opendocument.text", // .odt
+    'application/vnd.oasis.opendocument.text', // .odt
 
     // Plain text and markdown
-    "text/plain", // .txt
-    "text/markdown", // .md
-    "text/x-markdown", // .md
+    'text/plain', // .txt
+    'text/markdown', // .md
+    'text/x-markdown', // .md
 
     // Org mode
-    "text/x-org", // .org
+    'text/x-org', // .org
   ],
   video: [
-    "video/mp4", // .mp4
-    "video/quicktime", // .mov
-    "video/x-msvideo", // .avi
-    "video/webm", // .webm
+    'video/mp4', // .mp4
+    'video/quicktime', // .mov
+    'video/x-msvideo', // .avi
+    'video/webm', // .webm
   ],
 } as const;
 
@@ -85,23 +85,23 @@ export function toAcceptedMimeType(mime: string): AcceptedMimeType {
   return mime;
 }
 
-export function getMemoryType(mime: AcceptedMimeType): "document" | "image" | "video" {
-  if (ACCEPTED_MIME_TYPES.image.includes(mime as (typeof ACCEPTED_MIME_TYPES.image)[number])) return "image";
-  if (ACCEPTED_MIME_TYPES.video.includes(mime as (typeof ACCEPTED_MIME_TYPES.video)[number])) return "video";
-  return "document";
+export function getMemoryType(mime: AcceptedMimeType): 'document' | 'image' | 'video' {
+  if (ACCEPTED_MIME_TYPES.image.includes(mime as (typeof ACCEPTED_MIME_TYPES.image)[number])) return 'image';
+  if (ACCEPTED_MIME_TYPES.video.includes(mime as (typeof ACCEPTED_MIME_TYPES.video)[number])) return 'video';
+  return 'document';
 }
 
 export async function validateFile(file: File): Promise<{ isValid: boolean; error?: string; buffer?: Buffer }> {
   // Check file size
-  const isVideo = file.type.startsWith("video/");
+  const isVideo = file.type.startsWith('video/');
   const maxSize = isVideo ? MAX_VIDEO_SIZE : MAX_FILE_SIZE;
   if (file.size > maxSize) {
-    return { isValid: false, error: "File too large" };
+    return { isValid: false, error: 'File too large' };
   }
 
   // Check mime type
   if (!isAcceptedMimeType(file.type)) {
-    return { isValid: false, error: "Invalid file type" };
+    return { isValid: false, error: 'Invalid file type' };
   }
 
   // Get file buffer
@@ -111,24 +111,24 @@ export async function validateFile(file: File): Promise<{ isValid: boolean; erro
   // 1. Text files don't have a specific binary signature (magic numbers)
   // 2. file-type package can't reliably detect text file types
   // 3. We already validated the mime type above, which is sufficient for text files
-  if (file.type.startsWith("text/")) {
+  if (file.type.startsWith('text/')) {
     return { isValid: true, buffer };
   }
 
   // Validate file type for non-text files
-  const { fileTypeFromBuffer } = await import("file-type");
+  const { fileTypeFromBuffer } = await import('file-type');
   const fileType = await fileTypeFromBuffer(buffer);
   if (!fileType) {
-    return { isValid: false, error: "Could not determine file type" };
+    return { isValid: false, error: 'Could not determine file type' };
   }
 
   // Check if the detected mime type matches the file's mime type
   const memoryType = getMemoryType(file.type);
-  if (memoryType === "video" && !fileType.mime.startsWith("video/")) {
-    return { isValid: false, error: "Invalid video file" };
+  if (memoryType === 'video' && !fileType.mime.startsWith('video/')) {
+    return { isValid: false, error: 'Invalid video file' };
   }
-  if (memoryType === "image" && !fileType.mime.startsWith("image/")) {
-    return { isValid: false, error: "Invalid image file" };
+  if (memoryType === 'image' && !fileType.mime.startsWith('image/')) {
+    return { isValid: false, error: 'Invalid image file' };
   }
 
   return { isValid: true, buffer };
@@ -140,7 +140,7 @@ export async function validateFile(file: File): Promise<{ isValid: boolean; erro
  */
 export function validateFileType(file: File, isAcceptedMimeType: (mime: string) => boolean): { error: string | null } {
   if (!isAcceptedMimeType(file.type)) {
-    return { error: "Invalid file type" };
+    return { error: 'Invalid file type' };
   }
   return { error: null };
 }
@@ -161,10 +161,10 @@ export async function validateFileWithErrorHandling(
     // console.log("🔍 Starting file validation...");
     validationResult = await validateFile(file);
     if (!validationResult.isValid) {
-      console.error("❌ File validation failed:", validationResult.error);
+      console.error('❌ File validation failed:', validationResult.error);
       return {
         validationResult: null,
-        error: validationResult.error || "File validation failed",
+        error: validationResult.error || 'File validation failed',
       };
     }
     // console.log("✅ File validation successful:", {
@@ -173,7 +173,7 @@ export async function validateFileWithErrorHandling(
     // });
     return { validationResult, error: null };
   } catch (validationError) {
-    console.error("❌ Validation error:", validationError);
+    console.error('❌ Validation error:', validationError);
     return {
       validationResult: null,
       error: validationError instanceof Error ? validationError.message : String(validationError),

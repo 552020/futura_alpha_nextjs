@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
-import { db } from "@/db/db";
-import { eq, and, inArray } from "drizzle-orm";
-import { galleries, allUsers, galleryShares, galleryItems, images, videos, documents, notes, audio } from "@/db/schema";
-import { addStorageStatusToGallery } from "../utils";
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/auth';
+import { db } from '@/db/db';
+import { eq, and, inArray } from 'drizzle-orm';
+import { galleries, allUsers, galleryShares, galleryItems, images, videos, documents, notes, audio } from '@/db/schema';
+import { addStorageStatusToGallery } from '../utils';
 
 // Helper function to check if user has access to a memory, considering gallery override
 async function checkMemoryAccess(
@@ -33,7 +33,7 @@ async function checkMemoryAccess(
       const galleryShare = await db.query.galleryShares.findFirst({
         where: and(
           eq(galleryShares.galleryId, galleryId),
-          eq(galleryShares.sharedWithType, "user"),
+          eq(galleryShares.sharedWithType, 'user'),
           eq(galleryShares.sharedWithId, allUserId)
         ),
       });
@@ -54,31 +54,31 @@ async function checkMemoryAccess(
     | null = null;
 
   switch (memoryType) {
-    case "image":
+    case 'image':
       memory =
         (await db.query.images.findFirst({
           where: eq(images.id, memoryId),
         })) || null;
       break;
-    case "video":
+    case 'video':
       memory =
         (await db.query.videos.findFirst({
           where: eq(videos.id, memoryId),
         })) || null;
       break;
-    case "document":
+    case 'document':
       memory =
         (await db.query.documents.findFirst({
           where: eq(documents.id, memoryId),
         })) || null;
       break;
-    case "note":
+    case 'note':
       memory =
         (await db.query.notes.findFirst({
           where: eq(notes.id, memoryId),
         })) || null;
       break;
-    case "audio":
+    case 'audio':
       memory =
         (await db.query.audio.findFirst({
           where: eq(audio.id, memoryId),
@@ -117,7 +117,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   // Check authentication
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
@@ -127,8 +127,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     });
 
     if (!allUserRecord) {
-      console.error("No allUsers record found for user:", session.user.id);
-      return NextResponse.json({ error: "User record not found" }, { status: 404 });
+      console.error('No allUsers record found for user:', session.user.id);
+      return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
     const galleryId = id;
@@ -171,7 +171,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           const shareRecord = await db.query.galleryShares.findFirst({
             where: and(
               eq(galleryShares.galleryId, galleryId),
-              eq(galleryShares.sharedWithType, "user"),
+              eq(galleryShares.sharedWithType, 'user'),
               eq(galleryShares.sharedWithId, allUserRecord.id)
             ),
           });
@@ -185,7 +185,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     if (!accessibleGallery) {
-      return NextResponse.json({ error: "Gallery not found" }, { status: 404 });
+      return NextResponse.json({ error: 'Gallery not found' }, { status: 404 });
     }
 
     // Get gallery items with access control
@@ -219,27 +219,27 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         let memory = null;
 
         switch (item.memoryType) {
-          case "image":
+          case 'image':
             memory = await db.query.images.findFirst({
               where: eq(images.id, item.memoryId),
             });
             break;
-          case "video":
+          case 'video':
             memory = await db.query.videos.findFirst({
               where: eq(videos.id, item.memoryId),
             });
             break;
-          case "document":
+          case 'document':
             memory = await db.query.documents.findFirst({
               where: eq(documents.id, item.memoryId),
             });
             break;
-          case "note":
+          case 'note':
             memory = await db.query.notes.findFirst({
               where: eq(notes.id, item.memoryId),
             });
             break;
-          case "audio":
+          case 'audio':
             memory = await db.query.audio.findFirst({
               where: eq(audio.id, item.memoryId),
             });
@@ -281,12 +281,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       gallery: galleryWithItems,
     });
   } catch (error) {
-    console.error("Error fetching gallery:", error);
-    console.error("Error details:", {
-      message: error instanceof Error ? error.message : "Unknown error",
+    console.error('Error fetching gallery:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
     });
-    return NextResponse.json({ error: "Failed to fetch gallery" }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch gallery' }, { status: 500 });
   }
 }
 
@@ -295,7 +295,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   // Check authentication
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
@@ -305,8 +305,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     });
 
     if (!allUserRecord) {
-      console.error("No allUsers record found for user:", session.user.id);
-      return NextResponse.json({ error: "User record not found" }, { status: 404 });
+      console.error('No allUsers record found for user:', session.user.id);
+      return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
     const galleryId = id;
@@ -319,7 +319,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     });
 
     if (!existingGallery) {
-      return NextResponse.json({ error: "Gallery not found" }, { status: 404 });
+      return NextResponse.json({ error: 'Gallery not found' }, { status: 404 });
     }
 
     // Update gallery metadata
@@ -337,7 +337,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     // Handle items management if provided
     let itemsResult = null;
     if (items && items.action && items.memories) {
-      if (items.action === "add") {
+      if (items.action === 'add') {
         // Get current max position
         const currentItems = await db.query.galleryItems.findMany({
           where: eq(galleryItems.galleryId, galleryId),
@@ -350,7 +350,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         const newItems = items.memories.map((memory: { id: string; type: string }, index: number) => ({
           galleryId,
           memoryId: memory.id,
-          memoryType: memory.type as "image" | "video" | "document" | "note" | "audio",
+          memoryType: memory.type as 'image' | 'video' | 'document' | 'note' | 'audio',
           position: startPosition + index,
           caption: null,
           isFeatured: false,
@@ -358,8 +358,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         }));
 
         await db.insert(galleryItems).values(newItems);
-        itemsResult = { action: "add", count: newItems.length };
-      } else if (items.action === "remove") {
+        itemsResult = { action: 'add', count: newItems.length };
+      } else if (items.action === 'remove') {
         // Remove items by memory IDs
         const memoryIds = items.memories.map((memory: { id: string }) => memory.id);
         const deletedItems = await db
@@ -367,8 +367,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
           .where(and(eq(galleryItems.galleryId, galleryId), inArray(galleryItems.memoryId, memoryIds)))
           .returning();
 
-        itemsResult = { action: "remove", count: deletedItems.length };
-      } else if (items.action === "reorder") {
+        itemsResult = { action: 'remove', count: deletedItems.length };
+      } else if (items.action === 'reorder') {
         // Reorder items
         for (const item of items.memories) {
           await db
@@ -376,7 +376,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
             .set({ position: item.position })
             .where(and(eq(galleryItems.galleryId, galleryId), eq(galleryItems.memoryId, item.id)));
         }
-        itemsResult = { action: "reorder", count: items.memories.length };
+        itemsResult = { action: 'reorder', count: items.memories.length };
       }
     }
 
@@ -391,8 +391,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       items: itemsResult,
     });
   } catch (error) {
-    console.error("Error updating gallery:", error);
-    return NextResponse.json({ error: "Failed to update gallery" }, { status: 500 });
+    console.error('Error updating gallery:', error);
+    return NextResponse.json({ error: 'Failed to update gallery' }, { status: 500 });
   }
 }
 
@@ -401,7 +401,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   // Check authentication
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
@@ -411,8 +411,8 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     });
 
     if (!allUserRecord) {
-      console.error("No allUsers record found for user:", session.user.id);
-      return NextResponse.json({ error: "User record not found" }, { status: 404 });
+      console.error('No allUsers record found for user:', session.user.id);
+      return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
     const galleryId = id;
@@ -423,7 +423,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     });
 
     if (!existingGallery) {
-      return NextResponse.json({ error: "Gallery not found" }, { status: 404 });
+      return NextResponse.json({ error: 'Gallery not found' }, { status: 404 });
     }
 
     // Delete gallery (cascade will handle gallery_items)
@@ -432,10 +432,10 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     // console.log("Deleted gallery:", galleryId);
 
     return NextResponse.json({
-      message: "Gallery deleted successfully",
+      message: 'Gallery deleted successfully',
     });
   } catch (error) {
-    console.error("Error deleting gallery:", error);
-    return NextResponse.json({ error: "Failed to delete gallery" }, { status: 500 });
+    console.error('Error deleting gallery:', error);
+    return NextResponse.json({ error: 'Failed to delete gallery' }, { status: 500 });
   }
 }

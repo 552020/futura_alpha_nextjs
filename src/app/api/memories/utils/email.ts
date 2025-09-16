@@ -16,23 +16,23 @@
  * - getTemplateVariables(): Generate template variables for Mailgun templates
  */
 
-import { db } from "@/db/db";
-import { relationship, users, familyRelationship } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
-import FormData from "form-data";
-import Mailgun from "mailgun.js";
-import type { MemoryWithType } from "./memory";
+import { db } from '@/db/db';
+import { relationship, users, familyRelationship } from '@/db/schema';
+import { eq, and } from 'drizzle-orm';
+import FormData from 'form-data';
+import Mailgun from 'mailgun.js';
+import type { MemoryWithType } from './memory';
 
 // Constants
-const DOMAIN = process.env.MAILGUN_DOMAIN || "";
-const API_KEY = process.env.MAILGUN_API_KEY || "";
+const DOMAIN = process.env.MAILGUN_DOMAIN || '';
+const API_KEY = process.env.MAILGUN_API_KEY || '';
 const FROM_EMAIL = process.env.MAILGUN_FROM || `hello@${DOMAIN}`;
 
 // Initialize Mailgun
 const mg = new Mailgun(FormData).client({
-  username: "api",
+  username: 'api',
   key: API_KEY,
-  url: "https://api.eu.mailgun.net", // Add EU region URL
+  url: 'https://api.eu.mailgun.net', // Add EU region URL
 });
 
 interface EmailOptions {
@@ -41,7 +41,7 @@ interface EmailOptions {
   text?: string;
   html?: string;
   template?: string;
-  "h:X-Mailgun-Variables"?: string;
+  'h:X-Mailgun-Variables'?: string;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -81,27 +81,27 @@ function getEmailContent(
   relationship: string | undefined,
   includeHtml: boolean
 ): { text: string; html?: string } {
-  const relationshipText = relationship ? `, your ${relationship},` : "";
+  const relationshipText = relationship ? `, your ${relationship},` : '';
 
-  if (memory.type === "document") {
+  if (memory.type === 'document') {
     const textContent = `${inviterName}${relationshipText} has shared a document with you: ${
       memory.title
-    }. Description: ${memory.description || "No description"}.`;
+    }. Description: ${memory.description || 'No description'}.`;
     const htmlContent = includeHtml
       ? `
     <html>
       <body>
         <h1>Document Shared</h1>
         <p>${inviterName}${relationshipText} has shared a document with you: <strong>${memory.title}</strong></p>
-        <p>Description: ${memory.description || "No description"}</p>
+        <p>Description: ${memory.description || 'No description'}</p>
       </body>
     </html>
     `
       : undefined;
     return { text: textContent, html: htmlContent };
-  } else if (memory.type === "image") {
+  } else if (memory.type === 'image') {
     const textContent = `You've been invited to view an image: ${
-      memory.title || "Untitled"
+      memory.title || 'Untitled'
     }. Invited by: ${inviterName}.`;
     const htmlContent = includeHtml
       ? `
@@ -109,8 +109,8 @@ function getEmailContent(
 		  <body>
 			<h1>Image Invitation</h1>
 			<p>You have been invited to view an image.</p>
-			<p>Title: <strong>${memory.title || "No title"}</strong></p>
-			<p>Description: ${memory.description || "No description"}</p>
+			<p>Title: <strong>${memory.title || 'No title'}</strong></p>
+			<p>Description: ${memory.description || 'No description'}</p>
 			<p>Invited by: ${inviterName}</p>
 		  </body>
 		</html>
@@ -126,8 +126,8 @@ function getEmailContent(
 		  <body>
 			<h1>Memory Invitation</h1>
 			<p>You've been invited to view a ${memory.type}.</p>
-			<p>Title: <strong>${memory.title || "Untitled"}</strong></p>
-			<p>Description: ${memory.description || "No description"}</p>
+			<p>Title: <strong>${memory.title || 'Untitled'}</strong></p>
+			<p>Description: ${memory.description || 'No description'}</p>
 			<p>Invited by: ${inviterName}</p>
 		  </body>
 		</html>
@@ -144,8 +144,8 @@ function getEmailContent(
  */
 function getTemplateVariables(memory: MemoryWithType, inviterName: string): Record<string, unknown> {
   return {
-    title: memory.title || "Untitled",
-    description: memory.description || "No description",
+    title: memory.title || 'Untitled',
+    description: memory.description || 'No description',
     type: memory.type,
     inviterName,
   };
@@ -190,18 +190,18 @@ export async function sendInvitationEmail(
 
     if (options.useTemplate) {
       // Use Mailgun template
-      const templateVars = getTemplateVariables(memory, inviterName || "Someone");
+      const templateVars = getTemplateVariables(memory, inviterName || 'Someone');
       messageData = {
         to: email,
         subject: "You've been invited to view a memory!",
-        template: "memory-invitation", // Ensure this template exists in your Mailgun dashboard
-        "h:X-Mailgun-Variables": JSON.stringify(templateVars),
-        text: "", // You can optionally supply a fallback text version
+        template: 'memory-invitation', // Ensure this template exists in your Mailgun dashboard
+        'h:X-Mailgun-Variables': JSON.stringify(templateVars),
+        text: '', // You can optionally supply a fallback text version
       };
       // console.log("📧 Using template, sending to:", { email, template: "memory-invitation" });
     } else {
       // Use hardcoded message
-      const { text, html } = getEmailContent(memory, inviterName || "Someone", relationship, options.useHTML ?? false);
+      const { text, html } = getEmailContent(memory, inviterName || 'Someone', relationship, options.useHTML ?? false);
       messageData = {
         to: email,
         subject: "You've been invited to view a memory!",
@@ -220,9 +220,9 @@ export async function sendInvitationEmail(
       return false;
     }
   } catch (error) {
-    console.error("Error sending email:", error);
+    console.error('Error sending email:', error);
     throw new Error(
-      `Failed to send invitation email to ${email}: ${error instanceof Error ? error.message : "Unknown error"}`
+      `Failed to send invitation email to ${email}: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
 }
@@ -249,16 +249,16 @@ export async function sendSharedMemoryEmail(
 
     const messageData = {
       to: email,
-      subject: "A memory has been shared with you on Futura",
+      subject: 'A memory has been shared with you on Futura',
       text: `${inviterName}${
-        relationship ? `, your ${relationship}` : ""
+        relationship ? `, your ${relationship}` : ''
       } shared a memory with you on Futura. View it here: ${shareUrl}`,
       html: options.useHTML
         ? `
         <html>
           <body>
             <h1>Memory Shared</h1>
-            <p>${inviterName}${relationship ? `, your ${relationship}` : ""} shared a memory with you.</p>
+            <p>${inviterName}${relationship ? `, your ${relationship}` : ''} shared a memory with you.</p>
             <p><a href="${shareUrl}">Click here to view it</a></p>
           </body>
         </html>
@@ -273,9 +273,9 @@ export async function sendSharedMemoryEmail(
       return false;
     }
   } catch (error) {
-    console.error("Error sending email:", error);
+    console.error('Error sending email:', error);
     throw new Error(
-      `Failed to send shared memory email to ${email}: ${error instanceof Error ? error.message : "Unknown error"}`
+      `Failed to send shared memory email to ${email}: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
 }
@@ -292,7 +292,7 @@ async function getRelationship(inviterId: string, invitedId: string) {
     where: () => and(eq(relationship.userId, inviterId), eq(relationship.relatedUserId, invitedId)),
   });
 
-  if (rel?.type === "family") {
+  if (rel?.type === 'family') {
     const familyRel = await db.query.familyRelationship.findFirst({
       where: eq(familyRelationship.relationshipId, rel.id),
     });

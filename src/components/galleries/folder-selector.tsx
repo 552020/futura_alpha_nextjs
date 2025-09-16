@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
-import { FolderInfo } from "@/types/gallery";
-import { RefreshCw, Folder, Image as ImageIcon } from "lucide-react";
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
+import { FolderInfo } from '@/types/gallery';
+import { RefreshCw, Folder, Image as ImageIcon } from 'lucide-react';
 
 interface FolderSelectorProps {
   folders: FolderInfo[];
@@ -22,7 +22,7 @@ export function FolderSelector({
   selectedFolder,
   onFolderSelect,
   onRefresh,
-  placeholder = "Select a folder...",
+  placeholder = 'Select a folder...',
 }: FolderSelectorProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -56,7 +56,7 @@ export function FolderSelector({
           </div>
           {onRefresh && (
             <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
+              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
           )}
@@ -80,7 +80,7 @@ export function FolderSelector({
             <SelectValue placeholder={placeholder} />
           </SelectTrigger>
           <SelectContent>
-            {folders.map((folder) => (
+            {folders.map(folder => (
               <SelectItem key={folder.name} value={folder.name}>
                 <div className="flex items-center space-x-2">
                   <Folder className="h-4 w-4" />
@@ -96,13 +96,13 @@ export function FolderSelector({
         </Select>
         {onRefresh && (
           <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={isRefreshing} className="ml-2">
-            <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
           </Button>
         )}
       </div>
       {selectedFolder && (
         <div className="text-xs text-muted-foreground">
-          Selected: {selectedFolder} ({folders.find((f) => f.name === selectedFolder)?.imageCount || 0} items)
+          Selected: {selectedFolder} ({folders.find(f => f.name === selectedFolder)?.imageCount || 0} items)
         </div>
       )}
     </div>

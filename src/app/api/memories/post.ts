@@ -11,7 +11,7 @@
  * a unified interface for all memory creation operations.
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
 
 // Import organized utilities
 import {
@@ -38,48 +38,48 @@ import {
 
   // Types
   type AcceptedMimeType,
-} from "./utils";
+} from './utils';
 
 // Import new folder upload utilities
-import { getUserIdForUpload } from "./utils/user-management";
+import { getUserIdForUpload } from './utils/user-management';
 import {
   formatFolderUploadResponse,
   formatErrorResponse,
   calculateUploadStats,
   type UploadResult,
-} from "./utils/response-formatting";
+} from './utils/response-formatting';
 
 /**
  * Main POST handler for memory creation
  * Handles both JSON requests and file uploads
  */
 export async function handleApiMemoryPost(request: NextRequest): Promise<NextResponse> {
-  console.log("🚀 Starting memory creation process...");
+  console.log('🚀 Starting memory creation process...');
 
   try {
     // Check if this is a file upload (multipart/form-data) or JSON request
-    const contentType = request.headers.get("content-type") || "";
+    const contentType = request.headers.get('content-type') || '';
 
-    if (contentType.includes("multipart/form-data")) {
+    if (contentType.includes('multipart/form-data')) {
       // Parse FormData ONCE to avoid double parsing bug
       const formData = await request.formData();
-      const files = formData.getAll("file") as File[];
+      const files = formData.getAll('file') as File[];
 
       console.log(`📊 BACKEND FILE ANALYSIS:`, {
         fileCount: files.length,
-        files: files.map((f) => ({
+        files: files.map(f => ({
           name: f.name,
           size: f.size,
           sizeMB: (f.size / (1024 * 1024)).toFixed(2),
           type: f.type,
         })),
         isFolderUpload: files.length > 1,
-        chosenPath: files.length > 1 ? "FOLDER_UPLOAD" : "SINGLE_FILE_UPLOAD",
+        chosenPath: files.length > 1 ? 'FOLDER_UPLOAD' : 'SINGLE_FILE_UPLOAD',
       });
 
       // Get user ID using the same pattern for both single and folder uploads
       // Extract userId from FormData to avoid double parsing in getAllUserId
-      const providedUserId = formData.get("userId") as string | null;
+      const providedUserId = formData.get('userId') as string | null;
       const { allUserId, error } = await getUserIdForUpload({ providedUserId: providedUserId || undefined });
       if (error) {
         return error;
@@ -106,9 +106,9 @@ export async function handleApiMemoryPost(request: NextRequest): Promise<NextRes
       const { isOnboarding } = body;
 
       if (isOnboarding) {
-        console.log("🎯 Onboarding JSON request detected - bypassing authentication");
+        console.log('🎯 Onboarding JSON request detected - bypassing authentication');
         // For onboarding, we don't need authentication - createMemoryFromJson will handle temporary user creation
-        return await createMemoryFromJson(request, ""); // Pass empty string, function will create temporary user
+        return await createMemoryFromJson(request, ''); // Pass empty string, function will create temporary user
       } else {
         // For regular JSON requests, get the allUserId for the user (authenticated or temporary)
         const { allUserId, error } = await getAllUserId(request);
@@ -119,8 +119,8 @@ export async function handleApiMemoryPost(request: NextRequest): Promise<NextRes
       }
     }
   } catch (error) {
-    console.error("Error in memory creation:", error);
-    return NextResponse.json({ error: "Failed to create memory" }, { status: 500 });
+    console.error('Error in memory creation:', error);
+    return NextResponse.json({ error: 'Failed to create memory' }, { status: 500 });
   }
 }
 
@@ -129,14 +129,14 @@ export async function handleApiMemoryPost(request: NextRequest): Promise<NextRes
  */
 async function handleFolderUpload(formData: FormData, allUserId: string): Promise<NextResponse> {
   const startTime = Date.now();
-  console.log("🚀 Starting folder upload process with blob-first approach...");
+  console.log('🚀 Starting folder upload process with blob-first approach...');
 
   try {
     // Extract files from the already-parsed FormData
-    const files = formData.getAll("file") as File[];
+    const files = formData.getAll('file') as File[];
 
     if (!files || files.length === 0) {
-      return NextResponse.json({ error: "No files provided" }, { status: 400 });
+      return NextResponse.json({ error: 'No files provided' }, { status: 400 });
     }
 
     console.log(`📁 Processing ${files.length} files with blob-first approach...`);
@@ -152,16 +152,16 @@ async function handleFolderUpload(formData: FormData, allUserId: string): Promis
     // Use the allUserId passed from the main handler
 
     // Import the uploadFiles service for blob-first approach
-    const { uploadFiles } = await import("@/services/upload");
+    const { uploadFiles } = await import('@/services/upload');
 
     // Use the new blob-first uploadFiles service which handles multiple assets for images
     const uploadResults = await uploadFiles(
       files,
       false, // isOnboarding - will be determined by the service
       allUserId, // existingUserId
-      "folder", // mode
-      "vercel_blob", // storageBackend
-      "neon" // userStoragePreference - default to neon for now
+      'folder', // mode
+      'vercel_blob', // storageBackend
+      'neon' // userStoragePreference - default to neon for now
     );
 
     // Calculate statistics
@@ -169,18 +169,18 @@ async function handleFolderUpload(formData: FormData, allUserId: string): Promis
 
     // Convert upload results to the expected format
     const formattedResults: UploadResult[] = uploadResults.map((result, index) => ({
-      fileName: files[index]?.name || "Unknown",
-      url: result.data.assets?.[0]?.url || "", // Use first asset URL
+      fileName: files[index]?.name || 'Unknown',
+      url: result.data.assets?.[0]?.url || '', // Use first asset URL
       success: result.success,
       userId: allUserId,
       memoryId: result.data.id,
-      assetId: result.data.assets?.[0]?.id || "",
+      assetId: result.data.assets?.[0]?.id || '',
     }));
 
-    const successfulUploads = uploadResults.filter((r) => r.success).length;
+    const successfulUploads = uploadResults.filter(r => r.success).length;
     const failedUploads = uploadResults.length - successfulUploads;
 
-    console.log("=== FOLDER UPLOAD COMPLETE (BLOB-FIRST) ===");
+    console.log('=== FOLDER UPLOAD COMPLETE (BLOB-FIRST) ===');
     console.log(`📁 Files processed: ${successfulUploads}/${files.length} successful`);
     console.log(`📦 Total size: ${stats.totalSizeMB} MB`);
     console.log(`⏱️ Total time: ${stats.totalTime.toFixed(1)} seconds`);
@@ -188,7 +188,7 @@ async function handleFolderUpload(formData: FormData, allUserId: string): Promis
     console.log(`🚀 Upload speed: ${stats.uploadSpeedMBps} MB/s`);
     console.log(`👤 User ID: ${allUserId}`);
     console.log(`❌ Failed uploads: ${failedUploads}`);
-    console.log("=============================================");
+    console.log('=============================================');
 
     // Use extracted response formatting utility
     return NextResponse.json(
@@ -212,16 +212,16 @@ async function handleFileUpload(formData: FormData, ownerId: string): Promise<Ne
   const startTime = Date.now();
 
   // Extract files from the already-parsed FormData
-  const files = formData.getAll("file") as File[];
+  const files = formData.getAll('file') as File[];
 
   if (!files || files.length === 0) {
-    return NextResponse.json({ error: "No files provided" }, { status: 400 });
+    return NextResponse.json({ error: 'No files provided' }, { status: 400 });
   }
 
   console.log(`📁 Processing ${files.length} file(s)...`);
   console.log(`📊 HANDLE_FILE_UPLOAD ANALYSIS:`, {
     fileCount: files.length,
-    files: files.map((f) => ({
+    files: files.map(f => ({
       name: f.name,
       size: f.size,
       sizeMB: (f.size / (1024 * 1024)).toFixed(2),
@@ -229,7 +229,7 @@ async function handleFileUpload(formData: FormData, ownerId: string): Promise<Ne
       isLargeFile: f.size / (1024 * 1024) > 4,
     })),
     ownerId,
-    uploadMethod: "SERVER_SIDE_DIRECT_UPLOAD",
+    uploadMethod: 'SERVER_SIDE_DIRECT_UPLOAD',
   });
 
   // Log file details for debugging
@@ -242,13 +242,13 @@ async function handleFileUpload(formData: FormData, ownerId: string): Promise<Ne
   });
 
   // Process files in parallel (limit to 5 concurrent uploads)
-  const pLimit = (await import("p-limit")).default;
+  const pLimit = (await import('p-limit')).default;
   const limit = pLimit(5);
 
-  const uploadTasks = files.map((file) =>
+  const uploadTasks = files.map(file =>
     limit(async () => {
       try {
-        const name = String(file.name || "Untitled");
+        const name = String(file.name || 'Untitled');
 
         // Log file details
         logFileDetails(file);
@@ -303,7 +303,7 @@ async function handleFileUpload(formData: FormData, ownerId: string): Promise<Ne
           memory: result.data,
         };
       } catch (error) {
-        const name = String(file.name || "Untitled");
+        const name = String(file.name || 'Untitled');
         console.error(`❌ Unexpected error for ${name}:`, error);
         return { success: false, fileName: name, error };
       }
@@ -326,10 +326,10 @@ async function handleFileUpload(formData: FormData, ownerId: string): Promise<Ne
   }> = [];
 
   for (const result of results) {
-    if (result.status === "fulfilled" && result.value.success === true) {
+    if (result.status === 'fulfilled' && result.value.success === true) {
       successfulUploads.push(result.value as (typeof successfulUploads)[0]);
     } else {
-      if (result.status === "fulfilled") {
+      if (result.status === 'fulfilled') {
         failedUploads.push({
           success: false,
           fileName: result.value.fileName,
@@ -338,7 +338,7 @@ async function handleFileUpload(formData: FormData, ownerId: string): Promise<Ne
       } else {
         failedUploads.push({
           success: false,
-          fileName: "unknown",
+          fileName: 'unknown',
           error: result.reason,
         });
       }

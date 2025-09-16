@@ -69,7 +69,7 @@ export interface StorageProvider {
  *
  * These match the storage_backend_t enum in the database schema
  */
-export type StorageBackend = "s3" | "vercel_blob" | "icp" | "arweave" | "ipfs" | "cloudinary" | "neon";
+export type StorageBackend = 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs' | 'cloudinary' | 'neon';
 
 /**
  * Storage Manager Configuration
@@ -96,20 +96,32 @@ export class StorageError extends Error {
     public readonly originalError?: Error
   ) {
     super(message);
-    this.name = "StorageError";
+    this.name = 'StorageError';
   }
 }
 
 export class UploadError extends StorageError {
-  constructor(message: string, provider: string, public readonly file: File, code?: string, originalError?: Error) {
+  constructor(
+    message: string,
+    provider: string,
+    public readonly file: File,
+    code?: string,
+    originalError?: Error
+  ) {
     super(message, provider, code, originalError);
-    this.name = "UploadError";
+    this.name = 'UploadError';
   }
 }
 
 export class DeleteError extends StorageError {
-  constructor(message: string, provider: string, public readonly key: string, code?: string, originalError?: Error) {
+  constructor(
+    message: string,
+    provider: string,
+    public readonly key: string,
+    code?: string,
+    originalError?: Error
+  ) {
     super(message, provider, code, originalError);
-    this.name = "DeleteError";
+    this.name = 'DeleteError';
   }
 }

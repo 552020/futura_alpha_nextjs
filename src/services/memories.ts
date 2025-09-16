@@ -1,10 +1,10 @@
 // import { normalizeMemories } from "@/utils/normalizeMemories"; // Unused
-import { Memory } from "@/types/memory";
+import { Memory } from '@/types/memory';
 
 // Removed old interfaces - now using unified format
 
 export interface NormalizedMemory extends Memory {
-  status: "private" | "shared" | "public";
+  status: 'private' | 'shared' | 'public';
   sharedWithCount?: number;
   metadata?: {
     originalPath?: string;
@@ -14,7 +14,7 @@ export interface NormalizedMemory extends Memory {
 
 export interface FolderItem {
   id: string;
-  type: "folder";
+  type: 'folder';
   title: string;
   description: string;
   itemCount: number;
@@ -22,7 +22,7 @@ export interface FolderItem {
   createdAt: string;
   url?: string;
   thumbnail?: string;
-  status: "private" | "shared" | "public";
+  status: 'private' | 'shared' | 'public';
   sharedWithCount?: number;
 }
 
@@ -38,7 +38,7 @@ export const fetchMemories = async (page: number): Promise<FetchMemoriesResult> 
 
   if (!response.ok) {
     // Try to get error details from the response
-    let errorMessage = "Failed to fetch memories";
+    let errorMessage = 'Failed to fetch memories';
     let errorDetails: Record<string, unknown> = {};
 
     try {
@@ -68,7 +68,7 @@ export const fetchMemories = async (page: number): Promise<FetchMemoriesResult> 
   const memories = data.data.map((memory: Memory & { status?: string; sharedWithCount?: number }) => ({
     ...memory,
     // Ensure we have the expected properties
-    status: memory.status || "private",
+    status: memory.status || 'private',
     sharedWithCount: memory.sharedWithCount || 0,
   }));
 
@@ -80,37 +80,37 @@ export const fetchMemories = async (page: number): Promise<FetchMemoriesResult> 
 
 export const deleteMemory = async (id: string): Promise<void> => {
   const response = await fetch(`/api/memories/${id}`, {
-    method: "DELETE",
+    method: 'DELETE',
   });
 
   if (!response.ok) {
-    throw new Error("Failed to delete memory");
+    throw new Error('Failed to delete memory');
   }
 };
 
 export const deleteAllMemories = async (options?: {
-  type?: "image" | "document" | "note" | "video" | "audio";
+  type?: 'image' | 'document' | 'note' | 'video' | 'audio';
   folder?: string;
   all?: boolean;
 }): Promise<{ success: boolean; message: string; deletedCount: number }> => {
   const params = new URLSearchParams();
 
   if (options?.type) {
-    params.append("type", options.type);
+    params.append('type', options.type);
   }
   if (options?.folder) {
-    params.append("folder", options.folder);
+    params.append('folder', options.folder);
   }
   if (options?.all) {
-    params.append("all", "true");
+    params.append('all', 'true');
   }
 
   const response = await fetch(`/api/memories?${params.toString()}`, {
-    method: "DELETE",
+    method: 'DELETE',
   });
 
   if (!response.ok) {
-    throw new Error("Failed to delete memories");
+    throw new Error('Failed to delete memories');
   }
 
   return response.json();
@@ -121,38 +121,41 @@ export const processDashboardItems = (memories: NormalizedMemory[]): DashboardIt
   // console.log("🔍 processDashboardItems - Received memories:", memories.length);
 
   // Step 1: Group memories by folderName
-  const folderGroups = memories.reduce((groups, memory) => {
-    const folderName = memory.metadata?.folderName;
-    if (folderName) {
-      if (!groups[folderName]) {
-        groups[folderName] = [];
+  const folderGroups = memories.reduce(
+    (groups, memory) => {
+      const folderName = memory.metadata?.folderName;
+      if (folderName) {
+        if (!groups[folderName]) {
+          groups[folderName] = [];
+        }
+        groups[folderName].push(memory);
       }
-      groups[folderName].push(memory);
-    }
-    return groups;
-  }, {} as Record<string, NormalizedMemory[]>);
+      return groups;
+    },
+    {} as Record<string, NormalizedMemory[]>
+  );
 
   // console.log("🔍 Folder groups:", folderGroups);
 
   // Step 2: Create FolderItems for each group
   const folderItems: FolderItem[] = Object.entries(folderGroups).map(([folderName, folderMemories]) => ({
     id: `folder-${folderName}`,
-    type: "folder" as const,
+    type: 'folder' as const,
     title: folderName,
     description: `${folderMemories.length} items`,
     itemCount: folderMemories.length,
     memories: folderMemories,
     createdAt: folderMemories[0]?.createdAt || new Date().toISOString(),
-    url: folderMemories[0]?.url || "",
-    thumbnail: folderMemories[0]?.thumbnail || "",
-    status: "private" as const,
+    url: folderMemories[0]?.url || '',
+    thumbnail: folderMemories[0]?.thumbnail || '',
+    status: 'private' as const,
     sharedWithCount: 0,
   }));
 
   // console.log("🔍 Created folder items:", folderItems);
 
   // Step 3: Get individual memories (not in folders)
-  const individualMemories = memories.filter((memory) => !memory.metadata?.folderName);
+  const individualMemories = memories.filter(memory => !memory.metadata?.folderName);
 
   // console.log("🔍 Individual memories:", individualMemories.length);
 

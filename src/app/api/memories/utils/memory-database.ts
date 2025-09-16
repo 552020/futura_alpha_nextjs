@@ -15,17 +15,17 @@
  * - cleanupStorageEdgesForMemory(): Clean up storage tracking
  */
 
-import { db } from "@/db/db";
-import { memories, memoryAssets } from "@/db/schema";
-import { NewDBMemory, NewDBMemoryAsset, DBMemory } from "@/db/schema";
-import { and, eq } from "drizzle-orm";
-import crypto from "crypto";
-import { randomUUID } from "crypto";
-import type { AcceptedMimeType } from "./file-processing";
-import { getMemoryType } from "./file-processing";
+import { db } from '@/db/db';
+import { memories, memoryAssets } from '@/db/schema';
+import { NewDBMemory, NewDBMemoryAsset, DBMemory } from '@/db/schema';
+import { and, eq } from 'drizzle-orm';
+import crypto from 'crypto';
+import { randomUUID } from 'crypto';
+import type { AcceptedMimeType } from './file-processing';
+import { getMemoryType } from './file-processing';
 
 export type UploadResponse = {
-  type: "image" | "video" | "document" | "note" | "audio";
+  type: 'image' | 'video' | 'document' | 'note' | 'audio';
   data: DBMemory;
 };
 
@@ -38,13 +38,13 @@ export function buildNewMemoryAndAsset(
   url: string,
   ownerId: string
 ): { memory: NewDBMemory; asset: NewDBMemoryAsset } {
-  const name = file.name || "Untitled";
+  const name = file.name || 'Untitled';
 
   const memory: NewDBMemory = {
     ownerId,
-    type: getMemoryType(file.type as AcceptedMimeType) as "image" | "video" | "document" | "note" | "audio",
+    type: getMemoryType(file.type as AcceptedMimeType) as 'image' | 'video' | 'document' | 'note' | 'audio',
     title: name,
-    description: "",
+    description: '',
     fileCreatedAt: new Date(),
     isPublic: false,
     parentFolderId: null,
@@ -52,18 +52,18 @@ export function buildNewMemoryAndAsset(
   };
 
   const asset: NewDBMemoryAsset = {
-    memoryId: "", // Will be set after memory is created
-    assetType: "original",
-    variant: "default",
+    memoryId: '', // Will be set after memory is created
+    assetType: 'original',
+    variant: 'default',
     url,
-    storageBackend: "vercel_blob",
-    storageKey: url.split("/").pop() || "",
+    storageBackend: 'vercel_blob',
+    storageKey: url.split('/').pop() || '',
     bytes: file.size,
     width: null,
     height: null,
     mimeType: file.type,
     sha256: null,
-    processingStatus: "completed",
+    processingStatus: 'completed',
     processingError: null,
   };
 
@@ -112,7 +112,7 @@ export async function processMultipleFilesBatch(params: { files: File[]; urls: s
       assets: insertedAssets,
     };
   } catch (error) {
-    console.error("❌ Error processing multiple files batch:", error);
+    console.error('❌ Error processing multiple files batch:', error);
     return {
       success: false,
       memories: [],
@@ -124,7 +124,7 @@ export async function processMultipleFilesBatch(params: { files: File[]; urls: s
 
 // New function to store in the new unified schema
 export async function storeInNewDatabase(params: {
-  type: "document" | "image" | "video" | "note" | "audio";
+  type: 'document' | 'image' | 'video' | 'note' | 'audio';
   ownerId: string;
   url: string;
   file: File;
@@ -141,9 +141,9 @@ export async function storeInNewDatabase(params: {
   // Create memory in the new unified table
   const newMemory: NewDBMemory = {
     ownerId,
-    type: type as "image" | "video" | "document" | "note" | "audio",
-    title: file.name.split(".")[0],
-    description: "",
+    type: type as 'image' | 'video' | 'document' | 'note' | 'audio',
+    title: file.name.split('.')[0],
+    description: '',
     fileCreatedAt: new Date(),
     isPublic: false,
     parentFolderId: parentFolderId || null,
@@ -155,17 +155,17 @@ export async function storeInNewDatabase(params: {
   // Create original asset
   const newAsset: NewDBMemoryAsset = {
     memoryId: createdMemory.id,
-    assetType: "original",
-    variant: "default",
+    assetType: 'original',
+    variant: 'default',
     url,
-    storageBackend: "vercel_blob",
-    storageKey: url.split("/").pop() || "",
+    storageBackend: 'vercel_blob',
+    storageKey: url.split('/').pop() || '',
     bytes: metadata.size,
     width: null, // Will be populated by client-side processing
     height: null, // Will be populated by client-side processing
     mimeType: metadata.mimeType,
     sha256: null, // Will be populated by client-side processing
-    processingStatus: "completed",
+    processingStatus: 'completed',
     processingError: null,
   };
 
@@ -180,7 +180,7 @@ export async function storeInNewDatabase(params: {
   });
 
   if (!storageEdgeResult.success) {
-    console.warn("⚠️ Failed to create storage edges for memory:", createdMemory.id, storageEdgeResult.error);
+    console.warn('⚠️ Failed to create storage edges for memory:', createdMemory.id, storageEdgeResult.error);
     // Don't fail the upload if storage edge creation fails
   }
 
@@ -200,7 +200,7 @@ export async function storeInNewDatabase(params: {
  */
 export async function createStorageEdgesForMemory(params: {
   memoryId: string;
-  memoryType: "image" | "video" | "note" | "document" | "audio";
+  memoryType: 'image' | 'video' | 'note' | 'document' | 'audio';
   url: string;
   size: number;
   contentHash?: string;
@@ -214,13 +214,13 @@ export async function createStorageEdgesForMemory(params: {
     const metadataEdge = {
       memoryId,
       memoryType,
-      artifact: "metadata" as const,
-      backend: "neon-db" as const,
+      artifact: 'metadata' as const,
+      backend: 'neon-db' as const,
       present: true,
       location: null, // Metadata is stored in the main memory table
       contentHash: null,
       sizeBytes: null, // Metadata size is negligible
-      syncState: "idle" as const,
+      syncState: 'idle' as const,
       syncError: null,
     };
 
@@ -228,18 +228,18 @@ export async function createStorageEdgesForMemory(params: {
     const assetEdge = {
       memoryId,
       memoryType,
-      artifact: "asset" as const,
-      backend: "vercel-blob" as const,
+      artifact: 'asset' as const,
+      backend: 'vercel-blob' as const,
       present: true,
       location: url, // The blob URL
       contentHash: contentHash || null,
       sizeBytes: size,
-      syncState: "idle" as const,
+      syncState: 'idle' as const,
       syncError: null,
     };
 
     // Import the storage edges table
-    const { storageEdges } = await import("@/db/schema");
+    const { storageEdges } = await import('@/db/schema');
 
     // Insert both edges
     const [metadataResult, assetResult] = await Promise.all([
@@ -258,7 +258,7 @@ export async function createStorageEdgesForMemory(params: {
       assetEdge: assetResult[0],
     };
   } catch (error) {
-    console.error("❌ Error creating storage edges:", error);
+    console.error('❌ Error creating storage edges:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : String(error),
@@ -272,7 +272,7 @@ export async function createStorageEdgesForMemory(params: {
  */
 export async function cleanupStorageEdgesForMemory(params: {
   memoryId: string;
-  memoryType: "image" | "video" | "note" | "document" | "audio";
+  memoryType: 'image' | 'video' | 'note' | 'document' | 'audio';
 }) {
   const { memoryId, memoryType } = params;
 
@@ -280,7 +280,7 @@ export async function cleanupStorageEdgesForMemory(params: {
     // console.log("🧹 Cleaning up storage edges for memory:", { memoryId, memoryType });
 
     // Import the storage edges table
-    const { storageEdges } = await import("@/db/schema");
+    const { storageEdges } = await import('@/db/schema');
 
     // Delete all storage edges for this memory
     const deletedEdges = await db
@@ -300,7 +300,7 @@ export async function cleanupStorageEdgesForMemory(params: {
       deletedEdges,
     };
   } catch (error) {
-    console.error("❌ Error cleaning up storage edges:", error);
+    console.error('❌ Error cleaning up storage edges:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : String(error),

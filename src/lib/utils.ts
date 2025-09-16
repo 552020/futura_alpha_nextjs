@@ -1,5 +1,5 @@
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { type ClassValue, clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -18,5 +18,5 @@ export function shortenTitle(title: string, maxLength: number = 25): string {
   }
 
   // Always truncate at maxLength to prevent wrapping
-  return title.substring(0, maxLength) + "...";
+  return title.substring(0, maxLength) + '...';
 }

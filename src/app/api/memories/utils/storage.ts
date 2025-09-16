@@ -10,15 +10,15 @@
  * - Manage file storage operations
  */
 
-import { put } from "@vercel/blob";
-import { generateBlobFilename } from "@/lib/storage/blob-config";
+import { put } from '@vercel/blob';
+import { generateBlobFilename } from '@/lib/storage/blob-config';
 
 export async function uploadFileToStorage(file: File, existingBuffer?: Buffer): Promise<string> {
   const buffer = existingBuffer || Buffer.from(await file.arrayBuffer());
-  const safeFileName = file.name.replace(/[^a-zA-Z0-9-_\.]/g, "_");
+  const safeFileName = file.name.replace(/[^a-zA-Z0-9-_\.]/g, '_');
 
   const { url } = await put(generateBlobFilename(safeFileName), buffer, {
-    access: "public",
+    access: 'public',
     contentType: file.type,
   });
 
@@ -41,9 +41,9 @@ export async function uploadFileToStorageWithErrorHandling(
     // console.log("✅ File uploaded successfully to:", url);
     return { url, error: null };
   } catch (uploadError) {
-    console.error("❌ Upload error:", uploadError);
+    console.error('❌ Upload error:', uploadError);
     return {
-      url: "",
+      url: '',
       error: uploadError instanceof Error ? uploadError.message : String(uploadError),
     };
   }

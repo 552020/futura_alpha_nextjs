@@ -13,17 +13,17 @@
  * - Preview of processed images
  */
 
-"use client";
+'use client';
 
-import React, { useState, useCallback } from "react";
-import Image from "next/image";
+import React, { useState, useCallback } from 'react';
+import Image from 'next/image';
 import {
   uploadMultipleImagesWithAssets,
   getOptimalAssetUrl,
   calculateUploadSize,
   type UploadProgress,
   type UploadResult,
-} from "@/lib/memory-upload";
+} from '@/lib/memory-upload';
 
 interface MultipleAssetsUploadProps {
   parentFolderId?: string;
@@ -44,10 +44,10 @@ export default function MultipleAssetsUpload({
   const handleFiles = useCallback(
     async (files: File[]) => {
       // Filter for image files only
-      const imageFiles = files.filter((file) => file.type.startsWith("image/"));
+      const imageFiles = files.filter(file => file.type.startsWith('image/'));
 
       if (imageFiles.length === 0) {
-        onUploadError?.("Please select image files only");
+        onUploadError?.('Please select image files only');
         return;
       }
 
@@ -58,13 +58,13 @@ export default function MultipleAssetsUpload({
       try {
         // Calculate upload size info
         const sizeInfo = calculateUploadSize(imageFiles);
-        console.log("Upload size info:", sizeInfo);
+        console.log('Upload size info:', sizeInfo);
 
         // Upload files
         const results = await uploadMultipleImagesWithAssets(imageFiles, {
           parentFolderId,
           onProgress: (fileIndex, progress) => {
-            setUploadProgress((prev) => new Map(prev).set(fileIndex, progress));
+            setUploadProgress(prev => new Map(prev).set(fileIndex, progress));
           },
           maxConcurrent: 2, // Limit concurrent uploads
         });
@@ -76,8 +76,8 @@ export default function MultipleAssetsUpload({
           onUploadError?.(`${results.failed.length} files failed to upload`);
         }
       } catch (error) {
-        console.error("Upload error:", error);
-        onUploadError?.(error instanceof Error ? error.message : "Upload failed");
+        console.error('Upload error:', error);
+        onUploadError?.(error instanceof Error ? error.message : 'Upload failed');
       } finally {
         setIsUploading(false);
       }
@@ -88,9 +88,9 @@ export default function MultipleAssetsUpload({
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
+    if (e.type === 'dragenter' || e.type === 'dragover') {
       setDragActive(true);
-    } else if (e.type === "dragleave") {
+    } else if (e.type === 'dragleave') {
       setDragActive(false);
     }
   }, []);
@@ -141,8 +141,8 @@ export default function MultipleAssetsUpload({
       {/* Upload Area */}
       <div
         className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-          dragActive ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-gray-400"
-        } ${isUploading ? "opacity-50 pointer-events-none" : ""}`}
+          dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
+        } ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
@@ -160,7 +160,7 @@ export default function MultipleAssetsUpload({
         <label htmlFor="file-upload" className="cursor-pointer block">
           <div className="text-4xl mb-4">📸</div>
           <div className="text-lg font-medium mb-2">
-            {isUploading ? "Uploading..." : "Drop images here or click to select"}
+            {isUploading ? 'Uploading...' : 'Drop images here or click to select'}
           </div>
           <div className="text-sm text-gray-500">Supports JPEG, PNG, WebP, GIF, TIFF</div>
         </label>
@@ -195,13 +195,13 @@ export default function MultipleAssetsUpload({
               <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
                 <div
                   className={`h-2 rounded-full transition-all duration-300 ${
-                    progress.stage === "error" ? "bg-red-500" : "bg-blue-600"
+                    progress.stage === 'error' ? 'bg-red-500' : 'bg-blue-600'
                   }`}
                   style={{ width: `${progress.progress}%` }}
                 />
               </div>
               <div className="flex justify-between items-center text-xs text-gray-500">
-                <span className="capitalize">{progress.stage.replace("-", " ")}</span>
+                <span className="capitalize">{progress.stage.replace('-', ' ')}</span>
                 {progress.error && <span className="text-red-500">{progress.error}</span>}
               </div>
             </div>
@@ -218,7 +218,7 @@ export default function MultipleAssetsUpload({
               <div
                 key={index}
                 className={`border rounded-lg p-4 ${
-                  result.success ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"
+                  result.success ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
                 }`}
               >
                 {result.success && result.memory ? (
@@ -239,7 +239,7 @@ export default function MultipleAssetsUpload({
                     </div>
                     <div className="mt-3">
                       <Image
-                        src={getOptimalAssetUrl(result.memory.assets, "grid")}
+                        src={getOptimalAssetUrl(result.memory.assets, 'grid')}
                         alt={result.memory.title}
                         width={200}
                         height={96}
@@ -270,17 +270,17 @@ export default function MultipleAssetsUpload({
             </div>
             <div>
               <div className="text-gray-500">Successful</div>
-              <div className="font-medium text-green-600">{uploadResults.filter((r) => r.success).length}</div>
+              <div className="font-medium text-green-600">{uploadResults.filter(r => r.success).length}</div>
             </div>
             <div>
               <div className="text-gray-500">Failed</div>
-              <div className="font-medium text-red-600">{uploadResults.filter((r) => !r.success).length}</div>
+              <div className="font-medium text-red-600">{uploadResults.filter(r => !r.success).length}</div>
             </div>
             <div>
               <div className="text-gray-500">Total Assets</div>
               <div className="font-medium">
                 {uploadResults
-                  .filter((r) => r.success && r.memory)
+                  .filter(r => r.success && r.memory)
                   .reduce((sum, r) => sum + (r.memory?.assets.length || 0), 0)}
               </div>
             </div>

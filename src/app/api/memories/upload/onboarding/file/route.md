@@ -9,13 +9,13 @@ Analysis of `route.ts` to identify logical units that can be exported as reusabl
 ### 1. **Form Data Parsing & File Extraction** (lines 7-15)
 
 ```typescript
-console.log("📦 Parsing form data...");
+console.log('📦 Parsing form data...');
 const formData = await request.formData();
-const file = formData.get("file") as File;
+const file = formData.get('file') as File;
 
 if (!file) {
-  console.error("❌ No file found in form data");
-  return NextResponse.json({ error: "Missing file" }, { status: 400 });
+  console.error('❌ No file found in form data');
+  return NextResponse.json({ error: 'Missing file' }, { status: 400 });
 }
 ```
 
@@ -26,7 +26,7 @@ if (!file) {
 ### 2. **File Details Logging** (lines 17-22)
 
 ```typescript
-console.log("📄 File details:", {
+console.log('📄 File details:', {
   name: file.name,
   type: file.type,
   size: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
@@ -39,7 +39,7 @@ console.log("📄 File details:", {
 
 ```typescript
 if (!isAcceptedMimeType(file.type)) {
-  return NextResponse.json({ error: "Invalid file type" }, { status: 400 });
+  return NextResponse.json({ error: 'Invalid file type' }, { status: 400 });
 }
 ```
 
@@ -50,22 +50,22 @@ if (!isAcceptedMimeType(file.type)) {
 ```typescript
 let validationResult;
 try {
-  console.log("🔍 Starting file validation...");
+  console.log('🔍 Starting file validation...');
   validationResult = await validateFile(file);
   if (!validationResult.isValid) {
-    console.error("❌ File validation failed:", validationResult.error);
+    console.error('❌ File validation failed:', validationResult.error);
     return NextResponse.json({ error: validationResult.error }, { status: 400 });
   }
-  console.log("✅ File validation successful:", {
+  console.log('✅ File validation successful:', {
     type: file.type,
     size: file.size,
   });
 } catch (validationError) {
-  console.error("❌ Validation error:", validationError);
+  console.error('❌ Validation error:', validationError);
   return NextResponse.json(
     {
-      error: "File validation failed",
-      step: "validation",
+      error: 'File validation failed',
+      step: 'validation',
       details: validationError instanceof Error ? validationError.message : String(validationError),
     },
     { status: 500 }
@@ -80,15 +80,15 @@ try {
 ```typescript
 let url;
 try {
-  console.log("📤 Starting file upload to storage...");
+  console.log('📤 Starting file upload to storage...');
   url = await uploadFileToStorage(file, validationResult.buffer);
-  console.log("✅ File uploaded successfully to:", url);
+  console.log('✅ File uploaded successfully to:', url);
 } catch (uploadError) {
-  console.error("❌ Upload error:", uploadError);
+  console.error('❌ Upload error:', uploadError);
   return NextResponse.json(
     {
-      error: "File upload failed",
-      step: "upload",
+      error: 'File upload failed',
+      step: 'upload',
       details: uploadError instanceof Error ? uploadError.message : String(uploadError),
     },
     { status: 500 }
@@ -102,16 +102,16 @@ try {
 
 ```typescript
 let allUser;
-const existingUserId = formData.get("existingUserId") as string;
+const existingUserId = formData.get('existingUserId') as string;
 
 if (existingUserId) {
-  console.log("👤 Using existing user:", existingUserId);
+  console.log('👤 Using existing user:', existingUserId);
   allUser = { id: existingUserId };
 } else {
-  console.log("👤 Creating temporary user...");
-  const result = await createTemporaryUserBase("inviter");
+  console.log('👤 Creating temporary user...');
+  const result = await createTemporaryUserBase('inviter');
   allUser = result.allUser;
-  console.log("✅ Temporary user created:", { userId: allUser.id });
+  console.log('✅ Temporary user created:', { userId: allUser.id });
 }
 ```
 
@@ -121,7 +121,7 @@ if (existingUserId) {
 
 ```typescript
 try {
-  console.log("💾 Storing file metadata in database...");
+  console.log('💾 Storing file metadata in database...');
   const result = await storeInDatabase({
     type: getMemoryType(file.type),
     ownerId: allUser.id,
@@ -134,18 +134,18 @@ try {
       mimeType: file.type,
     },
   });
-  console.log("✅ File metadata stored successfully");
+  console.log('✅ File metadata stored successfully');
 
   return NextResponse.json({
     ...result,
     ownerId: allUser.id,
   });
 } catch (dbError) {
-  console.error("❌ Database error:", dbError);
+  console.error('❌ Database error:', dbError);
   return NextResponse.json(
     {
-      error: "Failed to store file metadata",
-      step: "database",
+      error: 'Failed to store file metadata',
+      step: 'database',
       details: dbError instanceof Error ? dbError.message : String(dbError),
     },
     { status: 500 }

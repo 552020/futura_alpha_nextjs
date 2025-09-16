@@ -3,10 +3,10 @@
  * This file is only used on the server side and should not be imported by frontend code.
  */
 
-import sharp from "sharp";
+import sharp from 'sharp';
 
 export interface ProcessedImageAsset {
-  assetType: "original" | "display" | "thumb";
+  assetType: 'original' | 'display' | 'thumb';
   blob: File;
   width: number;
   height: number;
@@ -33,7 +33,7 @@ export async function processImageForMultipleAssetsBackend(file: File): Promise<
   const { width: originalWidth, height: originalHeight } = metadata;
 
   if (!originalWidth || !originalHeight) {
-    throw new Error("Could not determine image dimensions");
+    throw new Error('Could not determine image dimensions');
   }
 
   // Calculate resize dimensions
@@ -48,7 +48,7 @@ export async function processImageForMultipleAssetsBackend(file: File): Promise<
     // Display: Resize and convert to WebP
     sharp(buffer)
       .resize(displaySize.width, displaySize.height, {
-        fit: "inside",
+        fit: 'inside',
         withoutEnlargement: true,
       })
       .webp({ quality: 85 })
@@ -57,7 +57,7 @@ export async function processImageForMultipleAssetsBackend(file: File): Promise<
     // Thumbnail: Resize and convert to WebP
     sharp(buffer)
       .resize(thumbSize.width, thumbSize.height, {
-        fit: "inside",
+        fit: 'inside',
         withoutEnlargement: true,
       })
       .webp({ quality: 80 })
@@ -65,34 +65,34 @@ export async function processImageForMultipleAssetsBackend(file: File): Promise<
   ]);
 
   // Create File objects for each processed image
-  const originalBlob = new File([new Uint8Array(originalBuffer)], file.name, { type: "image/webp" });
-  const displayBlob = new File([new Uint8Array(displayBuffer)], `display_${file.name}`, { type: "image/webp" });
-  const thumbBlob = new File([new Uint8Array(thumbBuffer)], `thumb_${file.name}`, { type: "image/webp" });
+  const originalBlob = new File([new Uint8Array(originalBuffer)], file.name, { type: 'image/webp' });
+  const displayBlob = new File([new Uint8Array(displayBuffer)], `display_${file.name}`, { type: 'image/webp' });
+  const thumbBlob = new File([new Uint8Array(thumbBuffer)], `thumb_${file.name}`, { type: 'image/webp' });
 
   return {
     original: {
-      assetType: "original",
+      assetType: 'original',
       blob: originalBlob,
       width: originalWidth,
       height: originalHeight,
       size: originalBuffer.length,
-      mimeType: "image/webp",
+      mimeType: 'image/webp',
     },
     display: {
-      assetType: "display",
+      assetType: 'display',
       blob: displayBlob,
       width: displaySize.width,
       height: displaySize.height,
       size: displayBuffer.length,
-      mimeType: "image/webp",
+      mimeType: 'image/webp',
     },
     thumb: {
-      assetType: "thumb",
+      assetType: 'thumb',
       blob: thumbBlob,
       width: thumbSize.width,
       height: thumbSize.height,
       size: thumbBuffer.length,
-      mimeType: "image/webp",
+      mimeType: 'image/webp',
     },
   };
 }

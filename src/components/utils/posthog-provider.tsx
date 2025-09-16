@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import posthog from "posthog-js";
-import { PostHogProvider as PHProvider, usePostHog } from "posthog-js/react";
-import { Suspense, useEffect } from "react";
-import { usePathname } from "next/navigation";
+import posthog from 'posthog-js';
+import { PostHogProvider as PHProvider, usePostHog } from 'posthog-js/react';
+import { Suspense, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
   const apiHost = process.env.NEXT_PUBLIC_POSTHOG_INGEST;
@@ -43,7 +43,7 @@ function PostHogPageView() {
     if (posthog && pathname) {
       const url = window.origin + pathname;
       // console.log("📡 Capturing pageview:", url);
-      posthog.capture("$pageview", {
+      posthog.capture('$pageview', {
         $current_url: url,
         $pathname: pathname,
       });

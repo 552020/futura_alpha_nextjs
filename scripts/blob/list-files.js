@@ -10,30 +10,30 @@
  * - Storage usage breakdown
  */
 
-const { list } = require("@vercel/blob");
-const fs = require("fs");
-const path = require("path");
+const { list } = require('@vercel/blob');
+const fs = require('fs');
+const path = require('path');
 
 // Load environment variables from .env.local
-require("dotenv").config({ path: path.join(__dirname, "../../.env.local") });
+require('dotenv').config({ path: path.join(__dirname, '../../.env.local') });
 
 async function listBlobFiles() {
-  console.log("📋 Listing all files in Vercel Blob storage...\n");
+  console.log('📋 Listing all files in Vercel Blob storage...\n');
 
   try {
     // Check if token is available
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      throw new Error("BLOB_READ_WRITE_TOKEN not found in environment variables");
+      throw new Error('BLOB_READ_WRITE_TOKEN not found in environment variables');
     }
-    console.log("✅ BLOB_READ_WRITE_TOKEN found\n");
+    console.log('✅ BLOB_READ_WRITE_TOKEN found\n');
 
     // Get all blobs
-    console.log("🔍 Fetching all files...");
+    console.log('🔍 Fetching all files...');
     const blobs = await list();
     const files = blobs.blobs;
 
     if (files.length === 0) {
-      console.log("📭 No files found in blob storage");
+      console.log('📭 No files found in blob storage');
       return;
     }
 
@@ -48,14 +48,14 @@ async function listBlobFiles() {
 
     // Group files by type
     const filesByType = files.reduce((acc, file) => {
-      const contentType = file.contentType || "unknown";
-      const type = contentType.split("/")[0];
+      const contentType = file.contentType || 'unknown';
+      const type = contentType.split('/')[0];
       if (!acc[type]) acc[type] = [];
       acc[type].push(file);
       return acc;
     }, {});
 
-    console.log("📁 Files by type:");
+    console.log('📁 Files by type:');
     Object.entries(filesByType)
       .sort(([, a], [, b]) => b.length - a.length)
       .forEach(([type, typeFiles]) => {
@@ -66,14 +66,14 @@ async function listBlobFiles() {
 
     // Group files by folder/prefix
     const filesByFolder = files.reduce((acc, file) => {
-      const pathParts = file.pathname.split("/");
-      const folder = pathParts.length > 1 ? pathParts[0] : "root";
+      const pathParts = file.pathname.split('/');
+      const folder = pathParts.length > 1 ? pathParts[0] : 'root';
       if (!acc[folder]) acc[folder] = [];
       acc[folder].push(file);
       return acc;
     }, {});
 
-    console.log("\n📂 Files by folder:");
+    console.log('\n📂 Files by folder:');
     Object.entries(filesByFolder)
       .sort(([, a], [, b]) => b.length - a.length)
       .forEach(([folder, folderFiles]) => {
@@ -85,16 +85,16 @@ async function listBlobFiles() {
     // Recent uploads (last 10)
     const recentFiles = files.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt)).slice(0, 10);
 
-    console.log("\n🕒 Recent uploads (last 10):");
+    console.log('\n🕒 Recent uploads (last 10):');
     recentFiles.forEach((file, index) => {
       const sizeKB = (file.size / 1024).toFixed(2);
       const uploadedAt = new Date(file.uploadedAt).toLocaleString();
       console.log(`   ${index + 1}. ${file.pathname}`);
-      console.log(`      Size: ${sizeKB} KB | Type: ${file.contentType || "unknown"} | Uploaded: ${uploadedAt}`);
+      console.log(`      Size: ${sizeKB} KB | Type: ${file.contentType || 'unknown'} | Uploaded: ${uploadedAt}`);
     });
 
     // Large files (> 1MB)
-    const largeFiles = files.filter((file) => file.size > 1024 * 1024).sort((a, b) => b.size - a.size);
+    const largeFiles = files.filter(file => file.size > 1024 * 1024).sort((a, b) => b.size - a.size);
 
     if (largeFiles.length > 0) {
       console.log(`\n📦 Large files (> 1MB):`);
@@ -106,12 +106,12 @@ async function listBlobFiles() {
 
     // File type breakdown
     const contentTypeCounts = files.reduce((acc, file) => {
-      const contentType = file.contentType || "unknown";
+      const contentType = file.contentType || 'unknown';
       acc[contentType] = (acc[contentType] || 0) + 1;
       return acc;
     }, {});
 
-    console.log("\n🎯 File type breakdown:");
+    console.log('\n🎯 File type breakdown:');
     Object.entries(contentTypeCounts)
       .sort(([, a], [, b]) => b - a)
       .forEach(([contentType, count]) => {
@@ -134,7 +134,7 @@ async function listBlobFiles() {
           },
         ])
       ),
-      files: files.map((file) => ({
+      files: files.map(file => ({
         pathname: file.pathname,
         size: file.size,
         contentType: file.contentType,
@@ -143,13 +143,13 @@ async function listBlobFiles() {
       })),
     };
 
-    const exportPath = path.join(__dirname, "blob-files-export.json");
+    const exportPath = path.join(__dirname, 'blob-files-export.json');
     fs.writeFileSync(exportPath, JSON.stringify(exportData, null, 2));
     console.log(`\n💾 Export saved to: ${exportPath}`);
 
-    console.log("\n✅ File listing completed!");
+    console.log('\n✅ File listing completed!');
   } catch (error) {
-    console.error("\n❌ Error:", error.message);
+    console.error('\n❌ Error:', error.message);
     process.exit(1);
   }
 }

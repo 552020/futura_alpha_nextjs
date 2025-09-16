@@ -5,10 +5,10 @@
  * It provides image optimization, transformation, and CDN services.
  */
 
-import type { StorageProvider, UploadOptions, UploadResult, DeleteOptions } from "../types";
+import type { StorageProvider, UploadOptions, UploadResult, DeleteOptions } from '../types';
 
 export class CloudinaryProvider implements StorageProvider {
-  readonly name = "cloudinary";
+  readonly name = 'cloudinary';
 
   /**
    * Check if Cloudinary is available
@@ -27,11 +27,11 @@ export class CloudinaryProvider implements StorageProvider {
     void _file;
     void _options;
     if (!this.isAvailable()) {
-      throw new Error("Cloudinary is not available. Cloud name, API key, and API secret are required.");
+      throw new Error('Cloudinary is not available. Cloud name, API key, and API secret are required.');
     }
 
     // TODO: Implement Cloudinary upload
-    throw new Error("Cloudinary upload not yet implemented");
+    throw new Error('Cloudinary upload not yet implemented');
   }
 
   /**
@@ -42,11 +42,11 @@ export class CloudinaryProvider implements StorageProvider {
     // Suppress unused parameter warnings for placeholder implementation
     void _options;
     if (!this.isAvailable()) {
-      throw new Error("Cloudinary is not available. Cloud name, API key, and API secret are required.");
+      throw new Error('Cloudinary is not available. Cloud name, API key, and API secret are required.');
     }
 
     // TODO: Implement Cloudinary delete
-    throw new Error("Cloudinary delete not yet implemented");
+    throw new Error('Cloudinary delete not yet implemented');
   }
 
   /**
@@ -56,7 +56,7 @@ export class CloudinaryProvider implements StorageProvider {
     const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
 
     if (!cloudName) {
-      throw new Error("Cloudinary cloud name not configured");
+      throw new Error('Cloudinary cloud name not configured');
     }
 
     return `https://res.cloudinary.com/${cloudName}/image/upload/${key}`;

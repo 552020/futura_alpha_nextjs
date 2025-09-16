@@ -1,21 +1,21 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import Image from "next/image";
-import { Dictionary } from "@/utils/dictionaries";
-import { validateTranslations } from "@/components/utils/translation-validation";
+import Link from 'next/link';
+import Image from 'next/image';
+import { Dictionary } from '@/utils/dictionaries';
+import { validateTranslations } from '@/components/utils/translation-validation';
 
 interface HeroProps {
   dict: Dictionary;
   lang: string;
 }
 
-type TitleVariant = "transform-overflow" | "negative-margins" | "flow-margin";
+type TitleVariant = 'transform-overflow' | 'negative-margins' | 'flow-margin';
 
 function HeroTitle({
   text,
   fontSize,
-  variant = "transform-overflow",
+  variant = 'transform-overflow',
   offsetRem = 3,
 }: {
   text: string;
@@ -24,18 +24,18 @@ function HeroTitle({
   /** Vertical offset from the top of the black box (in rem). */
   offsetRem?: number;
 }) {
-  if (variant === "flow-margin") {
+  if (variant === 'flow-margin') {
     // Stays in normal flow; position with marginTop and scale only
     return (
       <h1
         className="font-black leading-none tracking-wider m-0 text-white relative z-10 pointer-events-none transform-gpu origin-top scale-[1.45] mb-8 mr-3"
-        style={{ fontSize, marginTop: `${offsetRem}rem`, textShadow: "0 2px 8px rgba(0,0,0,0.5)" }}
+        style={{ fontSize, marginTop: `${offsetRem}rem`, textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}
       >
         {text}
       </h1>
     );
   }
-  if (variant === "negative-margins") {
+  if (variant === 'negative-margins') {
     return (
       <h1
         className="font-black leading-none tracking-wider m-0 -mx-2 text-white"
@@ -49,7 +49,7 @@ function HeroTitle({
   return (
     <h1
       className="font-black leading-none tracking-wider m-0 text-white relative z-10 pointer-events-none transform-gpu origin-bottom scale-[1.45] -translate-y-2.5"
-      style={{ fontSize, textShadow: "0 2px 8px rgba(0,0,0,0.5)" }}
+      style={{ fontSize, textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}
     >
       {text}
     </h1>
@@ -58,7 +58,7 @@ function HeroTitle({
 
 function Hero({ dict, lang }: HeroProps) {
   // Validate translations using the helper function
-  validateTranslations(dict, lang, "hero");
+  validateTranslations(dict, lang, 'hero');
 
   // Controls for mobile overlay typography (adjust to taste)
   const TITLE_VW = 73.5; // base vw numerator for title
@@ -76,7 +76,7 @@ function Hero({ dict, lang }: HeroProps) {
   // Manual vertical offset for the title within the black box (rem)
   const TITLE_OFFSET_REM = -1.6;
   // CTA button background color flag for demo (e.g., "#dedce9" or "white")
-  const CTA_BG_COLOR = "#dedce9";
+  const CTA_BG_COLOR = '#dedce9';
 
   return (
     <div className="w-full flex items-center justify-center min-h-[calc(100vh-4rem)]">
@@ -89,9 +89,9 @@ function Hero({ dict, lang }: HeroProps) {
             <h1
               className="font-black font-bold leading-none text-foreground"
               //   style={{ fontSize: `calc(147vw / ${(dict?.hero?.title || "Futura").length})` }}
-              style={{ fontSize: `calc(73.5vw / ${(dict?.hero?.title || "Futura").length})` }}
+              style={{ fontSize: `calc(73.5vw / ${(dict?.hero?.title || 'Futura').length})` }}
             >
-              {dict?.hero?.title || "Futura"}
+              {dict?.hero?.title || 'Futura'}
             </h1>
           </div>
 
@@ -99,7 +99,7 @@ function Hero({ dict, lang }: HeroProps) {
           <div className="pb-15 lg:pb-8">
             <p
               className="font-normal text-foreground"
-              style={{ fontSize: `calc(80vw / ${"Your Gallery. Forever.".length})` }}
+              style={{ fontSize: `calc(80vw / ${'Your Gallery. Forever.'.length})` }}
             >
               Your Gallery. Forever.
             </p>
@@ -115,7 +115,7 @@ function Hero({ dict, lang }: HeroProps) {
               fill
               sizes="100vw"
               className="w-full h-full rounded-none lg:rounded-lg shadow-none lg:shadow-lg object-cover lg:object-center"
-              style={{ objectPosition: "80% center" }}
+              style={{ objectPosition: '80% center' }}
               priority
             />
             {/* Mobile overlay text */}
@@ -129,9 +129,9 @@ function Hero({ dict, lang }: HeroProps) {
                 }}
               >
                 <HeroTitle
-                  text={dict?.hero?.title || "Futura"}
+                  text={dict?.hero?.title || 'Futura'}
                   fontSize={`calc(${(TITLE_VW * TITLE_SCALE).toFixed(1)}vw / ${
-                    (dict?.hero?.title || "Futura").length
+                    (dict?.hero?.title || 'Futura').length
                   })`}
                   //   variant={TITLE_VARIANT}
                   //   variant="transform-overflow"
@@ -142,7 +142,7 @@ function Hero({ dict, lang }: HeroProps) {
                   className="font-medium tracking-wide m-0 mt-3 leading-snug text-left ml-2 mb-[-0.5rem]"
                   style={{
                     fontSize: `calc(${(SUBTITLE_VW * SUBTITLE_SCALE).toFixed(1)}vw / ${
-                      "Your Gallery. Forever.".length
+                      'Your Gallery. Forever.'.length
                     })`,
                   }}
                 >
@@ -164,7 +164,7 @@ function Hero({ dict, lang }: HeroProps) {
             sizes="100vw"
             className="w-full h-full shadow-lg object-cover object-center"
             priority
-            style={{ objectPosition: "center 10%" }}
+            style={{ objectPosition: 'center 10%' }}
           />
         </div>
       </div>
@@ -179,7 +179,7 @@ function Hero({ dict, lang }: HeroProps) {
             sizes="100vw"
             className="w-full h-full shadow-lg object-cover object-center"
             priority
-            style={{ objectPosition: "center 10%" }}
+            style={{ objectPosition: 'center 10%' }}
           />
           {/* Desktop left-half overlay area with inner black container */}
           <div className="absolute inset-0 z-[1] flex">
@@ -191,15 +191,15 @@ function Hero({ dict, lang }: HeroProps) {
               <div className="absolute top-6 left-6 right-6 bottom-6">
                 <div
                   className="bg-black text-white h-full w-full flex flex-col justify-start items-start px-6 py-4 text-left"
-                  style={{ containerType: "inline-size" }}
+                  style={{ containerType: 'inline-size' }}
                 >
                   <div
                     className="font-black text-white leading-none w-full"
-                    style={{ fontSize: "clamp(4rem, 9vw, 14rem)" }}
+                    style={{ fontSize: 'clamp(4rem, 9vw, 14rem)' }}
                   >
                     Futura
                   </div>
-                  <div className="mt-2 text-white/90 w-full" style={{ fontSize: "clamp(2rem, 3vw, 6rem)" }}>
+                  <div className="mt-2 text-white/90 w-full" style={{ fontSize: 'clamp(2rem, 3vw, 6rem)' }}>
                     Your Gallery. Forever.
                   </div>
                 </div>
@@ -219,9 +219,9 @@ function Hero({ dict, lang }: HeroProps) {
             href={`/${lang}/onboarding/items-upload`}
             className="relative w-24 h-24 rounded-full flex items-center justify-center cursor-pointer text-neutral-900 border-2 border-transparent transition-all text-4xl font-bold"
             style={{ backgroundColor: CTA_BG_COLOR }}
-            aria-label={dict?.hero?.startNow || "Start Now"}
+            aria-label={dict?.hero?.startNow || 'Start Now'}
           >
-            {dict?.hero?.arrowSymbol || "→"}
+            {dict?.hero?.arrowSymbol || '→'}
           </Link>
         </div>
       </div>

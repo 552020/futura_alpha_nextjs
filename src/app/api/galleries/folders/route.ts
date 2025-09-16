@@ -1,15 +1,15 @@
-import { NextResponse } from "next/server";
-import { auth } from "@/auth";
-import { db } from "@/db/db";
-import { eq, sql } from "drizzle-orm";
-import { allUsers, images, videos, documents, notes, audio } from "@/db/schema";
-import { FolderInfo } from "@/types/gallery";
+import { NextResponse } from 'next/server';
+import { auth } from '@/auth';
+import { db } from '@/db/db';
+import { eq, sql } from 'drizzle-orm';
+import { allUsers, images, videos, documents, notes, audio } from '@/db/schema';
+import { FolderInfo } from '@/types/gallery';
 
 export async function GET() {
   // Check authentication
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
@@ -19,8 +19,8 @@ export async function GET() {
     });
 
     if (!allUserRecord) {
-      console.error("No allUsers record found for user:", session.user.id);
-      return NextResponse.json({ error: "User record not found" }, { status: 404 });
+      console.error('No allUsers record found for user:', session.user.id);
+      return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
     // console.log("Fetching folders for user:", {
@@ -89,11 +89,11 @@ export async function GET() {
 
     // Combine all memories and group by folder name
     const allMemories = [
-      ...folderImages.map((img) => ({ ...img, type: "image" as const })),
-      ...folderVideos.map((vid) => ({ ...vid, type: "video" as const })),
-      ...folderDocuments.map((doc) => ({ ...doc, type: "document" as const })),
-      ...folderNotes.map((note) => ({ ...note, type: "note" as const })),
-      ...folderAudio.map((aud) => ({ ...aud, type: "audio" as const })),
+      ...folderImages.map(img => ({ ...img, type: 'image' as const })),
+      ...folderVideos.map(vid => ({ ...vid, type: 'video' as const })),
+      ...folderDocuments.map(doc => ({ ...doc, type: 'document' as const })),
+      ...folderNotes.map(note => ({ ...note, type: 'note' as const })),
+      ...folderAudio.map(aud => ({ ...aud, type: 'audio' as const })),
     ];
 
     // Group memories by folder name
@@ -101,8 +101,8 @@ export async function GET() {
 
     // TODO: Update this logic to use the new unified schema with parentFolderId
     // For now, group all memories under "All Files" to make build pass
-    allMemories.forEach((memory) => {
-      const folderName = "All Files"; // Temporary fallback
+    allMemories.forEach(memory => {
+      const folderName = 'All Files'; // Temporary fallback
       if (!folderMap.has(folderName)) {
         folderMap.set(folderName, []);
       }
@@ -119,7 +119,7 @@ export async function GET() {
         name: folderName,
         imageCount: memories.length,
         previewImages: previewImages.length > 0 ? previewImages : [],
-        hasImages: memories.some((memory) => memory.type === "image"),
+        hasImages: memories.some(memory => memory.type === 'image'),
       };
     });
 
@@ -133,7 +133,7 @@ export async function GET() {
 
     return NextResponse.json(folders);
   } catch (error) {
-    console.error("Error fetching folders:", error);
-    return NextResponse.json({ error: "Failed to fetch folders" }, { status: 500 });
+    console.error('Error fetching folders:', error);
+    return NextResponse.json({ error: 'Failed to fetch folders' }, { status: 500 });
   }
 }

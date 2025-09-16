@@ -9,18 +9,18 @@
  * @deprecated Use storeInNewDatabase() from memory-database.ts instead
  */
 
-import { db } from "@/db/db";
-import { memories } from "@/db/schema";
+import { db } from '@/db/db';
+import { memories } from '@/db/schema';
 // import { NewDBMemory, NewDBMemoryAsset } from "@/db/schema"; // Unused in legacy functions
-import crypto from "crypto";
-import type { AcceptedMimeType } from "./file-processing";
+import crypto from 'crypto';
+import type { AcceptedMimeType } from './file-processing';
 
 /**
  * @deprecated Use storeInNewDatabase() from memory-database.ts instead
  * Legacy function that stores in the old schema structure
  */
 export async function storeInDatabase(params: {
-  type: "document" | "image" | "video";
+  type: 'document' | 'image' | 'video';
   ownerId: string;
   url: string;
   file: File;
@@ -38,14 +38,14 @@ export async function storeInDatabase(params: {
 
   let memoryData: { id: string; ownerId: string };
 
-  if (type === "image") {
+  if (type === 'image') {
     const [image] = await db
       .insert(memories)
       .values({
         ownerId,
-        type: "image",
-        title: file.name.split(".")[0],
-        description: "",
+        type: 'image',
+        title: file.name.split('.')[0],
+        description: '',
         fileCreatedAt: new Date(),
         isPublic: false,
         parentFolderId: null,
@@ -53,14 +53,14 @@ export async function storeInDatabase(params: {
       })
       .returning();
     memoryData = image;
-  } else if (type === "video") {
+  } else if (type === 'video') {
     const [video] = await db
       .insert(memories)
       .values({
         ownerId,
-        type: "video",
-        title: file.name.split(".")[0],
-        description: "",
+        type: 'video',
+        title: file.name.split('.')[0],
+        description: '',
         fileCreatedAt: new Date(),
         isPublic: false,
         parentFolderId: null,
@@ -73,9 +73,9 @@ export async function storeInDatabase(params: {
       .insert(memories)
       .values({
         ownerId,
-        type: "document",
-        title: file.name.split(".")[0],
-        description: "",
+        type: 'document',
+        title: file.name.split('.')[0],
+        description: '',
         fileCreatedAt: new Date(),
         isPublic: false,
         parentFolderId: null,
@@ -86,7 +86,7 @@ export async function storeInDatabase(params: {
   }
 
   // Create storage edges for the newly created memory
-  const { createStorageEdgesForMemory } = await import("./memory-database");
+  const { createStorageEdgesForMemory } = await import('./memory-database');
   const storageEdgeResult = await createStorageEdgesForMemory({
     memoryId: memoryData.id,
     memoryType: type,
@@ -95,7 +95,7 @@ export async function storeInDatabase(params: {
   });
 
   if (!storageEdgeResult.success) {
-    console.warn("⚠️ Failed to create storage edges for memory:", memoryData.id, storageEdgeResult.error);
+    console.warn('⚠️ Failed to create storage edges for memory:', memoryData.id, storageEdgeResult.error);
     // Don't fail the upload if storage edge creation fails
   }
 
@@ -110,9 +110,9 @@ export async function storeFileInDatabaseWithErrorHandling(
   file: File,
   url: string,
   ownerId: string,
-  getMemoryType: (mimeType: AcceptedMimeType) => "document" | "image" | "video",
+  getMemoryType: (mimeType: AcceptedMimeType) => 'document' | 'image' | 'video',
   storeInDatabase: (params: {
-    type: "image" | "video" | "document";
+    type: 'image' | 'video' | 'document';
     ownerId: string;
     url: string;
     file: File;
@@ -141,7 +141,7 @@ export async function storeFileInDatabaseWithErrorHandling(
     // console.log("✅ File metadata stored successfully");
     return { result, error: null };
   } catch (dbError) {
-    console.error("❌ Database error:", dbError);
+    console.error('❌ Database error:', dbError);
     return {
       result: null,
       error: dbError instanceof Error ? dbError.message : String(dbError),

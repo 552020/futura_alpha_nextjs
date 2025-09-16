@@ -1,8 +1,8 @@
-import { db } from "@/db/db";
-import { memoryShares, groupMember, relationship, allUsers, memories } from "@/db/schema";
-import { and, eq } from "drizzle-orm";
+import { db } from '@/db/db';
+import { memoryShares, groupMember, relationship, allUsers, memories } from '@/db/schema';
+import { and, eq } from 'drizzle-orm';
 
-export type AccessLevel = "read" | "write" | "owner";
+export type AccessLevel = 'read' | 'write' | 'owner';
 
 export async function getMemoryAccessLevel({
   userId,
@@ -15,7 +15,7 @@ export async function getMemoryAccessLevel({
   const memory = await db.query.memories.findFirst({
     where: and(eq(memories.id, memoryId), eq(memories.ownerId, userId)),
   });
-  if (memory) return "owner";
+  if (memory) return 'owner';
 
   // Step 1: Direct user share
   const directShare = await db.query.memoryShares.findFirst({
@@ -43,11 +43,11 @@ export async function getMemoryAccessLevel({
       and(
         eq(relationship.relatedUserId, userId),
         eq(relationship.userId, memoryShares.ownerId),
-        eq(relationship.status, "accepted"),
+        eq(relationship.status, 'accepted'),
         eq(relationship.type, memoryShares.sharedRelationshipType)
       )
     )
-    .where(and(eq(memoryShares.memoryId, memoryId), eq(memoryShares.sharedWithType, "relationship")))
+    .where(and(eq(memoryShares.memoryId, memoryId), eq(memoryShares.sharedWithType, 'relationship')))
     .limit(1);
   if (relShare.length > 0) return relShare[0].accessLevel;
 

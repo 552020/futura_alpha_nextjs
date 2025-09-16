@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import posthog from "posthog-js";
-import { useEffect, useState } from "react";
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import posthog from 'posthog-js';
+import { useEffect, useState } from 'react';
 
 type PostHogEventProperties = {
   property?: string;
@@ -40,23 +40,23 @@ export default function PostHogTestPage() {
 
   const testEvents = [
     {
-      name: "test_event",
-      properties: { property: "test_value" },
+      name: 'test_event',
+      properties: { property: 'test_value' },
     },
     {
-      name: "button_click",
-      properties: { button_type: "primary", location: "test_page" },
+      name: 'button_click',
+      properties: { button_type: 'primary', location: 'test_page' },
     },
     {
-      name: "user_action",
-      properties: { action_type: "test", timestamp: new Date().toISOString() },
+      name: 'user_action',
+      properties: { action_type: 'test', timestamp: new Date().toISOString() },
     },
   ];
 
   const handleTestEvent = (eventName: string, properties: PostHogEventProperties) => {
     posthog.capture(eventName, properties);
     setLastEvent(`Event &ldquo;${eventName}&rdquo; sent at ${new Date().toLocaleTimeString()}`);
-    console.log("PostHog event sent:", { eventName, properties });
+    console.log('PostHog event sent:', { eventName, properties });
   };
 
   return (
@@ -66,8 +66,8 @@ export default function PostHogTestPage() {
 
         <div className="mb-6">
           <h2 className="text-lg font-semibold mb-2">PostHog Status</h2>
-          <p className={`text-sm ${isPosthogReady ? "text-green-600" : "text-red-600"}`}>
-            PostHog is {isPosthogReady ? "ready" : "not ready"}
+          <p className={`text-sm ${isPosthogReady ? 'text-green-600' : 'text-red-600'}`}>
+            PostHog is {isPosthogReady ? 'ready' : 'not ready'}
           </p>
           {isPosthogReady && <p className="text-sm text-muted-foreground mt-1">Project ID: {posthog.config.token}</p>}
         </div>
@@ -75,7 +75,7 @@ export default function PostHogTestPage() {
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Test Events</h2>
           <div className="grid gap-3">
-            {testEvents.map((event) => (
+            {testEvents.map(event => (
               <Button key={event.name} onClick={() => handleTestEvent(event.name, event.properties)} variant="outline">
                 Send &ldquo;{event.name}&rdquo;
               </Button>

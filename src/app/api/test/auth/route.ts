@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "../../../../lib/requireAuth";
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '../../../../lib/requireAuth';
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,9 +9,9 @@ export async function POST(request: NextRequest) {
     if (!session) {
       return NextResponse.json(
         {
-          message: "Authentication required",
-          error: "No valid session found",
-          status: "unauthorized",
+          message: 'Authentication required',
+          error: 'No valid session found',
+          status: 'unauthorized',
         },
         { status: 401 }
       );
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       {
-        message: "Hello from authenticated test endpoint!",
+        message: 'Hello from authenticated test endpoint!',
         user: {
           id: session.user?.id,
           email: session.user?.email,
@@ -38,18 +38,18 @@ export async function POST(request: NextRequest) {
         },
         receivedData: body,
         timestamp: new Date().toISOString(),
-        method: "POST",
-        endpoint: "/api/test/auth",
-        status: "success",
+        method: 'POST',
+        endpoint: '/api/test/auth',
+        status: 'success',
       },
       { status: 200 }
     );
   } catch (error) {
     return NextResponse.json(
       {
-        message: "Error in authenticated test endpoint",
-        error: error instanceof Error ? error.message : "Unknown error",
-        status: "error",
+        message: 'Error in authenticated test endpoint',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        status: 'error',
       },
       { status: 500 }
     );
@@ -65,9 +65,9 @@ export async function GET(request: NextRequest) {
     if (!session) {
       return NextResponse.json(
         {
-          message: "Authentication required",
-          error: "No valid session found",
-          status: "unauthorized",
+          message: 'Authentication required',
+          error: 'No valid session found',
+          status: 'unauthorized',
         },
         { status: 401 }
       );
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(
       {
-        message: "Hello from authenticated GET test endpoint!",
+        message: 'Hello from authenticated GET test endpoint!',
         user: {
           id: session.user?.id,
           email: session.user?.email,
@@ -90,18 +90,18 @@ export async function GET(request: NextRequest) {
           expires: session.expires,
         },
         timestamp: new Date().toISOString(),
-        method: "GET",
-        endpoint: "/api/test/auth",
-        status: "success",
+        method: 'GET',
+        endpoint: '/api/test/auth',
+        status: 'success',
       },
       { status: 200 }
     );
   } catch (error) {
     return NextResponse.json(
       {
-        message: "Error in authenticated test endpoint",
-        error: error instanceof Error ? error.message : "Unknown error",
-        status: "error",
+        message: 'Error in authenticated test endpoint',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        status: 'error',
       },
       { status: 500 }
     );

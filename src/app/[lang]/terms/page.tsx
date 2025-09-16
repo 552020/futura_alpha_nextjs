@@ -68,7 +68,7 @@ export default async function TermsOfServicePage({ params }: { params: Promise<{
 
         <h2 className="text-xl font-semibold mt-8">10. Contact</h2>
         <p>
-          Questions about these Terms? Contact us at{" "}
+          Questions about these Terms? Contact us at{' '}
           <a className="underline" href={`/${lang}/contact`}>
             Contact
           </a>

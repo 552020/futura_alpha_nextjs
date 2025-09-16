@@ -1,52 +1,52 @@
-import fs from "fs";
-import path from "path";
+import fs from 'fs';
+import path from 'path';
 
 // Configuration
-const GALLERIES_DIR = path.join(process.cwd(), "public/mock/galleries");
-const OUTPUT_FILE = path.join(process.cwd(), "src/app/[lang]/gallery/generated-gallery-data.ts");
+const GALLERIES_DIR = path.join(process.cwd(), 'public/mock/galleries');
+const OUTPUT_FILE = path.join(process.cwd(), 'src/app/[lang]/gallery/generated-gallery-data.ts');
 
 // Gallery configurations
 const GALLERY_CONFIGS = [
   {
-    id: "portrait-gallery",
-    title: "Portrait Collection",
-    description: "Beautiful portrait photography showcasing people and emotions",
+    id: 'portrait-gallery',
+    title: 'Portrait Collection',
+    description: 'Beautiful portrait photography showcasing people and emotions',
     isPublic: true,
   },
   {
-    id: "landscape-gallery",
-    title: "Landscape Photography",
-    description: "Stunning landscapes from around the world",
+    id: 'landscape-gallery',
+    title: 'Landscape Photography',
+    description: 'Stunning landscapes from around the world',
     isPublic: true,
   },
   {
-    id: "mixed-gallery",
-    title: "Mixed Media Gallery",
-    description: "A diverse collection of different photography styles",
+    id: 'mixed-gallery',
+    title: 'Mixed Media Gallery',
+    description: 'A diverse collection of different photography styles',
     isPublic: false,
   },
   {
-    id: "wild-gallery",
-    title: "Wild & Free",
-    description: "Adventure and nature photography",
+    id: 'wild-gallery',
+    title: 'Wild & Free',
+    description: 'Adventure and nature photography',
     isPublic: true,
   },
   {
-    id: "small-gallery",
-    title: "Small Moments",
-    description: "Intimate moments captured in time",
+    id: 'small-gallery',
+    title: 'Small Moments',
+    description: 'Intimate moments captured in time',
     isPublic: false,
   },
   {
-    id: "large-gallery",
-    title: "Large Collection",
-    description: "An extensive collection of memories",
+    id: 'large-gallery',
+    title: 'Large Collection',
+    description: 'An extensive collection of memories',
     isPublic: true,
   },
   {
-    id: "broken-gallery",
-    title: "Broken Links Gallery",
-    description: "Testing fallback behavior with broken image links",
+    id: 'broken-gallery',
+    title: 'Broken Links Gallery',
+    description: 'Testing fallback behavior with broken image links',
     isPublic: true,
   },
 ];
@@ -71,7 +71,7 @@ const getGalleryFiles = (galleryId: string): string[] => {
   try {
     const files = fs
       .readdirSync(galleryDir)
-      .filter((file) => file.endsWith(".webp"))
+      .filter(file => file.endsWith('.webp'))
       .sort();
 
     return files;
@@ -84,21 +84,21 @@ const getGalleryFiles = (galleryId: string): string[] => {
 // Generate broken links for testing fallback behavior
 const generateBrokenLinks = (): string[] => {
   return [
-    "broken_image_1.webp",
-    "missing_photo_2.webp",
-    "error_image_3.webp",
-    "not_found_4.webp",
-    "invalid_link_5.webp",
+    'broken_image_1.webp',
+    'missing_photo_2.webp',
+    'error_image_3.webp',
+    'not_found_4.webp',
+    'invalid_link_5.webp',
   ];
 };
 
 // Generate mock data
 const generateMockData = () => {
-  const galleries = GALLERY_CONFIGS.map((config) => {
+  const galleries = GALLERY_CONFIGS.map(config => {
     let files: string[];
     let imageCount: number;
 
-    if (config.id === "broken-gallery") {
+    if (config.id === 'broken-gallery') {
       // Use broken links for testing fallback
       files = generateBrokenLinks();
       imageCount = files.length;
@@ -117,7 +117,7 @@ const generateMockData = () => {
       id: `memory-${config.id}-${index + 1}`,
       title: `Photo ${index + 1}`,
       description: `Beautiful photo ${index + 1} from ${config.title}`,
-      type: "image" as const,
+      type: 'image' as const,
       url: `/mock/galleries/${config.id}/${file}`,
       createdAt: getRandomDate(),
       metadata: {},
@@ -130,12 +130,12 @@ const generateMockData = () => {
       isPublic: config.isPublic,
       createdAt: createdAt,
       updatedAt: createdAt,
-      ownerId: "mock-user-1",
+      ownerId: 'mock-user-1',
       items: memories.map((memory, index) => ({
         id: `item-${config.id}-${index}`,
         galleryId: config.id,
         memoryId: memory.id,
-        memoryType: "image" as const,
+        memoryType: 'image' as const,
         position: index,
         caption: `Photo ${index + 1}`,
         isFeatured: false,
@@ -179,7 +179,7 @@ export const getAllGeneratedGalleries = (): GalleryWithItems[] => {
 
 // Main execution
 const main = () => {
-  console.log("🔍 Scanning gallery directories...");
+  console.log('🔍 Scanning gallery directories...');
 
   const galleries = generateMockData();
   const tsContent = generateTypeScriptFile(galleries);
@@ -197,7 +197,7 @@ const main = () => {
   console.log(`📁 Output file: ${OUTPUT_FILE}`);
 
   // Log summary
-  galleries.forEach((gallery) => {
+  galleries.forEach(gallery => {
     console.log(`  - ${gallery.title}: ${gallery.imageCount} images`);
   });
 };
