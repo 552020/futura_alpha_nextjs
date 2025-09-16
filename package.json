@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "concurrently \"next dev --turbopack\" \"npm run dev:ngrok\"",
+    "dev:nextjs": "next dev --turbopack",
     "dev:ngrok": "ngrok http --url=theological-damion-unpatronizing.ngrok-free.app 3000",
-    "dev:with-ngrok": "concurrently \"npm run dev\" \"npm run dev:ngrok\"",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

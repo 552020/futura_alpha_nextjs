@@ -29,7 +29,7 @@ NODE_ENV=development
 NEXT_PUBLIC_NGROK_URL=https://theological-damion-unpatronizing.ngrok-free.app
 
 # 2. Start development
-npm run dev:with-ngrok
+npm run dev
 ```
 
 This uses the shared domain: `https://theological-damion-unpatronizing.ngrok-free.app`
@@ -45,15 +45,16 @@ ngrok http 3000
 NEXT_PUBLIC_NGROK_URL=https://your-domain.ngrok-free.app
 
 # 3. Start development
-npm run dev:with-ngrok
+npm run dev
 ```
 
 ## Available Scripts
 
-| Script                   | Purpose                      | Usage                       |
-| ------------------------ | ---------------------------- | --------------------------- |
-| `npm run dev:ngrok`      | Start ngrok tunnel only      | For manual ngrok management |
-| `npm run dev:with-ngrok` | Start both Next.js and ngrok | Main development command    |
+| Script               | Purpose                      | Usage                       |
+| -------------------- | ---------------------------- | --------------------------- |
+| `npm run dev`        | Start both Next.js and ngrok | Main development command    |
+| `npm run dev:nextjs` | Start Next.js only           | For local development only  |
+| `npm run dev:ngrok`  | Start ngrok tunnel only      | For manual ngrok management |
 
 ## Files in This Directory
 
@@ -119,7 +120,7 @@ export NEXT_PUBLIC_NGROK_URL=https://abc123.ngrok-free.app
 NEXT_PUBLIC_NGROK_URL=https://your-domain.ngrok-free.app
 
 # Start development
-npm run dev:with-ngrok
+npm run dev
 ```
 
 ## Team Development
