@@ -123,20 +123,20 @@ export async function handleApiMemoryPost(request: NextRequest): Promise<NextRes
       // This handles the case where a file was uploaded to Vercel Blob via client-side upload
       // but the onUploadCompleted callback failed due to localhost limitations
       console.log('🔧 Handling blob URL request (localhost workaround)...');
-      
+
       const body = await request.json();
       const { blobUrl, filename, contentType, size, pathname, isOnboarding, mode } = body;
-      
+
       if (!blobUrl) {
         return NextResponse.json({ error: 'blobUrl is required' }, { status: 400 });
       }
-      
+
       // Get user ID
       const { allUserId, error } = await getAllUserId(request);
       if (error) {
         return error;
       }
-      
+
       // Create memory from blob using the existing utility
       const result = await createMemoryFromBlob(
         {
@@ -151,18 +151,18 @@ export async function handleApiMemoryPost(request: NextRequest): Promise<NextRes
           mode: mode || 'files',
         }
       );
-      
+
       if (!result.success) {
         return NextResponse.json({ error: result.error || 'Failed to create memory from blob' }, { status: 500 });
       }
-      
+
       // Return the created memory data
       return NextResponse.json({
         success: true,
         data: {
           id: result.memoryId,
           // Add other memory fields as needed
-        }
+        },
       });
     }
   } catch (error) {
