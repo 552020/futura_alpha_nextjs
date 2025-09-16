@@ -15,22 +15,63 @@ import { sampleDashboardMemories } from '../sample-data';
 // Demo flag - set to true to use mock data for demo
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_MEMORY === 'true';
 
+interface MemoryAsset {
+  id: string;
+  assetType: 'original' | 'display' | 'thumb' | 'placeholder' | 'poster' | 'waveform';
+  url: string;
+  mimeType: string;
+  bytes: number;
+  width?: number;
+  height?: number;
+}
+
 interface Memory {
   id: string;
   type: 'image' | 'video' | 'note' | 'audio' | 'document' | 'folder';
   title: string;
   description?: string;
   createdAt: string;
-  url?: string;
+  url?: string; // Legacy field - will be extracted from assets
   content?: string;
-  mimeType?: string;
+  mimeType?: string; // Legacy field - will be extracted from assets
   ownerId?: string;
-  thumbnail?: string;
+  thumbnail?: string; // Legacy field - will be extracted from assets
+  assets?: MemoryAsset[];
   metadata?: {
     originalPath?: string;
     folderName?: string;
   };
 }
+
+// Helper function to extract URL from assets
+const getAssetUrl = (assets: MemoryAsset[] | undefined, preferredType: 'display' | 'original' = 'display'): string | undefined => {
+  if (!assets || assets.length === 0) return undefined;
+  
+  // Try to find the preferred asset type first
+  const preferredAsset = assets.find(asset => asset.assetType === preferredType);
+  if (preferredAsset) return preferredAsset.url;
+  
+  // Fallback to original if preferred type not found
+  const originalAsset = assets.find(asset => asset.assetType === 'original');
+  if (originalAsset) return originalAsset.url;
+  
+  // Fallback to first available asset
+  return assets[0]?.url;
+};
+
+// Helper function to extract MIME type from assets
+const getAssetMimeType = (assets: MemoryAsset[] | undefined): string | undefined => {
+  if (!assets || assets.length === 0) return undefined;
+  
+  // Try to find display asset first, then original
+  const displayAsset = assets.find(asset => asset.assetType === 'display');
+  if (displayAsset) return displayAsset.mimeType;
+  
+  const originalAsset = assets.find(asset => asset.assetType === 'original');
+  if (originalAsset) return originalAsset.mimeType;
+  
+  return assets[0]?.mimeType;
+};
 
 export default function MemoryDetailPage() {
   const params = useParams<{ id: string; lang: string }>();
@@ -97,16 +138,30 @@ export default function MemoryDetailPage() {
       console.log('Memory data:', data);
 
       if (data.success && data.data) {
+        const memoryData = data.data;
+        const assets = memoryData.assets || [];
+        
+        console.log('🔍 Memory assets:', assets);
+        
+        // Extract URL and MIME type from assets
+        const displayUrl = getAssetUrl(assets, 'display');
+        const mimeType = getAssetMimeType(assets);
+        
+        console.log('🔍 Extracted display URL:', displayUrl);
+        console.log('🔍 Extracted MIME type:', mimeType);
+        
         const transformedMemory: Memory = {
-          id: data.data.id,
-          type: data.type === 'document' ? (data.data.mimeType?.startsWith('video/') ? 'video' : 'audio') : data.type,
-          title: data.data.title || 'Untitled',
-          description: data.data.description,
-          createdAt: data.data.createdAt,
-          url: data.data.url,
-          content: 'content' in data.data ? data.data.content : undefined,
-          mimeType: 'mimeType' in data.data ? data.data.mimeType : undefined,
-          ownerId: data.data.ownerId,
+          id: memoryData.id,
+          type: memoryData.type,
+          title: memoryData.title || 'Untitled',
+          description: memoryData.description,
+          createdAt: memoryData.createdAt,
+          url: displayUrl, // Extract from assets
+          content: 'content' in memoryData ? memoryData.content : undefined,
+          mimeType: mimeType, // Extract from assets
+          ownerId: memoryData.ownerId,
+          assets: assets, // Include assets for future use
+          metadata: memoryData.metadata,
         };
         setMemory(transformedMemory);
       } else {
