@@ -305,7 +305,7 @@ export default function VaultPage() {
         </div>
       ) : (
         <MemoryGrid
-          memories={filteredMemories.filter(item => item.type !== 'folder') as MemoryWithFolder[]}
+          memories={filteredMemories}
           onDelete={handleDelete}
           onShare={handleShare}
           onClick={handleMemoryClick}

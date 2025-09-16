@@ -134,8 +134,9 @@ export const deleteAllMemories = async (options?: {
 };
 
 export const processDashboardItems = (memories: MemoryWithFolder[]): DashboardItem[] => {
-  // console.log("🚀 LINE 129: ENTERING processDashboardItems");
-  // console.log("🔍 processDashboardItems - Received memories:", memories.length);
+  console.log('🚀 LINE 129: ENTERING processDashboardItems');
+  console.log('🔍 processDashboardItems - Received memories:', memories.length);
+  console.log('🔍 Sample memory with folder info:', memories[0]);
 
   // Step 1: Group memories by parentFolderId
   const folderGroups = memories.reduce(
@@ -152,7 +153,7 @@ export const processDashboardItems = (memories: MemoryWithFolder[]): DashboardIt
     {} as Record<string, MemoryWithFolder[]>
   );
 
-  // console.log("🔍 Folder groups:", folderGroups);
+  console.log('🔍 Folder groups:', folderGroups);
 
   // Step 2: Create FolderItems for each group
   const folderItems: FolderItem[] = Object.entries(folderGroups).map(([folderId, folderMemories]) => ({
@@ -170,7 +171,7 @@ export const processDashboardItems = (memories: MemoryWithFolder[]): DashboardIt
     sharedWithCount: 0,
   }));
 
-  // console.log("🔍 Created folder items:", folderItems);
+  console.log('🔍 Created folder items:', folderItems);
 
   // Step 3: Get individual memories (not in folders)
   const individualMemories = memories.filter(memory => !memory.parentFolderId);
@@ -179,9 +180,11 @@ export const processDashboardItems = (memories: MemoryWithFolder[]): DashboardIt
 
   // Step 4: Combine and return
   const result = [...individualMemories, ...folderItems];
-  // console.log("🔍 Final result:", result.length, "items");
+  console.log('🔍 Final result:', result.length, 'items');
+  console.log('🔍 Individual memories count:', individualMemories.length);
+  console.log('🔍 Folder items count:', folderItems.length);
 
-  // console.log("✅ LINE 180: EXITING processDashboardItems");
+  console.log('✅ LINE 180: EXITING processDashboardItems');
   return result;
 };
 

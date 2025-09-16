@@ -43,6 +43,8 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
+    console.log('🔍 API: Found allUserRecord:', allUserRecord.id);
+
     // Get query parameters
     const searchParams = request.nextUrl.searchParams;
     const memoryType = searchParams.get('type');
@@ -66,6 +68,8 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
         )
       : eq(memories.ownerId, allUserRecord.id);
 
+    console.log('🔍 API: Built whereCondition for ownerId:', allUserRecord.id);
+
     // Handle optimized query with galleries
     if (useOptimizedQuery) {
       try {
@@ -86,6 +90,7 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
     }
 
     // Fetch memories with optional assets and folder information
+    console.log('🔍 API: Fetching memories with whereCondition:', whereCondition);
     const userMemories = await db.query.memories.findMany({
       where: whereCondition,
       orderBy: desc(memories.createdAt),
@@ -100,6 +105,8 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
             folder: true, // Always include folder information for dashboard grouping
           },
     });
+    console.log('🔍 API: Found memories:', userMemories.length);
+    console.log('🔍 API: Sample memory:', userMemories[0]);
 
     // Calculate share counts for each memory (like the old implementation)
     const memoriesWithShareInfo = await Promise.all(
@@ -144,6 +151,9 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
         total: memoriesWithShareInfo.length,
       });
     }
+
+    console.log('🔍 API: Returning memories:', memoriesWithShareInfo.length);
+    console.log('🔍 API: Sample returned memory:', memoriesWithShareInfo[0]);
 
     return NextResponse.json({
       success: true,
