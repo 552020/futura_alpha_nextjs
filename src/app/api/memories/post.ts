@@ -34,6 +34,7 @@ import {
   // Memory creation
   getAllUserId,
   createMemoryFromJson,
+  createMemoryFromBlob,
   createUploadResponse,
 
   // Types
@@ -94,7 +95,7 @@ export async function handleApiMemoryPost(request: NextRequest): Promise<NextRes
         console.log(`📄 Processing single file upload: ${files[0]?.name}`);
         return await handleFileUpload(formData, allUserId);
       }
-    } else {
+    } else if (contentType.includes('application/json')) {
       // JSON REQUESTS: Memory creation without files (text notes, metadata-only memories)
       // Examples:
       // - Creating text notes: { "type": "note", "title": "My thoughts", "description": "..." }
@@ -117,6 +118,52 @@ export async function handleApiMemoryPost(request: NextRequest): Promise<NextRes
         }
         return await createMemoryFromJson(request, allUserId);
       }
+    } else {
+      // BLOB URL REQUESTS: Memory creation from already uploaded blob (localhost workaround)
+      // This handles the case where a file was uploaded to Vercel Blob via client-side upload
+      // but the onUploadCompleted callback failed due to localhost limitations
+      console.log('🔧 Handling blob URL request (localhost workaround)...');
+      
+      const body = await request.json();
+      const { blobUrl, filename, contentType, size, pathname, isOnboarding, mode, existingUserId } = body;
+      
+      if (!blobUrl) {
+        return NextResponse.json({ error: 'blobUrl is required' }, { status: 400 });
+      }
+      
+      // Get user ID
+      const { allUserId, error } = await getAllUserId(request);
+      if (error) {
+        return error;
+      }
+      
+      // Create memory from blob using the existing utility
+      const result = await createMemoryFromBlob(
+        {
+          url: blobUrl,
+          pathname: pathname || filename || 'unknown',
+          size: size || 0,
+          contentType: contentType || 'application/octet-stream',
+        },
+        {
+          allUserId,
+          isOnboarding: !!isOnboarding,
+          mode: mode || 'files',
+        }
+      );
+      
+      if (!result.success) {
+        return NextResponse.json({ error: result.error || 'Failed to create memory from blob' }, { status: 500 });
+      }
+      
+      // Return the created memory data
+      return NextResponse.json({
+        success: true,
+        data: {
+          id: result.memoryId,
+          // Add other memory fields as needed
+        }
+      });
     }
   } catch (error) {
     console.error('Error in memory creation:', error);

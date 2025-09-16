@@ -23,6 +23,8 @@ export async function POST(req: NextRequest) {
   }
 
   const body = (await req.json()) as HandleUploadBody & { clientPayload?: string };
+  console.log('🔍 Raw request body keys:', Object.keys(body));
+  console.log('🔍 Raw clientPayload value:', body.clientPayload);
 
   // Extract client payload from the request body
   const clientPayload = body.clientPayload ? JSON.parse(body.clientPayload) : {};
@@ -50,7 +52,7 @@ export async function POST(req: NextRequest) {
       try {
         const payload = tokenPayload ? JSON.parse(tokenPayload as string) : {};
         console.log('📦 Parsed token payload:', payload);
-        
+
         const result = await createMemoryFromBlob(
           {
             url: blob.url,
