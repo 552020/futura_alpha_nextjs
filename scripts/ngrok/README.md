@@ -8,25 +8,27 @@ When developing with external services that need to call back to your applicatio
 
 **Example:** Vercel Blob's `onUploadCompleted` callback cannot reach `http://localhost:3000`, but it can reach `https://your-domain.ngrok-free.app`.
 
-## ⚠️ IMPORTANT: Manual Setup Recommended
+## Manual Setup (Required)
 
-**For safety, you can manually add the ngrok configuration to your `.env.local` file instead of using the script:**
+**Add these lines to your `.env.local` file:**
 
 ```bash
-# Add these lines to your .env.local file:
+# ngrok configuration for development
 NEXT_PUBLIC_NGROK_URL=https://theological-damion-unpatronizing.ngrok-free.app
 NODE_ENV=development
 ```
 
-**This prevents any risk of the script accidentally modifying your existing environment variables.**
+**That's it! No scripts needed.**
 
 ## Quick Start
 
 ### Option 1: Use Shared Domain (Immediate)
 
 ```bash
-# Quick setup using Stefano's shared ngrok domain
-npm run setup-ngrok
+# 1. Add to your .env.local:
+NEXT_PUBLIC_NGROK_URL=https://theological-damion-unpatronizing.ngrok-free.app
+
+# 2. Start development
 npm run dev:with-ngrok
 ```
 
@@ -39,27 +41,25 @@ This uses the shared domain: `https://theological-damion-unpatronizing.ngrok-fre
 ngrok http 3000
 # Copy the https:// domain from the output
 
-# 2. Set your custom domain
-export NEXT_PUBLIC_NGROK_URL=https://your-domain.ngrok-free.app
+# 2. Add to your .env.local:
+NEXT_PUBLIC_NGROK_URL=https://your-domain.ngrok-free.app
 
-# 3. Run setup (will use your custom domain)
-npm run setup-ngrok
+# 3. Start development
 npm run dev:with-ngrok
 ```
 
 ## Available Scripts
 
-| Script                   | Purpose                         | Usage                           |
-| ------------------------ | ------------------------------- | ------------------------------- |
-| `npm run setup-ngrok`    | Configure environment variables | Run once to set up `.env.local` |
-| `npm run dev:ngrok`      | Start ngrok tunnel only         | For manual ngrok management     |
-| `npm run dev:with-ngrok` | Start both Next.js and ngrok    | Main development command        |
+| Script                   | Purpose                      | Usage                       |
+| ------------------------ | ---------------------------- | --------------------------- |
+| `npm run dev:ngrok`      | Start ngrok tunnel only      | For manual ngrok management |
+| `npm run dev:with-ngrok` | Start both Next.js and ngrok | Main development command    |
 
 ## Files in This Directory
 
 ### Scripts
 
-- **`setup-dev-ngrok.js`** - Main setup script with comprehensive guidance
+- **No setup scripts** - Manual configuration only (safer)
 
 ### Configuration
 
@@ -115,7 +115,10 @@ export NEXT_PUBLIC_NGROK_URL=https://abc123.ngrok-free.app
 ### 5. Run setup
 
 ```bash
-npm run setup-ngrok
+# Add to your .env.local:
+NEXT_PUBLIC_NGROK_URL=https://your-domain.ngrok-free.app
+
+# Start development
 npm run dev:with-ngrok
 ```
 
@@ -141,8 +144,10 @@ ngrok http 3000
 # 3. Set environment variable
 export NEXT_PUBLIC_NGROK_URL=https://their-domain.ngrok-free.app
 
-# 4. Run setup (automatically uses their domain)
-npm run setup-ngrok
+# 4. Add to their .env.local:
+NEXT_PUBLIC_NGROK_URL=https://their-domain.ngrok-free.app
+
+# 5. Start development
 npm run dev:with-ngrok
 ```
 

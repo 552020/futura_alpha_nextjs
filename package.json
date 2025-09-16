@@ -23,8 +23,7 @@
     "db:verify": "tsx scripts/verify-constraints.ts",
     "seed": "tsx src/db/seed.ts",
     "create-test-users": "tsx src/db/create-test-users.ts",
-    "manage-user-roles": "tsx scripts/manage-user-roles.ts",
-    "setup-ngrok": "node scripts/ngrok/setup-dev-ngrok.js"
+    "manage-user-roles": "tsx scripts/manage-user-roles.ts"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.10.0",
