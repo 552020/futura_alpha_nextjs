@@ -125,7 +125,7 @@ export async function handleApiMemoryPost(request: NextRequest): Promise<NextRes
       console.log('🔧 Handling blob URL request (localhost workaround)...');
       
       const body = await request.json();
-      const { blobUrl, filename, contentType, size, pathname, isOnboarding, mode, existingUserId } = body;
+      const { blobUrl, filename, contentType, size, pathname, isOnboarding, mode } = body;
       
       if (!blobUrl) {
         return NextResponse.json({ error: 'blobUrl is required' }, { status: 400 });
