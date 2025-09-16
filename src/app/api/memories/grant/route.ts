@@ -36,10 +36,6 @@ export async function POST(req: NextRequest) {
         allowedContentTypes: ALLOWED,
         maximumSizeInBytes: 5 * 1024 ** 4, // up to 5 TB
         addRandomSuffix: true,
-        // TODO: Use pathname parameter if we need custom path structure
-        // onBeforeGenerateToken: async (pathname) => {
-        // const safePath = generateBlobFilename(pathname || 'upload');
-        // path: `${process.env.BLOB_FOLDER_NAME || "futura"}/${safePath}`,
         tokenPayload: JSON.stringify({
           allUserId: user.allUserId,
           isOnboarding: !!clientPayload.isOnboarding,
@@ -49,9 +45,12 @@ export async function POST(req: NextRequest) {
       };
     },
     onUploadCompleted: async ({ blob, tokenPayload }) => {
+      console.log('🎉 onUploadCompleted callback triggered!', { blob: blob.url, tokenPayload });
       // persist in DB
       try {
         const payload = tokenPayload ? JSON.parse(tokenPayload as string) : {};
+        console.log('📦 Parsed token payload:', payload);
+        
         const result = await createMemoryFromBlob(
           {
             url: blob.url,
@@ -66,6 +65,8 @@ export async function POST(req: NextRequest) {
           }
         );
 
+        console.log('📝 Memory creation result:', result);
+
         // If this is an image and memory creation was successful, enqueue image processing
         if (result.success && result.memoryId && blob.contentType?.startsWith('image/')) {
           console.log(`🖼️ Enqueueing image processing for memory ${result.memoryId}`);
@@ -79,7 +80,7 @@ export async function POST(req: NextRequest) {
         }
       } catch (e) {
         // don't throw; upload already succeeded. Log & alert.
-        console.error('post-upload DB create failed', e);
+        console.error('❌ post-upload DB create failed', e);
       }
     },
   });
