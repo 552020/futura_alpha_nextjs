@@ -2,20 +2,22 @@
 
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import Image from "next/image";
 import { useAuthGuard } from "@/utils/authentication";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Share2, Edit, Globe, Lock, ImageIcon, Trash2, Eye, EyeOff, Maximize2, HardDrive } from "lucide-react";
+import { Share2, Edit, Globe, Lock, ImageIcon, Trash2, Maximize2, CheckSquare, Square } from "lucide-react";
 import { galleryService } from "@/services/gallery";
 import { GalleryWithItems } from "@/types/gallery";
-import { ForeverStorageProgressModal } from "@/components/galleries/forever-storage-progress-modal";
 import { StorageStatusBadge, getGalleryStorageStatus } from "@/components/common/storage-status-badge";
-import { MemoryStorageBadge } from "@/components/common/memory-storage-badge";
 import { GalleryStorageSummary } from "@/components/galleries/gallery-storage-summary";
+import { SelectionProvider, useSelection } from "@/contexts/selection-context";
+import { SelectionToolbar } from "@/components/galleries/selection-toolbar";
+import { SendToPhotographerModal } from "@/components/galleries/send-to-photographer-modal";
+import { GalleryItem } from "@/components/galleries/gallery-item";
+import { useToast } from "@/hooks/use-toast";
+import { sendEmail } from "@/utils/mailgun";
 
-// Mock data flag for development - same pattern as dashboard
-// const USE_MOCK_DATA = true;
+// Mock data flag for development
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_GALLERY === "true";
 
 function GalleryViewContent() {
@@ -23,13 +25,16 @@ function GalleryViewContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { isAuthorized, isLoading: authLoading } = useAuthGuard();
+  const { toast } = useToast();
+  const { isSelectMode, toggleSelectMode, selectedItems, clearSelection } = useSelection();
+  
   const [gallery, setGallery] = useState<GalleryWithItems | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [showForeverStorageModal, setShowForeverStorageModal] = useState(false);
+  const [showSendToPhotographerModal, setShowSendToPhotographerModal] = useState(false);
+  // const [isSending, setIsSending] = useState(false);
 
   const loadGallery = useCallback(async () => {
     try {
@@ -46,9 +51,7 @@ function GalleryViewContent() {
   }, [id]);
 
   useEffect(() => {
-    if (isAuthorized && id) {
-      loadGallery();
-    }
+    if (isAuthorized && id) loadGallery();
   }, [isAuthorized, id, loadGallery]);
 
   // Auto-open modal if returning from II linking flow
@@ -56,27 +59,23 @@ function GalleryViewContent() {
     if (typeof window === "undefined") return;
     const shouldOpen = searchParams?.get("storeForever") === "1";
     if (shouldOpen) {
-      setShowForeverStorageModal(true);
-      // Clean the query param to avoid reopening on refresh
+      // setShowForeverStorageModal(true); // removed because unused
       const url = new URL(window.location.href);
       url.searchParams.delete("storeForever");
       window.history.replaceState({}, "", url.toString());
     }
   }, [searchParams]);
 
-  const handleImageClick = (index: number) => {
-    // Navigate to preview page with the specific image index
-    router.push(`/gallery/${id}/preview?image=${index}`);
+  const handleImageClick = (itemId: string) => {
+    if (isSelectMode) return;
+    const index = gallery?.items.findIndex(item => item.id === itemId);
+    if (index !== undefined && index !== -1) {
+      router.push(`/gallery/${id}/preview?image=${index}`);
+    }
   };
 
-  const handleImageError = useCallback((imageUrl: string) => {
-    setFailedImages((prev) => new Set(prev).add(imageUrl));
-  }, []);
-
   const handleDeleteGallery = async () => {
-    if (!gallery || !confirm("Are you sure you want to delete this gallery? This action cannot be undone.")) {
-      return;
-    }
+    if (!gallery || !confirm("Are you sure you want to delete this gallery? This action cannot be undone.")) return;
 
     try {
       setIsDeleting(true);
@@ -90,9 +89,60 @@ function GalleryViewContent() {
     }
   };
 
-  const handleFullScreenView = () => {
-    router.push(`/gallery/${id}/preview`);
+  const handleFullScreenView = () => router.push(`/gallery/${id}/preview`);
+
+  const handleSelectModeToggle = () => {
+    toggleSelectMode();
+    if (isSelectMode) clearSelection();
   };
+
+  const handleSendToPhotographer = useCallback(async (email: string, message: string) => {
+    if (!gallery) return;
+    
+    try {
+      // setIsSending(true);
+      const selectedItemsDetails = gallery.items
+        .filter(item => selectedItems.has(item.id))
+        .map(item => ({
+          title: item.memory?.title || 'Untitled',
+          url: item.memory?.url || ''
+        }));
+
+      await sendEmail({
+        to: email,
+        subject: `Gallery: ${gallery.title}`,
+        html: `
+          <h2>Gallery: ${gallery.title}</h2>
+          ${message ? `<p>${message}</p>` : ''}
+          <h3>Selected Items (${selectedItems.size}):</h3>
+          <ul>
+            ${selectedItemsDetails.map(item => 
+              `<li>${item.title}: ${item.url || 'No URL available'}</li>`
+            ).join('')}
+          </ul>
+        `
+      });
+
+      toast({
+        title: "Success",
+        description: `Sent ${selectedItems.size} items to photographer.`,
+      });
+
+      clearSelection();
+      setShowSendToPhotographerModal(false);
+      toggleSelectMode();
+      
+    } catch (error) {
+      console.error('Error sending to photographer:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send images to photographer. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      // setIsSending(false);
+    }
+  }, [gallery, selectedItems, clearSelection, toggleSelectMode, toast]);
 
   const handleTogglePrivacy = async () => {
     if (!gallery) return;
@@ -115,78 +165,18 @@ function GalleryViewContent() {
 
   const handleEditGallery = () => {
     // TODO: Navigate to edit page or open edit modal
-    // console.log("Edit gallery:", gallery?.id);
-  };
-
-  const getStoreForeverButtonState = () => {
-    if (!gallery) return { text: "Store Forever", disabled: true, variant: "outline" as const };
-
-    // Check if gallery has storage status
-    if (gallery.storageStatus) {
-      switch (gallery.storageStatus.status) {
-        case "stored_forever":
-          return {
-            text: "Already Stored",
-            disabled: true,
-            variant: "secondary" as const,
-            className:
-              "border-green-200 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-300 dark:hover:bg-green-950",
-          };
-        case "partially_stored":
-          return {
-            text: "Continue Storing",
-            disabled: false,
-            variant: "outline" as const,
-            className:
-              "border-orange-200 text-orange-700 hover:bg-orange-50 dark:border-orange-800 dark:text-orange-300 dark:hover:bg-orange-950",
-          };
-        case "web2_only":
-        default:
-          return {
-            text: "Store Forever",
-            disabled: false,
-            variant: "outline" as const,
-            className:
-              "border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950",
-          };
-      }
-    }
-
-    // Fallback for galleries without storage status
-    return {
-      text: "Store Forever",
-      disabled: false,
-      variant: "outline" as const,
-      className:
-        "border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950",
-    };
-  };
-
-  const handleStoreForever = () => {
-    setShowForeverStorageModal(true);
-  };
-
-  const handleForeverStorageSuccess = async () => {
-    // Refresh gallery data to show updated storage status
-    await loadGallery();
-  };
-
-  const handleForeverStorageError = (error: Error) => {
-    console.error("Error storing gallery forever:", error);
-    setError("Failed to store gallery forever");
   };
 
   const handleShareGallery = () => {
     // TODO: Implement share functionality
-    // console.log("Share gallery:", gallery?.id);
   };
 
   if (authLoading || isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Loading gallery...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading gallery...</p>
         </div>
       </div>
     );
@@ -198,6 +188,7 @@ function GalleryViewContent() {
         <div className="text-center">
           <h2 className="text-2xl font-semibold mb-4">Access Denied</h2>
           <p className="text-muted-foreground mb-6">You need to be logged in to view this gallery</p>
+          <Button onClick={() => router.push('/login')}>Log in</Button>
         </div>
       </div>
     );
@@ -208,212 +199,195 @@ function GalleryViewContent() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <h2 className="text-2xl font-semibold mb-4">Gallery not found</h2>
-          <p className="text-muted-foreground mb-6">{error || "This gallery doesn't exist"}</p>
+          <p className="text-muted-foreground mb-6">{error || "This gallery doesn't exist or you don't have permission to view it"}</p>
+          <Button onClick={() => router.push('/gallery')}>Back to Galleries</Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       {/* Header */}
-      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40">
-        <div className="container mx-auto px-6 py-4 min-w-0">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 min-w-0">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between min-w-0">
-                <h1 className="text-2xl font-light">{gallery.title}</h1>
-                <div className="flex items-center gap-2">
-                  <div className="relative group">
-                    <StorageStatusBadge status={getGalleryStorageStatus(gallery)} />
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                      {gallery.storageStatus?.status === "stored_forever"
-                        ? "Gallery stored permanently on Internet Computer"
-                        : gallery.storageStatus?.status === "partially_stored"
-                        ? "Gallery partially stored on Internet Computer"
-                        : "Gallery stored in standard database"}
-                    </div>
-                  </div>
-                  <Badge variant="outline" className="text-xs font-normal">
-                    {gallery.isPublic ? (
-                      <>
-                        <Globe className="h-3 w-3 mr-1" />
-                        Public
-                      </>
-                    ) : (
-                      <>
-                        <Lock className="h-3 w-3 mr-1" />
-                        Private
-                      </>
-                    )}
-                  </Badge>
-                </div>
-              </div>
-              {gallery.description && <p className="text-muted-foreground text-sm mt-1">{gallery.description}</p>}
-            </div>
-            <div className="flex items-center gap-2 flex-shrink-0 min-w-0">
-              <Button variant="outline" size="sm" onClick={handleFullScreenView}>
-                <Maximize2 className="h-4 w-4 mr-2" />
-                Preview
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleShareGallery}>
-                <Share2 className="h-4 w-4 mr-2" />
-                Share
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleTogglePrivacy} disabled={isUpdating}>
-                {isUpdating ? (
-                  <>
-                    <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                    Updating...
-                  </>
-                ) : gallery.isPublic ? (
-                  <>
-                    <EyeOff className="h-4 w-4 mr-2" />
-                    Hide
-                  </>
-                ) : (
-                  <>
-                    <Eye className="h-4 w-4 mr-2" />
-                    Publish
-                  </>
-                )}
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleEditGallery}>
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
-              {(() => {
-                const buttonState = getStoreForeverButtonState();
-                return (
-                  <>
-                    <div className="relative group">
-                      <Button
-                        variant={buttonState.variant}
-                        size="sm"
-                        onClick={handleStoreForever}
-                        disabled={buttonState.disabled}
-                        className={buttonState.className}
-                      >
-                        <HardDrive className="h-4 w-4 mr-2" />
-                        {buttonState.text}
-                      </Button>
-                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                        {gallery?.storageStatus?.status === "stored_forever"
-                          ? "This gallery is already permanently stored on the Internet Computer"
-                          : gallery?.storageStatus?.status === "partially_stored"
-                          ? "Continue storing the remaining items on the Internet Computer"
-                          : "Store this gallery permanently on the Internet Computer blockchain"}
-                      </div>
-                    </div>
-                    {gallery?.storageStatus?.status === "stored_forever" && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          // TODO: Open ICP explorer or gallery viewer
-                          // console.log("View gallery on ICP:", gallery.id);
-                        }}
-                        className="border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-300 dark:hover:bg-purple-950"
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        View on ICP
-                      </Button>
-                    )}
-                  </>
-                );
-              })()}
-              <Button variant="outline" size="sm" onClick={handleDeleteGallery} disabled={isDeleting}>
-                {isDeleting ? (
-                  <>
-                    <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                    Deleting...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </>
-                )}
-              </Button>
-            </div>
+      <header className="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Button variant="ghost" size="icon" onClick={() => router.back()}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                <path d="m12 19-7-7 7-7"/>
+                <path d="M19 12H5"/>
+              </svg>
+            </Button>
+            <h1 className="text-xl font-semibold">{gallery.title}</h1>
+            <Badge variant={gallery.isPublic ? 'default' : 'secondary'}>
+              {gallery.isPublic ? 'Public' : 'Private'}
+            </Badge>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Button 
+              variant={isSelectMode ? 'default' : 'outline'}
+              size="sm" 
+              onClick={handleSelectModeToggle}
+              className={isSelectMode ? 'bg-primary text-primary-foreground' : ''}
+            >
+              {isSelectMode ? (
+                <>
+                  <CheckSquare className="h-4 w-4 mr-2" />
+                  {selectedItems.size} Selected
+                </>
+              ) : (
+                <>
+                  <Square className="h-4 w-4 mr-2" />
+                  Select
+                </>
+              )}
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleFullScreenView}
+              disabled={isSelectMode}
+            >
+              <Maximize2 className="h-4 w-4 mr-2" />
+              Fullscreen
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleTogglePrivacy} 
+              disabled={isUpdating || isSelectMode}
+            >
+              {isUpdating ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+              ) : gallery.isPublic ? (
+                <Lock className="h-4 w-4 mr-2" />
+              ) : (
+                <Globe className="h-4 w-4 mr-2" />
+              )}
+              {gallery.isPublic ? 'Make Private' : 'Make Public'}
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleShareGallery}
+              disabled={isSelectMode}
+            >
+              <Share2 className="h-4 w-4 mr-2" />
+              Share
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleEditGallery}
+              disabled={isSelectMode}
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+            
+            <Button 
+              variant="destructive" 
+              size="sm" 
+              onClick={handleDeleteGallery} 
+              disabled={isDeleting || isSelectMode}
+            >
+              {isDeleting ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+              ) : (
+                <Trash2 className="h-4 w-4 mr-2" />
+              )}
+              Delete
+            </Button>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Gallery Storage Summary */}
-      <GalleryStorageSummary gallery={gallery} onStoreForever={handleStoreForever} />
+      {/* Main content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Gallery info */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-2xl font-bold">{gallery.title}</h2>
+              {gallery.description && (
+                <p className="text-gray-600 dark:text-gray-400 mt-1">{gallery.description}</p>
+              )}
+            </div>
+            <div className="flex items-center space-x-2">
+              <StorageStatusBadge status={getGalleryStorageStatus(gallery)} />
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                {gallery.items?.length || 0} items • {new Date(gallery.createdAt).toLocaleDateString()}
+              </span>
+            </div>
+          </div>
+          <GalleryStorageSummary gallery={gallery} />
+        </div>
 
-      {/* Photo Grid */}
-      <div className="container mx-auto px-6 py-8 min-w-0">
+        {/* Gallery grid */}
         {gallery.items && gallery.items.length > 0 ? (
-          <div className="grid min-w-0 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {gallery.items.map((item, index) => (
-              <div
-                key={item.id}
-                className="min-w-0 aspect-square bg-muted rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity relative"
-                onClick={() => handleImageClick(index)}
-              >
-                {item.memory.url && !failedImages.has(item.memory.url) ? (
-                  <div className="w-full h-full relative min-w-0">
-                    <Image
-                      src={item.memory.url}
-                      alt={item.memory.title || `Photo ${index + 1}`}
-                      fill
-                      className="object-cover"
-                      onError={() => handleImageError(item.memory.url!)}
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                    />
-                  </div>
-                ) : (
-                  <div className="w-full h-full bg-muted flex items-center justify-center min-w-0">
-                    <div className="flex flex-col items-center justify-center text-muted-foreground">
-                      <ImageIcon className="h-16 w-16 mb-2" />
-                      <span className="text-sm break-words">Photo {index + 1}</span>
-                      {failedImages.has(item.memory.url!) && (
-                        <span className="text-xs text-muted-foreground/70 mt-1 break-words">Failed to load</span>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Memory Storage Status Badge */}
-                <div className="absolute top-2 right-2 z-10">
-                  <MemoryStorageBadge
-                    memoryId={item.memory.id}
-                    memoryType={item.memory.type}
-                    size="xs"
-                    showTooltip={true}
-                  />
-                </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {gallery.items.map((item) => (
+              <div key={item.id} className="relative group">
+                <GalleryItem
+                  item={{
+                    id: item.id,
+                    url: item.memory?.url || '/placeholder.svg',
+                    title: item.memory?.title,
+                    description: item.memory?.description,
+                    memory: item.memory ? {
+                      id: item.memory.id,
+                      type: item.memory.type
+                    } : undefined
+                  }}
+                  onClick={handleImageClick}
+                />
               </div>
             ))}
           </div>
         ) : (
-          <div className="text-center py-16">
-            <h3 className="text-xl font-semibold mb-2">No photos in this gallery yet</h3>
-            <p className="text-muted-foreground mb-6">Add photos to this gallery to see them here.</p>
+          <div className="text-center py-12">
+            <div className="mx-auto w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+              <ImageIcon className="h-8 w-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">No images in this gallery</h3>
+            <p className="text-gray-500 dark:text-gray-400">Upload some images to get started</p>
           </div>
         )}
-      </div>
+      </main>
+      
+      <SelectionToolbar onSendToPhotographer={() => setShowSendToPhotographerModal(true)} />
+      
+      <SendToPhotographerModal
+      isOpen={showSendToPhotographerModal}
+      onClose={() => setShowSendToPhotographerModal(false)}
+      onConfirm={handleSendToPhotographer}
+      selectedCount={selectedItems.size}
+    />
 
-      {/* Forever Storage Modal */}
-      {gallery && (
-        <ForeverStorageProgressModal
-          isOpen={showForeverStorageModal}
-          onClose={() => setShowForeverStorageModal(false)}
-          gallery={gallery}
-          onSuccess={handleForeverStorageSuccess}
-          onError={handleForeverStorageError}
-        />
-      )}
     </div>
   );
 }
 
-export default function GalleryViewPage() {
+function GalleryViewPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <GalleryViewContent />
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading gallery...</p>
+        </div>
+      </div>
+    }>
+      <SelectionProvider>
+        <GalleryViewContent />
+      </SelectionProvider>
     </Suspense>
   );
 }
+
+export default GalleryViewPage;
