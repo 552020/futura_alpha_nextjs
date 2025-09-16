@@ -11,12 +11,13 @@
  */
 
 import { put } from "@vercel/blob";
+import { generateBlobFilename } from "@/lib/storage/blob-config";
 
 export async function uploadFileToStorage(file: File, existingBuffer?: Buffer): Promise<string> {
   const buffer = existingBuffer || Buffer.from(await file.arrayBuffer());
   const safeFileName = file.name.replace(/[^a-zA-Z0-9-_\.]/g, "_");
 
-  const { url } = await put(`uploads/${Date.now()}-${safeFileName}`, buffer, {
+  const { url } = await put(generateBlobFilename(safeFileName), buffer, {
     access: "public",
     contentType: file.type,
   });

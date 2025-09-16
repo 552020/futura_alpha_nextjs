@@ -82,7 +82,7 @@
 //   const buffer = existingBuffer || Buffer.from(await file.arrayBuffer());
 //   const safeFileName = file.name.replace(/[^a-zA-Z0-9-_\.]/g, "_");
 
-//   const { url } = await put(`uploads/${Date.now()}-${safeFileName}`, buffer, {
+//   const { url } = await put(generateBlobFilename(safeFileName), buffer, {
 //     access: "public",
 //     contentType: file.type,
 //   });

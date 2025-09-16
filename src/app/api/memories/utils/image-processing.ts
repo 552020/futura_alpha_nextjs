@@ -1,13 +1,18 @@
 /**
  * IMAGE PROCESSING UTILITIES
  *
- * This module handles client-side image processing for generating multiple optimized assets.
+ * This module handles both client-side and server-side image processing for generating multiple optimized assets.
  * It creates display and thumbnail versions of images for better performance and user experience.
  *
  * USAGE:
  * - Generate display versions (~2048px long edge, WebP)
  * - Generate thumbnail versions (~512px long edge, WebP)
- * - Process images in the browser before upload
+ * - Process images in the browser (frontend) or server (backend) before upload
+ */
+
+import { generateProcessedImageFilename } from "@/lib/storage/blob-config";
+
+/**
  * - Support multiple image formats (JPEG, PNG, WebP)
  *
  * ASSET TYPES:
@@ -39,7 +44,7 @@ export interface ImageProcessingResult {
 
 /**
  * Process an image file to create multiple optimized versions
- * This function runs in the browser and creates display and thumbnail versions
+ * Frontend implementation using browser APIs
  */
 export async function processImageForMultipleAssets(file: File): Promise<ImageProcessingResult> {
   // Validate file type
@@ -47,6 +52,14 @@ export async function processImageForMultipleAssets(file: File): Promise<ImagePr
     throw new Error("File is not an image");
   }
 
+  // Frontend implementation using browser APIs
+  return await processImageForMultipleAssetsFrontend(file);
+}
+
+/**
+ * Frontend implementation using browser APIs
+ */
+async function processImageForMultipleAssetsFrontend(file: File): Promise<ImageProcessingResult> {
   // Create image element and load the file
   const img = new Image();
   const canvas = document.createElement("canvas");
@@ -188,25 +201,24 @@ export async function uploadProcessedAssetsToBlob(
   const { put } = await import("@vercel/blob");
 
   // Generate unique file names
-  const timestamp = Date.now();
-  const originalFileName = `${timestamp}-${baseFileName}`;
-  const displayFileName = `${timestamp}-${baseFileName.replace(/\.[^/.]+$/, "_display.webp")}`;
-  const thumbFileName = `${timestamp}-${baseFileName.replace(/\.[^/.]+$/, "_thumb.webp")}`;
+  const originalFileName = generateProcessedImageFilename(baseFileName, "original");
+  const displayFileName = generateProcessedImageFilename(baseFileName, "display");
+  const thumbFileName = generateProcessedImageFilename(baseFileName, "thumb");
 
   // Upload all three versions in parallel
   const [originalResult, displayResult, thumbResult] = await Promise.all([
     // Upload original
-    put(`uploads/${originalFileName}`, processedAssets.original.blob, {
+    put(originalFileName, processedAssets.original.blob, {
       access: "public",
       contentType: processedAssets.original.mimeType,
     }),
     // Upload display
-    put(`uploads/${displayFileName}`, processedAssets.display.blob, {
+    put(displayFileName, processedAssets.display.blob, {
       access: "public",
       contentType: processedAssets.display.mimeType,
     }),
     // Upload thumbnail
-    put(`uploads/${thumbFileName}`, processedAssets.thumb.blob, {
+    put(thumbFileName, processedAssets.thumb.blob, {
       access: "public",
       contentType: processedAssets.thumb.mimeType,
     }),

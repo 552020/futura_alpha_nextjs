@@ -47,7 +47,7 @@ const nextConfig: NextConfig = {
       env.NEXT_PUBLIC_CANISTER_ID_INTERNET_IDENTITY &&
       (isLocal ? `http://${env.NEXT_PUBLIC_CANISTER_ID_INTERNET_IDENTITY}.localhost:4943/` : "https://id.ai"),
   },
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
     config.resolve.alias = {
       ...config.resolve.alias,
       // Keep generated imports working
@@ -57,6 +57,18 @@ const nextConfig: NextConfig = {
       "@dfinity/principal": require.resolve("@dfinity/principal"),
       "@dfinity/candid": require.resolve("@dfinity/candid"),
     };
+
+    // Exclude server-only modules from client bundle
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        child_process: false,
+        crypto: false,
+        events: false,
+      };
+    }
+
     return config;
   },
   images: {

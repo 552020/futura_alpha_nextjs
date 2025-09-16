@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { put } from "@vercel/blob";
+import { generateBlobFilename } from "@/lib/storage/blob-config";
 
 /**
  * UPLOAD GRANT API
@@ -62,10 +63,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate unique filename with timestamp
-    const timestamp = Date.now();
-    const extension = filename.split(".").pop() || "";
-    const baseName = filename.replace(/\.[^/.]+$/, "");
-    const uniqueFilename = `uploads/${timestamp}-${baseName}.${extension}`;
+    const uniqueFilename = generateBlobFilename(filename);
 
     // Generate presigned URL for Vercel Blob
     const blob = await put(uniqueFilename, Buffer.alloc(0), {

@@ -7,6 +7,7 @@
 
 import { put, del } from "@vercel/blob";
 import type { StorageProvider, UploadOptions, UploadResult, DeleteOptions } from "../types";
+import { generateBlobFilename } from "../blob-config";
 
 export class VercelBlobProvider implements StorageProvider {
   readonly name = "vercel_blob";
@@ -96,9 +97,6 @@ export class VercelBlobProvider implements StorageProvider {
    * Generate a unique filename for the upload
    */
   private generateFilename(file: File): string {
-    const timestamp = Date.now();
-    const random = Math.random().toString(36).substring(2, 8);
-    const extension = file.name.split(".").pop() || "";
-    return `uploads/${timestamp}-${random}.${extension}`;
+    return generateBlobFilename(file.name, true);
   }
 }

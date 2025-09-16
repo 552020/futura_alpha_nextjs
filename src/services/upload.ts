@@ -187,20 +187,26 @@ export const uploadFile = async (
       return await uploadToICPBackend(file);
     }
 
-    // Implement file size decision matrix
+    // Implement file type and size decision matrix
     const fileSizeMB = file.size / (1024 * 1024);
     const isLargeFile = fileSizeMB > 4; // 4MB threshold
+    const isImage = file.type.startsWith("image/");
 
-    console.log(`📊 FILE SIZE ANALYSIS:`, {
+    console.log(`📊 FILE ANALYSIS:`, {
       fileName: file.name,
       fileSizeBytes: file.size,
       fileSizeMB: fileSizeMB.toFixed(2),
-      threshold: "4MB",
+      fileType: file.type,
+      isImage,
       isLargeFile,
-      chosenPath: isLargeFile ? "LARGE_FILE_PATH" : "SMALL_FILE_PATH",
+      chosenPath: isImage ? "MULTI_ASSET_PATH" : isLargeFile ? "LARGE_FILE_PATH" : "SMALL_FILE_PATH",
     });
 
-    if (isLargeFile) {
+    // For images: Always use multi-asset approach (original, display, thumb) regardless of size
+    if (isImage) {
+      console.log(`🖼️ Image detected (${fileSizeMB.toFixed(1)}MB), using multi-asset approach...`);
+      return await uploadLargeFile(file, isOnboarding, existingUserId, mode);
+    } else if (isLargeFile) {
       console.log(`📦 Large file detected (${fileSizeMB.toFixed(1)}MB), using direct-to-blob with server tokens...`);
       return await uploadLargeFile(file, isOnboarding, existingUserId, mode);
     } else {
@@ -245,7 +251,8 @@ async function uploadSmallFile(file: File): Promise<UploadResponse> {
 }
 
 /**
- * Upload large files using direct-to-blob with server-issued tokens
+ * Upload files using multi-asset approach (for images) or direct-to-blob (for large files)
+ * Creates original, display, and thumb versions for images regardless of size
  */
 async function uploadLargeFile(
   file: File,
@@ -253,7 +260,7 @@ async function uploadLargeFile(
   existingUserId?: string,
   mode: UploadMode = "files"
 ): Promise<UploadResponse> {
-  console.log(`☁️ Using direct-to-blob upload for large file: ${file.name}`);
+  console.log(`☁️ Using multi-asset upload approach for: ${file.name}`);
 
   console.log(`🔧 Creating StorageManager instance...`);
   const storageManager = new StorageManager();

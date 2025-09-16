@@ -78,6 +78,7 @@
     "react-hook-form": "^7.62.0",
     "react-intersection-observer": "^9.16.0",
     "react-tooltip": "^5.29.1",
+    "sharp": "^0.34.3",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
     "unstorage": "^1.17.1",
