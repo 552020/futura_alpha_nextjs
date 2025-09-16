@@ -19,11 +19,25 @@ NEXT_PUBLIC_NGROK_URL=${ngrokUrl}
 NODE_ENV=development
 `;
 
-// Write .env.local file
+// Write .env.local file (append to existing file)
 const envPath = path.join(__dirname, '..', '.env.local');
-fs.writeFileSync(envPath, envContent);
 
-console.log('✅ Created .env.local with ngrok configuration');
+// Check if file exists and read existing content
+let existingContent = '';
+if (fs.existsSync(envPath)) {
+  existingContent = fs.readFileSync(envPath, 'utf8');
+}
+
+// Only add ngrok config if it doesn't already exist
+const ngrokConfigExists = existingContent.includes('NEXT_PUBLIC_NGROK_URL');
+if (!ngrokConfigExists) {
+  // Append ngrok configuration to existing content
+  const finalContent = existingContent + (existingContent ? '\n' : '') + envContent;
+  fs.writeFileSync(envPath, finalContent);
+  console.log('✅ Added ngrok configuration to .env.local');
+} else {
+  console.log('✅ ngrok configuration already exists in .env.local');
+}
 console.log(`📝 ngrok URL: ${ngrokUrl}`);
 
 if (customNgrokUrl) {
