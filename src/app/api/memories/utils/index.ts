@@ -8,6 +8,7 @@ export * from './file-processing';
 export * from './storage';
 export * from './form-parsing';
 export * from './image-processing';
+export * from './image-processing-workflow';
 
 // Database utilities
 export * from './memory-database';

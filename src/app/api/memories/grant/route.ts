@@ -1,101 +1,88 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { put } from '@vercel/blob';
-import { generateBlobFilename } from '@/lib/storage/blob-config';
+// src/nextjs/src/app/api/memories/grant/route.ts
+import { NextResponse, NextRequest } from 'next/server';
+import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
+import { getAllUserId, createMemoryFromBlob } from '@/app/api/memories/utils';
+import { enqueueImageProcessing } from '@/app/api/memories/utils/image-processing-workflow';
 
-/**
- * UPLOAD GRANT API
- *
- * Issues short-lived, scoped tokens for direct-to-blob uploads
- * This allows client-side uploads without exposing server secrets
- */
+// optional: centralize your allowlist
+const ALLOWED = [
+  'image/*',
+  'video/*',
+  'application/pdf',
+  'text/plain',
+  'text/markdown',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+];
 
-interface GrantRequest {
-  filename: string;
-  size: number;
-  mimeType: string;
-  checksum?: string;
-}
-
-interface GrantResponse {
-  success: boolean;
-  uploadUrl: string;
-  token: string;
-  expiresAt: string;
-  maxSize: number;
-  allowedMimeTypes: string[];
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const body: GrantRequest = await request.json();
-    const { filename, size, mimeType, checksum } = body;
-
-    // Validate request
-    if (!filename || !size || !mimeType) {
-      return NextResponse.json({ error: 'Missing required fields: filename, size, mimeType' }, { status: 400 });
-    }
-
-    // Check file size limits (4MB for small files, 100MB for large files)
-    const maxSize = size > 4 * 1024 * 1024 ? 100 * 1024 * 1024 : 4 * 1024 * 1024;
-    if (size > maxSize) {
-      return NextResponse.json({ error: `File too large. Max size: ${maxSize / (1024 * 1024)}MB` }, { status: 400 });
-    }
-
-    // Validate MIME type
-    const allowedMimeTypes = [
-      'image/jpeg',
-      'image/png',
-      'image/gif',
-      'image/webp',
-      'image/svg+xml',
-      'video/mp4',
-      'video/webm',
-      'video/quicktime',
-      'application/pdf',
-      'text/plain',
-      'text/markdown',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    ];
-
-    if (!allowedMimeTypes.includes(mimeType)) {
-      return NextResponse.json({ error: `Unsupported file type: ${mimeType}` }, { status: 400 });
-    }
-
-    // Generate unique filename with timestamp
-    const uniqueFilename = generateBlobFilename(filename);
-
-    // Generate presigned URL for Vercel Blob
-    const blob = await put(uniqueFilename, Buffer.alloc(0), {
-      access: 'public',
-      contentType: mimeType,
-    });
-
-    // Create token payload (in a real implementation, this would be signed)
-    const tokenPayload = {
-      filename: uniqueFilename,
-      originalFilename: filename,
-      mimeType,
-      size,
-      checksum,
-      expiresAt: Date.now() + 60 * 60 * 1000, // 1 hour expiry
-      userId: 'temp', // TODO: Get from session/auth
-    };
-
-    const response: GrantResponse = {
-      success: true,
-      uploadUrl: blob.url,
-      token: JSON.stringify(tokenPayload), // TODO: Sign this token
-      expiresAt: new Date(tokenPayload.expiresAt).toISOString(),
-      maxSize,
-      allowedMimeTypes,
-    };
-
-    console.log(`✅ Upload grant issued for ${filename} (${size} bytes, ${mimeType})`);
-
-    return NextResponse.json(response);
-  } catch (error) {
-    console.error('❌ Upload grant failed:', error);
-    return NextResponse.json({ error: 'Failed to generate upload grant' }, { status: 500 });
+export async function POST(req: NextRequest) {
+  // who’s uploading?
+  const user = await getAllUserId(req);
+  if (!user?.allUserId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const body = (await req.json()) as HandleUploadBody & { clientPayload?: string };
+
+  // Extract client payload from the request body
+  const clientPayload = body.clientPayload ? JSON.parse(body.clientPayload) : {};
+  console.log('📦 Client payload received:', clientPayload);
+
+  const res = await handleUpload({
+    request: req,
+    body,
+    onBeforeGenerateToken: async () => {
+      return {
+        allowedContentTypes: ALLOWED,
+        maximumSizeInBytes: 5 * 1024 ** 4, // up to 5 TB
+        addRandomSuffix: true,
+        // TODO: Use pathname parameter if we need custom path structure
+        // onBeforeGenerateToken: async (pathname) => {
+        // const safePath = generateBlobFilename(pathname || 'upload');
+        // path: `${process.env.BLOB_FOLDER_NAME || "futura"}/${safePath}`,
+        tokenPayload: JSON.stringify({
+          allUserId: user.allUserId,
+          isOnboarding: !!clientPayload.isOnboarding,
+          mode: clientPayload.mode || 'files',
+          existingUserId: clientPayload.existingUserId,
+        }),
+      };
+    },
+    onUploadCompleted: async ({ blob, tokenPayload }) => {
+      // persist in DB
+      try {
+        const payload = tokenPayload ? JSON.parse(tokenPayload as string) : {};
+        const result = await createMemoryFromBlob(
+          {
+            url: blob.url,
+            pathname: blob.pathname,
+            size: 0, // TODO: Get actual size from blob or client
+            contentType: blob.contentType || 'application/octet-stream',
+          },
+          {
+            allUserId: payload.allUserId,
+            isOnboarding: payload.isOnboarding,
+            mode: payload.mode,
+          }
+        );
+
+        // If this is an image and memory creation was successful, enqueue image processing
+        if (result.success && result.memoryId && blob.contentType?.startsWith('image/')) {
+          console.log(`🖼️ Enqueueing image processing for memory ${result.memoryId}`);
+          enqueueImageProcessing({
+            memoryId: result.memoryId,
+            originalBlobUrl: blob.url,
+            originalPathname: blob.pathname,
+            originalContentType: blob.contentType,
+            originalSize: 0, // TODO: Get actual size
+          });
+        }
+      } catch (e) {
+        // don't throw; upload already succeeded. Log & alert.
+        console.error('post-upload DB create failed', e);
+      }
+    },
+  });
+
+  return NextResponse.json(res);
 }

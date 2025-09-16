@@ -9,9 +9,9 @@
  * This replaces the old approach of sending files directly to backend endpoints.
  */
 
-import { StorageManager, type StorageBackend } from '@/lib/storage';
-import { processImageForMultipleAssets } from '@/app/api/memories/utils/image-processing';
+import { type StorageBackend } from '@/lib/storage';
 import { icpUploadService } from '@/services/icp-upload';
+import { upload as blobUpload } from '@vercel/blob/client';
 // import type { UploadStorage } from "@/hooks/use-upload-storage"; // Unused
 
 interface UploadResponse {
@@ -187,9 +187,8 @@ export const uploadFile = async (
       return await uploadToICPBackend(file);
     }
 
-    // Implement file type and size decision matrix
+    // Simplified upload decision matrix - use client upload for all files
     const fileSizeMB = file.size / (1024 * 1024);
-    const isLargeFile = fileSizeMB > 4; // 4MB threshold
     const isImage = file.type.startsWith('image/');
 
     console.log(`📊 FILE ANALYSIS:`, {
@@ -198,21 +197,13 @@ export const uploadFile = async (
       fileSizeMB: fileSizeMB.toFixed(2),
       fileType: file.type,
       isImage,
-      isLargeFile,
-      chosenPath: isImage ? 'MULTI_ASSET_PATH' : isLargeFile ? 'LARGE_FILE_PATH' : 'SMALL_FILE_PATH',
+      chosenPath: 'CLIENT_UPLOAD_PATH', // All files now use client upload
     });
 
-    // For images: Always use multi-asset approach (original, display, thumb) regardless of size
-    if (isImage) {
-      console.log(`🖼️ Image detected (${fileSizeMB.toFixed(1)}MB), using multi-asset approach...`);
-      return await uploadLargeFile(file, isOnboarding, existingUserId, mode);
-    } else if (isLargeFile) {
-      console.log(`📦 Large file detected (${fileSizeMB.toFixed(1)}MB), using direct-to-blob with server tokens...`);
-      return await uploadLargeFile(file, isOnboarding, existingUserId, mode);
-    } else {
-      console.log(`📦 Small file detected (${fileSizeMB.toFixed(1)}MB), using server-side upload...`);
-      return await uploadSmallFile(file);
-    }
+    // All files now use the client upload flow (grant-based upload)
+    // This provides consistent behavior, better progress tracking, and handles all file sizes
+    console.log(`☁️ Using client upload flow for ${file.name} (${fileSizeMB.toFixed(1)}MB)...`);
+    return await uploadFileToBlob(file, isOnboarding, existingUserId, mode);
   } catch (error) {
     console.error('❌ Upload failed:', error);
     throw error;
@@ -220,176 +211,71 @@ export const uploadFile = async (
 };
 
 /**
- * Upload small files using server-side approach
+ * Upload files using client-side upload flow with Vercel Blob
+ * This handles all file sizes using the grant-based upload approach
  */
-async function uploadSmallFile(file: File): Promise<UploadResponse> {
-  console.log(`🖥️ Using server-side upload for small file: ${file.name}`);
-  console.log(`📊 SMALL FILE UPLOAD DETAILS:`, {
-    fileName: file.name,
-    fileSize: file.size,
-    fileSizeMB: (file.size / (1024 * 1024)).toFixed(2),
-    fileType: file.type,
-    endpoint: '/api/memories',
-  });
-
-  // Use the existing server-side approach (FormData upload)
-  const formData = new FormData();
-  formData.append('file', file);
-
-  console.log(`🚀 Sending FormData to /api/memories...`);
-  const response = await fetch('/api/memories', {
-    method: 'POST',
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Server-side upload failed');
-  }
-
-  return await response.json();
-}
-
-/**
- * Upload files using multi-asset approach (for images) or direct-to-blob (for large files)
- * Creates original, display, and thumb versions for images regardless of size
- */
-async function uploadLargeFile(
+async function uploadFileToBlob(
   file: File,
   isOnboarding: boolean,
   existingUserId?: string,
   mode: UploadMode = 'files'
 ): Promise<UploadResponse> {
-  console.log(`☁️ Using multi-asset upload approach for: ${file.name}`);
+  console.log(`☁️ Using client-side upload flow for: ${file.name}`);
 
-  console.log(`🔧 Creating StorageManager instance...`);
-  const storageManager = new StorageManager();
-  console.log(`🔍 Available providers after initialization:`, storageManager.getAvailableProviders());
-  const memoryType = getMemoryTypeFromFile(file);
-
-  let assets: Array<{
-    assetType: 'original' | 'display' | 'thumb' | 'placeholder' | 'poster' | 'waveform';
-    url: string;
-    bytes: number;
-    mimeType: string;
-    storageBackend: string;
-    storageKey: string;
-    sha256: string | null;
-    variant: string | null;
-    width?: number;
-    height?: number;
-  }> = [];
-
-  if (memoryType === 'image') {
-    // For images: Process and upload multiple versions (original, display, thumb)
-    console.log(`🖼️ Processing image ${file.name} for multiple assets...`);
-
-    const processedAssets = await processImageForMultipleAssets(file);
-    console.log(`✅ Image processing complete: original, display, thumb`);
-
-    // Upload all processed assets to blob storage using our StorageManager
-    const [originalResult, displayResult, thumbResult] = await Promise.all([
-      storageManager.upload(processedAssets.original.blob as File, 'vercel_blob'),
-      storageManager.upload(processedAssets.display.blob as File, 'vercel_blob'),
-      storageManager.upload(processedAssets.thumb.blob as File, 'vercel_blob'),
-    ]);
-
-    // Convert to API format
-    const originalUploads = Array.isArray(originalResult) ? originalResult : [originalResult];
-    const displayUploads = Array.isArray(displayResult) ? displayResult : [displayResult];
-    const thumbUploads = Array.isArray(thumbResult) ? thumbResult : [thumbResult];
-
-    assets = [
-      {
-        assetType: 'original',
-        url: originalUploads[0].url,
-        bytes: processedAssets.original.size,
-        mimeType: processedAssets.original.mimeType,
-        storageBackend: originalUploads[0].provider,
-        storageKey: originalUploads[0].key,
-        sha256: null,
-        variant: null,
-        width: processedAssets.original.width,
-        height: processedAssets.original.height,
-      },
-      {
-        assetType: 'display',
-        url: displayUploads[0].url,
-        bytes: processedAssets.display.size,
-        mimeType: processedAssets.display.mimeType,
-        storageBackend: displayUploads[0].provider,
-        storageKey: displayUploads[0].key,
-        sha256: null,
-        variant: null,
-        width: processedAssets.display.width,
-        height: processedAssets.display.height,
-      },
-      {
-        assetType: 'thumb',
-        url: thumbUploads[0].url,
-        bytes: processedAssets.thumb.size,
-        mimeType: processedAssets.thumb.mimeType,
-        storageBackend: thumbUploads[0].provider,
-        storageKey: thumbUploads[0].key,
-        sha256: null,
-        variant: null,
-        width: processedAssets.thumb.width,
-        height: processedAssets.thumb.height,
-      },
-    ];
-
-    console.log(`📤 Uploaded ${assets.length} image assets to blob storage`);
-  } else {
-    // For non-images: Upload only the original file
-    console.log(`📤 Uploading ${file.name} (${memoryType}) to vercel_blob...`);
-
-    const uploadResult = await storageManager.upload(file, 'vercel_blob');
-    const uploadResults = Array.isArray(uploadResult) ? uploadResult : [uploadResult];
-    const primaryResult = uploadResults[0];
-
-    console.log(`✅ Blob upload successful: ${primaryResult.url}`);
-
-    // Create single asset for non-image files
-    assets = uploadResults.map(result => ({
-      assetType: 'original' as const,
-      url: result.url,
-      bytes: result.size,
-      mimeType: result.mimeType,
-      storageBackend: result.provider,
-      storageKey: result.key,
-      sha256: null,
-      variant: null,
-    }));
-  }
-
-  // 2. Call unified API with all assets
-  const response = await fetch('/api/memories', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
+  // Use new client-side upload flow with our grant endpoint
+  const blob = await blobUpload(file.name, file, {
+    access: 'public',
+    handleUploadUrl: '/api/memories/grant', // Use our corrected grant endpoint
+    multipart: true, // chunked + parallel + retries for large files
+    clientPayload: JSON.stringify({
+      isOnboarding,
+      mode,
+      filename: file.name,
+      existingUserId,
+      // Add any other context needed on the server side
+    }),
+    onUploadProgress: ev => {
+      // Hook into UI progress tracking
+      if (typeof window !== 'undefined') {
+        console.log(`📤 Upload progress: ${ev.percentage ?? 0}% for ${file.name}`);
+        // TODO: Dispatch progress to a store or UI component
+        // dispatch({ type: 'UPLOAD_PROGRESS', file: file.name, percentage: ev.percentage });
+      }
     },
-    body: JSON.stringify({
-      type: memoryType,
+  });
+
+  console.log(`✅ Client-side upload successful: ${blob.url}`);
+
+  // The DB insert is done server-side in onUploadCompleted callback
+  // We return a simplified response since the memory creation happens on the server
+  return {
+    success: true,
+    data: {
+      id: 'temp-id', // TODO: Get actual memory ID from server response
+      type: getMemoryTypeFromFile(file),
       title: file.name.split('.')[0] || 'Untitled',
       description: '',
       fileCreatedAt: new Date().toISOString(),
       isPublic: false,
-      isOnboarding,
-      mode,
-      existingUserId,
-      assets,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'API call failed');
-  }
-
-  const data = await response.json();
-  console.log(`✅ Memory created successfully: ${data.data.id} with ${assets.length} assets`);
-
-  return data;
+      parentFolderId: null,
+      tags: [],
+      recipients: [],
+      unlockDate: null,
+      metadata: {},
+      createdAt: new Date().toISOString(),
+      assets: [
+        {
+          id: 'temp-asset-id', // TODO: Get actual asset ID from server response
+          assetType: 'original',
+          url: blob.url,
+          bytes: file.size,
+          mimeType: file.type,
+          storageBackend: 'vercel_blob',
+          storageKey: blob.pathname,
+        },
+      ],
+    },
+  };
 }
 
 /**

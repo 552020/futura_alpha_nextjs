@@ -244,3 +244,96 @@ export function createUploadResponse(
     errors: failedUploads.length > 0 ? failedUploads : undefined,
   });
 }
+
+/**
+ * Create a memory from blob upload data
+ * This function is called from the grant route's onUploadCompleted callback
+ * to persist memory records after successful blob uploads
+ */
+export async function createMemoryFromBlob(
+  blob: {
+    url: string;
+    pathname: string;
+    size: number;
+    contentType: string;
+  },
+  meta: {
+    allUserId: string;
+    isOnboarding?: boolean;
+    mode?: string;
+  }
+): Promise<{ success: boolean; memoryId?: string; error?: string }> {
+  try {
+    console.log('📦 Creating memory from blob:', { url: blob.url, size: blob.size, contentType: blob.contentType });
+
+    // Determine memory type from content type
+    const memoryType = blob.contentType.startsWith('image/')
+      ? 'image'
+      : blob.contentType.startsWith('video/')
+        ? 'video'
+        : blob.contentType.startsWith('audio/')
+          ? 'audio'
+          : 'document';
+
+    // Extract title from pathname
+    const title = blob.pathname.split('/').pop()?.split('.')[0] || 'Untitled';
+
+    // Handle onboarding logic
+    const finalOwnerId = meta.allUserId;
+    if (meta.isOnboarding) {
+      console.log('🎯 Onboarding upload detected - using provided allUserId');
+      // For onboarding, we trust the provided allUserId (should be from temporary user creation)
+    }
+
+    // Create memory record
+    const newMemory: NewDBMemory = {
+      ownerId: finalOwnerId,
+      type: memoryType as 'image' | 'video' | 'document' | 'note' | 'audio',
+      title,
+      description: '',
+      fileCreatedAt: new Date(),
+      isPublic: false,
+      ownerSecureCode: randomUUID(),
+      parentFolderId: null,
+      tags: [],
+      recipients: [],
+      unlockDate: null,
+      metadata: {},
+    };
+
+    const [createdMemory] = await db.insert(memories).values(newMemory).returning();
+    console.log('✅ Memory created from blob:', { id: createdMemory.id, ownerId: finalOwnerId });
+
+    // Create asset record
+    const { memoryAssets } = await import('@/db/schema');
+    const assetData = {
+      memoryId: createdMemory.id,
+      assetType: 'original' as const,
+      variant: null,
+      url: blob.url,
+      storageBackend: 'vercel_blob' as const,
+      storageKey: blob.pathname,
+      bytes: blob.size,
+      width: null,
+      height: null,
+      mimeType: blob.contentType,
+      sha256: null,
+      processingStatus: 'completed' as const,
+      processingError: null,
+    };
+
+    const [createdAsset] = await db.insert(memoryAssets).values(assetData).returning();
+    console.log('✅ Asset created from blob:', { id: createdAsset.id, url: blob.url });
+
+    return {
+      success: true,
+      memoryId: createdMemory.id,
+    };
+  } catch (error) {
+    console.error('❌ Failed to create memory from blob:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
