@@ -176,17 +176,14 @@ export default function ICPPage() {
       // Automatically fetch capsule info after successful login
       try {
         // console.log("Fetching capsule info after login...");
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const capsuleResult = (await authenticatedActor.capsules_read_basic([])) as { Ok: any } | { Err: any };
+        const capsuleResult = (await authenticatedActor.capsules_read_basic([])) as { Ok: any } | { Err: any }; // eslint-disable-line @typescript-eslint/no-explicit-any
         // console.log("Capsule result received:", capsuleResult);
 
         if ("Ok" in capsuleResult) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          setCapsuleInfo((capsuleResult as { Ok: any }).Ok);
+          setCapsuleInfo((capsuleResult as { Ok: any }).Ok); // eslint-disable-line @typescript-eslint/no-explicit-any
           // console.log("Capsule info set to:", capsuleResult.Ok);
         } else {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          console.warn("Capsule read failed:", (capsuleResult as { Err: any }).Err);
+          console.warn("Capsule read failed:", (capsuleResult as { Err: any }).Err); // eslint-disable-line @typescript-eslint/no-explicit-any
           setCapsuleInfo(null);
         }
       } catch (error) {

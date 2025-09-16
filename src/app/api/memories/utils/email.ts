@@ -1,3 +1,21 @@
+/**
+ * EMAIL UTILITIES - UNIFIED SCHEMA
+ *
+ * This module handles email notifications for memory sharing and invitations.
+ * Updated to work with the unified memories schema instead of separate tables.
+ *
+ * USAGE:
+ * - Send invitation emails when sharing memories
+ * - Send notification emails for shared memories
+ * - Support all memory types: image, video, document, note, audio
+ *
+ * FUNCTIONS:
+ * - sendInvitationEmail(): Send email to invite someone to view a memory
+ * - sendSharedMemoryEmail(): Send email to existing users about shared memories
+ * - getEmailContent(): Generate email content based on memory type
+ * - getTemplateVariables(): Generate template variables for Mailgun templates
+ */
+
 import { db } from "@/db/db";
 import { relationship, users, familyRelationship } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -66,35 +84,24 @@ function getEmailContent(
   const relationshipText = relationship ? `, your ${relationship},` : "";
 
   if (memory.type === "document") {
-    const document = memory.data as {
-      title?: string;
-      description?: string;
-      url: string;
-    };
-    const textContent = `${inviterName}${relationshipText} has shared a document with you: ${document.title}. Description: ${document.description}. View it here: ${document.url}`;
+    const textContent = `${inviterName}${relationshipText} has shared a document with you: ${
+      memory.title
+    }. Description: ${memory.description || "No description"}.`;
     const htmlContent = includeHtml
       ? `
     <html>
       <body>
         <h1>Document Shared</h1>
-        <p>${inviterName}${relationshipText} has shared a document with you: <strong>${document.title}</strong></p>
-        <p>Description: ${document.description}</p>
-        <p>View it <a href="${document.url}">here</a>.</p>
+        <p>${inviterName}${relationshipText} has shared a document with you: <strong>${memory.title}</strong></p>
+        <p>Description: ${memory.description || "No description"}</p>
       </body>
     </html>
     `
       : undefined;
     return { text: textContent, html: htmlContent };
   } else if (memory.type === "image") {
-    // Assume memory.data is an image.
-    const image = memory.data as {
-      title?: string;
-      description?: string;
-      caption?: string;
-      url: string;
-    };
     const textContent = `You've been invited to view an image: ${
-      image.title || image.caption || image.url
+      memory.title || "Untitled"
     }. Invited by: ${inviterName}.`;
     const htmlContent = includeHtml
       ? `
@@ -102,24 +109,25 @@ function getEmailContent(
 		  <body>
 			<h1>Image Invitation</h1>
 			<p>You have been invited to view an image.</p>
-			<p>Title: <strong>${image.title || "No title"}</strong></p>
-			<p>Description: ${image.description || "No description"}</p>
+			<p>Title: <strong>${memory.title || "No title"}</strong></p>
+			<p>Description: ${memory.description || "No description"}</p>
 			<p>Invited by: ${inviterName}</p>
-			<img src="${image.url}" alt="${image.title || "Invited Image"}" style="max-width:600px;" />
 		  </body>
 		</html>
 	  `
       : undefined;
     return { text: textContent, html: htmlContent };
   } else {
-    // Fallback for note or other types.
-    const textContent = `You've been invited to view a memory. Invited by: ${inviterName}.`;
+    // Fallback for note, video, audio or other types.
+    const textContent = `You've been invited to view a ${memory.type}. Invited by: ${inviterName}.`;
     const htmlContent = includeHtml
       ? `
 		<html>
 		  <body>
 			<h1>Memory Invitation</h1>
-			<p>You've been invited to view a memory.</p>
+			<p>You've been invited to view a ${memory.type}.</p>
+			<p>Title: <strong>${memory.title || "Untitled"}</strong></p>
+			<p>Description: ${memory.description || "No description"}</p>
 			<p>Invited by: ${inviterName}</p>
 		  </body>
 		</html>
@@ -128,7 +136,6 @@ function getEmailContent(
     return { text: textContent, html: htmlContent };
   }
 }
-
 /**
  * Generates the dynamic variables for the template option.
  * @param memory The memory to be shared.
@@ -136,34 +143,12 @@ function getEmailContent(
  * @returns An object of template variables.
  */
 function getTemplateVariables(memory: MemoryWithType, inviterName: string): Record<string, unknown> {
-  if (memory.type === "document") {
-    const document = memory.data as {
-      title?: string;
-      description?: string;
-      url: string;
-    };
-    return {
-      title: document.title || "Untitled",
-      description: document.description || "No description",
-      url: document.url,
-      inviterName,
-    };
-  } else if (memory.type === "image") {
-    const image = memory.data as {
-      title?: string;
-      description?: string;
-      caption?: string;
-      url: string;
-    };
-    return {
-      title: image.title || image.caption || "Image",
-      description: image.description || image.caption || "No description",
-      url: image.url,
-      inviterName,
-    };
-  } else {
-    return { inviterName };
-  }
+  return {
+    title: memory.title || "Untitled",
+    description: memory.description || "No description",
+    type: memory.type,
+    inviterName,
+  };
 }
 
 /**
@@ -190,7 +175,7 @@ export async function sendInvitationEmail(
 
     // Retrieve the inviter's name and relationship
     const inviterName = await getInviterName(invitedById);
-    const relationship = await getRelationship(invitedById, memory.data.id);
+    const relationship = await getRelationship(invitedById, memory.id);
 
     // console.log("👤 Got inviter details:", {
     //   inviterName,
@@ -260,7 +245,7 @@ export async function sendSharedMemoryEmail(
 ) {
   try {
     const inviterName = await getInviterName(sharedById);
-    const relationship = await getRelationship(sharedById, memory.data.id);
+    const relationship = await getRelationship(sharedById, memory.id);
 
     const messageData = {
       to: email,

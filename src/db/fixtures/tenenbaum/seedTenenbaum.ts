@@ -1,8 +1,9 @@
 import { db } from "@/db/db";
-import { allUsers, users, images, notes, documents, memoryShares, videos } from "@/db/schema";
+import { allUsers, users, memories, memoryAssets, memoryShares } from "@/db/schema";
 import { faker } from "@faker-js/faker";
 import { inArray } from "drizzle-orm";
-import { uploadFileToStorage, validateFile } from "@/app/api/memories/upload/utils";
+import { uploadFileToStorage } from "@/app/api/memories/utils/storage";
+import { validateFile } from "@/app/api/memories/utils/file-processing";
 import { join } from "path";
 import { readFileSync } from "fs";
 import { hash } from "bcrypt";
@@ -126,27 +127,42 @@ async function createMemory(memory: Memory, ownerId: string) {
       if (!memory.url) throw new Error("Image URL is required");
       const imageUpload = await uploadAsset(memory.url);
       const [image] = await db
-        .insert(images)
+        .insert(memories)
         .values({
-          id: faker.string.uuid(),
           ownerId,
-          url: imageUpload.url,
+          type: "image",
           title: memory.title,
           description: memory.description,
           ownerSecureCode: faker.string.alphanumeric(12),
+          isPublic: false,
         })
         .returning();
+
+      // Create asset for the image
+      await db.insert(memoryAssets).values({
+        memoryId: image.id,
+        assetType: "original",
+        url: imageUpload.url,
+        storageBackend: "vercel_blob",
+        storageKey: imageUpload.url.split("/").pop() || "",
+        bytes: imageUpload.size,
+        width: null, // Will be populated later by image processing
+        height: null, // Will be populated later by image processing
+        mimeType: imageUpload.mimeType,
+      });
+
       return { id: image.id, type: "image" as const };
 
     case "note":
       const [note] = await db
-        .insert(notes)
+        .insert(memories)
         .values({
-          id: faker.string.uuid(),
           ownerId,
+          type: "note",
           title: memory.title,
-          content: memory.content || "",
+          description: memory.content || "",
           ownerSecureCode: faker.string.alphanumeric(12),
+          isPublic: false,
         })
         .returning();
       return { id: note.id, type: "note" as const };
@@ -155,36 +171,56 @@ async function createMemory(memory: Memory, ownerId: string) {
       if (!memory.file) throw new Error("Document file is required");
       const documentUpload = await uploadAsset(memory.file);
       const [document] = await db
-        .insert(documents)
+        .insert(memories)
         .values({
-          id: faker.string.uuid(),
           ownerId,
-          url: documentUpload.url,
+          type: "document",
           title: memory.title,
           description: memory.description,
-          mimeType: documentUpload.mimeType,
-          size: documentUpload.size.toString(),
           ownerSecureCode: faker.string.alphanumeric(12),
+          isPublic: false,
         })
         .returning();
+
+      // Create asset for the document
+      await db.insert(memoryAssets).values({
+        memoryId: document.id,
+        assetType: "original",
+        url: documentUpload.url,
+        storageBackend: "vercel_blob",
+        storageKey: documentUpload.url.split("/").pop() || "",
+        bytes: documentUpload.size,
+        mimeType: documentUpload.mimeType,
+      });
+
       return { id: document.id, type: "document" as const };
 
     case "video":
       if (!memory.url) throw new Error("Video URL is required");
       const videoUpload = await uploadAsset(memory.url);
       const [video] = await db
-        .insert(videos)
+        .insert(memories)
         .values({
-          id: faker.string.uuid(),
           ownerId,
-          url: videoUpload.url,
+          type: "video",
           title: memory.title,
           description: memory.description,
-          mimeType: videoUpload.mimeType,
-          size: videoUpload.size.toString(),
           ownerSecureCode: faker.string.alphanumeric(12),
+          isPublic: false,
         })
         .returning();
+
+      // Create asset for the video
+      await db.insert(memoryAssets).values({
+        memoryId: video.id,
+        assetType: "original",
+        url: videoUpload.url,
+        storageBackend: "vercel_blob",
+        storageKey: videoUpload.url.split("/").pop() || "",
+        bytes: videoUpload.size,
+        mimeType: videoUpload.mimeType,
+      });
+
       return { id: video.id, type: "video" as const };
 
     default:
@@ -234,10 +270,7 @@ export async function seedTenenbaum() {
     // Delete related data in correct order
     if (allUserIds.length > 0) {
       await db.delete(memoryShares).where(inArray(memoryShares.ownerId, allUserIds));
-      await db.delete(images).where(inArray(images.ownerId, allUserIds));
-      await db.delete(documents).where(inArray(documents.ownerId, allUserIds));
-      await db.delete(notes).where(inArray(notes.ownerId, allUserIds));
-      await db.delete(videos).where(inArray(videos.ownerId, allUserIds));
+      await db.delete(memories).where(inArray(memories.ownerId, allUserIds));
     }
 
     if (userIds.length > 0) {

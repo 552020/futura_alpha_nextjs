@@ -214,7 +214,7 @@ export function ItemUploadButton({
 }: ItemUploadButtonProps) {
   const [showUploadDialog, setShowUploadDialog] = useState(false);
 
-  const { isLoading, fileInputRef, handleUploadClick, handleFileChange } = useFileUpload({
+  const { isLoading, fileInputRef, handleUploadClick, handleFileUpload } = useFileUpload({
     isOnboarding,
     mode,
     onSuccess: () => {
@@ -228,7 +228,7 @@ export function ItemUploadButton({
 
   const renderUploadButton = () => {
     if (variant === "native") {
-      return <NativeFileInput onChange={handleFileChange} />;
+      return <NativeFileInput onChange={handleFileUpload} />;
     }
 
     const commonProps = { onClick: handleUploadClick, isLoading, buttonText };
@@ -258,7 +258,7 @@ export function ItemUploadButton({
         <input
           type="file"
           ref={fileInputRef}
-          onChange={handleFileChange}
+          onChange={handleFileUpload}
           className="hidden"
           multiple={false}
           accept="image/*,video/*,audio/*"

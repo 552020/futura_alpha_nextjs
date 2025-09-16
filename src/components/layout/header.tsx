@@ -118,7 +118,7 @@ export default function Header({ dict, lang }: { dict: HeaderDictionary; lang?: 
           <div className="md:hidden transition-opacity hover:opacity-80">
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="hover:bg-muted">
+                <Button variant="ghost" size="icon" className="hover:bg-muted" suppressHydrationWarning>
                   <Menu className="h-5 w-5" />
                   <span className="sr-only">Toggle menu</span>
                 </Button>

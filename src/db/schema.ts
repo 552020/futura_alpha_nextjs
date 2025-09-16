@@ -12,8 +12,10 @@ import {
   index,
   uuid,
   bigint,
+  check,
   //   IndexBuilder,
 } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 
 // import type { AdapterAccount } from "@auth/core/adapters";
@@ -25,8 +27,64 @@ export const backend_t = pgEnum("backend_t", ["neon-db", "vercel-blob", "icp-can
 export const memory_type_t = pgEnum("memory_type_t", ["image", "video", "note", "document", "audio"]);
 export const sync_t = pgEnum("sync_t", ["idle", "migrating", "failed"]);
 
-// Storage Preference Enum - replaces boolean fields to avoid CHECK constraints
+/**
+ * STORAGE PREFERENCE - User's preferred storage strategy
+ *
+ * This enum defines the user's preferred storage approach, which determines
+ * the primary storage providers used for their memories and assets.
+ *
+ * PREFERENCES:
+ * - neon: Neon database + Vercel Blob (centralized, reliable, easy)
+ * - icp: ICP Canister (decentralized, Web3, user-controlled)
+ * - dual: Both systems (redundancy, migration, hybrid approach)
+ *
+ * MAPPING TO STORAGE BACKENDS:
+ * - neon preference → metadata in Neon, assets in Vercel Blob/S3
+ * - icp preference → metadata in ICP, assets in ICP Storage
+ * - dual preference → metadata in both, assets in multiple providers
+ *
+ * USAGE:
+ * This preference is stored in the user's profile and used to determine
+ * which storage_backend_t providers to use for new memories.
+ */
 export const storage_pref_t = pgEnum("storage_pref_t", ["neon", "icp", "dual"]);
+
+// Memory Assets Enums - for multiple optimized assets per memory
+export const asset_type_t = pgEnum("asset_type_t", [
+  "original",
+  "display",
+  "thumb",
+  "placeholder",
+  "poster",
+  "waveform",
+]);
+export const processing_status_t = pgEnum("processing_status_t", ["pending", "processing", "completed", "failed"]);
+/**
+ * STORAGE BACKEND - Where assets are actually stored
+ *
+ * This enum defines all supported storage providers for memory assets.
+ * Different providers are optimized for different use cases and user preferences.
+ *
+ * PROVIDERS:
+ * - s3: AWS S3 (large files, high performance, enterprise)
+ * - vercel_blob: Vercel Blob Storage (medium files, CDN, easy integration)
+ * - icp: ICP Canister Storage (decentralized, user preference, Web3)
+ * - arweave: Arweave (permanent storage, immutable, pay-once)
+ * - ipfs: IPFS (decentralized, content-addressed, peer-to-peer)
+ * - neon: Neon database (small files, metadata, fast access)
+ *
+ * SELECTION LOGIC:
+ * - User preference (storage_pref_t) determines primary strategy
+ * - Asset type and size determine optimal provider
+ * - Dual storage for redundancy and performance
+ *
+ * EXAMPLES:
+ * - Original 20MB photo → s3 or vercel_blob
+ * - Thumbnail 50KB → neon (stored in database)
+ * - Waveform data → arweave (permanent, immutable)
+ * - User prefers ICP → icp for all assets
+ */
+export const storage_backend_t = pgEnum("storage_backend_t", ["s3", "vercel_blob", "icp", "arweave", "ipfs", "neon"]);
 // Users table - Core user data - required for auth.js
 export const users = pgTable(
   "user",
@@ -52,7 +110,14 @@ export const users = pgTable(
       .default("pending")
       .notNull(), // Tracks signup progress
 
-    // Access control
+    // User type (what kind of user you are)
+    userType: text("user_type", {
+      enum: ["personal", "professional"],
+    })
+      .default("personal")
+      .notNull(),
+
+    // Platform role (what permissions you have)
     role: text("role", {
       enum: ["user", "moderator", "admin", "developer", "superadmin"],
     })
@@ -253,7 +318,6 @@ export type CommonFileMetadata = {
   originalName: string;
   uploadedAt: string;
   dateOfMemory?: string;
-  peopleInMemory?: string[];
   format?: string; // File format (e.g., "JPEG", "PNG", "PDF")
 };
 
@@ -266,164 +330,481 @@ export type CustomMetadata = {
   [key: string]: string | number | boolean | null;
 };
 
-// Application tables
-export const images = pgTable("image", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  ownerId: text("owner_id")
-    .notNull()
-    .references(() => allUsers.id, { onDelete: "cascade" }),
-  url: text("url").notNull(),
-  caption: text("caption"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  isPublic: boolean("is_public").default(false).notNull(),
-  title: text("title"),
-  description: text("description"),
-  ownerSecureCode: text("owner_secure_code").notNull(), // For owner to manage the memory
-  // Tiny seam for future folder implementation
-  parentFolderId: text("parent_folder_id"), // Will reference folders.id when implemented
-  metadata: json("metadata")
-    .$type<
-      ImageMetadata & {
-        custom?: CustomMetadata; // For flexible user-defined annotations
-        originalPath?: string; // For folder uploads
-        folderName?: string; // For folder grouping
-      }
-    >()
-    .default({
-      size: 0,
-      mimeType: "",
-      originalName: "",
-      uploadedAt: new Date().toISOString(),
-    }),
-});
-
-export const videos = pgTable("video", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  ownerId: text("owner_id")
-    .notNull()
-    .references(() => allUsers.id, { onDelete: "cascade" }),
-  url: text("url").notNull(),
-  title: text("title").notNull(),
-  description: text("description"),
-  duration: integer("duration"), // Duration in seconds
-  mimeType: text("mime_type").notNull(),
-  size: text("size").notNull(), // File size in bytes
-  ownerSecureCode: text("owner_secure_code").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  isPublic: boolean("is_public").default(false).notNull(),
-  parentFolderId: text("parent_folder_id"), // Tiny seam for future folder implementation
-  metadata: json("metadata")
-    .$type<{
-      width?: number;
-      height?: number;
-      format?: string;
-      thumbnail?: string;
-      originalPath?: string; // For folder uploads
-      folderName?: string; // For folder grouping
-    }>()
-    .default({}),
-});
-
-export const notes = pgTable("note", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  ownerId: text("owner_id")
-    .notNull()
-    .references(() => allUsers.id, { onDelete: "cascade" }),
-  title: text("title").notNull(),
-  content: text("content").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  isPublic: boolean("is_public").default(false).notNull(),
-  ownerSecureCode: text("owner_secure_code").notNull(), // For owner to manage the memory
-  parentFolderId: text("parent_folder_id"), // Tiny seam for future folder implementation
-  metadata: json("metadata")
-    .$type<{
-      tags?: string[];
-      mood?: string;
-      location?: string;
-      dateOfMemory?: string;
-      recipients?: string[];
-      unlockDate?: string;
-      custom?: CustomMetadata; // For flexible user-defined annotations
-      originalPath?: string; // For folder uploads
-      folderName?: string; // For folder grouping
-    }>()
-    .default({}),
-});
-
-export const documents = pgTable("document", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  ownerId: text("owner_id")
-    .notNull()
-    .references(() => allUsers.id, { onDelete: "cascade" }),
-  url: text("url").notNull(),
-  title: text("title"),
-  description: text("description"),
-  mimeType: text("mime_type").notNull(),
-  size: text("size").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  isPublic: boolean("is_public").default(false).notNull(),
-  ownerSecureCode: text("owner_secure_code").notNull(), // For owner to manage the memory
-  parentFolderId: text("parent_folder_id"), // Tiny seam for future folder implementation
-  metadata: json("metadata")
-    .$type<
-      CommonFileMetadata & {
-        custom?: CustomMetadata; // For flexible user-defined annotations
-        originalPath?: string; // For folder uploads
-        folderName?: string; // For folder grouping
-      }
-    >()
-    .default({
-      size: 0,
-      mimeType: "",
-      originalName: "",
-      uploadedAt: new Date().toISOString(),
-    }),
-});
-
-export const audio = pgTable("audio", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  ownerId: text("owner_id")
-    .notNull()
-    .references(() => allUsers.id, { onDelete: "cascade" }),
-  url: text("url").notNull(),
-  title: text("title").notNull(),
-  description: text("description"),
-  duration: integer("duration"), // Duration in seconds
-  mimeType: text("mime_type").notNull(),
-  size: text("size").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  isPublic: boolean("is_public").default(false).notNull(),
-  ownerSecureCode: text("owner_secure_code").notNull(),
-  parentFolderId: text("parent_folder_id"), // Tiny seam for future folder implementation
-  metadata: json("metadata")
-    .$type<{
-      format?: string;
-      bitrate?: number;
-      sampleRate?: number;
-      channels?: number;
-      custom?: CustomMetadata;
-      originalPath?: string; // For folder uploads
-      folderName?: string; // For folder grouping
-    }>()
-    .default({}),
-});
+// Application tables - OLD PER-TYPE TABLES REMOVED
+// These have been replaced by the unified 'memories' table with 'memory_assets'
+// and optional detail tables for type-specific data.
 
 export const MEMORY_TYPES = ["image", "document", "note", "video", "audio"] as const;
 export const ACCESS_LEVELS = ["read", "write"] as const;
 export const MEMBER_ROLES = ["admin", "member"] as const;
+
+/**
+ * MEMORIES TABLE - Base memory storage with inheritance pattern
+ *
+ * This table stores all types of memories (images, videos, audio, documents) in a single
+ * base table following an OOP inheritance pattern. Each memory can have multiple optimized assets
+ * and type-specific extension data in separate tables.
+ *
+ * COMPOSITION:
+ * - Basic info: id, title, description, takenAt, type
+ * - Ownership: ownerId, ownerSecureCode, isPublic
+ * - Organization: parentFolderId
+ * - Tags: tags (for fast search and queries)
+ * - Flexible metadata: metadata JSON field for additional data
+ * - Timestamps: createdAt, updatedAt
+ *
+ * INHERITANCE PATTERN:
+ * - Base table: Common fields for all memory types
+ * - Extension tables: imageDetails, videoDetails, noteDetails, etc. for type-specific data
+ * - 1:1 relationship between base memory and its extension table
+ *
+ * RELATED DATA (via relations):
+ * - assets: MemoryAsset[] - Multiple optimized versions (original, display, thumb, etc.)
+ * - extensions: Type-specific detail tables (imageDetails, videoDetails, etc.)
+ * - shares: MemoryShare[] - Sharing permissions
+ *
+ * USAGE EXAMPLES:
+ * ```typescript
+ * // Get memory with all assets
+ * const memory = await db.query.memories.findFirst({
+ *   where: eq(memories.id, memoryId),
+ *   with: { assets: true }
+ * });
+ *
+ * // Get memory with type-specific details
+ * const imageMemory = await db.query.memories.findFirst({
+ *   where: eq(memories.id, memoryId),
+ *   with: {
+ *     assets: true,
+ *     imageDetails: true // Only exists for image memories
+ *   }
+ * });
+ *
+ * // Search by tags
+ * const taggedMemories = await db.select()
+ *   .from(memories)
+ *   .where(arrayContains(memories.tags, ['nature', 'sunset']));
+ * ```
+ */
+export const memories = pgTable(
+  "memories",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => allUsers.id, { onDelete: "cascade" }),
+    type: memory_type_t("type").notNull(),
+    title: text("title"),
+    description: text("description"),
+    isPublic: boolean("is_public").default(false).notNull(),
+    ownerSecureCode: text("owner_secure_code").notNull(),
+    parentFolderId: text("parent_folder_id"),
+    // Tags for better performance and search
+    tags: text("tags").array().default([]),
+    // Universal fields for all memory types
+    recipients: text("recipients").array().default([]),
+    // Date fields - grouped together
+    fileCreatedAt: timestamp("file_created_at", { mode: "date" }), // When file was originally created
+    unlockDate: timestamp("unlock_date", { mode: "date" }), // When memory becomes accessible
+    createdAt: timestamp("created_at").notNull().defaultNow(), // When memory was uploaded/created in our system
+    updatedAt: timestamp("updated_at").notNull().defaultNow(), // When memory was last modified
+    deletedAt: timestamp("deleted_at"), // Soft delete support
+    // Flexible metadata for truly common additional data
+    metadata: json("metadata")
+      .$type<{
+        // File upload context (applies to all types)
+        originalPath?: string; // Original file path from upload
+        // Custom user data (truly universal)
+        custom?: Record<string, unknown>;
+      }>()
+      .default({}),
+  },
+  (table) => [
+    // Performance indexes for common queries
+    index("memories_owner_created_idx").on(table.ownerId, table.createdAt.desc()),
+    index("memories_type_idx").on(table.type),
+    index("memories_public_idx").on(table.isPublic),
+    // Performance indexes for tags and people
+    index("memories_tags_idx").on(table.tags),
+  ]
+);
+
+/**
+ * MEMORY ASSETS TABLE - Multiple optimized assets per memory
+ *
+ * This table stores different optimized versions of each memory (original, display, thumb, etc.).
+ * Each memory can have multiple assets, but only one asset per type per memory.
+ *
+ * COMPOSITION:
+ * - Identity: id, memoryId (FK to memories)
+ * - Asset info: assetType, variant, url, storageBackend, storageKey
+ * - Media properties: bytes, width, height, mimeType, sha256
+ * - Processing: processingStatus, processingError
+ * - Timestamps: createdAt, updatedAt
+ *
+ * ASSET TYPES:
+ * - original: Full resolution, unprocessed file
+ * - display: Optimized for viewing (~1600-2048px, WebP)
+ * - thumb: Thumbnail for grids (~320-512px, WebP)
+ * - placeholder: Low-quality placeholder (blurhash, base64)
+ * - poster: Video poster frame
+ * - waveform: Audio waveform visualization
+ *
+ * USAGE EXAMPLES:
+ * ```typescript
+ * // Get all assets for a memory
+ * const assets = await db.select()
+ *   .from(memoryAssets)
+ *   .where(eq(memoryAssets.memoryId, memoryId));
+ *
+ * // Get specific asset type
+ * const thumbnail = await db.select()
+ *   .from(memoryAssets)
+ *   .where(
+ *     and(
+ *       eq(memoryAssets.memoryId, memoryId),
+ *       eq(memoryAssets.assetType, 'thumb')
+ *     )
+ *   );
+ * ```
+ */
+export const memoryAssets = pgTable(
+  "memory_assets",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    memoryId: uuid("memory_id")
+      .notNull()
+      .references(() => memories.id, { onDelete: "cascade" }),
+    assetType: asset_type_t("asset_type").notNull(),
+    variant: text("variant"), // Optional for future variants (2k, mobile, etc.)
+    url: text("url").notNull(), // Derived/public URL
+    storageBackend: storage_backend_t("storage_backend").notNull(),
+    bucket: text("bucket"), // Storage bucket/container
+    storageKey: text("storage_key").notNull(), // Bucket/key or blob ID
+    bytes: bigint("bytes", { mode: "number" }).notNull(), // Use bigint for >2GB files
+    width: integer("width"), // Nullable for non-image assets
+    height: integer("height"), // Nullable for non-image assets
+    mimeType: text("mime_type").notNull(), // Consistent naming
+    sha256: text("sha256"), // 64-char hex (enforced by validation)
+    processingStatus: processing_status_t("processing_status").default("pending").notNull(),
+    processingError: text("processing_error"),
+    deletedAt: timestamp("deleted_at"), // Soft delete support
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    // Ensure one asset type per memory
+    uniqueIndex("memory_assets_unique").on(table.memoryId, table.assetType),
+    // Performance indexes
+    index("memory_assets_memory_idx").on(table.memoryId),
+    index("memory_assets_type_idx").on(table.assetType),
+    index("memory_assets_url_idx").on(table.url),
+    index("memory_assets_storage_idx").on(table.storageBackend, table.storageKey),
+    // Data integrity constraints
+    check("memory_assets_bytes_positive", sql`${table.bytes} > 0`),
+    check(
+      "memory_assets_dimensions_positive",
+      sql`(${table.width} IS NULL OR ${table.width} > 0) AND (${table.height} IS NULL OR ${table.height} > 0)`
+    ),
+  ]
+);
+
+/**
+ * FOLDERS TABLE - Google Drive-style organization
+ *
+ * This table enables folder-based organization of memories, similar to Google Drive.
+ * Folders can be nested (parentFolderId) and contain both memories and subfolders.
+ *
+ * COMPOSITION:
+ * - Identity: id, ownerId (FK to allUsers)
+ * - Organization: name, parentFolderId (self-referencing FK)
+ * - Timestamps: createdAt, updatedAt
+ *
+ * USAGE EXAMPLES:
+ * ```typescript
+ * // Create a folder
+ * const folder = await db.insert(folders).values({
+ *   ownerId: userId,
+ *   name: "Wedding Photos",
+ *   parentFolderId: null // Root level
+ * });
+ *
+ * // Get folder with contents
+ * const folderWithContents = await db.query.folders.findFirst({
+ *   where: eq(folders.id, folderId),
+ *   with: { memories: true, subfolders: true }
+ * });
+ * ```
+ */
+export const folders = pgTable(
+  "folders",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => allUsers.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    parentFolderId: text("parent_folder_id"), // Self-referencing FK for nested folders
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    // Performance indexes
+    index("folders_owner_idx").on(table.ownerId),
+    index("folders_parent_idx").on(table.parentFolderId),
+  ]
+);
+
+/**
+ * IMAGE DETAILS TABLE - Type-specific data for image memories
+ *
+ * This optional table stores image-specific metadata that doesn't belong in the
+ * core memories table. Only created when actually needed for image memories.
+ *
+ * COMPOSITION:
+ * - Identity: memoryId (FK to memories, 1:1)
+ * - Image data: width, height, exif metadata
+ *
+ * USAGE:
+ * Only create this table when you need image-specific fields beyond what's
+ * stored in the memoryAssets table (which already has width/height).
+ */
+export const imageDetails = pgTable("image_details", {
+  memoryId: uuid("memory_id")
+    .primaryKey()
+    .references(() => memories.id, { onDelete: "cascade" }),
+  width: integer("width"),
+  height: integer("height"),
+  // Image-specific EXIF data as proper columns
+  camera: text("camera"),
+  focal: integer("focal"),
+  iso: integer("iso"),
+  aperture: text("aperture"), // e.g., "f/2.8"
+  shutterSpeed: text("shutter_speed"), // e.g., "1/125"
+  orientation: integer("orientation"),
+});
+
+/**
+ * VIDEO DETAILS TABLE - Type-specific data for video memories
+ *
+ * This optional table stores video-specific metadata like duration, codec, etc.
+ * Only created when actually needed for video memories.
+ *
+ * COMPOSITION:
+ * - Identity: memoryId (FK to memories, 1:1)
+ * - Video data: durationMs, width, height, codec, fps
+ */
+export const videoDetails = pgTable("video_details", {
+  memoryId: uuid("memory_id")
+    .primaryKey()
+    .references(() => memories.id, { onDelete: "cascade" }),
+  durationMs: integer("duration_ms").notNull(),
+  width: integer("width"),
+  height: integer("height"),
+  codec: text("codec"),
+  fps: text("fps"),
+});
+
+/**
+ * DOCUMENT DETAILS TABLE - Type-specific data for document memories
+ *
+ * This optional table stores document-specific metadata like page count, etc.
+ * Only created when actually needed for document memories.
+ *
+ * COMPOSITION:
+ * - Identity: memoryId (FK to memories, 1:1)
+ * - Document data: pages, mimeType
+ */
+export const documentDetails = pgTable("document_details", {
+  memoryId: uuid("memory_id")
+    .primaryKey()
+    .references(() => memories.id, { onDelete: "cascade" }),
+  pages: integer("pages"),
+  mimeType: text("mime_type"),
+});
+
+/**
+ * AUDIO DETAILS TABLE - Type-specific data for audio memories
+ *
+ * This optional table stores audio-specific metadata like duration, bitrate, etc.
+ * Only created when actually needed for audio memories.
+ *
+ * COMPOSITION:
+ * - Identity: memoryId (FK to memories, 1:1)
+ * - Audio data: durationMs, bitrate, sampleRate, channels
+ */
+export const audioDetails = pgTable("audio_details", {
+  memoryId: uuid("memory_id")
+    .primaryKey()
+    .references(() => memories.id, { onDelete: "cascade" }),
+  durationMs: integer("duration_ms"),
+  bitrate: integer("bitrate"),
+  sampleRate: integer("sample_rate"),
+  channels: integer("channels"),
+});
+
+/**
+ * NOTE DETAILS TABLE - Type-specific data for note memories
+ *
+ * This optional table stores note-specific content and formatting.
+ * Only created when actually needed for note memories.
+ *
+ * COMPOSITION:
+ * - Identity: memoryId (FK to memories, 1:1)
+ * - Note data: content (the actual note text)
+ */
+export const noteDetails = pgTable("note_details", {
+  memoryId: uuid("memory_id")
+    .primaryKey()
+    .references(() => memories.id, { onDelete: "cascade" }),
+  content: text("content").notNull(),
+});
+
+/**
+ * PEOPLE IN MEMORIES TABLE - Links people to memories
+ *
+ * This table connects people (both registered and temporary users) to memories.
+ * People can be tagged in photos, videos, notes, etc. and can be either:
+ * - Registered users (via allUsers -> users)
+ * - Temporary users (via allUsers -> temporaryUsers)
+ *
+ * COMPOSITION:
+ * - Identity: memoryId (FK to memories), allUserId (FK to allUsers)
+ * - Role: What role the person has in the memory
+ * - Timestamps: createdAt
+ *
+ * USAGE EXAMPLES:
+ * ```typescript
+ * // Get all people in a memory
+ * const people = await db.select()
+ *   .from(peopleInMemories)
+ *   .leftJoin(allUsers, eq(peopleInMemories.allUserId, allUsers.id))
+ *   .leftJoin(users, eq(allUsers.userId, users.id))
+ *   .leftJoin(temporaryUsers, eq(allUsers.temporaryUserId, temporaryUsers.id))
+ *   .where(eq(peopleInMemories.memoryId, memoryId));
+ * ```
+ */
+export const peopleInMemories = pgTable(
+  "people_in_memories",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    memoryId: uuid("memory_id")
+      .notNull()
+      .references(() => memories.id, { onDelete: "cascade" }),
+    allUserId: text("all_user_id")
+      .notNull()
+      .references(() => allUsers.id, { onDelete: "cascade" }),
+    role: text("role").default("subject"), // "subject", "photographer", "witness", etc.
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    // Ensure a person can only be tagged once per memory
+    uniqueIndex("people_in_memories_unique").on(table.memoryId, table.allUserId),
+    // Performance indexes
+    index("people_in_memories_memory_idx").on(table.memoryId),
+    index("people_in_memories_user_idx").on(table.allUserId),
+  ]
+);
+
+/**
+ * MEMORY LIKES TABLE - Tracks likes on memories
+ *
+ * This table tracks which users have liked which memories.
+ * Each user can like a memory only once, but multiple users can like the same memory.
+ *
+ * COMPOSITION:
+ * - Identity: memoryId (FK to memories), allUserId (FK to allUsers)
+ * - Timestamps: createdAt
+ *
+ * USAGE EXAMPLES:
+ * ```typescript
+ * // Get all likes for a memory
+ * const likes = await db.select()
+ *   .from(memoryLikes)
+ *   .leftJoin(allUsers, eq(memoryLikes.allUserId, allUsers.id))
+ *   .where(eq(memoryLikes.memoryId, memoryId));
+ *
+ * // Check if a user liked a memory
+ * const userLike = await db.query.memoryLikes.findFirst({
+ *   where: and(
+ *     eq(memoryLikes.memoryId, memoryId),
+ *     eq(memoryLikes.allUserId, userId)
+ *   )
+ * });
+ * ```
+ */
+export const memoryLikes = pgTable(
+  "memory_likes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    memoryId: uuid("memory_id")
+      .notNull()
+      .references(() => memories.id, { onDelete: "cascade" }),
+    allUserId: text("all_user_id")
+      .notNull()
+      .references(() => allUsers.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    // Ensure a user can only like a memory once
+    uniqueIndex("memory_likes_unique").on(table.memoryId, table.allUserId),
+    // Performance indexes
+    index("memory_likes_memory_idx").on(table.memoryId),
+    index("memory_likes_user_idx").on(table.allUserId),
+  ]
+);
+
+/**
+ * MEMORY COMMENTS TABLE - Tracks comments on memories
+ *
+ * This table tracks comments made by users on memories.
+ * Unlike likes, users can make multiple comments on the same memory.
+ * Comments are displayed chronologically and support nested replies.
+ *
+ * COMPOSITION:
+ * - Identity: memoryId (FK to memories), allUserId (FK to allUsers)
+ * - Content: content (the actual comment text)
+ * - Threading: parentCommentId (for nested replies)
+ * - Timestamps: createdAt, updatedAt, deletedAt (soft delete)
+ *
+ * USAGE EXAMPLES:
+ * ```typescript
+ * // Get all comments for a memory (chronological order)
+ * const comments = await db.select()
+ *   .from(memoryComments)
+ *   .leftJoin(allUsers, eq(memoryComments.allUserId, allUsers.id))
+ *   .where(eq(memoryComments.memoryId, memoryId))
+ *   .orderBy(desc(memoryComments.createdAt));
+ *
+ * // Get nested replies to a comment
+ * const replies = await db.select()
+ *   .from(memoryComments)
+ *   .where(eq(memoryComments.parentCommentId, parentCommentId));
+ * ```
+ */
+export const memoryComments = pgTable(
+  "memory_comments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    memoryId: uuid("memory_id")
+      .notNull()
+      .references(() => memories.id, { onDelete: "cascade" }),
+    allUserId: text("all_user_id")
+      .notNull()
+      .references(() => allUsers.id, { onDelete: "cascade" }),
+    content: text("content").notNull(),
+    parentCommentId: uuid("parent_comment_id"), // For nested replies
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at"), // Soft delete
+  },
+  (table) => [
+    // Performance indexes - ordered by date for chronological display
+    index("memory_comments_memory_created_idx").on(table.memoryId, table.createdAt.desc()),
+    index("memory_comments_user_idx").on(table.allUserId),
+    index("memory_comments_parent_idx").on(table.parentCommentId),
+  ]
+);
 
 // Types of relationships between users (e.g., brother, aunt, friend)
 export const RELATIONSHIP_TYPES = ["friend", "colleague", "acquaintance", "family", "other"] as const;
@@ -471,7 +852,7 @@ export const memoryShares = pgTable("memory_share", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
-  memoryId: text("memory_id").notNull(), // The ID of the memory (e.g., image, note, document)
+  memoryId: uuid("memory_id").notNull(), // The ID of the memory (e.g., image, note, document)
   memoryType: text("memory_type", { enum: MEMORY_TYPES }).notNull(), // Type of memory (e.g., "image", "note", "document", "video")
   ownerId: text("owner_id") // The user who originally created (or owns) the memory
     .notNull()
@@ -573,6 +954,46 @@ export const familyRelationship = pgTable("family_relationship", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Business Relationships Table
+// Minimal client-provider relationships
+export const businessRelationship = pgTable(
+  "business_relationship",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+
+    // The business (service provider) - must be a registered user
+    businessId: text("business_id")
+      .notNull()
+      .references(() => allUsers.id, { onDelete: "cascade" }),
+
+    // The client - can be a registered user or external client
+    clientId: text("client_id").references(() => allUsers.id, { onDelete: "cascade" }), // Optional - for external clients
+
+    // Client details (for external clients who aren't registered users)
+    clientName: text("client_name"), // For external clients
+    clientEmail: text("client_email"), // For external clients
+
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.businessId],
+      foreignColumns: [allUsers.id],
+      name: "business_relationship_business_id_all_user_id_fk",
+    }),
+    foreignKey({
+      columns: [table.clientId],
+      foreignColumns: [allUsers.id],
+      name: "business_relationship_client_id_all_user_id_fk",
+    }),
+    // Index for efficient querying
+    index("business_relationship_business_idx").on(table.businessId),
+    index("business_relationship_client_idx").on(table.clientId),
+  ]
+);
+
 // Enum for primary relationships
 export const PRIMARY_RELATIONSHIP_ROLES = ["son", "daughter", "father", "mother", "sibling", "spouse"] as const;
 export type PrimaryRelationshipRole = (typeof PRIMARY_RELATIONSHIP_ROLES)[number];
@@ -646,7 +1067,7 @@ export const galleryItems = pgTable(
     galleryId: text("gallery_id")
       .notNull()
       .references(() => galleries.id, { onDelete: "cascade" }),
-    memoryId: text("memory_id").notNull(),
+    memoryId: uuid("memory_id").notNull(),
     memoryType: text("memory_type", { enum: MEMORY_TYPES }).notNull(), // 'image' | 'video' | 'document' | 'note' | 'audio'
     position: integer("position").notNull(),
     caption: text("caption"),
@@ -681,14 +1102,7 @@ export type NewDBAccount = typeof accounts.$inferInsert;
 export type DBSession = typeof sessions.$inferSelect;
 export type NewDBSession = typeof sessions.$inferInsert;
 
-export type DBImage = typeof images.$inferSelect;
-export type NewDBImage = typeof images.$inferInsert;
-
-export type DBDocument = typeof documents.$inferSelect;
-export type NewDBDocument = typeof documents.$inferInsert;
-
-export type DBNote = typeof notes.$inferSelect;
-export type NewDBNote = typeof notes.$inferInsert;
+// Old per-type table types removed - replaced by unified memory types
 
 export type DBMemoryShare = typeof memoryShares.$inferSelect;
 export type NewDBMemoryShare = typeof memoryShares.$inferInsert;
@@ -699,8 +1113,7 @@ export type NewDBGroup = typeof group.$inferInsert;
 export type DBGroupMember = typeof groupMember.$inferSelect;
 export type NewDBGroupMember = typeof groupMember.$inferInsert;
 
-export type DBVideo = typeof videos.$inferSelect;
-export type NewDBVideo = typeof videos.$inferInsert;
+// DBVideo types removed - replaced by unified memory types
 
 export type DBGallery = typeof galleries.$inferSelect;
 export type NewDBGallery = typeof galleries.$inferInsert;
@@ -784,7 +1197,7 @@ export const storageEdges = pgTable(
   "storage_edges",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    memoryId: uuid("memory_id").notNull(), // References images.id, videos.id, etc.
+    memoryId: uuid("memory_id").notNull(), // References memories.id
     memoryType: memory_type_t("memory_type").notNull(), // 'image' | 'video' | 'note' | 'document' | 'audio'
     artifact: artifact_t("artifact").notNull(), // 'metadata' | 'asset'
     backend: backend_t("backend").notNull(), // 'neon-db' | 'vercel-blob' | 'icp-canister'
@@ -808,6 +1221,34 @@ export const storageEdges = pgTable(
 
 export type DBStorageEdge = typeof storageEdges.$inferSelect;
 export type NewDBStorageEdge = typeof storageEdges.$inferInsert;
+
+// Memory Metadata Table - stores universal metadata and processing status
+export const memoryMetadata = pgTable(
+  "memory_metadata",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    memoryId: uuid("memory_id").notNull(),
+    memoryType: memory_type_t("memory_type").notNull(),
+    // Universal metadata that applies to all memory types
+    universalData: json("universal_data").$type<{
+      gps?: {
+        latitude?: number;
+        longitude?: number;
+        altitude?: number;
+      };
+      // Add other universal fields as needed
+    }>(),
+    processingStatus: processing_status_t("processing_status").default("pending").notNull(),
+    processingError: text("processing_error"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("memory_metadata_unique").on(table.memoryId, table.memoryType),
+    index("memory_metadata_memory_idx").on(table.memoryId, table.memoryType),
+    index("memory_metadata_status_idx").on(table.processingStatus),
+  ]
+);
 
 // NOTE: Views are created/updated ONLY via SQL migrations.
 // These helpers are read-only projections for typing & autocompletion.
@@ -869,6 +1310,150 @@ export const getSyncStatusByBackend = (backend: "neon-db" | "vercel-blob" | "icp
 
 export const refreshGalleryPresence = () => sql`SELECT refresh_gallery_presence()`;
 
+/**
+ * DRIZZLE RELATIONS - Define object-like access to related data
+ *
+ * These relations make it easy to query memories with their related assets,
+ * making the composition clear and enabling clean, object-like queries.
+ *
+ * RELATIONSHIPS:
+ * - memories (1) ↔ (many) memoryAssets
+ * - memoryAssets (many) ↔ (1) memories
+ *
+ * USAGE EXAMPLES:
+ * ```typescript
+ * // Get memory with all assets (object-like access)
+ * const memory = await db.query.memories.findFirst({
+ *   where: eq(memories.id, memoryId),
+ *   with: { assets: true }
+ * });
+ * // Result: memory.assets is an array of MemoryAsset[]
+ *
+ * // Get asset with its parent memory
+ * const asset = await db.query.memoryAssets.findFirst({
+ *   where: eq(memoryAssets.id, assetId),
+ *   with: { memory: true }
+ * });
+ * // Result: asset.memory is the parent Memory object
+ * ```
+ */
+export const memoriesRelations = relations(memories, ({ many }) => ({
+  assets: many(memoryAssets),
+  people: many(peopleInMemories),
+  likes: many(memoryLikes),
+  comments: many(memoryComments),
+}));
+
+export const memoryAssetsRelations = relations(memoryAssets, ({ one }) => ({
+  memory: one(memories, {
+    fields: [memoryAssets.memoryId],
+    references: [memories.id],
+  }),
+}));
+
+// Folder relations
+export const foldersRelations = relations(folders, ({ one, many }) => ({
+  owner: one(allUsers, {
+    fields: [folders.ownerId],
+    references: [allUsers.id],
+  }),
+  parent: one(folders, {
+    fields: [folders.parentFolderId],
+    references: [folders.id],
+  }),
+  subfolders: many(folders),
+  memories: many(memories),
+}));
+
+// Detail table relations (1:1 with memories)
+export const imageDetailsRelations = relations(imageDetails, ({ one }) => ({
+  memory: one(memories, {
+    fields: [imageDetails.memoryId],
+    references: [memories.id],
+  }),
+}));
+
+export const videoDetailsRelations = relations(videoDetails, ({ one }) => ({
+  memory: one(memories, {
+    fields: [videoDetails.memoryId],
+    references: [memories.id],
+  }),
+}));
+
+export const documentDetailsRelations = relations(documentDetails, ({ one }) => ({
+  memory: one(memories, {
+    fields: [documentDetails.memoryId],
+    references: [memories.id],
+  }),
+}));
+
+export const audioDetailsRelations = relations(audioDetails, ({ one }) => ({
+  memory: one(memories, {
+    fields: [audioDetails.memoryId],
+    references: [memories.id],
+  }),
+}));
+
+export const noteDetailsRelations = relations(noteDetails, ({ one }) => ({
+  memory: one(memories, {
+    fields: [noteDetails.memoryId],
+    references: [memories.id],
+  }),
+}));
+
+// People in memories relations
+export const peopleInMemoriesRelations = relations(peopleInMemories, ({ one }) => ({
+  memory: one(memories, {
+    fields: [peopleInMemories.memoryId],
+    references: [memories.id],
+  }),
+  person: one(allUsers, {
+    fields: [peopleInMemories.allUserId],
+    references: [allUsers.id],
+  }),
+}));
+
+// Memory likes relations
+export const memoryLikesRelations = relations(memoryLikes, ({ one }) => ({
+  memory: one(memories, {
+    fields: [memoryLikes.memoryId],
+    references: [memories.id],
+  }),
+  user: one(allUsers, {
+    fields: [memoryLikes.allUserId],
+    references: [allUsers.id],
+  }),
+}));
+
+// Memory comments relations
+export const memoryCommentsRelations = relations(memoryComments, ({ one, many }) => ({
+  memory: one(memories, {
+    fields: [memoryComments.memoryId],
+    references: [memories.id],
+  }),
+  user: one(allUsers, {
+    fields: [memoryComments.allUserId],
+    references: [allUsers.id],
+  }),
+  parentComment: one(memoryComments, {
+    fields: [memoryComments.parentCommentId],
+    references: [memoryComments.id],
+  }),
+  replies: many(memoryComments),
+}));
+
+// Business relationship relations
+export const businessRelationshipRelations = relations(businessRelationship, ({ one }) => ({
+  business: one(allUsers, {
+    fields: [businessRelationship.businessId],
+    references: [allUsers.id],
+  }),
+  client: one(allUsers, {
+    fields: [businessRelationship.clientId],
+    references: [allUsers.id],
+  }),
+}));
+
 // Type helpers for the enums
 export type MemoryType = (typeof MEMORY_TYPES)[number];
 export type AccessLevel = (typeof ACCESS_LEVELS)[number];
@@ -876,3 +1461,72 @@ export type MemberRole = (typeof MEMBER_ROLES)[number];
 
 export type DBRelationship = typeof relationship.$inferSelect;
 export type DBFamilyRelationship = typeof familyRelationship.$inferSelect;
+export type DBBusinessRelationship = typeof businessRelationship.$inferSelect;
+export type NewDBBusinessRelationship = typeof businessRelationship.$inferInsert;
+
+// Memory Assets Types
+export type DBMemoryAsset = typeof memoryAssets.$inferSelect;
+export type NewDBMemoryAsset = typeof memoryAssets.$inferInsert;
+export type DBMemoryMetadata = typeof memoryMetadata.$inferSelect;
+export type NewDBMemoryMetadata = typeof memoryMetadata.$inferInsert;
+
+// New unified memory types
+export type DBMemory = typeof memories.$inferSelect;
+export type NewDBMemory = typeof memories.$inferInsert;
+
+// Memory with assets relationship
+export type DBMemoryWithAssets = DBMemory & {
+  assets: DBMemoryAsset[];
+};
+
+// Asset type helpers
+export type AssetType = (typeof asset_type_t.enumValues)[number];
+export type ProcessingStatus = (typeof processing_status_t.enumValues)[number];
+export type StorageBackend = (typeof storage_backend_t.enumValues)[number];
+
+// Folder types
+export type DBFolder = typeof folders.$inferSelect;
+export type NewDBFolder = typeof folders.$inferInsert;
+
+// Detail table types
+export type DBImageDetails = typeof imageDetails.$inferSelect;
+export type NewDBImageDetails = typeof imageDetails.$inferInsert;
+export type DBVideoDetails = typeof videoDetails.$inferSelect;
+export type NewDBVideoDetails = typeof videoDetails.$inferInsert;
+export type DBDocumentDetails = typeof documentDetails.$inferSelect;
+export type NewDBDocumentDetails = typeof documentDetails.$inferInsert;
+export type DBAudioDetails = typeof audioDetails.$inferSelect;
+export type NewDBAudioDetails = typeof audioDetails.$inferInsert;
+export type DBNoteDetails = typeof noteDetails.$inferSelect;
+export type NewDBNoteDetails = typeof noteDetails.$inferInsert;
+
+// Memory with all relationships
+export type DBMemoryWithDetails = DBMemory & {
+  assets: DBMemoryAsset[];
+  folder?: DBFolder | null;
+  imageDetails?: DBImageDetails | null;
+  videoDetails?: DBVideoDetails | null;
+  documentDetails?: DBDocumentDetails | null;
+  audioDetails?: DBAudioDetails | null;
+  noteDetails?: DBNoteDetails | null;
+};
+
+// Temporary exports for backward compatibility during migration
+// TODO: Remove these once all files are updated to use the new unified schema
+export const images = memories;
+export const videos = memories;
+export const documents = memories;
+export const notes = memories;
+export const audio = memories;
+
+// Temporary type exports for backward compatibility
+export type DBImage = DBMemory;
+export type DBVideo = DBMemory;
+export type DBDocument = DBMemory;
+export type DBNote = DBMemory;
+export type DBAudio = DBMemory;
+export type NewDBImage = NewDBMemory;
+export type NewDBVideo = NewDBMemory;
+export type NewDBDocument = NewDBMemory;
+export type NewDBNote = NewDBMemory;
+export type NewDBAudio = NewDBMemory;

@@ -10,12 +10,7 @@ import { ItemUploadButton } from "@/components/memory/item-upload-button";
 import { Button } from "@/components/ui/button";
 import { FolderTopBar } from "@/components/dashboard/folder-top-bar";
 import { TawkChat } from "@/components/chat/tawk-chat";
-import {
-  fetchAndNormalizeMemories,
-  deleteMemory,
-  type NormalizedMemory,
-  type DashboardItem,
-} from "@/services/memories";
+import { fetchMemories, deleteMemory, type NormalizedMemory, type DashboardItem } from "@/services/memories";
 import { Memory } from "@/types/memory";
 import { sampleDashboardMemories } from "../../sample-data";
 import {
@@ -84,7 +79,7 @@ export default function FolderPage() {
 
     try {
       // Get all memories and filter by folder
-      const result = await fetchAndNormalizeMemories(1);
+      const result = await fetchMemories(1);
       const folderMemories = result.memories;
 
       // console.log("🔍 Folder memories found:", folderMemories.length);

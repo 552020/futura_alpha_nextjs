@@ -48,7 +48,7 @@ describe("Storage Edge Creation Logic", () => {
 
   it("should create correct storage edge data structure for image memory", async () => {
     // Import the function after mocking
-    const { createStorageEdgesForMemory } = await import("@/app/api/memories/upload/utils");
+    const { createStorageEdgesForMemory } = await import("@/app/api/memories/utils/memory-database");
     const { db } = await import("@/db/db");
 
     // Mock the database insert to return success
@@ -78,7 +78,7 @@ describe("Storage Edge Creation Logic", () => {
   });
 
   it("should handle different memory types correctly", async () => {
-    const { createStorageEdgesForMemory } = await import("@/app/api/memories/upload/utils");
+    const { createStorageEdgesForMemory } = await import("@/app/api/memories/utils/memory-database");
     const { db } = await import("@/db/db");
 
     const mockInsert = vi.fn().mockReturnValue({
@@ -103,7 +103,7 @@ describe("Storage Edge Creation Logic", () => {
   });
 
   it("should handle database errors gracefully", async () => {
-    const { createStorageEdgesForMemory } = await import("@/app/api/memories/upload/utils");
+    const { createStorageEdgesForMemory } = await import("@/app/api/memories/utils/memory-database");
     const { db } = await import("@/db/db");
 
     // Mock database to throw an error

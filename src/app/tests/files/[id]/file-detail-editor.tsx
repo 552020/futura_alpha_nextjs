@@ -10,7 +10,23 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertCircle, ArrowLeft, Save } from "lucide-react";
 import Image from "next/image";
-import { DBImage, DBDocument, DBNote } from "@/db/schema";
+import { DBMemory } from "@/db/schema";
+
+// Extended type for test data that includes legacy fields
+type TestMemoryData = DBMemory & {
+  url?: string;
+  size?: number | string;
+  mimeType?: string;
+  content?: string;
+  caption?: string;
+  metadata?: {
+    originalPath?: string;
+    custom?: Record<string, unknown>;
+    dateOfMemory?: string;
+    size?: number;
+    format?: string;
+  } | null;
+};
 
 // Define proper types for the file details
 // interface PhotoData {
@@ -55,15 +71,15 @@ import { DBImage, DBDocument, DBNote } from "@/db/schema";
 type FileDetailsType =
   | {
       type: "image";
-      data: DBImage;
+      data: TestMemoryData;
     }
   | {
       type: "document";
-      data: DBDocument;
+      data: TestMemoryData;
     }
   | {
       type: "note";
-      data: DBNote;
+      data: TestMemoryData;
     };
 
 export default function FileDetailEditor({ fileDetails }: { fileDetails: FileDetailsType }) {
@@ -74,7 +90,7 @@ export default function FileDetailEditor({ fileDetails }: { fileDetails: FileDet
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form fields
-  const [caption, setCaption] = useState(fileDetails.type === "image" ? fileDetails.data.caption || "" : "");
+  const [caption, setCaption] = useState(fileDetails.type === "image" ? fileDetails.data.description || "" : "");
   const [filename, setFilename] = useState(fileDetails.type === "document" ? fileDetails.data.title || "" : "");
   const [isPublic, setIsPublic] = useState(fileDetails.data.isPublic === true);
   const [title, setTitle] = useState(fileDetails.type === "note" ? fileDetails.data.title || "" : "");
@@ -189,8 +205,8 @@ export default function FileDetailEditor({ fileDetails }: { fileDetails: FileDet
                 <h2 className="font-medium mb-4">Preview</h2>
                 <div className="w-full max-w-[200px] h-[180px] bg-gray-50 flex items-center justify-center rounded overflow-hidden border mx-auto">
                   <Image
-                    src={fileDetails.data.url}
-                    alt={fileDetails.data.caption || ""}
+                    src={fileDetails.data.url || ""}
+                    alt={fileDetails.data.description || ""}
                     width={160}
                     height={140}
                     className="max-w-full max-h-[160px] object-contain"
@@ -338,7 +354,9 @@ export default function FileDetailEditor({ fileDetails }: { fileDetails: FileDet
                 <>
                   <div className="grid grid-cols-3">
                     <span className="font-medium">URL:</span>
-                    <span className="col-span-2 truncate font-mono text-xs text-gray-700">{fileDetails.data.url}</span>
+                    <span className="col-span-2 truncate font-mono text-xs text-gray-700">
+                      {fileDetails.data.url || "N/A"}
+                    </span>
                   </div>
                   {fileDetails.data.metadata?.size && (
                     <div className="grid grid-cols-3">
@@ -358,15 +376,17 @@ export default function FileDetailEditor({ fileDetails }: { fileDetails: FileDet
                 <>
                   <div className="grid grid-cols-3">
                     <span className="font-medium">URL:</span>
-                    <span className="col-span-2 truncate font-mono text-xs text-gray-700">{fileDetails.data.url}</span>
+                    <span className="col-span-2 truncate font-mono text-xs text-gray-700">
+                      {fileDetails.data.url || "N/A"}
+                    </span>
                   </div>
                   <div className="grid grid-cols-3">
                     <span className="font-medium">Size:</span>
-                    <span className="col-span-2">{fileDetails.data.size} bytes</span>
+                    <span className="col-span-2">{fileDetails.data.size || "N/A"} bytes</span>
                   </div>
                   <div className="grid grid-cols-3">
                     <span className="font-medium">MIME Type:</span>
-                    <span className="col-span-2">{fileDetails.data.mimeType}</span>
+                    <span className="col-span-2">{fileDetails.data.mimeType || "N/A"}</span>
                   </div>
                 </>
               )}

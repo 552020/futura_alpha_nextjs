@@ -1,4 +1,4 @@
-import { allUsers, users, images, memoryShares, videos, documents, notes } from "@/db/schema";
+import { allUsers, users, memories, memoryAssets, memoryShares } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { db } from "@/db/db";
 
@@ -8,26 +8,28 @@ export async function getSharedMemories(userId: string) {
     where: eq(memoryShares.sharedWithId, userId),
   });
 
-  // Group shares by memory type
-  const imageShares = shares.filter((share) => share.memoryType === "image");
-  const videoShares = shares.filter((share) => share.memoryType === "video");
-  const documentShares = shares.filter((share) => share.memoryType === "document");
-  const noteShares = shares.filter((share) => share.memoryType === "note");
-
   // Fetch the actual memories
-  const sharedImages = await Promise.all(
-    imageShares.map(async (share) => {
-      const image = await db.query.images.findFirst({
-        where: eq(images.id, share.memoryId),
+  const sharedMemories = await Promise.all(
+    shares.map(async (share) => {
+      const memory = await db.query.memories.findFirst({
+        where: eq(memories.id, share.memoryId),
       });
-      if (!image) return null;
+      if (!memory) return null;
+
+      // Get thumbnail URL from assets (prefer thumb, fallback to original)
+      const assets = await db.query.memoryAssets.findMany({
+        where: eq(memoryAssets.memoryId, share.memoryId),
+      });
+      const thumbnailAsset =
+        assets.find((asset) => asset.assetType === "thumb") || assets.find((asset) => asset.assetType === "original");
+      const thumbnailUrl = thumbnailAsset?.url || null;
 
       return {
         id: share.memoryId,
         type: share.memoryType,
-        title: image.title,
-        thumbnailUrl: image.url,
-        createdAt: image.createdAt,
+        title: memory.title,
+        thumbnailUrl,
+        createdAt: memory.createdAt,
         ownerId: share.ownerId,
         sharedBy: {
           id: share.ownerId,
@@ -37,77 +39,14 @@ export async function getSharedMemories(userId: string) {
     })
   );
 
-  const sharedVideos = await Promise.all(
-    videoShares.map(async (share) => {
-      const video = await db.query.videos.findFirst({
-        where: eq(videos.id, share.memoryId),
-      });
-      if (!video) return null;
+  // Filter out null values and group by type
+  const validMemories = sharedMemories.filter((m): m is NonNullable<typeof m> => m !== null);
 
-      return {
-        id: share.memoryId,
-        type: share.memoryType,
-        title: video.title,
-        thumbnailUrl: video.url,
-        createdAt: video.createdAt,
-        ownerId: share.ownerId,
-        sharedBy: {
-          id: share.ownerId,
-          name: await getOwnerName(share.ownerId),
-        },
-      };
-    })
-  );
-
-  const sharedDocuments = await Promise.all(
-    documentShares.map(async (share) => {
-      const document = await db.query.documents.findFirst({
-        where: eq(documents.id, share.memoryId),
-      });
-      if (!document) return null;
-
-      return {
-        id: share.memoryId,
-        type: share.memoryType,
-        title: document.title,
-        thumbnailUrl: document.url,
-        createdAt: document.createdAt,
-        ownerId: share.ownerId,
-        sharedBy: {
-          id: share.ownerId,
-          name: await getOwnerName(share.ownerId),
-        },
-      };
-    })
-  );
-
-  const sharedNotes = await Promise.all(
-    noteShares.map(async (share) => {
-      const note = await db.query.notes.findFirst({
-        where: eq(notes.id, share.memoryId),
-      });
-      if (!note) return null;
-
-      return {
-        id: share.memoryId,
-        type: share.memoryType,
-        title: note.title,
-        createdAt: note.createdAt,
-        ownerId: share.ownerId,
-        sharedBy: {
-          id: share.ownerId,
-          name: await getOwnerName(share.ownerId),
-        },
-      };
-    })
-  );
-
-  // Filter out null values and combine all memories
   return {
-    images: sharedImages.filter(Boolean),
-    videos: sharedVideos.filter(Boolean),
-    documents: sharedDocuments.filter(Boolean),
-    notes: sharedNotes.filter(Boolean),
+    images: validMemories.filter((m) => m.type === "image"),
+    videos: validMemories.filter((m) => m.type === "video"),
+    documents: validMemories.filter((m) => m.type === "document"),
+    notes: validMemories.filter((m) => m.type === "note"),
   };
 }
 

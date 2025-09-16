@@ -1,41 +1,7 @@
-import { normalizeMemories } from "@/utils/normalizeMemories";
+// import { normalizeMemories } from "@/utils/normalizeMemories"; // Unused
 import { Memory } from "@/types/memory";
 
-interface RawMemoryData {
-  images: Array<{
-    id: string;
-    title?: string;
-    description?: string;
-    createdAt: string;
-    url: string;
-  }>;
-  documents: Array<{
-    id: string;
-    title?: string;
-    description?: string;
-    createdAt: string;
-    url: string;
-    mimeType: string;
-  }>;
-  notes: Array<{
-    id: string;
-    title: string;
-    content: string;
-    createdAt: string;
-  }>;
-  videos: Array<{
-    id: string;
-    title: string;
-    description?: string;
-    createdAt: string;
-    url: string;
-    mimeType: string;
-  }>;
-}
-
-export interface FetchMemoriesResponse extends RawMemoryData {
-  hasMore: boolean;
-}
+// Removed old interfaces - now using unified format
 
 export interface NormalizedMemory extends Memory {
   status: "private" | "shared" | "public";
@@ -62,39 +28,52 @@ export interface FolderItem {
 
 export type DashboardItem = NormalizedMemory | FolderItem;
 
-export const fetchMemories = async (page: number): Promise<FetchMemoriesResponse> => {
-  const response = await fetch(`/api/memories?page=${page}`);
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch memories");
-  }
-
-  return response.json();
-};
-
-export interface FetchAndNormalizeResult {
+export interface FetchMemoriesResult {
   memories: NormalizedMemory[];
   hasMore: boolean;
 }
 
-export const fetchAndNormalizeMemories = async (page: number): Promise<FetchAndNormalizeResult> => {
-  // console.log("🚀 LINE 63: ENTERING fetchAndNormalizeMemories");
-  const data = await fetchMemories(page);
+export const fetchMemories = async (page: number): Promise<FetchMemoriesResult> => {
+  const response = await fetch(`/api/memories?page=${page}`);
 
-  const normalizedMemories = normalizeMemories({
-    images: data.images,
-    documents: data.documents,
-    notes: data.notes,
-    videos: data.videos || [],
-  }).map((memory) => ({
+  if (!response.ok) {
+    // Try to get error details from the response
+    let errorMessage = "Failed to fetch memories";
+    let errorDetails: Record<string, unknown> = {};
+
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.error || errorMessage;
+      errorDetails = errorData;
+    } catch {
+      // If we can't parse the error response, use the status text
+      errorMessage = response.statusText || errorMessage;
+    }
+
+    const error = new Error(errorMessage);
+    // Attach additional error details for debugging
+    (error as Error & { status?: number; statusText?: string; details?: Record<string, unknown> }).status =
+      response.status;
+    (error as Error & { status?: number; statusText?: string; details?: Record<string, unknown> }).statusText =
+      response.statusText;
+    (error as Error & { status?: number; statusText?: string; details?: Record<string, unknown> }).details =
+      errorDetails;
+
+    throw error;
+  }
+
+  const data = await response.json();
+
+  // Use new unified format - memories already have status and sharedWithCount
+  const memories = data.data.map((memory: Memory & { status?: string; sharedWithCount?: number }) => ({
     ...memory,
-    status: "private" as const, // Default to private for user's own memories
-    sharedWithCount: 0, // Default to 0 for user's own memories
+    // Ensure we have the expected properties
+    status: memory.status || "private",
+    sharedWithCount: memory.sharedWithCount || 0,
   }));
 
-  // console.log("✅ LINE 63: EXITING fetchAndNormalizeMemories");
   return {
-    memories: normalizedMemories,
+    memories,
     hasMore: data.hasMore,
   };
 };

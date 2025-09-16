@@ -8,6 +8,7 @@ import { icpUploadService } from "@/services/icp-upload";
 // import { useVault } from '@/contexts/vault-context';
 import { useUploadStorage, isUploadStorageExpired } from "@/hooks/use-upload-storage";
 import { useStoragePreferences } from "@/hooks/use-storage-preferences";
+import { UPLOAD_LIMITS } from "@/config/upload-limits";
 
 type UploadMode = "folder" | "files";
 
@@ -109,9 +110,9 @@ export function useFileUpload({ isOnboarding = false, mode = "folder", onSuccess
   };
 
   const checkFileSize = (file: File) => {
-    if (file.size > 50 * 1024 * 1024) {
-      console.error("❌ File too large");
-      throw new Error("File too large");
+    if (!UPLOAD_LIMITS.isFileSizeValid(file.size)) {
+      console.error("❌ File too large:", UPLOAD_LIMITS.getFileSizeErrorMessage(file.size));
+      throw new Error(UPLOAD_LIMITS.getFileSizeErrorMessage(file.size));
     }
   };
 
@@ -149,6 +150,19 @@ export function useFileUpload({ isOnboarding = false, mode = "folder", onSuccess
   };
 
   const processSingleFile = async (file: File, skipSuccess = false, existingUserId?: string) => {
+    console.log(`📁 Processing single file: ${file.name} (${file.size} bytes)`);
+    console.log(`📊 DASHBOARD UPLOAD ANALYSIS:`, {
+      fileName: file.name,
+      fileSize: file.size,
+      fileSizeMB: (file.size / (1024 * 1024)).toFixed(2),
+      fileType: file.type,
+      isOnboarding,
+      mode,
+      existingUserId,
+      isLargeFile: file.size / (1024 * 1024) > 4,
+      threshold: "4MB",
+    });
+
     try {
       checkFileSize(file);
 
@@ -156,46 +170,72 @@ export function useFileUpload({ isOnboarding = false, mode = "folder", onSuccess
       const url = URL.createObjectURL(file);
 
       // 1) Request upload storage (MVP mock)
-      const storage = await requestUploadStorage();
+      // const storage = await requestUploadStorage(); // Unused in new flow
 
-      let data:
-        | {
-            data?: { id: string };
-            results?: Array<{ memoryId: string; size?: number; checksum_sha256?: string | null }>;
-            userId?: string;
-            successfulUploads?: number;
-          }
-        | undefined;
+      // 2) Use unified upload service with storage preference
+      const userStoragePreference = preferences?.preference; // "neon" | "icp" | "dual"
+      console.log(`🔍 User storage preference: ${userStoragePreference}`);
 
-      // 2) Route to appropriate upload service based on chosen storage
-      if (storage.chosen_storage === "icp-canister") {
-        // Pre-check Internet Identity authentication before attempting ICP upload
+      // For ICP preference, check authentication first
+      // NOTE: ICP users ALWAYS need Internet Identity authentication, even during onboarding
+      // This is different from Neon users where onboarding creates temporary users without auth
+      // ICP canister interactions require authenticated principals, so onboarding still needs II
+      if (userStoragePreference === "icp") {
+        console.log(`🔐 Checking ICP authentication...`);
         const isAuthenticated = await icpUploadService.isAuthenticated();
         if (!isAuthenticated) {
           throw new Error("Please connect your Internet Identity to upload to ICP");
         }
-
-        const icpResult = await icpUploadService.uploadFile(file, storage, () => {});
-
-        // Convert ICP result to expected format
-        data = {
-          data: { id: icpResult.memoryId },
-          results: [
-            {
-              memoryId: icpResult.memoryId,
-              size: icpResult.size,
-              checksum_sha256: icpResult.checksum_sha256,
-            },
-          ],
-        };
-      } else {
-        // Upload to Neon/Vercel Blob (existing path)
-        data = (await uploadFile(file, isOnboarding, existingUserId, mode)) as unknown as typeof data;
+        console.log(`✅ ICP authentication confirmed`);
       }
 
-      // 3) Verify after upload (best-effort)
+      // Use the new unified uploadFile function
+      console.log(`🚀 Calling uploadFile with parameters:`, {
+        fileName: file.name,
+        isOnboarding,
+        existingUserId,
+        mode,
+        storageBackend: "vercel_blob",
+        userStoragePreference,
+      });
+
+      const uploadResult = await uploadFile(
+        file,
+        isOnboarding,
+        existingUserId,
+        mode,
+        "vercel_blob", // storageBackend (only used for non-ICP flows)
+        userStoragePreference
+      );
+
+      // Convert to expected format for compatibility
+      // Note: uploadResult.data is an array of memories from the backend
+      const memory = Array.isArray(uploadResult.data) ? uploadResult.data[0] : uploadResult.data;
+
+      // Check if we have a valid memory response
+      if (!memory || !memory.id) {
+        console.error("❌ Invalid upload response:", uploadResult);
+        throw new Error("Upload failed: Invalid response from server");
+      }
+
+      const data = {
+        data: { id: memory.id },
+        results: [
+          {
+            memoryId: memory.id,
+            size: file.size, // Use original file size since assets array might not be available
+            checksum_sha256: null, // Will be filled by verification if available
+          },
+        ],
+        userId: existingUserId || "", // Add userId for compatibility
+      };
+
+      // 3) Verify after upload (best-effort) - only for non-ICP flows
+      // ICP flows handle verification internally
       const appMemoryId = data?.data?.id;
-      if (appMemoryId) {
+      if (appMemoryId && userStoragePreference !== "icp") {
+        // For non-ICP flows, we still need to get storage info for verification
+        const storage = await requestUploadStorage();
         await verifyUpload({
           appMemoryId,
           backend: storage.chosen_storage,
@@ -221,9 +261,9 @@ export function useFileUpload({ isOnboarding = false, mode = "folder", onSuccess
       let title = "Something went wrong";
       let description = "Please try uploading again.";
 
-      if (error instanceof Error && error.message === "File too large") {
+      if (error instanceof Error && error.message.includes("File too large")) {
         title = "File too large";
-        description = "Please upload a file smaller than 50MB.";
+        description = error.message; // Use the detailed error message from UPLOAD_LIMITS
       }
 
       if (error instanceof Error && error.message.includes("intent")) {
@@ -239,16 +279,28 @@ export function useFileUpload({ isOnboarding = false, mode = "folder", onSuccess
     }
   };
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (mode == "folder") {
       const files = event.target.files;
       if (!files) return;
 
-      if (files.length > 25) {
+      // Check file count limit
+      if (!UPLOAD_LIMITS.isFileCountValid(files.length)) {
         toast({
           variant: "destructive",
           title: "Too many files",
-          description: "Please select a folder with 25 files or fewer.",
+          description: UPLOAD_LIMITS.getFileCountErrorMessage(files.length),
+        });
+        return;
+      }
+
+      // Check total size limit
+      const totalSize = Array.from(files).reduce((sum, file) => sum + file.size, 0);
+      if (!UPLOAD_LIMITS.isTotalSizeValid(totalSize)) {
+        toast({
+          variant: "destructive",
+          title: "Upload too large",
+          description: UPLOAD_LIMITS.getTotalSizeErrorMessage(totalSize),
         });
         return;
       }
@@ -294,14 +346,16 @@ export function useFileUpload({ isOnboarding = false, mode = "folder", onSuccess
             })),
           };
         } else {
-          // Upload folder to Neon/Vercel Blob (existing path)
+          // Upload folder using unified POST /api/memories endpoint
           const formData = new FormData();
           Array.from(files).forEach((file) => {
             formData.append("file", file);
           });
 
-          const endpoint = isOnboarding ? "/api/memories/upload/onboarding/folder" : "/api/memories/upload/folder";
-          const response = await fetch(endpoint, { method: "POST", body: formData });
+          // Note: The unified POST /api/memories endpoint handles user authentication internally
+          // No need to pass userId as it will be determined from the session or onboarding context
+
+          const response = await fetch("/api/memories", { method: "POST", body: formData });
 
           type FolderResp = {
             error?: string;
@@ -362,11 +416,21 @@ export function useFileUpload({ isOnboarding = false, mode = "folder", onSuccess
     if (mode == "files") {
       const file = event.target.files?.[0];
       if (!file) return;
+
+      console.log(`🎯 DASHBOARD FILE UPLOAD TRIGGERED:`, {
+        fileName: file.name,
+        fileSize: file.size,
+        fileSizeMB: (file.size / (1024 * 1024)).toFixed(2),
+        fileType: file.type,
+        mode,
+        isOnboarding,
+      });
+
       setIsLoading(true);
       await processSingleFile(file, false, undefined);
       setIsLoading(false);
     }
   };
 
-  return { isLoading, fileInputRef, handleUploadClick, handleFileChange };
+  return { isLoading, fileInputRef, handleUploadClick, handleFileUpload };
 }
