@@ -83,7 +83,24 @@ export async function getAllUserId(request: NextRequest): Promise<{ allUserId: s
  * Create a memory from JSON request data
  * Handles validation and database insertion for memory creation without files
  */
-export async function createMemoryFromJson(body: any, ownerId: string): Promise<NextResponse> {
+export async function createMemoryFromJson(
+  body: {
+    type?: string;
+    title?: string;
+    description?: string;
+    fileCreatedAt?: string;
+    isPublic?: boolean;
+    parentFolderId?: string | null;
+    tags?: string[];
+    recipients?: string[];
+    unlockDate?: string | null;
+    metadata?: Record<string, unknown>;
+    isOnboarding?: boolean;
+    mode?: string;
+    assets?: unknown[];
+  },
+  ownerId: string
+): Promise<NextResponse> {
   const {
     type,
     title,
@@ -173,18 +190,20 @@ export async function createMemoryFromJson(body: any, ownerId: string): Promise<
       const a = asset as Record<string, unknown>;
       return {
         memoryId: createdMemory.id,
-        assetType: a.assetType as 'original' | 'display' | 'thumb' | 'placeholder' | 'poster' | 'waveform',
-        variant: a.variant || null,
-        url: a.url as string,
-        storageBackend: a.storageBackend || 'vercel_blob',
-        storageKey: a.storageKey || (a.url as string).split('/').pop() || '',
-        bytes: a.bytes as number,
-        width: a.width || null,
-        height: a.height || null,
-        mimeType: a.mimeType as string,
-        sha256: a.sha256 || null,
-        processingStatus: a.processingStatus || 'completed',
-        processingError: a.processingError || null,
+        assetType:
+          (a.assetType as 'original' | 'display' | 'thumb' | 'placeholder' | 'poster' | 'waveform') || 'original',
+        variant: (a.variant as string) || null,
+        url: (a.url as string) || '',
+        storageBackend:
+          (a.storageBackend as 'neon' | 'icp' | 's3' | 'vercel_blob' | 'arweave' | 'ipfs') || 'vercel_blob',
+        storageKey: (a.storageKey as string) || (a.url as string)?.split('/').pop() || '',
+        bytes: (a.bytes as number) || 0,
+        width: (a.width as number) || null,
+        height: (a.height as number) || null,
+        mimeType: (a.mimeType as string) || 'application/octet-stream',
+        sha256: (a.sha256 as string) || null,
+        processingStatus: (a.processingStatus as 'failed' | 'pending' | 'processing' | 'completed') || 'completed',
+        processingError: (a.processingError as string) || null,
       };
     });
 

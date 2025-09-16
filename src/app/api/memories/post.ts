@@ -370,7 +370,16 @@ async function handleFileUpload(formData: FormData, ownerId: string): Promise<Ne
  * This handles the case where a file was uploaded to Vercel Blob via client-side upload
  * but the onUploadCompleted callback failed due to localhost limitations
  */
-async function handleBlobUrlRequest(body: any): Promise<NextResponse> {
+async function handleBlobUrlRequest(body: {
+  blobUrl: string;
+  filename?: string;
+  contentType?: string;
+  size?: number;
+  pathname?: string;
+  isOnboarding?: boolean;
+  mode?: string;
+  userId?: string;
+}): Promise<NextResponse> {
   console.log('🔧 Handling blob URL request (localhost workaround)...');
   console.log('📥 Received blob URL request body:', body);
 
