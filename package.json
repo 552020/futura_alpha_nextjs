@@ -24,7 +24,6 @@
     "seed": "tsx src/db/seed.ts",
     "create-test-users": "tsx src/db/create-test-users.ts",
     "manage-user-roles": "tsx scripts/manage-user-roles.ts",
-    "setup-uploadthing": "node scripts/ngrok/setup-uploadthing-dev.js",
     "setup-ngrok": "node scripts/ngrok/setup-dev-ngrok.js"
   },
   "dependencies": {

@@ -14,7 +14,7 @@ When developing with external services that need to call back to your applicatio
 
 ```bash
 # Quick setup using Stefano's shared ngrok domain
-npm run setup-uploadthing
+npm run setup-ngrok
 npm run dev:with-ngrok
 ```
 
@@ -31,25 +31,23 @@ ngrok http 3000
 export NEXT_PUBLIC_NGROK_URL=https://your-domain.ngrok-free.app
 
 # 3. Run setup (will use your custom domain)
-npm run setup-uploadthing
+npm run setup-ngrok
 npm run dev:with-ngrok
 ```
 
 ## Available Scripts
 
-| Script                      | Purpose                         | Usage                           |
-| --------------------------- | ------------------------------- | ------------------------------- |
-| `npm run setup-uploadthing` | Configure environment variables | Run once to set up `.env.local` |
-| `npm run dev:ngrok`         | Start ngrok tunnel only         | For manual ngrok management     |
-| `npm run dev:with-ngrok`    | Start both Next.js and ngrok    | Main development command        |
+| Script                   | Purpose                         | Usage                           |
+| ------------------------ | ------------------------------- | ------------------------------- |
+| `npm run setup-ngrok`    | Configure environment variables | Run once to set up `.env.local` |
+| `npm run dev:ngrok`      | Start ngrok tunnel only         | For manual ngrok management     |
+| `npm run dev:with-ngrok` | Start both Next.js and ngrok    | Main development command        |
 
 ## Files in This Directory
 
 ### Scripts
 
-- **`setup-uploadthing-dev.js`** - Primary setup script (recommended)
-- **`setup-dev-ngrok.js`** - Alternative setup script with better guidance
-- **`setup-ngrok.js`** - Original setup script
+- **`setup-dev-ngrok.js`** - Main setup script with comprehensive guidance
 
 ### Configuration
 
@@ -105,7 +103,7 @@ export NEXT_PUBLIC_NGROK_URL=https://abc123.ngrok-free.app
 ### 5. Run setup
 
 ```bash
-npm run setup-uploadthing
+npm run setup-ngrok
 npm run dev:with-ngrok
 ```
 
@@ -132,7 +130,7 @@ ngrok http 3000
 export NEXT_PUBLIC_NGROK_URL=https://their-domain.ngrok-free.app
 
 # 4. Run setup (automatically uses their domain)
-npm run setup-uploadthing
+npm run setup-ngrok
 npm run dev:with-ngrok
 ```
 
