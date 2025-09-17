@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { parseApiError, normalizeError, type NormalizedError } from '@/lib/error-handling';
 
-export type Pref = 'neon' | 'icp' | 'dual';
+export type Pref = 'neon' | 'icp' | 'dual' | 's3';
 export type Primary = 'neon-db' | 'icp-canister' | 'vercel-blob';
 
 export interface StoragePreferences {
@@ -15,14 +15,16 @@ export function prefToToggles(pref: Pref) {
   return {
     neon: pref === 'neon' || pref === 'dual',
     icp: pref === 'icp' || pref === 'dual',
+    s3: pref === 's3',
   };
 }
 
-export function togglesToPref(neon: boolean, icp: boolean): Pref {
+export function togglesToPref(neon: boolean, icp: boolean, s3 = false): Pref {
+  if (s3) return 's3';
   if (neon && icp) return 'dual';
   if (neon) return 'neon';
   if (icp) return 'icp';
-  return 'neon'; // MVP rule: at least one on
+  return 'neon'; // Default fallback
 }
 
 // ---- API helpers ----

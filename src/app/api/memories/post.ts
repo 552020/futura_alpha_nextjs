@@ -501,11 +501,27 @@ async function handleBlobUrlRequest(body: {
   isOnboarding?: boolean;
   mode?: string;
   userId?: string;
+  storageBackend?: 'vercel_blob' | 's3';
+  storageKey?: string;
 }): Promise<NextResponse> {
-  console.log('🔧 Handling blob URL request (localhost workaround)...');
-  console.log('📥 Received blob URL request body:', body);
+  console.log('🔧 Handling blob URL request...');
+  console.log('📥 Received blob URL request body:', {
+    ...body,
+    blobUrl: body.blobUrl ? '[...truncated]' : undefined
+  });
 
-  const { blobUrl, filename, contentType, size, pathname, isOnboarding, mode, userId } = body;
+  const { 
+    blobUrl, 
+    filename, 
+    contentType, 
+    size, 
+    pathname, 
+    isOnboarding, 
+    mode, 
+    userId,
+    storageBackend = 'vercel_blob',
+    storageKey
+  } = body;
 
   if (!blobUrl) {
     console.error('❌ Missing blobUrl in request');
@@ -521,33 +537,54 @@ async function handleBlobUrlRequest(body: {
   }
   console.log('✅ Got user ID:', allUserId);
 
-  // Create memory from blob using the existing utility
-  console.log('🏗️ Creating memory from blob...');
-  const result = await createMemoryFromBlob(
-    {
-      url: blobUrl,
-      pathname: pathname || filename || 'unknown',
-      size: size || 0,
-      contentType: contentType || 'application/octet-stream',
-    },
-    {
-      allUserId,
-      isOnboarding: !!isOnboarding,
-      mode: mode || 'files',
-    }
-  );
+  // Prepare the file data for memory creation
+  const fileData = {
+    url: blobUrl,
+    pathname: pathname || filename || 'unknown',
+    size: size || 0,
+    contentType: contentType || 'application/octet-stream',
+    storageBackend,
+    storageKey: storageKey || blobUrl.split('/').pop() || filename || 'unknown',
+  };
 
-  if (!result.success) {
-    console.error('❌ Failed to create memory from blob:', result.error);
-    return NextResponse.json({ error: result.error || 'Failed to create memory from blob' }, { status: 500 });
+  console.log(`🏗️ Creating memory from ${storageBackend}...`);
+  
+  // Use the appropriate function based on storage backend
+  let result;
+  try {
+    result = await createMemoryFromBlob(
+      fileData,
+      {
+        allUserId,
+        isOnboarding: !!isOnboarding,
+        mode: mode || 'files',
+      }
+    );
+  } catch (error) {
+    console.error(`❌ Failed to create memory from ${storageBackend}:`, error);
+    return NextResponse.json(
+      { error: `Failed to create memory: ${error instanceof Error ? error.message : 'Unknown error'}` },
+      { status: 500 }
+    );
   }
 
-  console.log('✅ Memory created successfully with ID:', result.memoryId);
+  if (!result.success) {
+    console.error(`❌ Failed to create memory from ${storageBackend}:`, result.error);
+    return NextResponse.json(
+      { error: result.error || `Failed to create memory from ${storageBackend}` },
+      { status: 500 }
+    );
+  }
+
+  console.log(`✅ Memory created successfully with ID: ${result.memoryId}`);
+  
   // Return the created memory data
   return NextResponse.json({
     success: true,
     data: {
       id: result.memoryId,
+      storageBackend,
+      url: blobUrl,
       // Add other memory fields as needed
     },
   });

@@ -278,6 +278,8 @@ export async function createMemoryFromBlob(
     pathname: string;
     size: number;
     contentType: string;
+    storageBackend?: 'vercel_blob' | 's3';
+    storageKey?: string;
   },
   meta: {
     allUserId: string;
@@ -328,13 +330,16 @@ export async function createMemoryFromBlob(
 
     // Create asset record
     const { memoryAssets } = await import('@/db/schema');
+    const storageBackend = blob.storageBackend || 'vercel_blob';
+    const storageKey = blob.storageKey || blob.pathname;
+    
     const assetData = {
       memoryId: createdMemory.id,
       assetType: 'original' as const,
       variant: null,
       url: blob.url,
-      storageBackend: 'vercel_blob' as const,
-      storageKey: blob.pathname,
+      storageBackend,
+      storageKey,
       bytes: blob.size,
       width: null,
       height: null,
@@ -343,6 +348,8 @@ export async function createMemoryFromBlob(
       processingStatus: 'completed' as const,
       processingError: null,
     };
+    
+    console.log('📦 Creating asset with storage:', { storageBackend, storageKey });
 
     const [createdAsset] = await db.insert(memoryAssets).values(assetData).returning();
     console.log('✅ Asset created from blob:', { id: createdAsset.id, url: blob.url });

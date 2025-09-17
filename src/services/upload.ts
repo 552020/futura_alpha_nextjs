@@ -14,6 +14,19 @@ import { icpUploadService } from '@/services/icp-upload';
 import { upload as blobUpload } from '@vercel/blob/client';
 // import type { UploadStorage } from "@/hooks/use-upload-storage"; // Unused
 
+// Type guard to check if the response has the expected UploadResponse shape
+function isUploadResponse(response: unknown): response is UploadResponse {
+  const r = response as Record<string, unknown>;
+  return (
+    typeof response === 'object' &&
+    response !== null &&
+    'success' in r &&
+    'data' in r &&
+    typeof r.data === 'object' &&
+    r.data !== null
+  );
+}
+
 interface UploadResponse {
   success: boolean;
   data: {
@@ -164,7 +177,7 @@ export const uploadFile = async (
   existingUserId?: string,
   mode: UploadMode = 'files',
   storageBackend: StorageBackend | StorageBackend[] = 'vercel_blob',
-  userStoragePreference?: 'neon' | 'icp' | 'dual'
+  userStoragePreference?: 'neon' | 'icp' | 'dual' | 's3'
 ): Promise<UploadResponse> => {
   console.log(`🚀 Starting upload for ${file.name}...`);
   console.log(`🔍 Upload parameters:`, {
@@ -200,8 +213,13 @@ export const uploadFile = async (
       chosenPath: 'CLIENT_UPLOAD_PATH', // All files now use client upload
     });
 
-    // All files now use the client upload flow (grant-based upload)
-    // This provides consistent behavior, better progress tracking, and handles all file sizes
+    // Check if S3 should be used
+    if (userStoragePreference === 's3' || storageBackend === 's3') {
+      console.log(`☁️ Using AWS S3 upload for ${file.name}...`);
+      return await uploadFileToS3(file, isOnboarding, existingUserId);
+    }
+
+    // Default to Vercel Blob for all other cases
     console.log(`☁️ Using client upload flow for ${file.name} (${fileSizeMB.toFixed(1)}MB)...`);
     return await uploadFileToBlob(file, isOnboarding, existingUserId, mode);
   } catch (error) {
@@ -320,6 +338,127 @@ async function uploadFileToBlob(
 }
 
 /**
+ * Upload file to AWS S3 using the secure upload flow with presigned URLs
+ */
+async function uploadFileToS3(
+  file: File,
+  isOnboarding: boolean,
+  existingUserId?: string
+): Promise<UploadResponse> {
+  console.log(`☁️ Starting S3 upload for: ${file.name}`);
+
+  try {
+    if (!existingUserId) {
+      throw new Error('User ID is required for S3 upload');
+    }
+
+    // 1. Request a presigned URL from our API
+    const presignResponse = await fetch('/api/upload/request', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+      }),
+    });
+
+    if (!presignResponse.ok) {
+      const errorData = await presignResponse.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to get upload URL');
+    }
+
+    const { uploadUrl, fileKey } = await presignResponse.json();
+
+    // 2. Upload the file directly to S3 using the presigned URL
+    const uploadResponse = await fetch(uploadUrl, {
+      method: 'PUT',
+      body: file,
+      headers: {
+        'Content-Type': file.type,
+        'Content-Length': file.size.toString(),
+      },
+    });
+
+    if (!uploadResponse.ok) {
+      throw new Error('Upload to S3 failed');
+    }
+
+    // 3. Notify our API that the upload is complete and get the public URL
+    const memoryCompleteResponse = await fetch('/api/upload/complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fileKey: fileKey,
+        originalName: file.name,
+        size: file.size,
+        type: file.type,
+        metadata: {
+          storageBackend: 's3',
+          storageKey: fileKey,
+          userId: existingUserId,
+          originalName: file.name,
+        },
+      }),
+    });
+
+    if (!memoryCompleteResponse.ok) {
+      const errorData = await memoryCompleteResponse.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to create memory');
+    }
+
+    const responseData = await memoryCompleteResponse.json();
+    console.log('✅ S3 upload and memory creation successful', { response: responseData });
+
+    // If the response is already in the correct format, return it
+    if (isUploadResponse(responseData)) {
+      return responseData;
+    }
+
+    // Fallback in case the response format is different
+    const memoryType = getMemoryTypeFromFile(file);
+    const memoryId = responseData?.memoryId || `mem-${Date.now()}`;
+    const publicUrl = responseData?.url || '';
+    
+    const result: UploadResponse = {
+      success: true,
+      data: {
+        id: memoryId,
+        type: memoryType,
+        title: file.name.split('.')[0] || 'Untitled',
+        description: '',
+        fileCreatedAt: new Date().toISOString(),
+        isPublic: false,
+        parentFolderId: null,
+        tags: [],
+        recipients: [],
+        unlockDate: null,
+        metadata: {},
+        createdAt: new Date().toISOString(),
+        assets: [
+          {
+            id: `s3-asset-${Date.now()}`,
+            assetType: 'original',
+            url: publicUrl,
+            bytes: file.size,
+            mimeType: file.type,
+            storageBackend: 's3',
+            storageKey: fileKey,
+          },
+        ],
+      },
+    };
+    
+    return result;
+  } catch (error) {
+    console.error('❌ S3 upload failed:', error);
+    throw error;
+  }
+}
+
+/**
  * Upload multiple files (folder upload) using blob-first approach
  */
 export const uploadFiles = async (
@@ -328,7 +467,7 @@ export const uploadFiles = async (
   existingUserId?: string,
   mode: UploadMode = 'folder',
   storageBackend: StorageBackend | StorageBackend[] = 'vercel_blob',
-  userStoragePreference?: 'neon' | 'icp' | 'dual'
+  userStoragePreference?: 'neon' | 'icp' | 'dual' | 's3'
 ): Promise<UploadResponse[]> => {
   console.log(`🚀 Starting folder upload for ${files.length} files...`);
 
