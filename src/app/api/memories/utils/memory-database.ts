@@ -149,6 +149,10 @@ export async function storeInNewDatabase(params: {
     parentFolderId: parentFolderId || null,
     ownerSecureCode: crypto.randomUUID(),
     metadata: {},
+    // Storage status fields - default to web2 storage for new memories
+    storageLocations: ['neon-db', 'vercel-blob'] as ('neon-db' | 'vercel-blob' | 'icp-canister' | 'aws-s3')[],
+    storageDuration: null, // null means permanent storage
+    storageCount: 2, // neon-db + vercel-blob
   };
 
   const [createdMemory] = await db.insert(memories).values(newMemory).returning();

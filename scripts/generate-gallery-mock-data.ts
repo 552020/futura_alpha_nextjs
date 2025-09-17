@@ -131,6 +131,10 @@ const generateMockData = () => {
       createdAt: createdAt,
       updatedAt: createdAt,
       ownerId: 'mock-user-1',
+      totalMemories: imageCount,
+      storageLocations: [],
+      averageStorageDuration: null,
+      storageDistribution: {},
       items: memories.map((memory, index) => ({
         id: `item-${config.id}-${index}`,
         galleryId: config.id,

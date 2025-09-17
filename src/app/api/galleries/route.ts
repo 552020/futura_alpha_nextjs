@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
-import { eq, desc, and } from 'drizzle-orm';
+import { eq, desc, and, inArray } from 'drizzle-orm';
 import { galleries, allUsers, memories as memoriesTable, folders, galleryItems } from '@/db/schema';
 import { addStorageStatusToGalleries } from './utils';
 
@@ -143,6 +143,11 @@ export async function POST(request: NextRequest) {
         description:
           description || (type === 'from-folder' ? `Gallery created from folder: ${folderName}` : 'Custom gallery'),
         isPublic,
+        // Storage status fields - will be calculated from memories
+        totalMemories: galleryMemories.length,
+        storageLocations: [], // Will be calculated from memories
+        averageStorageDuration: null, // Will be calculated from memories
+        storageDistribution: {}, // Will be calculated from memories
       })
       .returning();
 
@@ -161,6 +166,46 @@ export async function POST(request: NextRequest) {
 
     // Insert gallery items
     await db.insert(galleryItems).values(galleryItemsData);
+
+    // Calculate storage status from memories
+    const memoryIds = galleryMemories.map(m => m.id);
+    const memoriesWithStorage = await db.query.memories.findMany({
+      where: and(eq(memoriesTable.ownerId, allUserRecord.id), inArray(memoriesTable.id, memoryIds)),
+    });
+
+    // Calculate storage distribution
+    const storageDistribution: Record<string, number> = {};
+    const allStorageLocations = new Set<'neon-db' | 'vercel-blob' | 'icp-canister' | 'aws-s3'>();
+    let totalDuration = 0;
+    let permanentCount = 0;
+
+    memoriesWithStorage.forEach(memory => {
+      memory.storageLocations?.forEach(location => {
+        allStorageLocations.add(location);
+        storageDistribution[location] = (storageDistribution[location] || 0) + 1;
+      });
+
+      if (memory.storageDuration === null) {
+        permanentCount++;
+      } else {
+        totalDuration += memory.storageDuration;
+      }
+    });
+
+    const averageStorageDuration =
+      permanentCount === memoriesWithStorage.length
+        ? null
+        : Math.round(totalDuration / (memoriesWithStorage.length - permanentCount));
+
+    // Update gallery with calculated storage status
+    await db
+      .update(galleries)
+      .set({
+        storageLocations: Array.from(allStorageLocations),
+        averageStorageDuration,
+        storageDistribution,
+      })
+      .where(eq(galleries.id, gallery.id));
 
     // console.log("Created gallery:", {
     //   type,

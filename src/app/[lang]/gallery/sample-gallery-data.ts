@@ -230,6 +230,10 @@ export const generateSampleGalleries = (): GalleryWithItems[] => {
       createdAt: new Date(createdAt),
       updatedAt: new Date(createdAt),
       ownerId: 'mock-user-1',
+      totalMemories: config.imageCount,
+      storageLocations: [],
+      averageStorageDuration: null,
+      storageDistribution: {},
       items: memories.map((memory, index) => ({
         id: `item-${config.id}-${index}`,
         galleryId: config.id,

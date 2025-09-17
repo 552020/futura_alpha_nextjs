@@ -5,33 +5,33 @@ import { eq, and } from 'drizzle-orm';
 import { allUsers, memories } from '@/db/schema';
 
 // Helper function to add storage status to memory (similar to gallery utils)
-async function addStorageStatusToMemory(memory: typeof memories.$inferSelect) {
-  try {
-    // For now, return default storage status since views don't exist
-    // This matches the current behavior of the presence endpoint
-    return {
-      ...memory,
-      storageStatus: {
-        metaNeon: true,
-        assetBlob: true,
-        metaIcp: false,
-        assetIcp: false,
-        overallStatus: 'web2_only' as const,
-      },
-    };
-  } catch (error) {
-    console.error('Error adding storage status to memory:', memory.id, error);
-    return {
-      ...memory,
-      storageStatus: {
-        metaNeon: true,
-        assetBlob: true,
-        metaIcp: false,
-        assetIcp: false,
-        overallStatus: 'web2_only' as const,
-      },
-    };
+function addStorageStatusToMemory(memory: typeof memories.$inferSelect) {
+  // Calculate storage status from the memory's own fields
+  const hasNeonStorage = memory.storageLocations?.includes('neon-db') || false;
+  const hasBlobStorage = memory.storageLocations?.includes('vercel-blob') || false;
+  const hasIcpStorage = memory.storageLocations?.includes('icp-canister') || false;
+  const hasAwsStorage = memory.storageLocations?.includes('aws-s3') || false;
+
+  // Determine overall status
+  let overallStatus: 'stored_forever' | 'partially_stored' | 'web2_only';
+  if (hasIcpStorage) {
+    overallStatus = 'stored_forever';
+  } else if (hasNeonStorage || hasBlobStorage || hasAwsStorage) {
+    overallStatus = 'web2_only';
+  } else {
+    overallStatus = 'web2_only';
   }
+
+  return {
+    ...memory,
+    storageStatus: {
+      metaNeon: hasNeonStorage,
+      assetBlob: hasBlobStorage,
+      metaIcp: hasIcpStorage,
+      assetIcp: hasIcpStorage,
+      overallStatus,
+    },
+  };
 }
 
 // GET /api/memories/[id] - Get memory with all assets

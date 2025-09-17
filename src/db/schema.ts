@@ -27,6 +27,9 @@ export const backend_t = pgEnum('backend_t', ['neon-db', 'vercel-blob', 'icp-can
 export const memory_type_t = pgEnum('memory_type_t', ['image', 'video', 'note', 'document', 'audio']);
 export const sync_t = pgEnum('sync_t', ['idle', 'migrating', 'failed']);
 
+// Storage location enum (for storage status fields)
+export const storage_location_t = pgEnum('storage_location_t', ['neon-db', 'vercel-blob', 'icp-canister', 'aws-s3']);
+
 /**
  * STORAGE PREFERENCE - User's preferred storage strategy
  *
@@ -418,6 +421,10 @@ export const memories = pgTable(
         custom?: Record<string, unknown>;
       }>()
       .default({}),
+    // Storage status fields
+    storageLocations: storage_location_t('storage_locations').array().default([]), // Array of storage backends: ['neon-db', 'vercel-blob', 'icp-canister', 'aws-s3']
+    storageDuration: integer('storage_duration'), // Duration in days, null for permanent
+    storageCount: integer('storage_count').default(0), // Number of storage locations for verification
   },
   table => [
     // Performance indexes for common queries
@@ -426,6 +433,9 @@ export const memories = pgTable(
     index('memories_public_idx').on(table.isPublic),
     // Performance indexes for tags and people
     index('memories_tags_idx').on(table.tags),
+    // Storage status indexes
+    index('memories_storage_locations_idx').on(table.storageLocations),
+    index('memories_storage_duration_idx').on(table.storageDuration),
   ]
 );
 
@@ -1044,19 +1054,32 @@ export const familyMember = pgTable(
 );
 
 // Gallery tables for gallery functionality
-export const galleries = pgTable('gallery', {
-  id: text('id')
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  ownerId: text('owner_id')
-    .notNull()
-    .references(() => allUsers.id, { onDelete: 'cascade' }),
-  title: text('title').notNull(),
-  description: text('description'),
-  isPublic: boolean('is_public').default(false).notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
+export const galleries = pgTable(
+  'gallery',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    ownerId: text('owner_id')
+      .notNull()
+      .references(() => allUsers.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    description: text('description'),
+    isPublic: boolean('is_public').default(false).notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+    // Storage status fields
+    totalMemories: integer('total_memories').default(0), // Total number of memories in this gallery
+    storageLocations: storage_location_t('storage_locations').array().default([]), // All storage backends used by memories in this gallery
+    averageStorageDuration: integer('average_storage_duration'), // Average duration in days, null if all permanent
+    storageDistribution: json('storage_distribution').$type<Record<string, number>>().default({}), // Count of memories per storage backend
+  },
+  table => [
+    // Storage status indexes
+    index('galleries_storage_locations_idx').on(table.storageLocations),
+    index('galleries_storage_duration_idx').on(table.averageStorageDuration),
+  ]
+);
 
 export const galleryItems = pgTable(
   'gallery_item',
@@ -1253,23 +1276,7 @@ export const memoryMetadata = pgTable(
 // NOTE: Views are created/updated ONLY via SQL migrations.
 // These helpers are read-only projections for typing & autocompletion.
 
-// Memory Presence View Types
-export type DBMemoryPresence = {
-  memory_id: string;
-  memory_type: 'image' | 'video' | 'note' | 'document' | 'audio';
-  meta_neon: boolean;
-  asset_blob: boolean;
-  meta_icp: boolean;
-  asset_icp: boolean;
-};
-
-export type DBGalleryPresence = {
-  gallery_id: string;
-  total_memories: number;
-  icp_complete_memories: number;
-  icp_complete: boolean;
-  icp_any: boolean;
-};
+// Note: Memory and Gallery presence views have been replaced with direct fields in the tables
 
 export type DBSyncStatus = {
   memory_id: string;
@@ -1287,18 +1294,10 @@ export type DBSyncStatus = {
 
 // Read-only bindings for views (defined in migrations):
 // These are NOT DDL; just typed selectors for application code.
-export const memoryPresence = sql<DBMemoryPresence>`SELECT * FROM memory_presence`.as('memory_presence');
-
-export const galleryPresence = sql<DBGalleryPresence>`SELECT * FROM gallery_presence`.as('gallery_presence');
 
 export const syncStatus = sql<DBSyncStatus>`SELECT * FROM sync_status`.as('sync_status');
 
 // Helper functions for common queries
-export const getMemoryPresenceById = (memoryId: string, memoryType: string) =>
-  sql<DBMemoryPresence>`SELECT * FROM memory_presence WHERE memory_id = ${memoryId} AND memory_type = ${memoryType}`;
-
-export const getGalleryPresenceById = (galleryId: string) =>
-  sql<DBGalleryPresence>`SELECT * FROM gallery_presence WHERE gallery_id = ${galleryId}`;
 
 export const getSyncStatusByState = (syncState: 'migrating' | 'failed') =>
   sql<DBSyncStatus>`SELECT * FROM sync_status WHERE sync_state = ${syncState}`;
@@ -1307,8 +1306,6 @@ export const getStuckSyncs = () => sql<DBSyncStatus>`SELECT * FROM sync_status W
 
 export const getSyncStatusByBackend = (backend: 'neon-db' | 'vercel-blob' | 'icp-canister') =>
   sql<DBSyncStatus>`SELECT * FROM sync_status WHERE backend = ${backend}`;
-
-export const refreshGalleryPresence = () => sql`SELECT refresh_gallery_presence()`;
 
 /**
  * DRIZZLE RELATIONS - Define object-like access to related data
