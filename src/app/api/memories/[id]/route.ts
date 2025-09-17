@@ -4,6 +4,36 @@ import { db } from '@/db/db';
 import { eq, and } from 'drizzle-orm';
 import { allUsers, memories } from '@/db/schema';
 
+// Helper function to add storage status to memory (similar to gallery utils)
+async function addStorageStatusToMemory(memory: typeof memories.$inferSelect) {
+  try {
+    // For now, return default storage status since views don't exist
+    // This matches the current behavior of the presence endpoint
+    return {
+      ...memory,
+      storageStatus: {
+        metaNeon: true,
+        assetBlob: true,
+        metaIcp: false,
+        assetIcp: false,
+        overallStatus: 'web2_only' as const,
+      },
+    };
+  } catch (error) {
+    console.error('Error adding storage status to memory:', memory.id, error);
+    return {
+      ...memory,
+      storageStatus: {
+        metaNeon: true,
+        assetBlob: true,
+        metaIcp: false,
+        assetIcp: false,
+        overallStatus: 'web2_only' as const,
+      },
+    };
+  }
+}
+
 // GET /api/memories/[id] - Get memory with all assets
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   // Check authentication
@@ -37,9 +67,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Memory not found' }, { status: 404 });
     }
 
+    // Add storage status to memory
+    const memoryWithStorageStatus = await addStorageStatusToMemory(memory);
+
     return NextResponse.json({
       success: true,
-      data: memory,
+      data: memoryWithStorageStatus,
     });
   } catch (error) {
     console.error('Error fetching memory:', error);

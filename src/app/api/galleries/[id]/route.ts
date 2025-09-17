@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
 import { eq, and, inArray } from 'drizzle-orm';
-import { galleries, allUsers, galleryShares, galleryItems, images, videos, documents, notes, audio } from '@/db/schema';
+import { galleries, allUsers, galleryShares, galleryItems, memories } from '@/db/schema';
 import { addStorageStatusToGallery } from '../utils';
 
 // Helper function to check if user has access to a memory, considering gallery override
@@ -44,47 +44,13 @@ async function checkMemoryAccess(
     }
   }
 
-  // Check individual memory access (fallback)
-  let memory:
-    | typeof images.$inferSelect
-    | typeof videos.$inferSelect
-    | typeof documents.$inferSelect
-    | typeof notes.$inferSelect
-    | typeof audio.$inferSelect
-    | null = null;
-
-  switch (memoryType) {
-    case 'image':
-      memory =
-        (await db.query.images.findFirst({
-          where: eq(images.id, memoryId),
-        })) || null;
-      break;
-    case 'video':
-      memory =
-        (await db.query.videos.findFirst({
-          where: eq(videos.id, memoryId),
-        })) || null;
-      break;
-    case 'document':
-      memory =
-        (await db.query.documents.findFirst({
-          where: eq(documents.id, memoryId),
-        })) || null;
-      break;
-    case 'note':
-      memory =
-        (await db.query.notes.findFirst({
-          where: eq(notes.id, memoryId),
-        })) || null;
-      break;
-    case 'audio':
-      memory =
-        (await db.query.audio.findFirst({
-          where: eq(audio.id, memoryId),
-        })) || null;
-      break;
-  }
+  // Check individual memory access (fallback) - using unified memories table
+  const memory = await db.query.memories.findFirst({
+    where: and(
+      eq(memories.id, memoryId),
+      eq(memories.type, memoryType as 'image' | 'video' | 'note' | 'document' | 'audio')
+    ),
+  });
 
   if (!memory) {
     return false;
@@ -216,35 +182,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     for (const item of accessibleItems) {
       try {
         // console.log(`Processing item: ${item.memoryId} (type: ${item.memoryType})`);
-        let memory = null;
 
-        switch (item.memoryType) {
-          case 'image':
-            memory = await db.query.images.findFirst({
-              where: eq(images.id, item.memoryId),
-            });
-            break;
-          case 'video':
-            memory = await db.query.videos.findFirst({
-              where: eq(videos.id, item.memoryId),
-            });
-            break;
-          case 'document':
-            memory = await db.query.documents.findFirst({
-              where: eq(documents.id, item.memoryId),
-            });
-            break;
-          case 'note':
-            memory = await db.query.notes.findFirst({
-              where: eq(notes.id, item.memoryId),
-            });
-            break;
-          case 'audio':
-            memory = await db.query.audio.findFirst({
-              where: eq(audio.id, item.memoryId),
-            });
-            break;
-        }
+        // Fetch memory from unified memories table
+        const memory = await db.query.memories.findFirst({
+          where: and(
+            eq(memories.id, item.memoryId),
+            eq(memories.type, item.memoryType as 'image' | 'video' | 'note' | 'document' | 'audio')
+          ),
+        });
 
         if (memory) {
           // console.log(`Found memory for item ${item.memoryId}`);

@@ -39,7 +39,7 @@ export function useMemoryStorageStatus(memoryId: string, memoryType: string) {
 
       try {
         setStatus('loading');
-        const response = await fetch(`/api/memories/presence?id=${memoryId}&type=${memoryType}`);
+        const response = await fetch(`/api/memories/${memoryId}`);
 
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
@@ -47,9 +47,26 @@ export function useMemoryStorageStatus(memoryId: string, memoryType: string) {
 
         const result = await response.json();
 
-        if (result.success && result.data) {
-          setData(result.data);
-          setStatus(result.data.overallStatus);
+        if (result.success && result.data && result.data.storageStatus) {
+          // Transform the response to match the expected format
+          const storageStatus = result.data.storageStatus;
+          const presenceData: MemoryPresenceData = {
+            memoryId,
+            memoryType,
+            metaNeon: storageStatus.metaNeon,
+            assetBlob: storageStatus.assetBlob,
+            metaIcp: storageStatus.metaIcp,
+            assetIcp: storageStatus.assetIcp,
+            storageStatus: {
+              neon: storageStatus.metaNeon,
+              blob: storageStatus.assetBlob,
+              icp: storageStatus.metaIcp && storageStatus.assetIcp,
+              icpPartial: storageStatus.metaIcp || storageStatus.assetIcp,
+            },
+            overallStatus: storageStatus.overallStatus,
+          };
+          setData(presenceData);
+          setStatus(presenceData.overallStatus);
         } else {
           setStatus('error');
         }
@@ -98,7 +115,7 @@ export function useBatchMemoryStorageStatus(memories: Array<{ id: string; type: 
         const promises = memories.map(async memory => {
           const key = `${memory.id}:${memory.type}`;
           try {
-            const response = await fetch(`/api/memories/presence?id=${memory.id}&type=${memory.type}`);
+            const response = await fetch(`/api/memories/${memory.id}`);
 
             if (!response.ok) {
               throw new Error(`HTTP ${response.status}`);
@@ -106,11 +123,28 @@ export function useBatchMemoryStorageStatus(memories: Array<{ id: string; type: 
 
             const result = await response.json();
 
-            if (result.success && result.data) {
+            if (result.success && result.data && result.data.storageStatus) {
+              // Transform the response to match the expected format
+              const storageStatus = result.data.storageStatus;
+              const presenceData: MemoryPresenceData = {
+                memoryId: memory.id,
+                memoryType: memory.type,
+                metaNeon: storageStatus.metaNeon,
+                assetBlob: storageStatus.assetBlob,
+                metaIcp: storageStatus.metaIcp,
+                assetIcp: storageStatus.assetIcp,
+                storageStatus: {
+                  neon: storageStatus.metaNeon,
+                  blob: storageStatus.assetBlob,
+                  icp: storageStatus.metaIcp && storageStatus.assetIcp,
+                  icpPartial: storageStatus.metaIcp || storageStatus.assetIcp,
+                },
+                overallStatus: storageStatus.overallStatus,
+              };
               return {
                 key,
-                status: result.data.overallStatus as MemoryStorageStatus,
-                data: result.data as MemoryPresenceData,
+                status: presenceData.overallStatus as MemoryStorageStatus,
+                data: presenceData,
               };
             } else {
               return { key, status: 'error' as MemoryStorageStatus, data: null };

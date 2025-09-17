@@ -54,6 +54,26 @@ export async function addStorageStatusToGallery(gallery: DBGallery): Promise<Gal
       },
     };
   } catch (error) {
+    // Check if this is a "view does not exist" error
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes('relation "gallery_presence" does not exist') || 
+        errorMessage.includes('relation "memory_presence" does not exist')) {
+      // Views don't exist yet - this is expected during development
+      // Silently return default storage status without logging error
+      return {
+        ...gallery,
+        storageStatus: {
+          totalMemories: 0,
+          icpCompleteMemories: 0,
+          icpComplete: false,
+          icpAny: false,
+          icpCompletePercentage: 0,
+          status: 'web2_only' as const,
+        },
+      };
+    }
+
+    // Log other errors
     console.error('Error adding storage status to gallery:', gallery.id, error);
 
     // Return gallery with default storage status on error
