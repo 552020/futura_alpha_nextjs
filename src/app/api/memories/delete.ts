@@ -21,8 +21,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
-import { allUsers, memories } from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { allUsers, memories, folders, galleries, galleryItems } from '@/db/schema';
+import { eq, and, inArray } from 'drizzle-orm';
 
 // Helper function to clean up storage edges for deleted memories
 async function cleanupStorageEdgesForMemories(memories: Array<{ id: string; type: string }>) {
@@ -82,8 +82,39 @@ export async function handleApiMemoryDelete(request: NextRequest): Promise<NextR
     let deletedCount = 0;
 
     if (all === 'true') {
-      // Delete all memories for the user
+      // Delete all memories, folders, and galleries for the user
+      console.log('🗑️ Clearing all data for user:', allUserRecord.id);
+
+      // 1. Delete all memories
       const deletedMemories = await db.delete(memories).where(eq(memories.ownerId, allUserRecord.id)).returning();
+      console.log('🗑️ Deleted memories:', deletedMemories.length);
+
+      // 2. Delete all galleries (and their items)
+      // First get all gallery IDs for this user
+      const userGalleries = await db.query.galleries.findMany({
+        where: eq(galleries.ownerId, allUserRecord.id),
+        columns: { id: true },
+      });
+
+      const galleryIds = userGalleries.map(g => g.id);
+
+      // Delete gallery items for all user's galleries
+      let deletedGalleryItemsCount = 0;
+      if (galleryIds.length > 0) {
+        const deletedGalleryItems = await db
+          .delete(galleryItems)
+          .where(inArray(galleryItems.galleryId, galleryIds))
+          .returning();
+        deletedGalleryItemsCount = deletedGalleryItems.length;
+      }
+
+      // Delete all galleries
+      const deletedGalleries = await db.delete(galleries).where(eq(galleries.ownerId, allUserRecord.id)).returning();
+      console.log('🗑️ Deleted galleries:', deletedGalleries.length, 'gallery items:', deletedGalleryItemsCount);
+
+      // 3. Delete all folders
+      const deletedFolders = await db.delete(folders).where(eq(folders.ownerId, allUserRecord.id)).returning();
+      console.log('🗑️ Deleted folders:', deletedFolders.length);
 
       deletedCount = deletedMemories.length;
 
@@ -148,7 +179,10 @@ export async function handleApiMemoryDelete(request: NextRequest): Promise<NextR
 
     return NextResponse.json({
       success: true,
-      message: `Successfully deleted ${deletedCount} memories`,
+      message:
+        all === 'true'
+          ? `Successfully deleted ${deletedCount} memories, all folders, and all galleries`
+          : `Successfully deleted ${deletedCount} memories`,
       deletedCount,
       type,
       folder,

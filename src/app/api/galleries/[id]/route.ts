@@ -183,19 +183,63 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       try {
         // console.log(`Processing item: ${item.memoryId} (type: ${item.memoryType})`);
 
-        // Fetch memory from unified memories table
+        // Fetch memory from unified memories table with assets
         const memory = await db.query.memories.findFirst({
           where: and(
             eq(memories.id, item.memoryId),
             eq(memories.type, item.memoryType as 'image' | 'video' | 'note' | 'document' | 'audio')
           ),
+          with: {
+            assets: true,
+          },
         });
 
         if (memory) {
           // console.log(`Found memory for item ${item.memoryId}`);
+
+          // Extract URL from assets (similar to dashboard logic)
+          const getAssetUrl = (
+            assets: any[] | undefined,
+            preferredType: 'display' | 'original' = 'display'
+          ): string | undefined => {
+            if (!assets || assets.length === 0) return undefined;
+
+            // Try to find the preferred asset type first
+            const preferredAsset = assets.find(asset => asset.assetType === preferredType);
+            if (preferredAsset) return preferredAsset.url;
+
+            // Fallback to original if preferred type not found
+            const originalAsset = assets.find(asset => asset.assetType === 'original');
+            if (originalAsset) return originalAsset.url;
+
+            // Fallback to first available asset
+            return assets[0]?.url;
+          };
+
+          // Extract MIME type from assets
+          const getAssetMimeType = (assets: any[] | undefined): string | undefined => {
+            if (!assets || assets.length === 0) return undefined;
+
+            // Try to find display asset first, then original
+            const displayAsset = assets.find(asset => asset.assetType === 'display');
+            if (displayAsset) return displayAsset.mimeType;
+
+            const originalAsset = assets.find(asset => asset.assetType === 'original');
+            if (originalAsset) return originalAsset.mimeType;
+
+            return assets[0]?.mimeType;
+          };
+
+          // Transform memory to include url and mimeType from assets
+          const memoryWithUrl = {
+            ...memory,
+            url: getAssetUrl(memory.assets),
+            mimeType: getAssetMimeType(memory.assets),
+          };
+
           itemsWithMemories.push({
             ...item,
-            memory,
+            memory: memoryWithUrl,
           });
         } else {
           console.warn(`Memory not found for item: ${item.memoryId} (type: ${item.memoryType})`);

@@ -89,6 +89,15 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { type, folderName, memories, title, description, isPublic = false } = body;
 
+    console.log('🔍 Gallery Creation Request:', {
+      type,
+      folderName,
+      title,
+      description,
+      isPublic,
+      memoriesCount: memories?.length || 0,
+    });
+
     if (!type || !['from-folder', 'from-memories'].includes(type)) {
       return NextResponse.json({ error: "Type must be 'from-folder' or 'from-memories'" }, { status: 400 });
     }
@@ -101,17 +110,39 @@ export async function POST(request: NextRequest) {
       }
 
       // First, find the folder by name to get its ID
-      const folder = await db.query.folders.findFirst({
+      // Check if there are multiple folders with the same name
+      const allFoldersWithName = await db.query.folders.findMany({
         where: and(eq(folders.name, folderName), eq(folders.ownerId, allUserRecord.id)),
+        orderBy: desc(folders.createdAt), // Get the most recent one
       });
 
-      if (!folder) {
+      console.log('🔍 All folders with name:', {
+        folderName,
+        count: allFoldersWithName.length,
+        folders: allFoldersWithName.map(f => ({ id: f.id, name: f.name, createdAt: f.createdAt })),
+      });
+
+      if (allFoldersWithName.length === 0) {
         return NextResponse.json({ error: `Folder '${folderName}' not found` }, { status: 404 });
       }
 
+      // Use the most recent folder (in case there are duplicates)
+      const folder = allFoldersWithName[0];
+
       // Find all memories that belong to this folder using the unified memories table
+      console.log('🔍 Gallery Creation Debug:', {
+        folderName,
+        folderId: folder.id,
+        ownerId: allUserRecord.id,
+      });
+
       const folderMemories = await db.query.memories.findMany({
         where: and(eq(memoriesTable.ownerId, allUserRecord.id), eq(memoriesTable.parentFolderId, folder.id)),
+      });
+
+      console.log('🔍 Found folder memories:', {
+        count: folderMemories.length,
+        memories: folderMemories.map(m => ({ id: m.id, title: m.title, parentFolderId: m.parentFolderId })),
       });
 
       // Convert to gallery memory format
