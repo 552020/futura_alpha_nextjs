@@ -213,8 +213,8 @@ export function logMultipleFileDetails(files: File[]): void {
 export function extractFolderInfo(fileName: string): { originalPath: string; folderName: string } {
   // When using webkitdirectory, fileName contains the full relative path
   // e.g., "Wedding Photos/ceremony/img001.jpg" -> folderName: "Wedding Photos"
-  const pathParts = fileName.split("/");
-  const folderName = pathParts.length > 1 ? pathParts[0] : "Ungrouped";
+  const pathParts = fileName.split('/');
+  const folderName = pathParts.length > 1 ? pathParts[0] : 'Ungrouped';
 
   return {
     originalPath: fileName,

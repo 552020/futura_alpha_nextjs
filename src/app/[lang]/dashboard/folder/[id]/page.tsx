@@ -65,7 +65,8 @@ export default function FolderPage() {
 
       if (folderMemories.length > 0) {
         // Use folder name from new structure or fallback to old structure
-        const folderName = (folderMemories[0] as MemoryWithFolder)?.folder?.name || folderMemories[0]?.metadata?.folderName || folderId;
+        const folderName =
+          (folderMemories[0] as MemoryWithFolder)?.folder?.name || folderMemories[0]?.metadata?.folderName || folderId;
         setFolderName(folderName);
         setMemories(folderMemories);
       } else {
@@ -98,7 +99,8 @@ export default function FolderPage() {
 
       if (folderMemories.length > 0) {
         // Use folder name from new structure or fallback to old structure
-        const actualFolderName = (folderMemories[0] as MemoryWithFolder)?.folder?.name || folderMemories[0]?.metadata?.folderName || folderId;
+        const actualFolderName =
+          (folderMemories[0] as MemoryWithFolder)?.folder?.name || folderMemories[0]?.metadata?.folderName || folderId;
         // console.log("🔍 Setting folder name to:", actualFolderName);
         setFolderName(actualFolderName);
         setMemories(folderMemories);
