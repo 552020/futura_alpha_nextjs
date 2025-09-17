@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
-import { eq, desc, sql } from 'drizzle-orm';
-import { galleries, allUsers, images, videos, documents, notes, audio, galleryItems } from '@/db/schema';
+import { eq, desc, and } from 'drizzle-orm';
+import { galleries, allUsers, memories as memoriesTable, folders, galleryItems } from '@/db/schema';
 import { addStorageStatusToGalleries } from './utils';
 
 export async function GET(request: NextRequest) {
@@ -100,33 +100,25 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Folder name is required for from-folder type' }, { status: 400 });
       }
 
-      // Find all memories that belong to this folder
-      const folderCondition = sql`metadata->>'folderName' = ${folderName}`;
-
-      const folderImages = await db.query.images.findMany({
-        where: sql`${eq(images.ownerId, allUserRecord.id)} AND ${folderCondition}`,
+      // First, find the folder by name to get its ID
+      const folder = await db.query.folders.findFirst({
+        where: and(eq(folders.name, folderName), eq(folders.ownerId, allUserRecord.id)),
       });
-      galleryMemories.push(...folderImages.map(img => ({ id: img.id, type: 'image' as const })));
 
-      const folderVideos = await db.query.videos.findMany({
-        where: sql`${eq(videos.ownerId, allUserRecord.id)} AND ${folderCondition}`,
-      });
-      galleryMemories.push(...folderVideos.map(vid => ({ id: vid.id, type: 'video' as const })));
+      if (!folder) {
+        return NextResponse.json({ error: `Folder '${folderName}' not found` }, { status: 404 });
+      }
 
-      const folderDocuments = await db.query.documents.findMany({
-        where: sql`${eq(documents.ownerId, allUserRecord.id)} AND ${folderCondition}`,
+      // Find all memories that belong to this folder using the unified memories table
+      const folderMemories = await db.query.memories.findMany({
+        where: and(eq(memoriesTable.ownerId, allUserRecord.id), eq(memoriesTable.parentFolderId, folder.id)),
       });
-      galleryMemories.push(...folderDocuments.map(doc => ({ id: doc.id, type: 'document' as const })));
 
-      const folderNotes = await db.query.notes.findMany({
-        where: sql`${eq(notes.ownerId, allUserRecord.id)} AND ${folderCondition}`,
-      });
-      galleryMemories.push(...folderNotes.map(note => ({ id: note.id, type: 'note' as const })));
-
-      const folderAudio = await db.query.audio.findMany({
-        where: sql`${eq(audio.ownerId, allUserRecord.id)} AND ${folderCondition}`,
-      });
-      galleryMemories.push(...folderAudio.map(aud => ({ id: aud.id, type: 'audio' as const })));
+      // Convert to gallery memory format
+      galleryMemories = folderMemories.map(memory => ({
+        id: memory.id,
+        type: memory.type,
+      }));
     } else if (type === 'from-memories') {
       if (!memories || !Array.isArray(memories) || memories.length === 0) {
         return NextResponse.json({ error: 'Memories array is required for from-memories type' }, { status: 400 });

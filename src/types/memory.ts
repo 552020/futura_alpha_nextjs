@@ -12,7 +12,7 @@ export interface Memory {
   ownerId?: string;
   ownerName?: string;
   isPublic?: boolean;
-  parentFolderId?: string;
+  parentFolderId?: string | null;
   // Tags and people
   tags?: string[];
   people?: PersonInMemory[];

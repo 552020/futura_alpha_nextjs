@@ -17,7 +17,7 @@ export function createAgent(identity?: Identity): Promise<HttpAgent> {
           // dev/local only - handle gracefully if ICP replica is not running
           try {
             await agent.fetchRootKey();
-          } catch (error) {
+          } catch {
             console.warn('⚠️ ICP replica not available. ICP features will be disabled.');
             console.warn('To enable ICP features, run: dfx start');
             // Don't throw - let the app continue without ICP functionality

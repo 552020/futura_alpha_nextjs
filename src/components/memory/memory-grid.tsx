@@ -1,7 +1,7 @@
 import { Memory } from '@/types/memory';
 import { MemoryCard } from './memory-card';
 import { DashboardItem } from '@/services/memories';
-import { ExtendedMemory } from '@/types/dashboard';
+// import { ExtendedMemory } from '@/types/dashboard'; // Unused import
 import { BaseGrid } from '@/components/common/base-grid';
 
 interface MemoryGridProps {
