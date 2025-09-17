@@ -28,6 +28,8 @@
   "dependencies": {
     "@auth/drizzle-adapter": "^1.10.0",
     "@auth/unstorage-adapter": "^2.10.0",
+    "@aws-sdk/client-s3": "^3.890.0",
+    "@aws-sdk/s3-request-presigner": "^3.890.0",
     "@dfinity/agent": "^3.2.4",
     "@dfinity/candid": "^3.2.4",
     "@dfinity/principal": "^3.2.4",
