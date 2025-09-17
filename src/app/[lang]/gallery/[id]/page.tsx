@@ -19,7 +19,7 @@ import { GalleryStorageSummary } from '@/components/galleries/gallery-storage-su
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_GALLERY === 'true';
 
 function GalleryViewContent() {
-  const { id } = useParams();
+  const { id, lang } = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
   const { isAuthorized, isLoading: authLoading } = useAuthGuard();
@@ -65,8 +65,11 @@ function GalleryViewContent() {
   }, [searchParams]);
 
   const handleImageClick = (index: number) => {
-    // Navigate to preview page with the specific image index
-    router.push(`/gallery/${id}/preview?image=${index}`);
+    // Navigate to individual memory page (same as dashboard/folder behavior)
+    if (gallery?.items?.[index]?.memory) {
+      const memory = gallery.items[index].memory;
+      router.push(`/${lang}/dashboard/${memory.id}`);
+    }
   };
 
   const handleImageError = useCallback((imageUrl: string) => {
