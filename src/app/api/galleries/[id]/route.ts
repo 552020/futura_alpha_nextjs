@@ -199,25 +199,28 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
           // Extract URL from assets (similar to dashboard logic)
           const getAssetUrl = (
-            assets: any[] | undefined,
+            assets: GalleryAsset[] | undefined,
             preferredType: 'display' | 'original' = 'display'
           ): string | undefined => {
             if (!assets || assets.length === 0) return undefined;
 
-            // Try to find the preferred asset type first
             const preferredAsset = assets.find(asset => asset.assetType === preferredType);
             if (preferredAsset) return preferredAsset.url;
 
-            // Fallback to original if preferred type not found
             const originalAsset = assets.find(asset => asset.assetType === 'original');
             if (originalAsset) return originalAsset.url;
 
-            // Fallback to first available asset
             return assets[0]?.url;
           };
+          // Define asset type
+          interface GalleryAsset {
+            assetType: string;
+            url: string;
+            mimeType?: string;
+          }
 
           // Extract MIME type from assets
-          const getAssetMimeType = (assets: any[] | undefined): string | undefined => {
+          const getAssetMimeType = (assets: GalleryAsset[] | undefined): string | undefined => {
             if (!assets || assets.length === 0) return undefined;
 
             // Try to find display asset first, then original
