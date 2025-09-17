@@ -217,7 +217,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           };
 
           // Extract MIME type from assets
-          const getAssetMimeType = (assets: Array<{ assetType: string; mimeType: string }> | undefined): string | undefined => {
+          const getAssetMimeType = (
+            assets: Array<{ assetType: string; mimeType: string }> | undefined
+          ): string | undefined => {
             if (!assets || assets.length === 0) return undefined;
 
             // Try to find display asset first, then original
