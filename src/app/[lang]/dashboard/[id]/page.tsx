@@ -11,6 +11,7 @@ import { format } from 'date-fns';
 import { shortenTitle } from '@/lib/utils';
 import { MemoryStorageBadge } from '@/components/common/memory-storage-badge';
 import { sampleDashboardMemories } from '../sample-data';
+import { getBlurPlaceholder, IMAGE_SIZES } from '@/utils/image-utils';
 
 // Demo flag - set to true to use mock data for demo
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_MEMORY === 'true';
@@ -340,7 +341,9 @@ export default function MemoryDetailPage() {
               alt={memory.title || 'Memory image'}
               fill
               className="rounded-lg object-contain"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
+              sizes={IMAGE_SIZES.lightbox}
+              placeholder="blur"
+              blurDataURL={getBlurPlaceholder()}
             />
           </div>
         )}

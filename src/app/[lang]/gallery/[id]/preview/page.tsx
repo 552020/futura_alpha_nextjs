@@ -11,6 +11,7 @@ import { GalleryWithItems } from '@/types/gallery';
 import { ForeverStorageProgressModal } from '@/components/galleries/forever-storage-progress-modal';
 import { MemoryStorageBadge } from '@/components/common/memory-storage-badge';
 import { useToast } from '@/hooks/use-toast';
+import { getBlurPlaceholder, IMAGE_SIZES } from '@/utils/image-utils';
 
 // Gallery Hero Cover Component
 function GalleryHeroCover({
@@ -32,8 +33,10 @@ function GalleryHeroCover({
           fill
           className="object-cover"
           onError={() => onImageError(gallery.items[0].memory.url!)}
-          sizes="100vw"
+          sizes={IMAGE_SIZES.hero}
           priority
+          placeholder="blur"
+          blurDataURL={getBlurPlaceholder()}
         />
       ) : (
         <div className="w-full h-full bg-gray-800 flex items-center justify-center">
@@ -209,7 +212,9 @@ function GalleryGrid({
                     fill
                     className="object-cover"
                     onError={() => onImageError(item.memory.url!)}
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    sizes={IMAGE_SIZES.gallery}
+                    placeholder="blur"
+                    blurDataURL={getBlurPlaceholder()}
                   />
                 </div>
               ) : (
@@ -547,10 +552,10 @@ function GalleryPreviewContent() {
                 <Image
                   src={gallery.items[selectedImageIndex].memory.url}
                   alt={gallery.items[selectedImageIndex].memory.title || `Photo ${selectedImageIndex + 1}`}
-                  width={1200}
-                  height={800}
-                  className="max-w-full max-h-full object-contain"
-                  sizes="90vw"
+                  fill
+                  className="object-contain"
+                  sizes={IMAGE_SIZES.lightbox}
+                  priority
                 />
               ) : (
                 <div className="bg-gray-800 rounded-lg p-8 text-center">

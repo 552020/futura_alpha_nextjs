@@ -7,6 +7,7 @@ import { MemoryStorageBadge } from '@/components/common/memory-storage-badge';
 import { BaseCard } from '@/components/common/base-card';
 import Image from 'next/image';
 import { shortenTitle } from '@/lib/utils';
+import { getBlurPlaceholder, IMAGE_SIZES } from '@/utils/image-utils';
 
 interface MemoryCardProps {
   memory: ExtendedMemory & {
@@ -104,7 +105,9 @@ export function MemoryCard({ memory, onClick, onDelete, onShare, onEdit, viewMod
               alt={memory.title || 'Memory image'}
               fill={true}
               className="object-cover"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              sizes={IMAGE_SIZES.grid}
+              placeholder="blur"
+              blurDataURL={getBlurPlaceholder()}
             />
           );
         }

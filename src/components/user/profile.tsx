@@ -1,6 +1,7 @@
 'use client';
 
 import { Card } from '@/components/ui/card';
+import { getBlurPlaceholder, IMAGE_SIZES } from '@/utils/image-utils';
 import Image from 'next/image';
 import { Plus, Share2, FileText, Music, Video, Archive, File, Loader2 } from 'lucide-react';
 import { useOnboarding } from '@/contexts/onboarding-context';
@@ -46,8 +47,10 @@ export function Profile({ isOnboarding = false }: ProfileProps) {
                   alt="Your memory"
                   fill
                   className="object-cover"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  sizes={IMAGE_SIZES.grid}
                   priority
+                  placeholder="blur"
+                  blurDataURL={getBlurPlaceholder()}
                 />
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center gap-4">

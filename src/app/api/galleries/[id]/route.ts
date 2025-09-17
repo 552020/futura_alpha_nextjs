@@ -199,7 +199,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
           // Extract URL from assets (similar to dashboard logic)
           const getAssetUrl = (
-            assets: any[] | undefined,
+            assets: Array<{ assetType: string; url: string }> | undefined,
             preferredType: 'display' | 'original' = 'display'
           ): string | undefined => {
             if (!assets || assets.length === 0) return undefined;
@@ -217,7 +217,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           };
 
           // Extract MIME type from assets
-          const getAssetMimeType = (assets: any[] | undefined): string | undefined => {
+          const getAssetMimeType = (assets: Array<{ assetType: string; mimeType: string }> | undefined): string | undefined => {
             if (!assets || assets.length === 0) return undefined;
 
             // Try to find display asset first, then original

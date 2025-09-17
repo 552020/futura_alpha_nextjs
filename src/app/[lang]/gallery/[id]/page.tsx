@@ -13,6 +13,7 @@ import { ForeverStorageProgressModal } from '@/components/galleries/forever-stor
 import { StorageStatusBadge, getGalleryStorageStatus } from '@/components/common/storage-status-badge';
 import { MemoryStorageBadge } from '@/components/common/memory-storage-badge';
 import { GalleryStorageSummary } from '@/components/galleries/gallery-storage-summary';
+import { getBlurPlaceholder, IMAGE_SIZES } from '@/utils/image-utils';
 
 // Mock data flag for development - same pattern as dashboard
 // const USE_MOCK_DATA = true;
@@ -364,7 +365,9 @@ function GalleryViewContent() {
                       fill
                       className="object-cover"
                       onError={() => handleImageError(item.memory.url!)}
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                      sizes={IMAGE_SIZES.gallery}
+                      placeholder="blur"
+                      blurDataURL={getBlurPlaceholder()}
                     />
                   </div>
                 ) : (
