@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { MemoryActions } from '@/components/memory/memory-actions';
@@ -155,11 +155,68 @@ export default function MemoryDetailPage() {
   const { isAuthorized, isTemporaryUser, userId, redirectToSignIn } = useAuthGuard();
   const [memory, setMemory] = useState<Memory | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [assetUrls, setAssetUrls] = useState<{
+  // Cache for presigned URLs to prevent duplicate requests
+  const urlCache = useRef<Map<string, string>>(new Map());
+  
+  // Store asset URLs in a ref to avoid re-renders
+  const assetUrlsRef = useRef<{
     displayUrl?: string;
     originalUrl?: string;
     mimeType?: string;
   }>({});
+
+  // Function to get a cached URL or generate a new one
+  const getCachedAssetUrl = useCallback(async (assets: MemoryAsset[] = [], type: AssetType) => {
+    if (!assets.length) return undefined;
+    
+    // Find the asset
+    const asset = assets.find(a => a.assetType === type) || 
+                 assets.find(a => a.assetType === 'original') || 
+                 assets[0];
+    
+    if (!asset?.storageKey) return undefined;
+    
+    // Check cache first
+    if (urlCache.current.has(asset.storageKey)) {
+      return urlCache.current.get(asset.storageKey);
+    }
+    
+    try {
+      // Generate new URL if not in cache
+      const url = await getAssetUrl(assets, type);
+      if (url) {
+        urlCache.current.set(asset.storageKey, url);
+      }
+      return url;
+    } catch (error) {
+      console.error('Error generating asset URL:', error);
+      return undefined;
+    }
+  }, []);
+
+  // Function to load asset URLs
+  const loadAssetUrls = useCallback(async (assets: MemoryAsset[] = []) => {
+    if (!assets.length) return assetUrlsRef.current;
+    
+    try {
+      const [display, original] = await Promise.all([
+        getCachedAssetUrl(assets, 'display'),
+        getCachedAssetUrl(assets, 'original'),
+      ]);
+      
+      const newAssetUrls = {
+        displayUrl: display,
+        originalUrl: original,
+        mimeType: getAssetMimeType(assets),
+      };
+      
+      assetUrlsRef.current = newAssetUrls;
+      return newAssetUrls;
+    } catch (error) {
+      console.error('Error loading asset URLs:', error);
+      return assetUrlsRef.current;
+    }
+  }, []);
 
   const fetchMemory = useCallback(async () => {
     try {
@@ -223,36 +280,24 @@ export default function MemoryDetailPage() {
 
         console.log('🔍 Memory assets:', assets);
 
-        // Load asset URLs
-        const loadAssetUrls = async () => {
-          try {
-            const [display, original] = await Promise.all([
-              getAssetUrl(assets, 'display'),
-              getAssetUrl(assets, 'original'),
-            ]);
-            
-            setAssetUrls({
-              displayUrl: display,
-              originalUrl: original,
-              mimeType: getAssetMimeType(assets),
-            });
-          } catch (error) {
-            console.error('Error loading asset URLs:', error);
-          }
-        };
-
+        // Load asset URLs if assets exist
+        let displayUrl: string | undefined;
+        let originalUrl: string | undefined;
+        let mimeType: string | undefined;
+        
         if (assets && assets.length > 0) {
-          loadAssetUrls();
+          const loadedUrls = await loadAssetUrls(assets);
+          displayUrl = loadedUrls.displayUrl;
+          originalUrl = loadedUrls.originalUrl;
+          mimeType = loadedUrls.mimeType;
         }
-
-        const { displayUrl, originalUrl, mimeType } = assetUrls;
 
         console.log('🔍 Extracted display URL:', displayUrl);
         console.log('🔍 Extracted original URL:', originalUrl);
         console.log('🔍 Extracted MIME type:', mimeType);
 
-        // Get the thumbnail URL first since getAssetUrl is async
-        const thumbnailUrl = assets ? (await getAssetUrl(assets, 'thumb')) : undefined;
+        // Get the thumbnail URL with caching
+        const thumbnailUrl = assets ? (await getCachedAssetUrl(assets, 'thumb')) : undefined;
         
         const transformedMemory: Memory = {
           id: memoryData.id,
@@ -287,7 +332,7 @@ export default function MemoryDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [id, assetUrls]);
+  }, [id, loadAssetUrls, getCachedAssetUrl]);
 
   useEffect(() => {
     if (!isAuthorized) {
