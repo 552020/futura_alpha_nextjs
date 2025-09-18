@@ -49,17 +49,77 @@ interface Memory {
 // Allow all possible asset types
 type AssetType = MemoryAsset['assetType'];
 
-const getAssetUrl = (assets: MemoryAsset[] | undefined, preferredType: AssetType = 'display'): string | undefined => {
+// Helper function to generate presigned URL for private S3 objects
+async function generatePresignedUrl(key: string): Promise<string> {
+  console.log('🔑 Requesting presigned URL for key:', key);
+  try {
+    const response = await fetch('/api/s3/presigned-url', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ key }),
+    });
+
+    console.log('📡 Presigned URL response status:', response.status);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Failed to generate presigned URL:', errorText);
+      throw new Error(`Failed to generate presigned URL: ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log('✅ Received presigned URL:', data.url ? 'URL received' : 'No URL in response');
+    
+    if (!data.url) {
+      throw new Error('No URL returned from presigned URL endpoint');
+    }
+    
+    return data.url;
+  } catch (error) {
+    console.error('❌ Error in generatePresignedUrl:', error);
+    throw error;
+  }
+}
+
+const getAssetUrl = async (assets: MemoryAsset[] | undefined, preferredType: AssetType = 'display'): Promise<string | undefined> => {
   if (!assets || assets.length === 0) return undefined;
 
   // Helper function to construct URL from bucket and storageKey
-  const constructS3Url = (asset: MemoryAsset): string => {
-    if (asset.storageKey) {
+  const constructS3Url = async (asset: MemoryAsset): Promise<string> => {
+    console.log('🔍 Constructing URL for asset:', {
+      id: asset.id,
+      type: asset.assetType,
+      hasStorageKey: !!asset.storageKey,
+      hasDirectUrl: !!asset.url,
+      bucket: asset.bucket
+    });
+
+    if (!asset.storageKey) {
+      console.log('ℹ️ No storageKey, using direct URL:', asset.url);
+      return asset.url || '';
+    }
+    
+    try {
+      console.log('🔑 Attempting to get presigned URL for:', asset.storageKey);
+      const presignedUrl = await generatePresignedUrl(asset.storageKey);
+      console.log('✅ Using presigned URL for asset:', asset.id);
+      return presignedUrl;
+    } catch (error) {
+      console.warn('⚠️ Falling back to direct URL for asset:', {
+        id: asset.id,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      
+      // Fallback to direct URL if presigned URL generation fails
       const bucket = process.env.NEXT_PUBLIC_AWS_S3_BUCKET || process.env.AWS_S3_BUCKET || asset.bucket || 'default-bucket';
       const region = process.env.NEXT_PUBLIC_AWS_S3_REGION || 'eu-central-1';
-      return `https://${bucket}.s3.${region}.amazonaws.com/${asset.storageKey}`;
+      const directUrl = `https://${bucket}.s3.${region}.amazonaws.com/${asset.storageKey}`;
+      
+      console.log('🔄 Using direct URL as fallback:', directUrl);
+      return directUrl;
     }
-    return asset.url;
   };
 
   // Try to find the preferred asset type first
@@ -95,6 +155,12 @@ export default function MemoryDetailPage() {
   const { isAuthorized, isTemporaryUser, userId, redirectToSignIn } = useAuthGuard();
   const [memory, setMemory] = useState<Memory | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [assetUrls, setAssetUrls] = useState<{
+    displayUrl?: string;
+    originalUrl?: string;
+    mimeType?: string;
+  }>({});
 
   const fetchMemory = useCallback(async () => {
     try {
@@ -158,10 +224,29 @@ export default function MemoryDetailPage() {
 
         console.log('🔍 Memory assets:', assets);
 
-        // Extract URL and MIME type from assets
-        const displayUrl = getAssetUrl(assets, 'display');
-        const originalUrl = getAssetUrl(assets, 'original');
-        const mimeType = getAssetMimeType(assets);
+        // Load asset URLs
+        const loadAssetUrls = async () => {
+          try {
+            const [display, original] = await Promise.all([
+              getAssetUrl(assets, 'display'),
+              getAssetUrl(assets, 'original'),
+            ]);
+            
+            setAssetUrls({
+              displayUrl: display,
+              originalUrl: original,
+              mimeType: getAssetMimeType(assets),
+            });
+          } catch (error) {
+            console.error('Error loading asset URLs:', error);
+          }
+        };
+
+        if (assets && assets.length > 0) {
+          loadAssetUrls();
+        }
+
+        const { displayUrl, originalUrl, mimeType } = assetUrls;
 
         console.log('🔍 Extracted display URL:', displayUrl);
         console.log('🔍 Extracted original URL:', originalUrl);
