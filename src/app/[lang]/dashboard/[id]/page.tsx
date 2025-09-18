@@ -155,7 +155,6 @@ export default function MemoryDetailPage() {
   const { isAuthorized, isTemporaryUser, userId, redirectToSignIn } = useAuthGuard();
   const [memory, setMemory] = useState<Memory | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [assetUrls, setAssetUrls] = useState<{
     displayUrl?: string;
     originalUrl?: string;
@@ -252,6 +251,9 @@ export default function MemoryDetailPage() {
         console.log('🔍 Extracted original URL:', originalUrl);
         console.log('🔍 Extracted MIME type:', mimeType);
 
+        // Get the thumbnail URL first since getAssetUrl is async
+        const thumbnailUrl = assets ? (await getAssetUrl(assets, 'thumb')) : undefined;
+        
         const transformedMemory: Memory = {
           id: memoryData.id,
           type: memoryData.type,
@@ -264,8 +266,7 @@ export default function MemoryDetailPage() {
           ownerId: memoryData.ownerId,
           assets: assets,
           metadata: memoryData.metadata,
-          // Set thumbnail if available in assets
-          thumbnail: getAssetUrl(assets, 'thumb') || displayUrl || originalUrl,
+          thumbnail: thumbnailUrl || displayUrl || originalUrl,
         };
 
         console.log('🔄 Transformed memory:', {
@@ -286,7 +287,7 @@ export default function MemoryDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [id]);
+  }, [id, assetUrls]);
 
   useEffect(() => {
     if (!isAuthorized) {
