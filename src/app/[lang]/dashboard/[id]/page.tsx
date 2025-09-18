@@ -43,11 +43,10 @@ interface Memory {
   };
 }
 
-// Helper function to extract URL from assets
-const getAssetUrl = (
-  assets: MemoryAsset[] | undefined,
-  preferredType: 'display' | 'original' = 'display'
-): string | undefined => {
+// Allow all possible asset types
+type AssetType = MemoryAsset['assetType'];
+
+const getAssetUrl = (assets: MemoryAsset[] | undefined, preferredType: AssetType = 'display'): string | undefined => {
   if (!assets || assets.length === 0) return undefined;
 
   // Try to find the preferred asset type first
@@ -170,15 +169,15 @@ export default function MemoryDetailPage() {
           // Set thumbnail if available in assets
           thumbnail: getAssetUrl(assets, 'thumb') || displayUrl || originalUrl,
         };
-        
+
         console.log('🔄 Transformed memory:', {
           id: transformedMemory.id,
           type: transformedMemory.type,
           url: transformedMemory.url,
           thumbnail: transformedMemory.thumbnail,
-          hasAssets: !!assets?.length
+          hasAssets: !!assets?.length,
         });
-        
+
         setMemory(transformedMemory);
       } else {
         throw new Error('Invalid memory data format');
