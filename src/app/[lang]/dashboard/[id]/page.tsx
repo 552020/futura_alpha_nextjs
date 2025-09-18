@@ -148,9 +148,11 @@ export default function MemoryDetailPage() {
 
         // Extract URL and MIME type from assets
         const displayUrl = getAssetUrl(assets, 'display');
+        const originalUrl = getAssetUrl(assets, 'original');
         const mimeType = getAssetMimeType(assets);
 
         console.log('🔍 Extracted display URL:', displayUrl);
+        console.log('🔍 Extracted original URL:', originalUrl);
         console.log('🔍 Extracted MIME type:', mimeType);
 
         const transformedMemory: Memory = {
@@ -159,13 +161,24 @@ export default function MemoryDetailPage() {
           title: memoryData.title || 'Untitled',
           description: memoryData.description,
           createdAt: memoryData.createdAt,
-          url: displayUrl, // Extract from assets
+          url: displayUrl || originalUrl, // Use display URL if available, fallback to original
           content: 'content' in memoryData ? memoryData.content : undefined,
-          mimeType: mimeType, // Extract from assets
+          mimeType: mimeType,
           ownerId: memoryData.ownerId,
-          assets: assets, // Include assets for future use
+          assets: assets,
           metadata: memoryData.metadata,
+          // Set thumbnail if available in assets
+          thumbnail: getAssetUrl(assets, 'thumb') || displayUrl || originalUrl,
         };
+        
+        console.log('🔄 Transformed memory:', {
+          id: transformedMemory.id,
+          type: transformedMemory.type,
+          url: transformedMemory.url,
+          thumbnail: transformedMemory.thumbnail,
+          hasAssets: !!assets?.length
+        });
+        
         setMemory(transformedMemory);
       } else {
         throw new Error('Invalid memory data format');
