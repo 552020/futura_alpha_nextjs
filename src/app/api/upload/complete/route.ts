@@ -26,7 +26,7 @@ interface CompleteUploadRequest {
     storageBackend?: string;
     storageKey?: string;
   };
-  
+
   // Format 2: From /api/memories/complete
   fileKey?: string;
   originalName?: string;
@@ -37,10 +37,7 @@ export async function POST(request: Request) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const userId = session.user.id;
@@ -49,11 +46,8 @@ export async function POST(request: Request) {
     const existingUser = await db.query.allUsers.findFirst({
       where: (users, { eq, and: andFn }) => {
         if (!userId) return undefined;
-        return andFn(
-          eq(users.userId, userId),
-          eq(users.type, 'user')
-        );
-      }
+        return andFn(eq(users.userId, userId), eq(users.type, 'user'));
+      },
     });
 
     let allUserId: string;
@@ -72,15 +66,15 @@ export async function POST(request: Request) {
       allUserId = newUserId;
     }
 
-    const requestData = await request.json() as CompleteUploadRequest;
-    
+    const requestData = (await request.json()) as CompleteUploadRequest;
+
     // Handle both request formats
     let fileKey: string;
     let originalName: string;
     let size: number;
     let mimeType: string;
     const metadata = requestData.metadata || {};
-    
+
     if (requestData.token && requestData.url) {
       // Format 1: From /api/upload/complete
       fileKey = requestData.url.split('/').pop() || '';
@@ -93,7 +87,7 @@ export async function POST(request: Request) {
       originalName = requestData.originalName || fileKey;
       size = requestData.size!;
       mimeType = requestData.type || 'application/octet-stream';
-      
+
       // Extract userId from token if available
       if (requestData.token) {
         try {
@@ -105,45 +99,45 @@ export async function POST(request: Request) {
       }
     } else {
       return NextResponse.json(
-        { error: 'Invalid request format. Must include either (token, url, size, mimeType) or (fileKey, originalName, size, type)' },
-        { status: 400 }
-      );
-    }
-    
-    if (!size) {
-      return NextResponse.json(
-        { error: 'Missing required field: size' },
+        {
+          error:
+            'Invalid request format. Must include either (token, url, size, mimeType) or (fileKey, originalName, size, type)',
+        },
         { status: 400 }
       );
     }
 
+    if (!size) {
+      return NextResponse.json({ error: 'Missing required field: size' }, { status: 400 });
+    }
+
     // Determine memory type from content type or file extension
-    const memoryType: MemoryType = 
-      mimeType.startsWith('image/')
-        ? 'image'
-        : mimeType.startsWith('video/')
-          ? 'video'
-          : mimeType.startsWith('audio/')
-            ? 'audio'
-            : originalName.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)
-              ? 'image'
-              : originalName.match(/\.(mp4|webm|mov|avi|wmv|flv|mkv)$/i)
-                ? 'video'
-                : originalName.match(/\.(mp3|wav|ogg|m4a|flac|aac)$/i)
-                  ? 'audio'
-                  : 'document';
+    const memoryType: MemoryType = mimeType.startsWith('image/')
+      ? 'image'
+      : mimeType.startsWith('video/')
+        ? 'video'
+        : mimeType.startsWith('audio/')
+          ? 'audio'
+          : originalName.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)
+            ? 'image'
+            : originalName.match(/\.(mp4|webm|mov|avi|wmv|flv|mkv)$/i)
+              ? 'video'
+              : originalName.match(/\.(mp3|wav|ogg|m4a|flac|aac)$/i)
+                ? 'audio'
+                : 'document';
 
     // Construct the file URL based on storage backend
     let fileUrl: string;
     if (metadata.storageBackend === 's3' && metadata.storageKey) {
-      fileUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${metadata.storageKey}`;
+      fileUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_S3_REGION}.amazonaws.com/${metadata.storageKey}`;
     } else {
       fileUrl = requestData.url || `/${fileKey}`;
     }
     const memoryId = randomUUID();
 
     // Create memory record
-    await db.insert(memories)
+    await db
+      .insert(memories)
       .values({
         id: memoryId,
         ownerId: allUserId,
@@ -164,14 +158,14 @@ export async function POST(request: Request) {
               acc[key] = value;
             }
             return acc;
-          }, {})
+          }, {}),
         },
         storageLocations: ['aws-s3'],
         storageDuration: null,
         storageCount: 1,
         createdAt: new Date(),
         updatedAt: new Date(),
-        deletedAt: null
+        deletedAt: null,
       })
       .returning();
 
@@ -191,22 +185,24 @@ export async function POST(request: Request) {
       processingStatus: 'completed' as const,
       processingError: null,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     });
 
     return NextResponse.json({
       success: true,
       data: {
         id: memoryId,
-        assets: [{
-          id: `asset-${memoryId}`,
-          assetType: 'original',
-          url: fileUrl,
-          bytes: size,
-          mimeType: mimeType,
-          storageBackend: 's3',
-          storageKey: fileKey,
-        }],
+        assets: [
+          {
+            id: `asset-${memoryId}`,
+            assetType: 'original',
+            url: fileUrl,
+            bytes: size,
+            mimeType: mimeType,
+            storageBackend: 's3',
+            storageKey: fileKey,
+          },
+        ],
         // Include other required fields
         type: memoryType,
         title: originalName.split('.')[0] || 'Untitled',
@@ -219,13 +215,10 @@ export async function POST(request: Request) {
         unlockDate: null,
         metadata: {},
         createdAt: new Date().toISOString(),
-      }
+      },
     });
   } catch (error) {
     console.error('Error completing upload:', error);
-    return NextResponse.json(
-      { error: 'Failed to complete upload' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to complete upload' }, { status: 500 });
   }
 }
