@@ -216,7 +216,7 @@ export default function MemoryDetailPage() {
       console.error('Error loading asset URLs:', error);
       return assetUrlsRef.current;
     }
-  }, []);
+  }, [getCachedAssetUrl]);
 
   const fetchMemory = useCallback(async () => {
     try {
