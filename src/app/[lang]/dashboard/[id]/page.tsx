@@ -23,6 +23,9 @@ interface MemoryAsset {
   bytes: number;
   width?: number;
   height?: number;
+  bucket?: string;
+  storageKey?: string;
+  storageBackend?: string;
 }
 
 interface Memory {
@@ -49,16 +52,26 @@ type AssetType = MemoryAsset['assetType'];
 const getAssetUrl = (assets: MemoryAsset[] | undefined, preferredType: AssetType = 'display'): string | undefined => {
   if (!assets || assets.length === 0) return undefined;
 
+  // Helper function to construct URL from bucket and storageKey
+  const constructS3Url = (asset: MemoryAsset): string => {
+    if (asset.storageKey) {
+      const bucket = process.env.NEXT_PUBLIC_AWS_S3_BUCKET || process.env.AWS_S3_BUCKET || asset.bucket || 'default-bucket';
+      const region = process.env.NEXT_PUBLIC_AWS_S3_REGION || 'eu-central-1';
+      return `https://${bucket}.s3.${region}.amazonaws.com/${asset.storageKey}`;
+    }
+    return asset.url;
+  };
+
   // Try to find the preferred asset type first
   const preferredAsset = assets.find(asset => asset.assetType === preferredType);
-  if (preferredAsset) return preferredAsset.url;
+  if (preferredAsset) return constructS3Url(preferredAsset);
 
   // Fallback to original if preferred type not found
   const originalAsset = assets.find(asset => asset.assetType === 'original');
-  if (originalAsset) return originalAsset.url;
+  if (originalAsset) return constructS3Url(originalAsset);
 
   // Fallback to first available asset
-  return assets[0]?.url;
+  return assets[0] ? constructS3Url(assets[0]) : undefined;
 };
 
 // Helper function to extract MIME type from assets
