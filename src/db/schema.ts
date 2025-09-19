@@ -26,6 +26,33 @@ export const artifact_t = pgEnum('artifact_t', ['metadata', 'asset']);
 export const memory_type_t = pgEnum('memory_type_t', ['image', 'video', 'note', 'document', 'audio']);
 export const sync_t = pgEnum('sync_t', ['idle', 'migrating', 'failed']);
 
+// Memory and Asset Status Enums
+export const memory_status_t = pgEnum('memory_status_t', [
+  'pending', // Any asset pending/uploading
+  'active', // ≥1 asset active & none pending
+  'failed', // All assets failed/aborted
+  'tombstoned', // Marked for deletion
+  'deleted', // Fully deleted
+]);
+
+// Asset upload status - purely about transfer
+export const asset_upload_status_t = pgEnum('asset_upload_status_t', [
+  'pending', // Not yet uploaded
+  'uploading', // Currently uploading
+  'completed', // Upload completed
+  'failed', // Upload failed
+]);
+
+// Asset lifecycle status
+export const asset_lifecycle_status_t = pgEnum('asset_lifecycle_status_t', [
+  'active', // Available for use
+  'tombstoned', // Marked for deletion
+  'deleted', // Fully deleted
+]);
+
+// Processing status for multi-asset creation (reusing the existing enum)
+// The processing_status_t enum is already defined above
+
 // Storage location enum (for storage status fields)
 // This is now a view/type based on the hosting providers
 
@@ -394,16 +421,30 @@ export const memories = pgTable(
     isPublic: boolean('is_public').default(false).notNull(),
     ownerSecureCode: text('owner_secure_code').notNull(),
     parentFolderId: uuid('parent_folder_id'),
+    
+    // Status and lifecycle
+    status: memory_status_t('status').default('pending').notNull(),
+    expiresAt: timestamp('expires_at'), // For pending memories (24h TTL)
+    
     // Tags for better performance and search
     tags: text('tags').array().default([]),
     // Universal fields for all memory types
     recipients: text('recipients').array().default([]),
+    
     // Date fields - grouped together
     fileCreatedAt: timestamp('file_created_at', { mode: 'date' }), // When file was originally created
     unlockDate: timestamp('unlock_date', { mode: 'date' }), // When memory becomes accessible
     createdAt: timestamp('created_at').notNull().defaultNow(), // When memory was uploaded/created in our system
     updatedAt: timestamp('updated_at').notNull().defaultNow(), // When memory was last modified
     deletedAt: timestamp('deleted_at'), // Soft delete support
+    
+    // Audit fields
+    createdBy: text('created_by')
+      .notNull()
+      .references(() => users.id),
+    updatedBy: text('updated_by')
+      .references(() => users.id),
+    
     // Flexible metadata for truly common additional data
     metadata: json('metadata')
       .$type<{
@@ -413,21 +454,55 @@ export const memories = pgTable(
         custom?: Record<string, unknown>;
       }>()
       .default({}),
+    
     // Storage status fields
-    storageLocations: storage_location_t('storage_locations').array().default([]), // Array of storage backends: ['neon-db', 'vercel-blob', 'icp-canister', 'aws-s3']
+    storageLocations: storage_backend_t('storage_locations').array().default([]), // Array of storage backends
     storageDuration: integer('storage_duration'), // Duration in days, null for permanent
     storageCount: integer('storage_count').default(0), // Number of storage locations for verification
   },
   table => [
     // Performance indexes for common queries
     index('memories_owner_created_idx').on(table.ownerId, table.createdAt.desc()),
+    index('memories_status_updated_idx').on(table.status, table.updatedAt.desc()),
+    index('memories_expires_at_idx').on(table.expiresAt),
     index('memories_type_idx').on(table.type),
     index('memories_public_idx').on(table.isPublic),
     // Performance indexes for tags and people
     index('memories_tags_idx').on(table.tags),
     // Storage status indexes
+    
+    // Constraints
+    check('memories_expires_at_check', 
+      sql`expires_at IS NULL OR (SELECT COUNT(*) FROM memory_assets WHERE memory_assets.memory_id = memories.id AND memory_assets.upload_status = 'pending') > 0`
+    ),
     index('memories_storage_locations_idx').on(table.storageLocations),
     index('memories_storage_duration_idx').on(table.storageDuration),
+  ]
+);
+
+/**
+ * MEMORY ITEMS TABLE - Per-file identity for multi-file memories
+ *
+ * This table provides a stable identity for each file in a memory, allowing for
+ * multiple files per memory while maintaining a consistent identity for each file.
+ */
+// First define the table without the circular reference to memoryAssets
+export const memoryItems = pgTable(
+  'memory_items',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    memoryId: uuid('memory_id')
+      .notNull()
+      .references(() => memories.id, { onDelete: 'cascade' }),
+    displayName: text('display_name').notNull(), // Sanitized filename
+    primaryAssetId: uuid('primary_asset_id'), // Will be updated after memoryAssets is defined
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  table => [
+    // Performance indexes
+    index('memory_items_memory_id_idx').on(table.memoryId),
+    index('memory_items_primary_asset_idx').on(table.primaryAssetId),
   ]
 );
 
@@ -477,37 +552,102 @@ export const memoryAssets = pgTable(
     memoryId: uuid('memory_id')
       .notNull()
       .references(() => memories.id, { onDelete: 'cascade' }),
+    
+    // Tech Lead Surgical Fix #1 - Per-file identity for multi-file memories
+    memoryItemId: uuid('memory_item_id').references(() => memoryItems.id, { onDelete: 'cascade' }),
+    groupId: uuid('group_id').notNull(), // Groups originals with their variants
+    
+    // Variant modeling (Tech Lead Surgical Fix #1)
+    variantOfAssetId: uuid('variant_of_asset_id').references(/* Will be set later */), // Self-referential
+    variantType: text('variant_type', { enum: ['display', 'thumb'] }), // NULL = original
+    
+    // Asset type and basic info
     assetType: asset_type_t('asset_type').notNull(),
-    variant: text('variant'), // Optional for future variants (2k, mobile, etc.)
     url: text('url').notNull(), // Derived/public URL
     storageBackend: storage_backend_t('storage_backend').notNull(),
     bucket: text('bucket'), // Storage bucket/container
     storageKey: text('storage_key').notNull(), // Bucket/key or blob ID
+    
+    // Processing metadata (Tech Lead Surgical Fix #5)
+    recipeVersion: text('recipe_version').default('v1'), // For reprocessing when options change
+    transformSpec: jsonb('transform_spec').$type<{
+      displayMaxSize: number;
+      thumbMaxSize: number;
+      displayQuality: number; // 80-85 for display
+      thumbQuality: number; // 70-75 for thumb
+      displayFormat: 'avif' | 'webp';
+      thumbFormat: 'webp';
+    }>(),
+    
+    // Asset metadata (Tech Lead Surgical Fix #6)
     bytes: bigint('bytes', { mode: 'number' }).notNull(), // Use bigint for >2GB files
     width: integer('width'), // Nullable for non-image assets
     height: integer('height'), // Nullable for non-image assets
-    mimeType: text('mime_type').notNull(), // Consistent naming
-    sha256: text('sha256'), // 64-char hex (enforced by validation)
-    processingStatus: processing_status_t('processing_status').default('pending').notNull(),
-    processingError: text('processing_error'),
-    deletedAt: timestamp('deleted_at'), // Soft delete support
+    colorSpace: text('color_space'),
+    iccProfile: text('icc_profile'), // For color accuracy
+    megapixels: integer('megapixels'), // Tech Lead Surgical Fix #6 - Bound image bombs
+    mimeType: text('mime_type').notNull(),
+    
+    // Tech Lead Surgical Fix #2 - Three distinct statuses
+    uploadStatus: asset_upload_status_t('upload_status').default('pending'), // Transfer only
+    processingStatus: processing_status_t('processing_status').default('pending'), // Multi-asset pipeline
+    lifecycleStatus: asset_lifecycle_status_t('lifecycle_status').default('active'), // Lifecycle
+    
+    // Tech Lead Surgical Fix #9 - Storage visibility
+    storageVisibility: text('storage_visibility', { enum: ['public', 'private'] }).default('private'),
+    
+    // Content hashing for deduplication
+    contentHash: text('content_hash'), // SHA-256 of file content
+    computedBy: text('computed_by', { enum: ['client', 'server'] }),
+    
+    // Upload tracking
+    etag: text('etag'), // S3/Blob upload ETag
+    
+    // Retry and cleanup
+    retryCount: integer('retry_count').default(0).notNull(),
+    maxRetries: integer('max_retries').default(3).notNull(),
+    
+    // Original file info
+    originalName: text('original_name'),
+    originalMimeType: text('original_mime_type'),
+    
+    // Timestamps
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
+    deletedAt: timestamp('deleted_at'), // Soft delete support
   },
   table => [
-    // Ensure one asset type per memory
-    uniqueIndex('memory_assets_unique').on(table.memoryId, table.assetType),
+    // Tech Lead Surgical Fix #1 - Correct variant constraints for multi-file memories
+    unique('memory_assets_group_variant_unique').on(table.groupId, table.variantType), // One variant per type per group
+    unique('memory_assets_variant_of_unique').on(table.variantOfAssetId, table.variantType), // Alternative constraint
+
     // Performance indexes
     index('memory_assets_memory_idx').on(table.memoryId),
+    index('memory_assets_memory_item_idx').on(table.memoryItemId),
+    index('memory_assets_group_idx').on(table.groupId),
     index('memory_assets_type_idx').on(table.assetType),
     index('memory_assets_url_idx').on(table.url),
     index('memory_assets_storage_idx').on(table.storageBackend, table.storageKey),
+    index('memory_assets_content_hash_idx').on(table.contentHash),
+    
     // Data integrity constraints
     check('memory_assets_bytes_positive', sql`${table.bytes} > 0`),
     check(
       'memory_assets_dimensions_positive',
       sql`(${table.width} IS NULL OR ${table.width} > 0) AND (${table.height} IS NULL OR ${table.height} > 0)`
     ),
+    
+    // Tech Lead Surgical Fix #2 - Status constraints
+    check('memory_assets_variant_check', 
+      sql`(variant_of_asset_id IS NULL) = (variant_type IS NULL)`
+    ), // Original has no variant fields
+    check(
+      'memory_assets_processing_status_check',
+      sql`processing_status = 'completed' OR (width IS NULL AND height IS NULL)`
+    ), // Dimensions only when completed
+    check('memory_assets_megapixels_check', 
+      sql`megapixels IS NULL OR megapixels <= 80`
+    ), // Tech Lead Surgical Fix #6 - Bound image bombs
   ]
 );
 
@@ -1062,7 +1202,7 @@ export const galleries = pgTable(
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
     // Storage status fields
     totalMemories: integer('total_memories').default(0), // Total number of memories in this gallery
-    storageLocations: storage_location_t('storage_locations').array().default([]), // All storage backends used by memories in this gallery
+    storageLocations: storage_backend_t('storage_locations').array().default([]), // All storage backends used by memories in this gallery
     averageStorageDuration: integer('average_storage_duration'), // Average duration in days, null if all permanent
     storageDistribution: json('storage_distribution').$type<Record<string, number>>().default({}), // Count of memories per storage backend
   },
@@ -1607,3 +1747,520 @@ export type NewDBVideo = NewDBMemory;
 export type NewDBDocument = NewDBMemory;
 export type NewDBNote = NewDBMemory;
 export type NewDBAudio = NewDBMemory;
+
+// ==========================================
+// IDEMPOTENCY KEYS TABLE - Prevent duplicate operations
+// ==========================================
+// This table ensures that operations can be safely retried without side effects.
+// Used for uploads, deletions, and other operations that should be idempotent.
+//
+// COMPOSITION:
+// - Key: id (unique operation identifier)
+// - Operation: operation (type of operation)
+// - Status: status (pending, completed, failed)
+// - Result: result (JSON result of the operation if successful)
+// - Expiry: expiresAt (when the key should be considered expired)
+//
+// USAGE EXAMPLES:
+// ```typescript
+// // Check if operation was already performed
+// const existing = await db.query.idempotencyKeys.findFirst({
+//   where: (keys, { eq }) => eq(keys.id, operationId)
+// });
+// 
+// if (existing?.status === 'completed') {
+//   return existing.result; // Return cached result
+// }
+// ```
+//
+// TROUBLESHOOTING:
+// - If you get duplicate key errors, ensure you're using a unique operation ID
+// - If operations are being retried too aggressively, increase the expiry time
+// - If storage is growing too large, implement a cleanup job for expired keys
+// ==========================================
+export const idempotencyKeys = pgTable(
+  'idempotency_keys',
+  {
+    // Core fields
+    id: text('id').primaryKey(), // Client-generated unique ID (e.g., UUID v4)
+    operation: text('operation').notNull(), // e.g., 'upload', 'delete', 'process'
+    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    
+    // Status and result
+    status: text('status', { 
+      enum: ['pending', 'completed', 'failed'] 
+    }).notNull().default('pending'),
+    
+    // Operation context and result
+    requestParams: jsonb('request_params'), // Original request parameters
+    result: jsonb('result'), // Result of the operation if successful
+    error: jsonb('error'), // Error details if operation failed
+    
+    // Retry and concurrency control
+    attemptCount: integer('attempt_count').default(0).notNull(),
+    maxAttempts: integer('max_attempts').default(3).notNull(),
+    lastAttemptAt: timestamp('last_attempt_at'),
+    
+    // Time-based controls
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+    
+    // Locking for concurrent operations
+    lockedUntil: timestamp('locked_until'),
+    lockedBy: text('locked_by'), // Process/instance ID holding the lock
+  },
+  (table) => ({
+    // Indexes for common queries
+    userStatusIdx: index('idempotency_keys_user_status_idx')
+      .on(table.userId, table.status, table.expiresAt),
+    
+    // Index for cleanup of expired keys
+    expiresAtIdx: index('idempotency_keys_expires_at_idx')
+      .on(table.expiresAt)
+      .where(sql`${table.status} != 'completed'`),
+    
+    // Constraint to ensure only one pending operation per key
+    uniquePendingOp: uniqueIndex('idempotency_keys_pending_uniq')
+      .on(table.id, table.status)
+      .where(sql`${table.status} = 'pending'`),
+    
+    // Check constraints for data integrity
+    checkStatus: check(
+      'idempotency_keys_status_check',
+      sql`(
+        (${table.status} = 'pending' AND ${table.lockedUntil} IS NOT NULL) OR 
+        (${table.status} IN ('completed', 'failed') AND ${table.lockedUntil} IS NULL)
+      )`
+    ),
+    
+    checkExpiry: check(
+      'idempotency_keys_expiry_check',
+      sql`${table.expiresAt} > ${table.createdAt}`
+    ),
+    
+    checkAttempts: check(
+      'idempotency_keys_attempts_check',
+      sql`${table.attemptCount} <= ${table.maxAttempts}`
+    ),
+  })
+);
+
+export type IdempotencyKey = typeof idempotencyKeys.$inferSelect;
+export type NewIdempotencyKey = typeof idempotencyKeys.$inferInsert;
+
+// ==========================================
+// BACKGROUND JOBS TABLE - Track async operations
+// ==========================================
+// This table tracks background jobs for long-running operations like
+// asset processing, migration, and cleanup.
+//
+// COMPOSITION:
+// - Job metadata: id, type, status, priority, retryCount, maxRetries
+// - Progress tracking: progress, totalItems, processedItems
+// - Timing: createdAt, startedAt, completedAt, nextRetryAt
+// - Result/error: result, error
+// - Context: context (JSON)
+// ==========================================
+export const backgroundJobs = pgTable(
+  'background_jobs',
+  {
+    // Core fields
+    id: uuid('id').primaryKey().defaultRandom(),
+    type: text('type').notNull(), // 'asset_processing', 'migration', 'cleanup', etc.
+    status: text('status', { 
+      enum: ['pending', 'running', 'completed', 'failed', 'retry', 'cancelled'] 
+    }).notNull().default('pending'),
+    
+    // Priority and scheduling
+    priority: integer('priority').default(0).notNull(), // Higher = more important
+    scheduledAt: timestamp('scheduled_at').defaultNow().notNull(),
+    runAt: timestamp('run_at'), // When the job should run (for delayed jobs)
+    
+    // Progress tracking
+    progress: integer('progress').default(0), // 0-100
+    totalItems: integer('total_items'),
+    processedItems: integer('processed_items').default(0),
+    
+    // Result and error handling
+    result: jsonb('result'),
+    error: jsonb('error'),
+    
+    // Retry logic
+    retryCount: integer('retry_count').default(0).notNull(),
+    maxRetries: integer('max_retries').default(3).notNull(),
+    lastError: text('last_error'),
+    nextRetryAt: timestamp('next_retry_at'),
+    
+    // Context and metadata
+    context: jsonb('context').default({}), // Job-specific context
+    createdBy: text('created_by'), // User ID or system component
+    
+    // Timestamps
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+    startedAt: timestamp('started_at'),
+    completedAt: timestamp('completed_at'),
+  },
+  (table) => ({
+    // Index for job scheduling
+    statusRunAtIdx: index('background_jobs_status_run_at_idx')
+      .on(table.status, table.runAt, table.priority.desc()),
+    
+    // Index for cleanup of old jobs
+    createdAtIdx: index('background_jobs_created_at_idx')
+      .on(table.createdAt),
+    
+    // Index for finding jobs by type and status
+    typeStatusIdx: index('background_jobs_type_status_idx')
+      .on(table.type, table.status, table.scheduledAt),
+    
+    // Check constraints
+    checkProgress: check(
+      'background_jobs_progress_check',
+      sql`${table.progress} >= 0 AND ${table.progress} <= 100`
+    ),
+    
+    checkRetries: check(
+      'background_jobs_retries_check',
+      sql`${table.retryCount} <= ${table.maxRetries}`
+    ),
+    
+    checkTiming: check(
+      'background_jobs_timing_check',
+      sql`(
+        (${table.status} = 'pending' AND ${table.startedAt} IS NULL) OR
+        (${table.status} = 'running' AND ${table.startedAt} IS NOT NULL) OR
+        (${table.status} IN ('completed', 'failed', 'cancelled') AND 
+         ${table.startedAt} IS NOT NULL AND 
+         ${table.completedAt} IS NOT NULL)
+      )`
+    ),
+  })
+);
+
+export type BackgroundJob = typeof backgroundJobs.$inferSelect;
+export type NewBackgroundJob = typeof backgroundJobs.$inferInsert;
+
+// ==========================================
+// S3 CONFIGURATIONS TABLE - Store S3 credentials
+// ==========================================
+// This table stores S3-compatible storage configurations for users.
+// Each user can have multiple storage configurations.
+// ==========================================
+export const s3Configurations = pgTable(
+  's3_configurations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    
+    // Connection details
+    name: text('name').notNull(), // User-defined name for this config
+    endpoint: text('endpoint').notNull(), // e.g., 's3.amazonaws.com' or 'minio:9000'
+    region: text('region').notNull(),
+    bucket: text('bucket').notNull(),
+    accessKeyId: text('access_key_id').notNull(),
+    secretAccessKey: text('secret_access_key').notNull(),
+    
+    // Advanced options
+    pathStyle: boolean('path_style').default(false), // Use path-style access
+    sslEnabled: boolean('ssl_enabled').default(true),
+    port: integer('port'), // Custom port if not standard (80/443)
+    
+    // Validation and status
+    isValid: boolean('is_valid').default(false),
+    lastValidatedAt: timestamp('last_validated_at'),
+    validationError: text('validation_error'),
+    
+    // Usage statistics
+    totalAssets: integer('total_assets').default(0),
+    totalBytes: bigint('total_bytes', { mode: 'number' }).default(0),
+    
+    // Metadata
+    isDefault: boolean('is_default').default(false), // Default config for the user
+    tags: jsonb('tags').default({}), // Custom tags for filtering/organization
+    
+    // Timestamps
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    // Index for looking up user's configs
+    userIdx: index('s3_configs_user_idx').on(table.userId, table.isDefault.desc()),
+    
+    // Ensure only one default per user
+    uniqueDefaultPerUser: uniqueIndex('s3_configs_user_default_uniq')
+      .on(table.userId, table.isDefault)
+      .where(sql`${table.isDefault} = true`),
+    
+    // Check constraints
+    checkPort: check(
+      's3_configs_port_check',
+      sql`${table.port} IS NULL OR (${table.port} > 0 AND ${table.port} <= 65535)`
+    ),
+  })
+);
+
+export type S3Configuration = typeof s3Configurations.$inferSelect;
+export type NewS3Configuration = typeof s3Configurations.$inferInsert;
+
+// ==========================================
+// ASSET DELETE JOBS TABLE - Track asset deletion
+// ==========================================
+// This table tracks the deletion of assets across multiple storage backends.
+// It implements a two-phase deletion pattern for reliability.
+// ==========================================
+export const assetDeleteJobs = pgTable(
+  'asset_delete_jobs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    
+    // Status and progress
+    status: text('status', {
+      enum: ['pending', 'processing', 'completed', 'failed', 'partially_failed']
+    }).notNull().default('pending'),
+    
+    // What to delete
+    assetIds: uuid('asset_ids').array().notNull(), // Array of memory_assets.id to delete
+    storageBackend: storage_backend_t('storage_backend').notNull(), // Which backend to delete from
+    
+    // Progress tracking
+    totalAssets: integer('total_assets').notNull(),
+    processedAssets: integer('processed_assets').default(0).notNull(),
+    failedAssets: integer('failed_assets').default(0).notNull(),
+    
+    // Results and errors
+    results: jsonb('results'), // Detailed results per asset
+    error: text('error'), // Global error if the entire job failed
+    
+    // Retry logic
+    retryCount: integer('retry_count').default(0).notNull(),
+    maxRetries: integer('max_retries').default(3).notNull(),
+    nextRetryAt: timestamp('next_retry_at'),
+    
+    // Timestamps
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+    startedAt: timestamp('started_at'),
+    completedAt: timestamp('completed_at'),
+  },
+  (table) => ({
+    // Index for finding pending jobs
+    statusIdx: index('asset_delete_jobs_status_idx')
+      .on(table.status, table.nextRetryAt),
+    
+    // Index for finding jobs by user
+    userIdx: index('asset_delete_jobs_user_idx')
+      .on(table.userId, table.createdAt.desc()),
+    
+    // Check constraints
+    checkCounts: check(
+      'asset_delete_jobs_counts_check',
+      sql`${table.processedAssets} + ${table.failedAssets} <= ${table.totalAssets}`
+    ),
+    
+    checkStatus: check(
+      'asset_delete_jobs_status_check',
+      sql`(
+        (${table.status} = 'pending' AND ${table.startedAt} IS NULL) OR
+        (${table.status} = 'processing' AND ${table.startedAt} IS NOT NULL) OR
+        (${table.status} IN ('completed', 'failed', 'partially_failed') AND 
+         ${table.startedAt} IS NOT NULL)
+      )`
+    ),
+  })
+);
+
+export type AssetDeleteJob = typeof assetDeleteJobs.$inferSelect;
+export type NewAssetDeleteJob = typeof assetDeleteJobs.$inferInsert;
+
+// ==========================================
+// BLOBS TABLE - Track blob storage
+// ==========================================
+// This table tracks blobs stored in various storage backends.
+// It's used for deduplication and reference counting.
+// ==========================================
+export const blobs = pgTable(
+  'blobs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    
+    // Content identification
+    contentHash: text('content_hash').notNull(), // SHA-256 of the content
+    sizeBytes: bigint('size_bytes', { mode: 'number' }).notNull(),
+    mimeType: text('mime_type'),
+    
+    // Storage location
+    storageBackend: storage_backend_t('storage_backend').notNull(),
+    storageKey: text('storage_key').notNull(), // Unique key in the storage backend
+    storageBucket: text('storage_bucket'), // Bucket/container name
+    
+    // Reference counting
+    referenceCount: integer('reference_count').default(1).notNull(),
+    
+    // Access control
+    isPublic: boolean('is_public').default(false).notNull(),
+    
+    // Metadata
+    metadata: jsonb('metadata').default({}),
+    
+    // Timestamps
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    lastAccessedAt: timestamp('last_accessed_at').defaultNow().notNull(),
+    expiresAt: timestamp('expires_at'), // For temporary blobs
+  },
+  (table) => ({
+    // Index for deduplication
+    contentHashIdx: uniqueIndex('blobs_content_hash_idx')
+      .on(table.contentHash, table.storageBackend),
+    
+    // Index for finding blobs by storage location
+    storageIdx: index('blobs_storage_idx')
+      .on(table.storageBackend, table.storageKey, table.storageBucket),
+    
+    // Index for cleanup of unreferenced blobs
+    refCountIdx: index('blobs_ref_count_idx')
+      .on(table.referenceCount, table.lastAccessedAt)
+      .where(sql`${table.referenceCount} <= 0`),
+    
+    // Index for finding expired blobs
+    expiresAtIdx: index('blobs_expires_at_idx')
+      .on(table.expiresAt)
+      .where(sql`${table.expiresAt} IS NOT NULL`),
+  })
+);
+
+export type Blob = typeof blobs.$inferSelect;
+export type NewBlob = typeof blobs.$inferInsert;
+
+// ==========================================
+// UPLOAD SESSIONS TABLE - Track file uploads
+// ==========================================
+// This table tracks file uploads in progress, supporting
+// resumable uploads and chunked file transfers.
+// ==========================================
+export const uploadSessions = pgTable(
+  'upload_sessions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    
+    // File information
+    fileName: text('file_name').notNull(),
+    fileSize: bigint('file_size', { mode: 'number' }).notNull(),
+    fileType: text('file_type').notNull(),
+    
+    // Upload status
+    status: text('status', {
+      enum: ['pending', 'uploading', 'processing', 'completed', 'failed', 'aborted']
+    }).notNull().default('pending'),
+    
+    // Chunked upload support
+    chunkSize: integer('chunk_size'), // Size of each chunk in bytes
+    totalChunks: integer('total_chunks'), // Total number of chunks
+    uploadedChunks: integer('uploaded_chunks').default(0).notNull(),
+    
+    // Storage information
+    storageBackend: storage_backend_t('storage_backend').notNull(),
+    storageKey: text('storage_key'), // Final storage key (set on completion)
+    
+    // Content verification
+    contentHash: text('content_hash'), // SHA-256 of the complete file
+    
+    // Error handling
+    error: text('error'),
+    
+    // Metadata
+    metadata: jsonb('metadata').default({}),
+    
+    // Timestamps
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+    expiresAt: timestamp('expires_at').notNull(), // When the upload session expires
+  },
+  (table) => ({
+    // Index for finding active uploads
+    userStatusIdx: index('upload_sessions_user_status_idx')
+      .on(table.userId, table.status, table.expiresAt),
+    
+    // Index for cleanup of expired sessions
+    expiresAtIdx: index('upload_sessions_expires_at_idx')
+      .on(table.expiresAt),
+    
+    // Check constraints
+    checkChunks: check(
+      'upload_sessions_chunks_check',
+      sql`(
+        ${table.chunkSize} IS NULL OR 
+        (${table.chunkSize} > 0 AND 
+         ${table.totalChunks} IS NOT NULL AND 
+         ${table.uploadedChunks} <= ${table.totalChunks})
+      )`
+    ),
+    
+    checkStatus: check(
+      'upload_sessions_status_check',
+      sql`(
+        (${table.status} = 'completed' AND ${table.storageKey} IS NOT NULL) OR
+        (${table.status} != 'completed')
+      )`
+    ),
+  })
+);
+
+export type UploadSession = typeof uploadSessions.$inferSelect;
+export type NewUploadSession = typeof uploadSessions.$inferInsert;
+
+// ==========================================
+// UPLOAD CHUNKS TABLE - Track uploaded chunks
+// ==========================================
+// This table tracks individual chunks of file uploads for resumable uploads.
+// ==========================================
+export const uploadChunks = pgTable(
+  'upload_chunks',
+  {
+    uploadSessionId: uuid('upload_session_id')
+      .notNull()
+      .references(() => uploadSessions.id, { onDelete: 'cascade' }),
+    
+    // Chunk information
+    chunkNumber: integer('chunk_number').notNull(), // 1-based index
+    chunkSize: integer('chunk_size').notNull(), // Size of this chunk in bytes
+    
+    // Storage information
+    storageBackend: storage_backend_t('storage_backend').notNull(),
+    storageKey: text('storage_key').notNull(), // Where this chunk is stored
+    
+    // Content verification
+    contentHash: text('content_hash'), // SHA-256 of this chunk
+    
+    // Status
+    status: text('status', {
+      enum: ['pending', 'uploaded', 'verified', 'failed']
+    }).notNull().default('pending'),
+    
+    // Error information if upload failed
+    error: text('error'),
+    
+    // Timestamps
+    uploadedAt: timestamp('uploaded_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    // Composite primary key
+    pk: primaryKey(table.uploadSessionId, table.chunkNumber),
+    
+    // Index for finding chunks by session and status
+    sessionStatusIdx: index('upload_chunks_session_status_idx')
+      .on(table.uploadSessionId, table.status, table.chunkNumber),
+    
+    // Index for finding chunks by storage location
+    storageIdx: index('upload_chunks_storage_idx')
+      .on(table.storageBackend, table.storageKey),
+  })
+);
+
+export type UploadChunk = typeof uploadChunks.$inferSelect;
+export type NewUploadChunk = typeof uploadChunks.$inferInsert;
