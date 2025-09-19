@@ -34,12 +34,13 @@ async function objectExists(key: string): Promise<boolean> {
     });
     await s3Client.send(command);
     return true;
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as Error;
     // AWS SDK v3 sets error.name to "NotFound" when object is missing
-    if (error.name === 'NotFound') {
+    if (err.name === 'NotFound') {
       return false;
     }
-    console.error(`❌ Unexpected error checking if S3 object exists (${key}):`, error);
+    console.error(`❌ Unexpected error checking if S3 object exists (${key}):`, err);
     return false;
   }
 }
@@ -103,7 +104,8 @@ export async function deleteS3Object(key: string): Promise<boolean> {
         region: process.env.AWS_S3_REGION || 'eu-central-1',
         timestamp: new Date().toISOString(),
       });
-    } catch (verifyError: any) {
+    } catch (error: unknown) {
+      const verifyError = error as Error & { name?: string };
       // A NotFound here is expected → means deletion succeeded
       if (verifyError.name === 'NotFound') {
         console.log('✅ Deletion confirmed by S3 (object not found).', {

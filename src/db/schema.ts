@@ -23,12 +23,20 @@ import type { AdapterAccount } from 'next-auth/adapters';
 
 // Storage Edge Enums
 export const artifact_t = pgEnum('artifact_t', ['metadata', 'asset']);
-export const backend_t = pgEnum('backend_t', ['neon-db', 'vercel-blob', 'icp-canister']); // add more later
+export const backend_t = pgEnum('backend_t', ['neon-db', 'vercel-blob', 'icp-canister']);
 export const memory_type_t = pgEnum('memory_type_t', ['image', 'video', 'note', 'document', 'audio']);
 export const sync_t = pgEnum('sync_t', ['idle', 'migrating', 'failed']);
 
 // Storage location enum (for storage status fields)
 export const storage_location_t = pgEnum('storage_location_t', ['neon-db', 'vercel-blob', 'icp-canister', 'aws-s3']);
+
+// Hosting preference enums
+export const frontend_hosting_t = pgEnum('frontend_hosting_t', ['vercel', 'icp']);
+export const backend_hosting_t = pgEnum('backend_hosting_t', ['vercel', 'icp']);
+export const database_hosting_t = pgEnum('database_hosting_t', ['neon', 'icp']);
+export const blob_hosting_t = pgEnum('blob_hosting_t', [
+  's3', 'vercel_blob', 'icp', 'arweave', 'ipfs', 'neon'
+]);
 
 /**
  * STORAGE PREFERENCE - User's preferred storage strategy
@@ -1512,6 +1520,63 @@ export type DBMemoryWithDetails = DBMemory & {
   noteDetails?: DBNoteDetails | null;
 };
 
+// Hosting Preferences Tables
+
+/**
+ * USER HOSTING PREFERENCES - User's preferred hosting providers for different services
+ * 
+ * This table stores the user's preferred hosting providers for different parts of the application.
+ * Each user must have preferences set for all four service categories.
+ */
+export const userHostingPreferences = pgTable('user_hosting_preferences', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  frontendHosting: frontend_hosting_t('frontend_hosting').default('vercel').notNull(),
+  backendHosting: backend_hosting_t('backend_hosting').default('vercel').notNull(),
+  databaseHosting: database_hosting_t('database_hosting').default('neon').notNull(),
+  blobHosting: blob_hosting_t('blob_hosting').default('vercel_blob').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  // Ensure one preference set per user
+  userIdIdx: uniqueIndex('user_hosting_preferences_user_id_idx').on(table.userId),
+}));
+
+/**
+ * SERVICE DEPLOYMENTS - Tracks where user's services are actually deployed
+ * 
+ * This table tracks the actual deployment locations of a user's services.
+ * It can have multiple entries per user to track deployment history.
+ */
+export const serviceDeployments = pgTable('service_deployments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  frontendLocation: frontend_hosting_t('frontend_location').notNull(),
+  backendLocation: backend_hosting_t('backend_location').notNull(),
+  databaseLocation: database_hosting_t('database_location').notNull(),
+  blobLocation: blob_hosting_t('blob_location').notNull(),
+  isActive: boolean('is_active').default(false).notNull(),
+  deployedAt: timestamp('deployed_at').defaultNow().notNull(),
+  lastCheckedAt: timestamp('last_checked_at'),
+  deploymentMetadata: json('deployment_metadata')
+    .$type<{
+      version?: string;
+      region?: string;
+      url?: string;
+      status?: 'deploying' | 'active' | 'failed' | 'deleting';
+      error?: string;
+    }>()
+    .default({}),
+}, (table) => ({
+  // Index for looking up active deployments
+  activeDeploymentIdx: index('service_deployments_user_active_idx')
+    .on(table.userId, table.isActive),
+}));
+
 // Temporary exports for backward compatibility during migration
 // TODO: Remove these once all files are updated to use the new unified schema
 export const images = memories;
@@ -1519,6 +1584,14 @@ export const videos = memories;
 export const documents = memories;
 export const notes = memories;
 export const audio = memories;
+
+// Hosting preference types
+export type UserHostingPreference = typeof userHostingPreferences.$inferSelect;
+export type NewUserHostingPreference = typeof userHostingPreferences.$inferInsert;
+
+// Service deployment types
+export type ServiceDeployment = typeof serviceDeployments.$inferSelect;
+export type NewServiceDeployment = typeof serviceDeployments.$inferInsert;
 
 // Temporary type exports for backward compatibility
 export type DBImage = DBMemory;

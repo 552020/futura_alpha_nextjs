@@ -10,7 +10,6 @@ function addStorageStatusToMemory(memory: typeof memories.$inferSelect) {
   const hasNeonStorage = memory.storageLocations?.includes('neon-db') || false;
   const hasBlobStorage = memory.storageLocations?.includes('vercel-blob') || false;
   const hasIcpStorage = memory.storageLocations?.includes('icp-canister') || false;
-  const hasAwsStorage = memory.storageLocations?.includes('aws-s3') || false;
 
   // Determine overall status
   let overallStatus: 'stored_forever' | 'partially_stored' | 'web2_only';

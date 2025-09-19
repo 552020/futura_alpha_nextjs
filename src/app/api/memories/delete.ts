@@ -26,9 +26,9 @@ import { eq, and, inArray } from 'drizzle-orm';
 import { cleanupStorageEdgesForMemory } from './utils/memory-database';
 
 // Type for memory with metadata for deletion operations
-type MemoryForDeletion = {
+interface MemoryForDeletion {
   id: string;
-  type: string;
+  type: 'image' | 'video' | 'note' | 'document' | 'audio';
   metadata?: {
     custom?: {
       storageBackend?: string;
@@ -37,8 +37,16 @@ type MemoryForDeletion = {
     };
     [key: string]: unknown;
   } | null;
-  [key: string]: unknown;
-};
+  custom?: {
+    storageBackend?: string;
+    storageKey?: string;
+    [key: string]: unknown;
+  };
+  storageBackend?: string;
+  storageKey?: string;
+  storageLocations?: string[] | null;
+  [key: string]: unknown; // Index signature to allow additional properties
+}
 
 // Helper function to clean up storage edges for deleted memories
 async function cleanupStorageEdgesForMemories(memoriesToDelete: MemoryForDeletion[]) {

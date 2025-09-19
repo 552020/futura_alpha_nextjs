@@ -18,7 +18,7 @@ importers:
         specifier: ^2.10.0
         version: 2.10.0(unstorage@1.17.1(@vercel/blob@0.27.3))
       '@aws-sdk/client-s3':
-        specifier: ^3.890.0
+        specifier: ^3.891.0
         version: 3.891.0
       '@aws-sdk/s3-request-presigner':
         specifier: ^3.890.0

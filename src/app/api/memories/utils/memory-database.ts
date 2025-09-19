@@ -279,60 +279,6 @@ export async function createStorageEdgesForMemory(params: {
  */
 import { deleteS3Object } from '@/lib/s3-utils';
 
-// Define types for memory data structure
-interface MemoryMetadata {
-  originalPath?: string;
-  size?: number;
-  mimeType?: string;
-  custom?: {
-    storageBackend?: string;
-    storageKey?: string;
-    userId?: string;
-    originalName?: string;
-    [key: string]: unknown;
-  };
-  [key: string]: unknown;
-}
-
-interface MemoryAsset {
-  id: string;
-  memoryId: string;
-  assetType: 'original' | 'thumb' | 'preview';
-  variant: string | null;
-  url: string;
-  storageBackend: 'vercel_blob' | 's3' | 'aws-s3' | 'aws_s3';
-  storageKey: string;
-  bytes: number | null;
-  width: number | null;
-  height: number | null;
-  mimeType: string | null;
-  sha256: string | null;
-  processingStatus: 'pending' | 'completed' | 'failed';
-  processingError: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-interface MemoryFolder {
-  id: string;
-  name: string;
-  // Add other folder properties as needed
-}
-
-interface MemoryDataForCleanup {
-  id: string;
-  ownerId: string;
-  type: 'image' | 'video' | 'note' | 'document' | 'audio';
-  title: string;
-  description: string;
-  metadata: MemoryMetadata | null;
-  storageLocations: ('neon-db' | 'vercel-blob' | 'icp-canister' | 'aws-s3')[] | null;
-  assets?: MemoryAsset[];
-  folder?: MemoryFolder | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 /**
  * FIXED: Clean up storage edges for a deleted memory
  * This function removes all storage edge records for a given memory
@@ -342,13 +288,36 @@ interface MemoryDataForCleanup {
 export async function cleanupStorageEdgesForMemory(params: {
   memoryId: string;
   memoryType: 'image' | 'video' | 'note' | 'document' | 'audio';
-  memoryData?: any; // The memory data retrieved before deletion
+  memoryData?: {
+    id: string;
+    type: 'image' | 'video' | 'note' | 'document' | 'audio';
+    metadata?: {
+      custom?: {
+        storageBackend?: string;
+        storageKey?: string;
+        [key: string]: unknown;
+      };
+      [key: string]: unknown;
+    } | null;
+    storageLocations?: string[] | null;
+    assets?: Array<{ 
+      storageBackend: string; 
+      storageKey: string;
+      url?: string;
+      [key: string]: unknown;
+    }>;
+    [key: string]: unknown;
+  } | null;
 }) {
   const { memoryId, memoryType, memoryData } = params;
-  const results = {
+  const results: {
+    deletedEdges: Array<{ id: string }>;
+    deletedS3Objects: string[];
+    errors: string[];
+  } = {
     deletedEdges: [],
     deletedS3Objects: [],
-    errors: [] as string[],
+    errors: [],
   };
 
   try {
@@ -384,14 +353,16 @@ export async function cleanupStorageEdgesForMemory(params: {
     const s3Assets = [];
 
     // Check if memory has S3 storage info in metadata
-    const hasS3Metadata = memory?.metadata?.custom?.storageBackend === 's3' && memory?.metadata?.custom?.storageKey;
+    const metadata = memory?.metadata;
+    const custom = metadata?.custom;
+    const storageBackend = custom?.storageBackend;
+    const storageKey = custom?.storageKey;
+    const hasS3Metadata = storageBackend === 's3' && storageKey;
 
-    if (hasS3Metadata) {
-      const storageKey = memory.metadata.custom.storageKey;
-
+    if (hasS3Metadata && storageKey) {
       console.log('✅ Found S3 storage info in memory metadata:', {
         storageKey,
-        backend: memory.metadata.custom.storageBackend,
+        backend: storageBackend,
         timestamp: new Date().toISOString(),
       });
 
@@ -400,14 +371,14 @@ export async function cleanupStorageEdgesForMemory(params: {
         memoryId,
         storageKey: storageKey,
         storageBackend: 's3',
-        bytes: memory.metadata.size,
-        mimeType: memory.metadata.mimeType,
+        bytes: memory.metadata?.size,
+        mimeType: memory.metadata?.mimeType as string | undefined,
       });
     } else {
       console.log('⚠️ No S3 storage info found in memory metadata:', {
-        hasMetadata: !!memory.metadata,
-        hasCustom: !!memory.metadata?.custom,
-        storageBackend: memory.metadata?.custom?.storageBackend,
+        hasMetadata: !!memory?.metadata,
+        hasCustom: !!memory?.metadata?.custom,
+        storageBackend: memory?.metadata?.custom?.storageBackend,
         storageKey: memory.metadata?.custom?.storageKey,
       });
     }
@@ -415,6 +386,15 @@ export async function cleanupStorageEdgesForMemory(params: {
     // Also check memory_assets table and storage edges as before
     const dbAssets = await db.select().from(memoryAssets).where(eq(memoryAssets.memoryId, memoryId));
     console.log(`🔍 Found ${dbAssets.length} assets in memory_assets table`);
+    
+    // Type assertion for dbAssets
+    const typedDbAssets = dbAssets as Array<{
+      id: string;
+      memoryId: string;
+      storageBackend: string;
+      storageKey: string;
+      [key: string]: unknown;
+    }>;
 
     const edges = await db
       .select()
@@ -424,15 +404,18 @@ export async function cleanupStorageEdgesForMemory(params: {
     console.log(`🔍 Found ${edges.length} storage edges`);
 
     // Filter and add S3 assets from database
-    const s3DbAssets = dbAssets.filter(asset => {
+    const s3DbAssets = typedDbAssets.filter(asset => {
       const backend = String(asset.storageBackend || '')
         .toLowerCase()
         .trim();
       return backend === 's3' || backend === 'aws-s3' || backend.includes('s3');
     });
 
-    // Add S3 edges
-    const s3Edges = edges.filter(edge => edge.backend === 'aws-s3' || edge.backend === 's3');
+    // Add S3 edges - handle potential type mismatch with the backend enum
+    const s3Edges = edges.filter(edge => {
+      const backend = String(edge.backend).toLowerCase();
+      return backend === 'aws-s3' || backend === 's3' || backend.includes('s3');
+    });
 
     // Combine all S3 assets
     const allS3Assets = [
@@ -567,9 +550,9 @@ export async function getMemoryDataForCleanup(memoryId: string) {
       id: memory.id,
       type: memory.type,
       hasMetadata: !!memory.metadata,
-      hasCustomMetadata: !!(memory.metadata as any)?.custom,
-      storageBackend: (memory.metadata as any)?.custom?.storageBackend,
-      storageKey: (memory.metadata as any)?.custom?.storageKey,
+      hasCustomMetadata: !!(memory.metadata as { custom?: Record<string, unknown> })?.custom,
+      storageBackend: (memory.metadata as { custom?: { storageBackend?: string } })?.custom?.storageBackend,
+      storageKey: (memory.metadata as { custom?: { storageKey?: string } })?.custom?.storageKey,
       storageLocations: memory.storageLocations,
       assetsCount: memory.assets?.length || 0,
     });
