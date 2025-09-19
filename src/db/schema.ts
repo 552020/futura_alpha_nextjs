@@ -14,6 +14,7 @@ import {
   bigint,
   check,
   jsonb,
+  unique,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
@@ -70,8 +71,6 @@ export const asset_type_t = pgEnum('asset_type_t', [
   'poster',
   'waveform',
 ]);
-// Storage backend type
-export const storage_backend_t = pgEnum('storage_backend_t', ['s3', 'vercel_blob', 'icp', 'arweave', 'ipfs', 'neon']);
 
 // Users table - Core user data - required for auth.js
 export const users = pgTable(
@@ -794,7 +793,7 @@ export const storageEdges = pgTable(
     memoryId: uuid('memory_id').notNull(),
     memoryType: memory_type_t('memory_type').notNull(),
     artifact: artifact_t('artifact').notNull(),
-    backend: storage_backend_t('backend').notNull(),
+    backend: blob_hosting_t('backend').notNull(),
     present: boolean('present').notNull().default(false),
     location: text('location'),
     contentHash: text('content_hash'),
