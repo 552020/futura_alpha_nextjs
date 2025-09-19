@@ -23,42 +23,24 @@ import type { AdapterAccount } from 'next-auth/adapters';
 
 // Storage Edge Enums
 export const artifact_t = pgEnum('artifact_t', ['metadata', 'asset']);
-export const backend_t = pgEnum('backend_t', ['neon-db', 'vercel-blob', 'icp-canister']);
 export const memory_type_t = pgEnum('memory_type_t', ['image', 'video', 'note', 'document', 'audio']);
 export const sync_t = pgEnum('sync_t', ['idle', 'migrating', 'failed']);
 
 // Storage location enum (for storage status fields)
-export const storage_location_t = pgEnum('storage_location_t', ['neon-db', 'vercel-blob', 'icp-canister', 'aws-s3']);
+// This is now a view/type based on the hosting providers
 
-// Hosting preference enums
+// Hosting provider enum - single source of truth for all provider types
+export const hosting_provider_t = pgEnum('hosting_provider_t', [
+  'vercel', 's3', 'vercel_blob', 'neon', 'icp', 'arweave', 'ipfs'
+]);
+
+// Hosting preference enums with references to hosting_provider_t
 export const frontend_hosting_t = pgEnum('frontend_hosting_t', ['vercel', 'icp']);
 export const backend_hosting_t = pgEnum('backend_hosting_t', ['vercel', 'icp']);
 export const database_hosting_t = pgEnum('database_hosting_t', ['neon', 'icp']);
 export const blob_hosting_t = pgEnum('blob_hosting_t', [
   's3', 'vercel_blob', 'icp', 'arweave', 'ipfs', 'neon'
 ]);
-
-/**
- * STORAGE PREFERENCE - User's preferred storage strategy
- *
- * This enum defines the user's preferred storage approach, which determines
- * the primary storage providers used for their memories and assets.
- *
- * PREFERENCES:
- * - neon: Neon database + Vercel Blob (centralized, reliable, easy)
- * - icp: ICP Canister (decentralized, Web3, user-controlled)
- * - dual: Both systems (redundancy, migration, hybrid approach)
- *
- * MAPPING TO STORAGE BACKENDS:
- * - neon preference → metadata in Neon, assets in Vercel Blob/S3
- * - icp preference → metadata in ICP, assets in ICP Storage
- * - dual preference → metadata in both, assets in multiple providers
- *
- * USAGE:
- * This preference is stored in the user's profile and used to determine
- * which storage_backend_t providers to use for new memories.
- */
-export const storage_pref_t = pgEnum('storage_pref_t', ['neon', 'icp', 'dual']);
 
 // Memory Assets Enums - for multiple optimized assets per memory
 export const asset_type_t = pgEnum('asset_type_t', [
@@ -68,6 +50,11 @@ export const asset_type_t = pgEnum('asset_type_t', [
   'placeholder',
   'poster',
   'waveform',
+]);
+
+// Storage backend type - for tracking where assets are actually stored
+export const storage_backend_t = pgEnum('storage_backend_t', [
+  's3', 'vercel_blob', 'icp', 'arweave', 'ipfs', 'neon'
 ]);
 export const processing_status_t = pgEnum('processing_status_t', ['pending', 'processing', 'completed', 'failed']);
 /**
@@ -79,23 +66,21 @@ export const processing_status_t = pgEnum('processing_status_t', ['pending', 'pr
  * PROVIDERS:
  * - s3: AWS S3 (large files, high performance, enterprise)
  * - vercel_blob: Vercel Blob Storage (medium files, CDN, easy integration)
- * - icp: ICP Canister Storage (decentralized, user preference, Web3)
+ * - icp: ICP Canister Storage (decentralized, Web3)
  * - arweave: Arweave (permanent storage, immutable, pay-once)
  * - ipfs: IPFS (decentralized, content-addressed, peer-to-peer)
  * - neon: Neon database (small files, metadata, fast access)
  *
  * SELECTION LOGIC:
- * - User preference (storage_pref_t) determines primary strategy
+ * - User's blob hosting preference determines primary storage
  * - Asset type and size determine optimal provider
- * - Dual storage for redundancy and performance
+ * - Multiple providers can be used for redundancy
  *
  * EXAMPLES:
  * - Original 20MB photo → s3 or vercel_blob
  * - Thumbnail 50KB → neon (stored in database)
  * - Waveform data → arweave (permanent, immutable)
- * - User prefers ICP → icp for all assets
  */
-export const storage_backend_t = pgEnum('storage_backend_t', ['s3', 'vercel_blob', 'icp', 'arweave', 'ipfs', 'neon']);
 // Users table - Core user data - required for auth.js
 export const users = pgTable(
   'user',
@@ -144,10 +129,9 @@ export const users = pgTable(
 
     premiumExpiresAt: timestamp('premium_expires_at', { mode: 'date' }),
 
-    // Storage preferences
-    // Using enum instead of booleans to avoid CHECK constraints and keep everything in Drizzle
-    storagePreference: storage_pref_t('storage_preference').default('neon').notNull(),
-    storagePrimaryStorage: backend_t('storage_primary_storage').default('neon-db').notNull(),
+    // Storage preferences - now managed in user_hosting_preferences table
+    // This is a reference to the user's current active deployment
+    activeDeploymentId: uuid('active_deployment_id').references(() => serviceDeployments.id, { onDelete: 'set null' }),
 
     // Timestamp fields
     createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -1555,26 +1539,45 @@ export const serviceDeployments = pgTable('service_deployments', {
   userId: text('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
+  
+  // Service locations - using the most specific enum for each
   frontendLocation: frontend_hosting_t('frontend_location').notNull(),
   backendLocation: backend_hosting_t('backend_location').notNull(),
   databaseLocation: database_hosting_t('database_location').notNull(),
   blobLocation: blob_hosting_t('blob_location').notNull(),
+  
+  // Deployment status
   isActive: boolean('is_active').default(false).notNull(),
   deployedAt: timestamp('deployed_at').defaultNow().notNull(),
   lastCheckedAt: timestamp('last_checked_at'),
+  
+  // Additional metadata
   deploymentMetadata: json('deployment_metadata')
     .$type<{
       version?: string;
       region?: string;
       url?: string;
-      status?: 'deploying' | 'active' | 'failed' | 'deleting';
+      status?: 'deploying' | 'active' | 'failed' | 'deleting' | 'migrating';
       error?: string;
+      migration?: {
+        from: string; // deployment ID
+        startedAt: string;
+        progress?: number;
+      };
     }>()
     .default({}),
+    
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
   // Index for looking up active deployments
   activeDeploymentIdx: index('service_deployments_user_active_idx')
     .on(table.userId, table.isActive),
+    
+  // Index for faster lookups by user
+  userIdx: index('service_deployments_user_idx')
+    .on(table.userId),
 }));
 
 // Temporary exports for backward compatibility during migration
