@@ -13,19 +13,16 @@ import {
   uuid,
   bigint,
   check,
-  //   IndexBuilder,
+  jsonb,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
-
-// import type { AdapterAccount } from "@auth/core/adapters";
 import type { AdapterAccount } from 'next-auth/adapters';
 
 // Storage Edge Enums
 export const artifact_t = pgEnum('artifact_t', ['metadata', 'asset']);
 export const memory_type_t = pgEnum('memory_type_t', ['image', 'video', 'note', 'document', 'audio']);
 export const sync_t = pgEnum('sync_t', ['idle', 'migrating', 'failed']);
-
 // Memory and Asset Status Enums
 export const memory_status_t = pgEnum('memory_status_t', [
   'pending', // Any asset pending/uploading
@@ -34,7 +31,6 @@ export const memory_status_t = pgEnum('memory_status_t', [
   'tombstoned', // Marked for deletion
   'deleted', // Fully deleted
 ]);
-
 // Asset upload status - purely about transfer
 export const asset_upload_status_t = pgEnum('asset_upload_status_t', [
   'pending', // Not yet uploaded
@@ -42,33 +38,29 @@ export const asset_upload_status_t = pgEnum('asset_upload_status_t', [
   'completed', // Upload completed
   'failed', // Upload failed
 ]);
-
 // Asset lifecycle status
 export const asset_lifecycle_status_t = pgEnum('asset_lifecycle_status_t', [
   'active', // Available for use
   'tombstoned', // Marked for deletion
   'deleted', // Fully deleted
 ]);
-
-// Processing status for multi-asset creation (reusing the existing enum)
-// The processing_status_t enum is already defined above
-
-// Storage location enum (for storage status fields)
-// This is now a view/type based on the hosting providers
-
-// Hosting provider enum - single source of truth for all provider types
+// Processing status for multi-asset creation
+export const processing_status_t = pgEnum('processing_status_t', ['pending', 'processing', 'completed', 'failed']);
+// Storage location enum
 export const hosting_provider_t = pgEnum('hosting_provider_t', [
-  'vercel', 's3', 'vercel_blob', 'neon', 'icp', 'arweave', 'ipfs'
+  'vercel',
+  's3',
+  'vercel_blob',
+  'neon',
+  'icp',
+  'arweave',
+  'ipfs',
 ]);
-
-// Hosting preference enums with references to hosting_provider_t
+// Hosting preference enums
 export const frontend_hosting_t = pgEnum('frontend_hosting_t', ['vercel', 'icp']);
 export const backend_hosting_t = pgEnum('backend_hosting_t', ['vercel', 'icp']);
 export const database_hosting_t = pgEnum('database_hosting_t', ['neon', 'icp']);
-export const blob_hosting_t = pgEnum('blob_hosting_t', [
-  's3', 'vercel_blob', 'icp', 'arweave', 'ipfs', 'neon'
-]);
-
+export const blob_hosting_t = pgEnum('blob_hosting_t', ['s3', 'vercel_blob', 'icp', 'arweave', 'ipfs', 'neon']);
 // Memory Assets Enums - for multiple optimized assets per memory
 export const asset_type_t = pgEnum('asset_type_t', [
   'original',
@@ -78,89 +70,47 @@ export const asset_type_t = pgEnum('asset_type_t', [
   'poster',
   'waveform',
 ]);
+// Storage backend type
+export const storage_backend_t = pgEnum('storage_backend_t', ['s3', 'vercel_blob', 'icp', 'arweave', 'ipfs', 'neon']);
 
-// Storage backend type - for tracking where assets are actually stored
-export const storage_backend_t = pgEnum('storage_backend_t', [
-  's3', 'vercel_blob', 'icp', 'arweave', 'ipfs', 'neon'
-]);
-export const processing_status_t = pgEnum('processing_status_t', ['pending', 'processing', 'completed', 'failed']);
-/**
- * STORAGE BACKEND - Where assets are actually stored
- *
- * This enum defines all supported storage providers for memory assets.
- * Different providers are optimized for different use cases and user preferences.
- *
- * PROVIDERS:
- * - s3: AWS S3 (large files, high performance, enterprise)
- * - vercel_blob: Vercel Blob Storage (medium files, CDN, easy integration)
- * - icp: ICP Canister Storage (decentralized, Web3)
- * - arweave: Arweave (permanent storage, immutable, pay-once)
- * - ipfs: IPFS (decentralized, content-addressed, peer-to-peer)
- * - neon: Neon database (small files, metadata, fast access)
- *
- * SELECTION LOGIC:
- * - User's blob hosting preference determines primary storage
- * - Asset type and size determine optimal provider
- * - Multiple providers can be used for redundancy
- *
- * EXAMPLES:
- * - Original 20MB photo → s3 or vercel_blob
- * - Thumbnail 50KB → neon (stored in database)
- * - Waveform data → arweave (permanent, immutable)
- */
 // Users table - Core user data - required for auth.js
 export const users = pgTable(
   'user',
   {
     id: text('id')
       .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()), // required for auth.js
-    name: text('name'), // required for auth.js
-    email: text('email').unique(), // required for auth.js
-    emailVerified: timestamp('emailVerified', { mode: 'date' }), // required for auth.js
-    image: text('image'), // required for auth.js
-    // Our additional fields
+      .$defaultFn(() => crypto.randomUUID()),
+    name: text('name'),
+    email: text('email').unique(),
+    emailVerified: timestamp('emailVerified', { mode: 'date' }),
+    image: text('image'),
     password: text('password'),
     username: text('username').unique(),
-    parentId: text('parent_id'), // This links a child to their parent (can be NULL for root nodes)
-
-    // New invitation-related fields:
-    invitedByAllUserId: text('invited_by_all_user_id'), // No `.references()` here!
-    invitedAt: timestamp('invited_at'), // When the invitation was sent
+    parentId: text('parent_id'),
+    invitedByAllUserId: text('invited_by_all_user_id'),
+    invitedAt: timestamp('invited_at'),
     registrationStatus: text('registration_status', {
       enum: ['pending', 'visited', 'initiated', 'completed', 'declined', 'expired'],
     })
       .default('pending')
-      .notNull(), // Tracks signup progress
-
-    // User type (what kind of user you are)
+      .notNull(),
     userType: text('user_type', {
       enum: ['personal', 'professional'],
     })
       .default('personal')
       .notNull(),
-
-    // Platform role (what permissions you have)
     role: text('role', {
       enum: ['user', 'moderator', 'admin', 'developer', 'superadmin'],
     })
       .default('user')
       .notNull(),
-
-    // Payment-related
     plan: text('plan', {
       enum: ['free', 'premium'],
     })
       .default('free')
       .notNull(),
-
     premiumExpiresAt: timestamp('premium_expires_at', { mode: 'date' }),
-
-    // Storage preferences - now managed in user_hosting_preferences table
-    // This is a reference to the user's current active deployment
     activeDeploymentId: uuid('active_deployment_id').references(() => serviceDeployments.id, { onDelete: 'set null' }),
-
-    // Timestamp fields
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
     metadata: json('metadata')
@@ -172,13 +122,11 @@ export const users = pgTable(
       .default({}),
   },
   table => [
-    // Define the foreign key to allUsers
     foreignKey({
       columns: [table.invitedByAllUserId],
       foreignColumns: [allUsers.id],
       name: 'user_invited_by_fk',
     }),
-    // Self-referencing Foreign Key
     foreignKey({
       columns: [table.parentId],
       foreignColumns: [table.id],
@@ -193,17 +141,13 @@ export const allUsers = pgTable(
     id: text('id')
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
-
     type: text('type', { enum: ['user', 'temporary'] }).notNull(),
-
-    userId: text('user_id'), // FK defined below
-    temporaryUserId: text('temporary_user_id'), // FK defined below
-
+    userId: text('user_id'),
+    temporaryUserId: text('temporary_user_id'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   table => [
-    // Ensure exactly one of userId or temporaryUserId is set
-    uniqueIndex('all_users_one_ref_guard').on(table.id) // dummy index anchor
+    uniqueIndex('all_users_one_ref_guard').on(table.id)
       .where(sql`(CASE WHEN ${table.userId} IS NOT NULL THEN 1 ELSE 0 END +
                    CASE WHEN ${table.temporaryUserId} IS NOT NULL THEN 1 ELSE 0 END) = 1`),
   ]
@@ -215,25 +159,19 @@ export const temporaryUsers = pgTable(
     id: text('id')
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
-
     name: text('name'),
     email: text('email'),
     secureCode: text('secure_code').notNull(),
     secureCodeExpiresAt: timestamp('secure_code_expires_at', { mode: 'date' }).notNull(),
-
     role: text('role', { enum: ['inviter', 'invitee'] }).notNull(),
-
-    invitedByAllUserId: text('invited_by_all_user_id'), // FK declared later
-
+    invitedByAllUserId: text('invited_by_all_user_id'),
     registrationStatus: text('registration_status', {
       enum: ['pending', 'visited', 'initiated', 'completed', 'declined', 'expired'],
     })
       .default('pending')
       .notNull(),
-
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
-
     metadata: json('metadata')
       .$type<{
         notes?: string;
@@ -270,23 +208,14 @@ export const accounts = pgTable(
     session_state: text('session_state'),
   },
   account => [
-    // ✅ EXISTING: Composite primary key already enforces uniqueness
-    // This prevents the same II principal from being linked to multiple users
     primaryKey({
       columns: [account.provider, account.providerAccountId],
     }),
-
-    // 🚀 PERFORMANCE: Index for common lookups
-    // Find all accounts for a user by provider (e.g., "does user have II linked?")
     index('accounts_user_provider_idx').on(account.userId, account.provider),
-
-    // 🚀 PERFORMANCE: Index for finding all accounts for a user
-    // Useful for "show me all linked accounts" queries
     index('accounts_user_idx').on(account.userId),
   ]
 );
 
-// Auth.js required tables
 export const sessions = pgTable('session', {
   sessionToken: text('sessionToken').primaryKey(),
   userId: text('userId')
@@ -309,7 +238,6 @@ export const verificationTokens = pgTable(
   })
 );
 
-// required for webauthn by auth.js
 export const authenticators = pgTable(
   'authenticator',
   {
@@ -340,74 +268,19 @@ export type CommonFileMetadata = {
   originalName: string;
   uploadedAt: string;
   dateOfMemory?: string;
-  format?: string; // File format (e.g., "JPEG", "PNG", "PDF")
+  format?: string;
 };
-
 export type ImageMetadata = CommonFileMetadata & {
   dimensions?: { width: number; height: number };
 };
-
-// Type for flexible user-defined metadata
 export type CustomMetadata = {
   [key: string]: string | number | boolean | null;
 };
-
-// Application tables - OLD PER-TYPE TABLES REMOVED
-// These have been replaced by the unified 'memories' table with 'memory_assets'
-// and optional detail tables for type-specific data.
 
 export const MEMORY_TYPES = ['image', 'document', 'note', 'video', 'audio'] as const;
 export const ACCESS_LEVELS = ['read', 'write'] as const;
 export const MEMBER_ROLES = ['admin', 'member'] as const;
 
-/**
- * MEMORIES TABLE - Base memory storage with inheritance pattern
- *
- * This table stores all types of memories (images, videos, audio, documents) in a single
- * base table following an OOP inheritance pattern. Each memory can have multiple optimized assets
- * and type-specific extension data in separate tables.
- *
- * COMPOSITION:
- * - Basic info: id, title, description, takenAt, type
- * - Ownership: ownerId, ownerSecureCode, isPublic
- * - Organization: parentFolderId
- * - Tags: tags (for fast search and queries)
- * - Flexible metadata: metadata JSON field for additional data
- * - Timestamps: createdAt, updatedAt
- *
- * INHERITANCE PATTERN:
- * - Base table: Common fields for all memory types
- * - Extension tables: imageDetails, videoDetails, noteDetails, etc. for type-specific data
- * - 1:1 relationship between base memory and its extension table
- *
- * RELATED DATA (via relations):
- * - assets: MemoryAsset[] - Multiple optimized versions (original, display, thumb, etc.)
- * - extensions: Type-specific detail tables (imageDetails, videoDetails, etc.)
- * - shares: MemoryShare[] - Sharing permissions
- *
- * USAGE EXAMPLES:
- * ```typescript
- * // Get memory with all assets
- * const memory = await db.query.memories.findFirst({
- *   where: eq(memories.id, memoryId),
- *   with: { assets: true }
- * });
- *
- * // Get memory with type-specific details
- * const imageMemory = await db.query.memories.findFirst({
- *   where: eq(memories.id, memoryId),
- *   with: {
- *     assets: true,
- *     imageDetails: true // Only exists for image memories
- *   }
- * });
- *
- * // Search by tags
- * const taggedMemories = await db.select()
- *   .from(memories)
- *   .where(arrayContains(memories.tags, ['nature', 'sunset']));
- * ```
- */
 export const memories = pgTable(
   'memories',
   {
@@ -421,130 +294,45 @@ export const memories = pgTable(
     isPublic: boolean('is_public').default(false).notNull(),
     ownerSecureCode: text('owner_secure_code').notNull(),
     parentFolderId: uuid('parent_folder_id'),
-    
-    // Status and lifecycle
     status: memory_status_t('status').default('pending').notNull(),
-    expiresAt: timestamp('expires_at'), // For pending memories (24h TTL)
-    
-    // Tags for better performance and search
+    expiresAt: timestamp('expires_at'),
     tags: text('tags').array().default([]),
-    // Universal fields for all memory types
     recipients: text('recipients').array().default([]),
-    
-    // Date fields - grouped together
-    fileCreatedAt: timestamp('file_created_at', { mode: 'date' }), // When file was originally created
-    unlockDate: timestamp('unlock_date', { mode: 'date' }), // When memory becomes accessible
-    createdAt: timestamp('created_at').notNull().defaultNow(), // When memory was uploaded/created in our system
-    updatedAt: timestamp('updated_at').notNull().defaultNow(), // When memory was last modified
-    deletedAt: timestamp('deleted_at'), // Soft delete support
-    
-    // Audit fields
+    fileCreatedAt: timestamp('file_created_at', { mode: 'date' }),
+    unlockDate: timestamp('unlock_date', { mode: 'date' }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+    deletedAt: timestamp('deleted_at'),
     createdBy: text('created_by')
       .notNull()
       .references(() => users.id),
-    updatedBy: text('updated_by')
-      .references(() => users.id),
-    
-    // Flexible metadata for truly common additional data
+    updatedBy: text('updated_by').references(() => users.id),
     metadata: json('metadata')
       .$type<{
-        // File upload context (applies to all types)
-        originalPath?: string; // Original file path from upload
-        // Custom user data (truly universal)
+        originalPath?: string;
         custom?: Record<string, unknown>;
       }>()
       .default({}),
-    
-    // Storage status fields
-    storageLocations: storage_backend_t('storage_locations').array().default([]), // Array of storage backends
-    storageDuration: integer('storage_duration'), // Duration in days, null for permanent
-    storageCount: integer('storage_count').default(0), // Number of storage locations for verification
+    storageLocations: storage_backend_t('storage_locations').array().default([]),
+    storageDuration: integer('storage_duration'),
+    storageCount: integer('storage_count').default(0),
   },
   table => [
-    // Performance indexes for common queries
     index('memories_owner_created_idx').on(table.ownerId, table.createdAt.desc()),
     index('memories_status_updated_idx').on(table.status, table.updatedAt.desc()),
     index('memories_expires_at_idx').on(table.expiresAt),
     index('memories_type_idx').on(table.type),
     index('memories_public_idx').on(table.isPublic),
-    // Performance indexes for tags and people
     index('memories_tags_idx').on(table.tags),
-    // Storage status indexes
-    
-    // Constraints
-    check('memories_expires_at_check', 
-      sql`expires_at IS NULL OR (SELECT COUNT(*) FROM memory_assets WHERE memory_assets.memory_id = memories.id AND memory_assets.upload_status = 'pending') > 0`
-    ),
     index('memories_storage_locations_idx').on(table.storageLocations),
     index('memories_storage_duration_idx').on(table.storageDuration),
+    check(
+      'memories_expires_at_check',
+      sql`expires_at IS NULL OR (SELECT COUNT(*) FROM memory_assets WHERE memory_assets.memory_id = memories.id AND memory_assets.upload_status = 'pending') > 0`
+    ),
   ]
 );
 
-/**
- * MEMORY ITEMS TABLE - Per-file identity for multi-file memories
- *
- * This table provides a stable identity for each file in a memory, allowing for
- * multiple files per memory while maintaining a consistent identity for each file.
- */
-// First define the table without the circular reference to memoryAssets
-export const memoryItems = pgTable(
-  'memory_items',
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    memoryId: uuid('memory_id')
-      .notNull()
-      .references(() => memories.id, { onDelete: 'cascade' }),
-    displayName: text('display_name').notNull(), // Sanitized filename
-    primaryAssetId: uuid('primary_asset_id'), // Will be updated after memoryAssets is defined
-    createdAt: timestamp('created_at').defaultNow().notNull(),
-    updatedAt: timestamp('updated_at').defaultNow().notNull(),
-  },
-  table => [
-    // Performance indexes
-    index('memory_items_memory_id_idx').on(table.memoryId),
-    index('memory_items_primary_asset_idx').on(table.primaryAssetId),
-  ]
-);
-
-/**
- * MEMORY ASSETS TABLE - Multiple optimized assets per memory
- *
- * This table stores different optimized versions of each memory (original, display, thumb, etc.).
- * Each memory can have multiple assets, but only one asset per type per memory.
- *
- * COMPOSITION:
- * - Identity: id, memoryId (FK to memories)
- * - Asset info: assetType, variant, url, storageBackend, storageKey
- * - Media properties: bytes, width, height, mimeType, sha256
- * - Processing: processingStatus, processingError
- * - Timestamps: createdAt, updatedAt
- *
- * ASSET TYPES:
- * - original: Full resolution, unprocessed file
- * - display: Optimized for viewing (~1600-2048px, WebP)
- * - thumb: Thumbnail for grids (~320-512px, WebP)
- * - placeholder: Low-quality placeholder (blurhash, base64)
- * - poster: Video poster frame
- * - waveform: Audio waveform visualization
- *
- * USAGE EXAMPLES:
- * ```typescript
- * // Get all assets for a memory
- * const assets = await db.select()
- *   .from(memoryAssets)
- *   .where(eq(memoryAssets.memoryId, memoryId));
- *
- * // Get specific asset type
- * const thumbnail = await db.select()
- *   .from(memoryAssets)
- *   .where(
- *     and(
- *       eq(memoryAssets.memoryId, memoryId),
- *       eq(memoryAssets.assetType, 'thumb')
- *     )
- *   );
- * ```
- */
 export const memoryAssets = pgTable(
   'memory_assets',
   {
@@ -552,132 +340,65 @@ export const memoryAssets = pgTable(
     memoryId: uuid('memory_id')
       .notNull()
       .references(() => memories.id, { onDelete: 'cascade' }),
-    
-    // Tech Lead Surgical Fix #1 - Per-file identity for multi-file memories
-    memoryItemId: uuid('memory_item_id').references(() => memoryItems.id, { onDelete: 'cascade' }),
-    groupId: uuid('group_id').notNull(), // Groups originals with their variants
-    
-    // Variant modeling (Tech Lead Surgical Fix #1)
-    variantOfAssetId: uuid('variant_of_asset_id').references(/* Will be set later */), // Self-referential
-    variantType: text('variant_type', { enum: ['display', 'thumb'] }), // NULL = original
-    
-    // Asset type and basic info
+    variantOfAssetId: uuid('variant_of_asset_id').references(() => memoryAssets.id),
+    variantType: text('variant_type', { enum: ['display', 'thumb'] }),
     assetType: asset_type_t('asset_type').notNull(),
-    url: text('url').notNull(), // Derived/public URL
+    url: text('url').notNull(),
     storageBackend: storage_backend_t('storage_backend').notNull(),
-    bucket: text('bucket'), // Storage bucket/container
-    storageKey: text('storage_key').notNull(), // Bucket/key or blob ID
-    
-    // Processing metadata (Tech Lead Surgical Fix #5)
-    recipeVersion: text('recipe_version').default('v1'), // For reprocessing when options change
+    bucket: text('bucket'),
+    storageKey: text('storage_key').notNull(),
+    recipeVersion: text('recipe_version').default('v1'),
     transformSpec: jsonb('transform_spec').$type<{
       displayMaxSize: number;
       thumbMaxSize: number;
-      displayQuality: number; // 80-85 for display
-      thumbQuality: number; // 70-75 for thumb
+      displayQuality: number;
+      thumbQuality: number;
       displayFormat: 'avif' | 'webp';
       thumbFormat: 'webp';
     }>(),
-    
-    // Asset metadata (Tech Lead Surgical Fix #6)
-    bytes: bigint('bytes', { mode: 'number' }).notNull(), // Use bigint for >2GB files
-    width: integer('width'), // Nullable for non-image assets
-    height: integer('height'), // Nullable for non-image assets
+    bytes: bigint('bytes', { mode: 'number' }).notNull(),
+    width: integer('width'),
+    height: integer('height'),
     colorSpace: text('color_space'),
-    iccProfile: text('icc_profile'), // For color accuracy
-    megapixels: integer('megapixels'), // Tech Lead Surgical Fix #6 - Bound image bombs
+    iccProfile: text('icc_profile'),
+    megapixels: integer('megapixels'),
     mimeType: text('mime_type').notNull(),
-    
-    // Tech Lead Surgical Fix #2 - Three distinct statuses
-    uploadStatus: asset_upload_status_t('upload_status').default('pending'), // Transfer only
-    processingStatus: processing_status_t('processing_status').default('pending'), // Multi-asset pipeline
-    lifecycleStatus: asset_lifecycle_status_t('lifecycle_status').default('active'), // Lifecycle
-    
-    // Tech Lead Surgical Fix #9 - Storage visibility
+    uploadStatus: asset_upload_status_t('upload_status').default('pending'),
+    processingStatus: processing_status_t('processing_status').default('pending'),
+    lifecycleStatus: asset_lifecycle_status_t('lifecycle_status').default('active'),
     storageVisibility: text('storage_visibility', { enum: ['public', 'private'] }).default('private'),
-    
-    // Content hashing for deduplication
-    contentHash: text('content_hash'), // SHA-256 of file content
+    contentHash: text('content_hash'),
     computedBy: text('computed_by', { enum: ['client', 'server'] }),
-    
-    // Upload tracking
-    etag: text('etag'), // S3/Blob upload ETag
-    
-    // Retry and cleanup
+    etag: text('etag'),
     retryCount: integer('retry_count').default(0).notNull(),
     maxRetries: integer('max_retries').default(3).notNull(),
-    
-    // Original file info
     originalName: text('original_name'),
     originalMimeType: text('original_mime_type'),
-    
-    // Timestamps
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
-    deletedAt: timestamp('deleted_at'), // Soft delete support
+    deletedAt: timestamp('deleted_at'),
   },
   table => [
-    // Tech Lead Surgical Fix #1 - Correct variant constraints for multi-file memories
-    unique('memory_assets_group_variant_unique').on(table.groupId, table.variantType), // One variant per type per group
-    unique('memory_assets_variant_of_unique').on(table.variantOfAssetId, table.variantType), // Alternative constraint
-
-    // Performance indexes
+    unique('memory_assets_variant_of_unique').on(table.variantOfAssetId, table.variantType),
     index('memory_assets_memory_idx').on(table.memoryId),
-    index('memory_assets_memory_item_idx').on(table.memoryItemId),
-    index('memory_assets_group_idx').on(table.groupId),
     index('memory_assets_type_idx').on(table.assetType),
     index('memory_assets_url_idx').on(table.url),
     index('memory_assets_storage_idx').on(table.storageBackend, table.storageKey),
     index('memory_assets_content_hash_idx').on(table.contentHash),
-    
-    // Data integrity constraints
     check('memory_assets_bytes_positive', sql`${table.bytes} > 0`),
     check(
       'memory_assets_dimensions_positive',
       sql`(${table.width} IS NULL OR ${table.width} > 0) AND (${table.height} IS NULL OR ${table.height} > 0)`
     ),
-    
-    // Tech Lead Surgical Fix #2 - Status constraints
-    check('memory_assets_variant_check', 
-      sql`(variant_of_asset_id IS NULL) = (variant_type IS NULL)`
-    ), // Original has no variant fields
+    check('memory_assets_variant_check', sql`(variant_of_asset_id IS NULL) = (variant_type IS NULL)`),
     check(
       'memory_assets_processing_status_check',
       sql`processing_status = 'completed' OR (width IS NULL AND height IS NULL)`
-    ), // Dimensions only when completed
-    check('memory_assets_megapixels_check', 
-      sql`megapixels IS NULL OR megapixels <= 80`
-    ), // Tech Lead Surgical Fix #6 - Bound image bombs
+    ),
+    check('memory_assets_megapixels_check', sql`megapixels IS NULL OR megapixels <= 80`),
   ]
 );
 
-/**
- * FOLDERS TABLE - Google Drive-style organization
- *
- * This table enables folder-based organization of memories, similar to Google Drive.
- * Folders can be nested (parentFolderId) and contain both memories and subfolders.
- *
- * COMPOSITION:
- * - Identity: id, ownerId (FK to allUsers)
- * - Organization: name, parentFolderId (self-referencing FK)
- * - Timestamps: createdAt, updatedAt
- *
- * USAGE EXAMPLES:
- * ```typescript
- * // Create a folder
- * const folder = await db.insert(folders).values({
- *   ownerId: userId,
- *   name: "Wedding Photos",
- *   parentFolderId: null // Root level
- * });
- *
- * // Get folder with contents
- * const folderWithContents = await db.query.folders.findFirst({
- *   where: eq(folders.id, folderId),
- *   with: { memories: true, subfolders: true }
- * });
- * ```
- */
 export const folders = pgTable(
   'folders',
   {
@@ -686,56 +407,27 @@ export const folders = pgTable(
       .notNull()
       .references(() => allUsers.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
-    parentFolderId: uuid('parent_folder_id'), // Self-referencing FK for nested folders
+    parentFolderId: uuid('parent_folder_id'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
-  table => [
-    // Performance indexes
-    index('folders_owner_idx').on(table.ownerId),
-    index('folders_parent_idx').on(table.parentFolderId),
-  ]
+  table => [index('folders_owner_idx').on(table.ownerId), index('folders_parent_idx').on(table.parentFolderId)]
 );
 
-/**
- * IMAGE DETAILS TABLE - Type-specific data for image memories
- *
- * This optional table stores image-specific metadata that doesn't belong in the
- * core memories table. Only created when actually needed for image memories.
- *
- * COMPOSITION:
- * - Identity: memoryId (FK to memories, 1:1)
- * - Image data: width, height, exif metadata
- *
- * USAGE:
- * Only create this table when you need image-specific fields beyond what's
- * stored in the memoryAssets table (which already has width/height).
- */
 export const imageDetails = pgTable('image_details', {
   memoryId: uuid('memory_id')
     .primaryKey()
     .references(() => memories.id, { onDelete: 'cascade' }),
   width: integer('width'),
   height: integer('height'),
-  // Image-specific EXIF data as proper columns
   camera: text('camera'),
   focal: integer('focal'),
   iso: integer('iso'),
-  aperture: text('aperture'), // e.g., "f/2.8"
-  shutterSpeed: text('shutter_speed'), // e.g., "1/125"
+  aperture: text('aperture'),
+  shutterSpeed: text('shutter_speed'),
   orientation: integer('orientation'),
 });
 
-/**
- * VIDEO DETAILS TABLE - Type-specific data for video memories
- *
- * This optional table stores video-specific metadata like duration, codec, etc.
- * Only created when actually needed for video memories.
- *
- * COMPOSITION:
- * - Identity: memoryId (FK to memories, 1:1)
- * - Video data: durationMs, width, height, codec, fps
- */
 export const videoDetails = pgTable('video_details', {
   memoryId: uuid('memory_id')
     .primaryKey()
@@ -747,16 +439,6 @@ export const videoDetails = pgTable('video_details', {
   fps: text('fps'),
 });
 
-/**
- * DOCUMENT DETAILS TABLE - Type-specific data for document memories
- *
- * This optional table stores document-specific metadata like page count, etc.
- * Only created when actually needed for document memories.
- *
- * COMPOSITION:
- * - Identity: memoryId (FK to memories, 1:1)
- * - Document data: pages, mimeType
- */
 export const documentDetails = pgTable('document_details', {
   memoryId: uuid('memory_id')
     .primaryKey()
@@ -765,16 +447,6 @@ export const documentDetails = pgTable('document_details', {
   mimeType: text('mime_type'),
 });
 
-/**
- * AUDIO DETAILS TABLE - Type-specific data for audio memories
- *
- * This optional table stores audio-specific metadata like duration, bitrate, etc.
- * Only created when actually needed for audio memories.
- *
- * COMPOSITION:
- * - Identity: memoryId (FK to memories, 1:1)
- * - Audio data: durationMs, bitrate, sampleRate, channels
- */
 export const audioDetails = pgTable('audio_details', {
   memoryId: uuid('memory_id')
     .primaryKey()
@@ -785,16 +457,6 @@ export const audioDetails = pgTable('audio_details', {
   channels: integer('channels'),
 });
 
-/**
- * NOTE DETAILS TABLE - Type-specific data for note memories
- *
- * This optional table stores note-specific content and formatting.
- * Only created when actually needed for note memories.
- *
- * COMPOSITION:
- * - Identity: memoryId (FK to memories, 1:1)
- * - Note data: content (the actual note text)
- */
 export const noteDetails = pgTable('note_details', {
   memoryId: uuid('memory_id')
     .primaryKey()
@@ -802,30 +464,6 @@ export const noteDetails = pgTable('note_details', {
   content: text('content').notNull(),
 });
 
-/**
- * PEOPLE IN MEMORIES TABLE - Links people to memories
- *
- * This table connects people (both registered and temporary users) to memories.
- * People can be tagged in photos, videos, notes, etc. and can be either:
- * - Registered users (via allUsers -> users)
- * - Temporary users (via allUsers -> temporaryUsers)
- *
- * COMPOSITION:
- * - Identity: memoryId (FK to memories), allUserId (FK to allUsers)
- * - Role: What role the person has in the memory
- * - Timestamps: createdAt
- *
- * USAGE EXAMPLES:
- * ```typescript
- * // Get all people in a memory
- * const people = await db.select()
- *   .from(peopleInMemories)
- *   .leftJoin(allUsers, eq(peopleInMemories.allUserId, allUsers.id))
- *   .leftJoin(users, eq(allUsers.userId, users.id))
- *   .leftJoin(temporaryUsers, eq(allUsers.temporaryUserId, temporaryUsers.id))
- *   .where(eq(peopleInMemories.memoryId, memoryId));
- * ```
- */
 export const peopleInMemories = pgTable(
   'people_in_memories',
   {
@@ -836,45 +474,16 @@ export const peopleInMemories = pgTable(
     allUserId: text('all_user_id')
       .notNull()
       .references(() => allUsers.id, { onDelete: 'cascade' }),
-    role: text('role').default('subject'), // "subject", "photographer", "witness", etc.
+    role: text('role').default('subject'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   table => [
-    // Ensure a person can only be tagged once per memory
     uniqueIndex('people_in_memories_unique').on(table.memoryId, table.allUserId),
-    // Performance indexes
     index('people_in_memories_memory_idx').on(table.memoryId),
     index('people_in_memories_user_idx').on(table.allUserId),
   ]
 );
 
-/**
- * MEMORY LIKES TABLE - Tracks likes on memories
- *
- * This table tracks which users have liked which memories.
- * Each user can like a memory only once, but multiple users can like the same memory.
- *
- * COMPOSITION:
- * - Identity: memoryId (FK to memories), allUserId (FK to allUsers)
- * - Timestamps: createdAt
- *
- * USAGE EXAMPLES:
- * ```typescript
- * // Get all likes for a memory
- * const likes = await db.select()
- *   .from(memoryLikes)
- *   .leftJoin(allUsers, eq(memoryLikes.allUserId, allUsers.id))
- *   .where(eq(memoryLikes.memoryId, memoryId));
- *
- * // Check if a user liked a memory
- * const userLike = await db.query.memoryLikes.findFirst({
- *   where: and(
- *     eq(memoryLikes.memoryId, memoryId),
- *     eq(memoryLikes.allUserId, userId)
- *   )
- * });
- * ```
- */
 export const memoryLikes = pgTable(
   'memory_likes',
   {
@@ -888,42 +497,12 @@ export const memoryLikes = pgTable(
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   table => [
-    // Ensure a user can only like a memory once
     uniqueIndex('memory_likes_unique').on(table.memoryId, table.allUserId),
-    // Performance indexes
     index('memory_likes_memory_idx').on(table.memoryId),
     index('memory_likes_user_idx').on(table.allUserId),
   ]
 );
 
-/**
- * MEMORY COMMENTS TABLE - Tracks comments on memories
- *
- * This table tracks comments made by users on memories.
- * Unlike likes, users can make multiple comments on the same memory.
- * Comments are displayed chronologically and support nested replies.
- *
- * COMPOSITION:
- * - Identity: memoryId (FK to memories), allUserId (FK to allUsers)
- * - Content: content (the actual comment text)
- * - Threading: parentCommentId (for nested replies)
- * - Timestamps: createdAt, updatedAt, deletedAt (soft delete)
- *
- * USAGE EXAMPLES:
- * ```typescript
- * // Get all comments for a memory (chronological order)
- * const comments = await db.select()
- *   .from(memoryComments)
- *   .leftJoin(allUsers, eq(memoryComments.allUserId, allUsers.id))
- *   .where(eq(memoryComments.memoryId, memoryId))
- *   .orderBy(desc(memoryComments.createdAt));
- *
- * // Get nested replies to a comment
- * const replies = await db.select()
- *   .from(memoryComments)
- *   .where(eq(memoryComments.parentCommentId, parentCommentId));
- * ```
- */
 export const memoryComments = pgTable(
   'memory_comments',
   {
@@ -935,38 +514,32 @@ export const memoryComments = pgTable(
       .notNull()
       .references(() => allUsers.id, { onDelete: 'cascade' }),
     content: text('content').notNull(),
-    parentCommentId: uuid('parent_comment_id'), // For nested replies
+    parentCommentId: uuid('parent_comment_id'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
-    deletedAt: timestamp('deleted_at'), // Soft delete
+    deletedAt: timestamp('deleted_at'),
   },
   table => [
-    // Performance indexes - ordered by date for chronological display
     index('memory_comments_memory_created_idx').on(table.memoryId, table.createdAt.desc()),
     index('memory_comments_user_idx').on(table.allUserId),
     index('memory_comments_parent_idx').on(table.parentCommentId),
   ]
 );
 
-// Types of relationships between users (e.g., brother, aunt, friend)
 export const RELATIONSHIP_TYPES = ['friend', 'colleague', 'acquaintance', 'family', 'other'] as const;
 export type RelationshipType = (typeof RELATIONSHIP_TYPES)[number];
-
-// Types of sharing relationships (based on trust/proximity)
 export const SHARING_RELATIONSHIP_TYPES = [
-  'close_family', // e.g., parents, siblings
-  'family', // extended family
-  'partner', // romantic partner
-  'close_friend', // trusted friends
-  'friend', // regular friends
-  'colleague', // work relationships
-  'acquaintance', // casual relationships
+  'close_family',
+  'family',
+  'partner',
+  'close_friend',
+  'friend',
+  'colleague',
+  'acquaintance',
 ] as const;
 export type SharingRelationshipType = (typeof SHARING_RELATIONSHIP_TYPES)[number];
-
 export const RELATIONSHIP_STATUS = ['pending', 'accepted', 'declined'] as const;
 export type RelationshipStatus = (typeof RELATIONSHIP_STATUS)[number];
-
 export const FAMILY_RELATIONSHIP_TYPES = [
   'parent',
   'child',
@@ -982,47 +555,29 @@ export const FAMILY_RELATIONSHIP_TYPES = [
 ] as const;
 export type FamilyRelationshipType = (typeof FAMILY_RELATIONSHIP_TYPES)[number];
 
-// This table supports three types of sharing:
-// 1. Direct user sharing (sharedWithId)
-// 2. Group sharing (groupId)
-// 3. Relationship-based sharing (sharedRelationshipType)
-// Only one of these sharing methods should be used per record.
-// Relationship-based sharing is dynamic - access is determined by current relationships
-// rather than static lists, making it more maintainable and accurate.
-// Note: Application logic must enforce that exactly one of sharedWithId, groupId, or sharedRelationshipType is set.
 export const memoryShares = pgTable('memory_share', {
   id: text('id')
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
-  memoryId: uuid('memory_id').notNull(), // The ID of the memory (e.g., image, note, document)
-  memoryType: text('memory_type', { enum: MEMORY_TYPES }).notNull(), // Type of memory (e.g., "image", "note", "document", "video")
-  ownerId: text('owner_id') // The user who originally created (or owns) the memory
+  memoryId: uuid('memory_id').notNull(),
+  memoryType: text('memory_type', { enum: MEMORY_TYPES }).notNull(),
+  ownerId: text('owner_id')
     .notNull()
     .references(() => allUsers.id, { onDelete: 'cascade' }),
-
   sharedWithType: text('shared_with_type', {
     enum: ['user', 'group', 'relationship'],
   }).notNull(),
-
-  sharedWithId: text('shared_with_id') // For direct user sharing
-    .references(() => allUsers.id, { onDelete: 'cascade' }),
-  groupId: text('group_id') // For group sharing
-    .references(() => group.id, { onDelete: 'cascade' }),
+  sharedWithId: text('shared_with_id').references(() => allUsers.id, { onDelete: 'cascade' }),
+  groupId: text('group_id').references(() => group.id, { onDelete: 'cascade' }),
   sharedRelationshipType: text('shared_relationship_type', {
-    // For relationship-based sharing
     enum: SHARING_RELATIONSHIP_TYPES,
   }),
-
   accessLevel: text('access_level', { enum: ACCESS_LEVELS }).default('read').notNull(),
-  inviteeSecureCode: text('invitee_secure_code').notNull(), // For invitee to access the memory
+  inviteeSecureCode: text('invitee_secure_code').notNull(),
   inviteeSecureCodeCreatedAt: timestamp('secure_code_created_at', { mode: 'date' }).notNull().defaultNow(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
-// This table is for shared groups where all members see the same group composition
-// (e.g., book clubs, work teams, shared family groups).
-// For personal 'groups' like friend lists, use the relationship table instead,
-// querying with type='friend' and status='accepted' to get a user's friends.
 export const group = pgTable('group', {
   id: text('id')
     .primaryKey()
@@ -1085,38 +640,27 @@ export const familyRelationship = pgTable('family_relationship', {
     .notNull()
     .references(() => relationship.id, { onDelete: 'cascade' }),
   familyRole: text('family_role', { enum: FAMILY_RELATIONSHIP_TYPES }).notNull(),
-  // New: Fuzziness Indicator
   relationshipClarity: text('relationship_clarity', {
     enum: ['resolved', 'fuzzy'],
   })
     .default('fuzzy')
     .notNull(),
-  // New: Store the common ancestor if known
   sharedAncestorId: text('shared_ancestor_id').references(() => allUsers.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
-// Business Relationships Table
-// Minimal client-provider relationships
 export const businessRelationship = pgTable(
   'business_relationship',
   {
     id: text('id')
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
-
-    // The business (service provider) - must be a registered user
     businessId: text('business_id')
       .notNull()
       .references(() => allUsers.id, { onDelete: 'cascade' }),
-
-    // The client - can be a registered user or external client
-    clientId: text('client_id').references(() => allUsers.id, { onDelete: 'cascade' }), // Optional - for external clients
-
-    // Client details (for external clients who aren't registered users)
-    clientName: text('client_name'), // For external clients
-    clientEmail: text('client_email'), // For external clients
-
+    clientId: text('client_id').references(() => allUsers.id, { onDelete: 'cascade' }),
+    clientName: text('client_name'),
+    clientEmail: text('client_email'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   table => [
@@ -1130,53 +674,33 @@ export const businessRelationship = pgTable(
       foreignColumns: [allUsers.id],
       name: 'business_relationship_client_id_all_user_id_fk',
     }),
-    // Index for efficient querying
     index('business_relationship_business_idx').on(table.businessId),
     index('business_relationship_client_idx').on(table.clientId),
   ]
 );
 
-// Enum for primary relationships
 export const PRIMARY_RELATIONSHIP_ROLES = ['son', 'daughter', 'father', 'mother', 'sibling', 'spouse'] as const;
 export type PrimaryRelationshipRole = (typeof PRIMARY_RELATIONSHIP_ROLES)[number];
-
 export const familyMember = pgTable(
   'family_member',
   {
     id: text('id')
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
-
-    // The owner of the family tree (the user who created the record)
     ownerId: text('owner_id')
       .notNull()
       .references(() => allUsers.id, { onDelete: 'cascade' }),
-
-    // If this family member is a registered user, link them here (optional)
     userId: text('user_id').references(() => allUsers.id, { onDelete: 'set null' }),
-
-    // Basic information
     fullName: text('full_name').notNull(),
-
-    // Primary (resolved) relationship: e.g. "son", "father", etc.
     primaryRelationship: text('primary_relationship', { enum: PRIMARY_RELATIONSHIP_ROLES }).notNull(),
-
-    // Fuzzy relationships: an array of strings (e.g. ["grandfather"])
-    // Requires Postgres array support via pgArray.
     fuzzyRelationships: text('fuzzy_relationships', { enum: FAMILY_RELATIONSHIP_TYPES }).array().notNull().default([]),
-
-    // Additional details for the family member
     birthDate: timestamp('birth_date', { mode: 'date' }),
     deathDate: timestamp('death_date', { mode: 'date' }),
     birthplace: text('birthplace'),
-
-    // Optional metadata field for extra details
     metadata: json('metadata').$type<{ notes?: string }>().default({}),
-
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   table => [
-    // Optional foreign key constraints (if needed) for userId can be defined here.
     foreignKey({
       columns: [table.userId],
       foreignColumns: [allUsers.id],
@@ -1185,7 +709,6 @@ export const familyMember = pgTable(
   ]
 );
 
-// Gallery tables for gallery functionality
 export const galleries = pgTable(
   'gallery',
   {
@@ -1200,14 +723,12 @@ export const galleries = pgTable(
     isPublic: boolean('is_public').default(false).notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
-    // Storage status fields
-    totalMemories: integer('total_memories').default(0), // Total number of memories in this gallery
-    storageLocations: storage_backend_t('storage_locations').array().default([]), // All storage backends used by memories in this gallery
-    averageStorageDuration: integer('average_storage_duration'), // Average duration in days, null if all permanent
-    storageDistribution: json('storage_distribution').$type<Record<string, number>>().default({}), // Count of memories per storage backend
+    totalMemories: integer('total_memories').default(0),
+    storageLocations: storage_backend_t('storage_locations').array().default([]),
+    averageStorageDuration: integer('average_storage_duration'),
+    storageDistribution: json('storage_distribution').$type<Record<string, number>>().default({}),
   },
   table => [
-    // Storage status indexes
     index('galleries_storage_locations_idx').on(table.storageLocations),
     index('galleries_storage_duration_idx').on(table.averageStorageDuration),
   ]
@@ -1223,7 +744,7 @@ export const galleryItems = pgTable(
       .notNull()
       .references(() => galleries.id, { onDelete: 'cascade' }),
     memoryId: uuid('memory_id').notNull(),
-    memoryType: text('memory_type', { enum: MEMORY_TYPES }).notNull(), // 'image' | 'video' | 'document' | 'note' | 'audio'
+    memoryType: text('memory_type', { enum: MEMORY_TYPES }).notNull(),
     position: integer('position').notNull(),
     caption: text('caption'),
     isFeatured: boolean('is_featured').default(false).notNull(),
@@ -1232,95 +753,22 @@ export const galleryItems = pgTable(
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
   t => [
-    // Fast ordering inside a gallery
     index('gallery_items_gallery_position_idx').on(t.galleryId, t.position),
-    // Prevent duplicates of same memory in the same gallery
     uniqueIndex('gallery_items_gallery_memory_uq').on(t.galleryId, t.memoryId, t.memoryType),
-    // Quickly find all galleries for a memory
     index('gallery_items_by_memory_idx').on(t.memoryId, t.memoryType),
   ]
 );
 
-// Type inference helpers
-export type DBUser = typeof users.$inferSelect;
-export type NewDBUser = typeof users.$inferInsert;
-
-export type DBAllUser = typeof allUsers.$inferSelect;
-export type NewDBAllUser = typeof allUsers.$inferInsert;
-
-export type DBTemporaryUser = typeof temporaryUsers.$inferSelect;
-export type NewDBTemporaryUser = typeof temporaryUsers.$inferInsert;
-
-export type DBAccount = typeof accounts.$inferSelect;
-export type NewDBAccount = typeof accounts.$inferInsert;
-
-export type DBSession = typeof sessions.$inferSelect;
-export type NewDBSession = typeof sessions.$inferInsert;
-
-// Old per-type table types removed - replaced by unified memory types
-
-export type DBMemoryShare = typeof memoryShares.$inferSelect;
-export type NewDBMemoryShare = typeof memoryShares.$inferInsert;
-
-export type DBGroup = typeof group.$inferSelect;
-export type NewDBGroup = typeof group.$inferInsert;
-
-export type DBGroupMember = typeof groupMember.$inferSelect;
-export type NewDBGroupMember = typeof groupMember.$inferInsert;
-
-// DBVideo types removed - replaced by unified memory types
-
-export type DBGallery = typeof galleries.$inferSelect;
-export type NewDBGallery = typeof galleries.$inferInsert;
-
-// Gallery sharing table - similar to memoryShares but for galleries
-export const galleryShares = pgTable('gallery_share', {
-  id: text('id')
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  galleryId: text('gallery_id')
-    .notNull()
-    .references(() => galleries.id, { onDelete: 'cascade' }),
-  ownerId: text('owner_id') // The user who owns the gallery
-    .notNull()
-    .references(() => allUsers.id, { onDelete: 'cascade' }),
-
-  sharedWithType: text('shared_with_type', {
-    enum: ['user', 'group', 'relationship'],
-  }).notNull(),
-
-  sharedWithId: text('shared_with_id') // For direct user sharing
-    .references(() => allUsers.id, { onDelete: 'cascade' }),
-  groupId: text('group_id') // For group sharing
-    .references(() => group.id, { onDelete: 'cascade' }),
-  sharedRelationshipType: text('shared_relationship_type', {
-    // For relationship-based sharing
-    enum: SHARING_RELATIONSHIP_TYPES,
-  }),
-
-  accessLevel: text('access_level', { enum: ACCESS_LEVELS }).default('read').notNull(),
-  inviteeSecureCode: text('invitee_secure_code').notNull(), // For invitee to access the gallery
-  inviteeSecureCodeCreatedAt: timestamp('secure_code_created_at', { mode: 'date' }).notNull().defaultNow(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-});
-
-export type DBGalleryItem = typeof galleryItems.$inferSelect;
-export type NewDBGalleryItem = typeof galleryItems.$inferInsert;
-
-export type DBGalleryShare = typeof galleryShares.$inferSelect;
-export type NewDBGalleryShare = typeof galleryShares.$inferInsert;
-
-// Internet Identity nonce table for canister-first signup
 export const iiNonces = pgTable(
   'ii_nonce',
   {
     id: text('id')
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
-    nonceHash: text('nonce_hash').notNull(), // SHA-256 hash of the actual nonce
+    nonceHash: text('nonce_hash').notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     expiresAt: timestamp('expires_at', { mode: 'date' }).notNull(),
-    usedAt: timestamp('used_at', { mode: 'date' }), // null = unused, timestamp = used
+    usedAt: timestamp('used_at', { mode: 'date' }),
     context: json('context')
       .$type<{
         callbackUrl?: string;
@@ -1331,36 +779,27 @@ export const iiNonces = pgTable(
       .default({}),
   },
   table => [
-    // Index for fast lookup by hash
     index('ii_nonces_hash_idx').on(table.nonceHash),
-    // Index for cleanup of expired nonces
     index('ii_nonces_expires_idx').on(table.expiresAt),
-    // Index for stats queries on usedAt
     index('ii_nonces_used_idx').on(table.usedAt),
-    // Composite index for active nonce lookups (usedAt IS NULL AND expiresAt > now)
     index('ii_nonces_active_idx').on(table.usedAt, table.expiresAt),
-    // Index for rate limiting queries on createdAt
     index('ii_nonces_created_idx').on(table.createdAt),
   ]
 );
 
-export type DBIINonce = typeof iiNonces.$inferSelect;
-export type NewDBIINonce = typeof iiNonces.$inferInsert;
-
-// Storage Edges Table - Track storage presence per memory artifact and backend
 export const storageEdges = pgTable(
   'storage_edges',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    memoryId: uuid('memory_id').notNull(), // References memories.id
-    memoryType: memory_type_t('memory_type').notNull(), // 'image' | 'video' | 'note' | 'document' | 'audio'
-    artifact: artifact_t('artifact').notNull(), // 'metadata' | 'asset'
-    backend: backend_t('backend').notNull(), // 'neon-db' | 'vercel-blob' | 'icp-canister'
+    memoryId: uuid('memory_id').notNull(),
+    memoryType: memory_type_t('memory_type').notNull(),
+    artifact: artifact_t('artifact').notNull(),
+    backend: storage_backend_t('backend').notNull(),
     present: boolean('present').notNull().default(false),
-    location: text('location'), // blob key / icp path / etc.
-    contentHash: text('content_hash'), // SHA-256 for assets
+    location: text('location'),
+    contentHash: text('content_hash'),
     sizeBytes: bigint('size_bytes', { mode: 'number' }),
-    syncState: sync_t('sync_state').notNull().default('idle'), // 'idle' | 'migrating' | 'failed'
+    syncState: sync_t('sync_state').notNull().default('idle'),
     lastSyncedAt: timestamp('last_synced_at', { mode: 'date' }),
     syncError: text('sync_error'),
     createdAt: timestamp('created_at', { mode: 'date' }).defaultNow(),
@@ -1374,24 +813,18 @@ export const storageEdges = pgTable(
   ]
 );
 
-export type DBStorageEdge = typeof storageEdges.$inferSelect;
-export type NewDBStorageEdge = typeof storageEdges.$inferInsert;
-
-// Memory Metadata Table - stores universal metadata and processing status
 export const memoryMetadata = pgTable(
   'memory_metadata',
   {
     id: uuid('id').primaryKey().defaultRandom(),
     memoryId: uuid('memory_id').notNull(),
     memoryType: memory_type_t('memory_type').notNull(),
-    // Universal metadata that applies to all memory types
     universalData: json('universal_data').$type<{
       gps?: {
         latitude?: number;
         longitude?: number;
         altitude?: number;
       };
-      // Add other universal fields as needed
     }>(),
     processingStatus: processing_status_t('processing_status').default('pending').notNull(),
     processingError: text('processing_error'),
@@ -1404,11 +837,6 @@ export const memoryMetadata = pgTable(
     index('memory_metadata_status_idx').on(table.processingStatus),
   ]
 );
-
-// NOTE: Views are created/updated ONLY via SQL migrations.
-// These helpers are read-only projections for typing & autocompletion.
-
-// Note: Memory and Gallery presence views have been replaced with direct fields in the tables
 
 export type DBSyncStatus = {
   memory_id: string;
@@ -1424,48 +852,14 @@ export type DBSyncStatus = {
   is_stuck: boolean;
 };
 
-// Read-only bindings for views (defined in migrations):
-// These are NOT DDL; just typed selectors for application code.
-
 export const syncStatus = sql<DBSyncStatus>`SELECT * FROM sync_status`.as('sync_status');
-
-// Helper functions for common queries
-
 export const getSyncStatusByState = (syncState: 'migrating' | 'failed') =>
   sql<DBSyncStatus>`SELECT * FROM sync_status WHERE sync_state = ${syncState}`;
-
 export const getStuckSyncs = () => sql<DBSyncStatus>`SELECT * FROM sync_status WHERE is_stuck = true`;
-
 export const getSyncStatusByBackend = (backend: 'neon-db' | 'vercel-blob' | 'icp-canister') =>
   sql<DBSyncStatus>`SELECT * FROM sync_status WHERE backend = ${backend}`;
 
-/**
- * DRIZZLE RELATIONS - Define object-like access to related data
- *
- * These relations make it easy to query memories with their related assets,
- * making the composition clear and enabling clean, object-like queries.
- *
- * RELATIONSHIPS:
- * - memories (1) ↔ (many) memoryAssets
- * - memoryAssets (many) ↔ (1) memories
- *
- * USAGE EXAMPLES:
- * ```typescript
- * // Get memory with all assets (object-like access)
- * const memory = await db.query.memories.findFirst({
- *   where: eq(memories.id, memoryId),
- *   with: { assets: true }
- * });
- * // Result: memory.assets is an array of MemoryAsset[]
- *
- * // Get asset with its parent memory
- * const asset = await db.query.memoryAssets.findFirst({
- *   where: eq(memoryAssets.id, assetId),
- *   with: { memory: true }
- * });
- * // Result: asset.memory is the parent Memory object
- * ```
- */
+// Drizzle Relations
 export const memoriesRelations = relations(memories, ({ many, one }) => ({
   assets: many(memoryAssets),
   people: many(peopleInMemories),
@@ -1484,7 +878,6 @@ export const memoryAssetsRelations = relations(memoryAssets, ({ one }) => ({
   }),
 }));
 
-// Folder relations
 export const foldersRelations = relations(folders, ({ one, many }) => ({
   owner: one(allUsers, {
     fields: [folders.ownerId],
@@ -1498,7 +891,6 @@ export const foldersRelations = relations(folders, ({ one, many }) => ({
   memories: many(memories),
 }));
 
-// Detail table relations (1:1 with memories)
 export const imageDetailsRelations = relations(imageDetails, ({ one }) => ({
   memory: one(memories, {
     fields: [imageDetails.memoryId],
@@ -1534,7 +926,6 @@ export const noteDetailsRelations = relations(noteDetails, ({ one }) => ({
   }),
 }));
 
-// People in memories relations
 export const peopleInMemoriesRelations = relations(peopleInMemories, ({ one }) => ({
   memory: one(memories, {
     fields: [peopleInMemories.memoryId],
@@ -1546,7 +937,6 @@ export const peopleInMemoriesRelations = relations(peopleInMemories, ({ one }) =
   }),
 }));
 
-// Memory likes relations
 export const memoryLikesRelations = relations(memoryLikes, ({ one }) => ({
   memory: one(memories, {
     fields: [memoryLikes.memoryId],
@@ -1558,7 +948,6 @@ export const memoryLikesRelations = relations(memoryLikes, ({ one }) => ({
   }),
 }));
 
-// Memory comments relations
 export const memoryCommentsRelations = relations(memoryComments, ({ one, many }) => ({
   memory: one(memories, {
     fields: [memoryComments.memoryId],
@@ -1575,7 +964,6 @@ export const memoryCommentsRelations = relations(memoryComments, ({ one, many })
   replies: many(memoryComments),
 }));
 
-// Business relationship relations
 export const businessRelationshipRelations = relations(businessRelationship, ({ one }) => ({
   business: one(allUsers, {
     fields: [businessRelationship.businessId],
@@ -1587,413 +975,190 @@ export const businessRelationshipRelations = relations(businessRelationship, ({ 
   }),
 }));
 
-// Type helpers for the enums
-export type MemoryType = (typeof MEMORY_TYPES)[number];
-export type AccessLevel = (typeof ACCESS_LEVELS)[number];
-export type MemberRole = (typeof MEMBER_ROLES)[number];
-
-export type DBRelationship = typeof relationship.$inferSelect;
-export type DBFamilyRelationship = typeof familyRelationship.$inferSelect;
-export type DBBusinessRelationship = typeof businessRelationship.$inferSelect;
-export type NewDBBusinessRelationship = typeof businessRelationship.$inferInsert;
-
-// Memory Assets Types
-export type DBMemoryAsset = typeof memoryAssets.$inferSelect;
-export type NewDBMemoryAsset = typeof memoryAssets.$inferInsert;
-export type DBMemoryMetadata = typeof memoryMetadata.$inferSelect;
-export type NewDBMemoryMetadata = typeof memoryMetadata.$inferInsert;
-
-// New unified memory types
-export type DBMemory = typeof memories.$inferSelect;
-export type NewDBMemory = typeof memories.$inferInsert;
-
-// Memory with assets relationship
-export type DBMemoryWithAssets = DBMemory & {
-  assets: DBMemoryAsset[];
-};
-
-// Asset type helpers
-export type AssetType = (typeof asset_type_t.enumValues)[number];
-export type ProcessingStatus = (typeof processing_status_t.enumValues)[number];
-export type StorageBackend = (typeof storage_backend_t.enumValues)[number];
-
-// Folder types
-export type DBFolder = typeof folders.$inferSelect;
-export type NewDBFolder = typeof folders.$inferInsert;
-
-// Detail table types
-export type DBImageDetails = typeof imageDetails.$inferSelect;
-export type NewDBImageDetails = typeof imageDetails.$inferInsert;
-export type DBVideoDetails = typeof videoDetails.$inferSelect;
-export type NewDBVideoDetails = typeof videoDetails.$inferInsert;
-export type DBDocumentDetails = typeof documentDetails.$inferSelect;
-export type NewDBDocumentDetails = typeof documentDetails.$inferInsert;
-export type DBAudioDetails = typeof audioDetails.$inferSelect;
-export type NewDBAudioDetails = typeof audioDetails.$inferInsert;
-export type DBNoteDetails = typeof noteDetails.$inferSelect;
-export type NewDBNoteDetails = typeof noteDetails.$inferInsert;
-
-// Memory with all relationships
-export type DBMemoryWithDetails = DBMemory & {
-  assets: DBMemoryAsset[];
-  folder?: DBFolder | null;
-  imageDetails?: DBImageDetails | null;
-  videoDetails?: DBVideoDetails | null;
-  documentDetails?: DBDocumentDetails | null;
-  audioDetails?: DBAudioDetails | null;
-  noteDetails?: DBNoteDetails | null;
-};
-
 // Hosting Preferences Tables
-
-/**
- * USER HOSTING PREFERENCES - User's preferred hosting providers for different services
- * 
- * This table stores the user's preferred hosting providers for different parts of the application.
- * Each user must have preferences set for all four service categories.
- */
-export const userHostingPreferences = pgTable('user_hosting_preferences', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: text('user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  frontendHosting: frontend_hosting_t('frontend_hosting').default('vercel').notNull(),
-  backendHosting: backend_hosting_t('backend_hosting').default('vercel').notNull(),
-  databaseHosting: database_hosting_t('database_hosting').default('neon').notNull(),
-  blobHosting: blob_hosting_t('blob_hosting').default('vercel_blob').notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-}, (table) => ({
-  // Ensure one preference set per user
-  userIdIdx: uniqueIndex('user_hosting_preferences_user_id_idx').on(table.userId),
-}));
-
-/**
- * SERVICE DEPLOYMENTS - Tracks where user's services are actually deployed
- * 
- * This table tracks the actual deployment locations of a user's services.
- * It can have multiple entries per user to track deployment history.
- */
-export const serviceDeployments = pgTable('service_deployments', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: text('user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  
-  // Service locations - using the most specific enum for each
-  frontendLocation: frontend_hosting_t('frontend_location').notNull(),
-  backendLocation: backend_hosting_t('backend_location').notNull(),
-  databaseLocation: database_hosting_t('database_location').notNull(),
-  blobLocation: blob_hosting_t('blob_location').notNull(),
-  
-  // Deployment status
-  isActive: boolean('is_active').default(false).notNull(),
-  deployedAt: timestamp('deployed_at').defaultNow().notNull(),
-  lastCheckedAt: timestamp('last_checked_at'),
-  
-  // Additional metadata
-  deploymentMetadata: json('deployment_metadata')
-    .$type<{
-      version?: string;
-      region?: string;
-      url?: string;
-      status?: 'deploying' | 'active' | 'failed' | 'deleting' | 'migrating';
-      error?: string;
-      migration?: {
-        from: string; // deployment ID
-        startedAt: string;
-        progress?: number;
-      };
-    }>()
-    .default({}),
-    
-  // Timestamps
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-}, (table) => ({
-  // Index for looking up active deployments
-  activeDeploymentIdx: index('service_deployments_user_active_idx')
-    .on(table.userId, table.isActive),
-    
-  // Index for faster lookups by user
-  userIdx: index('service_deployments_user_idx')
-    .on(table.userId),
-}));
-
-// Temporary exports for backward compatibility during migration
-// TODO: Remove these once all files are updated to use the new unified schema
-export const images = memories;
-export const videos = memories;
-export const documents = memories;
-export const notes = memories;
-export const audio = memories;
-
-// Hosting preference types
-export type UserHostingPreference = typeof userHostingPreferences.$inferSelect;
-export type NewUserHostingPreference = typeof userHostingPreferences.$inferInsert;
-
-// Service deployment types
-export type ServiceDeployment = typeof serviceDeployments.$inferSelect;
-export type NewServiceDeployment = typeof serviceDeployments.$inferInsert;
-
-// Temporary type exports for backward compatibility
-export type DBImage = DBMemory;
-export type DBVideo = DBMemory;
-export type DBDocument = DBMemory;
-export type DBNote = DBMemory;
-export type DBAudio = DBMemory;
-export type NewDBImage = NewDBMemory;
-export type NewDBVideo = NewDBMemory;
-export type NewDBDocument = NewDBMemory;
-export type NewDBNote = NewDBMemory;
-export type NewDBAudio = NewDBMemory;
-
-// ==========================================
-// IDEMPOTENCY KEYS TABLE - Prevent duplicate operations
-// ==========================================
-// This table ensures that operations can be safely retried without side effects.
-// Used for uploads, deletions, and other operations that should be idempotent.
-//
-// COMPOSITION:
-// - Key: id (unique operation identifier)
-// - Operation: operation (type of operation)
-// - Status: status (pending, completed, failed)
-// - Result: result (JSON result of the operation if successful)
-// - Expiry: expiresAt (when the key should be considered expired)
-//
-// USAGE EXAMPLES:
-// ```typescript
-// // Check if operation was already performed
-// const existing = await db.query.idempotencyKeys.findFirst({
-//   where: (keys, { eq }) => eq(keys.id, operationId)
-// });
-// 
-// if (existing?.status === 'completed') {
-//   return existing.result; // Return cached result
-// }
-// ```
-//
-// TROUBLESHOOTING:
-// - If you get duplicate key errors, ensure you're using a unique operation ID
-// - If operations are being retried too aggressively, increase the expiry time
-// - If storage is growing too large, implement a cleanup job for expired keys
-// ==========================================
-export const idempotencyKeys = pgTable(
-  'idempotency_keys',
+export const userHostingPreferences = pgTable(
+  'user_hosting_preferences',
   {
-    // Core fields
-    id: text('id').primaryKey(), // Client-generated unique ID (e.g., UUID v4)
-    operation: text('operation').notNull(), // e.g., 'upload', 'delete', 'process'
-    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-    
-    // Status and result
-    status: text('status', { 
-      enum: ['pending', 'completed', 'failed'] 
-    }).notNull().default('pending'),
-    
-    // Operation context and result
-    requestParams: jsonb('request_params'), // Original request parameters
-    result: jsonb('result'), // Result of the operation if successful
-    error: jsonb('error'), // Error details if operation failed
-    
-    // Retry and concurrency control
-    attemptCount: integer('attempt_count').default(0).notNull(),
-    maxAttempts: integer('max_attempts').default(3).notNull(),
-    lastAttemptAt: timestamp('last_attempt_at'),
-    
-    // Time-based controls
-    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    frontendHosting: frontend_hosting_t('frontend_hosting').default('vercel').notNull(),
+    backendHosting: backend_hosting_t('backend_hosting').default('vercel').notNull(),
+    databaseHosting: database_hosting_t('database_hosting').default('neon').notNull(),
+    blobHosting: blob_hosting_t('blob_hosting').default('vercel_blob').notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
-    
-    // Locking for concurrent operations
-    lockedUntil: timestamp('locked_until'),
-    lockedBy: text('locked_by'), // Process/instance ID holding the lock
   },
-  (table) => ({
-    // Indexes for common queries
-    userStatusIdx: index('idempotency_keys_user_status_idx')
-      .on(table.userId, table.status, table.expiresAt),
-    
-    // Index for cleanup of expired keys
-    expiresAtIdx: index('idempotency_keys_expires_at_idx')
-      .on(table.expiresAt)
-      .where(sql`${table.status} != 'completed'`),
-    
-    // Constraint to ensure only one pending operation per key
-    uniquePendingOp: uniqueIndex('idempotency_keys_pending_uniq')
-      .on(table.id, table.status)
-      .where(sql`${table.status} = 'pending'`),
-    
-    // Check constraints for data integrity
-    checkStatus: check(
-      'idempotency_keys_status_check',
-      sql`(
-        (${table.status} = 'pending' AND ${table.lockedUntil} IS NOT NULL) OR 
-        (${table.status} IN ('completed', 'failed') AND ${table.lockedUntil} IS NULL)
-      )`
-    ),
-    
-    checkExpiry: check(
-      'idempotency_keys_expiry_check',
-      sql`${table.expiresAt} > ${table.createdAt}`
-    ),
-    
-    checkAttempts: check(
-      'idempotency_keys_attempts_check',
-      sql`${table.attemptCount} <= ${table.maxAttempts}`
-    ),
+  table => ({
+    userIdIdx: uniqueIndex('user_hosting_preferences_user_id_idx').on(table.userId),
   })
 );
 
-export type IdempotencyKey = typeof idempotencyKeys.$inferSelect;
-export type NewIdempotencyKey = typeof idempotencyKeys.$inferInsert;
+export const serviceDeployments = pgTable(
+  'service_deployments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    frontendLocation: frontend_hosting_t('frontend_location').notNull(),
+    backendLocation: backend_hosting_t('backend_location').notNull(),
+    databaseLocation: database_hosting_t('database_location').notNull(),
+    blobLocation: blob_hosting_t('blob_location').notNull(),
+    isActive: boolean('is_active').default(false).notNull(),
+    deployedAt: timestamp('deployed_at').defaultNow().notNull(),
+    lastCheckedAt: timestamp('last_checked_at'),
+    deploymentMetadata: json('deployment_metadata')
+      .$type<{
+        version?: string;
+        region?: string;
+        url?: string;
+        status?: 'deploying' | 'active' | 'failed' | 'deleting' | 'migrating';
+        error?: string;
+        migration?: {
+          from: string;
+          startedAt: string;
+          progress?: number;
+        };
+      }>()
+      .default({}),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  table => ({
+    activeDeploymentIdx: index('service_deployments_user_active_idx').on(table.userId, table.isActive),
+    userIdx: index('service_deployments_user_idx').on(table.userId),
+  })
+);
 
-// ==========================================
-// BACKGROUND JOBS TABLE - Track async operations
-// ==========================================
-// This table tracks background jobs for long-running operations like
-// asset processing, migration, and cleanup.
-//
-// COMPOSITION:
-// - Job metadata: id, type, status, priority, retryCount, maxRetries
-// - Progress tracking: progress, totalItems, processedItems
-// - Timing: createdAt, startedAt, completedAt, nextRetryAt
-// - Result/error: result, error
-// - Context: context (JSON)
-// ==========================================
+// Idempotency Keys Table
+export const idempotencyKeys = pgTable(
+  'idempotency_keys',
+  {
+    id: text('id').primaryKey(),
+    operation: text('operation').notNull(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    status: text('status', {
+      enum: ['pending', 'completed', 'failed'],
+    })
+      .notNull()
+      .default('pending'),
+    requestParams: jsonb('request_params'),
+    result: jsonb('result'),
+    error: jsonb('error'),
+    attemptCount: integer('attempt_count').default(0).notNull(),
+    maxAttempts: integer('max_attempts').default(3).notNull(),
+    lastAttemptAt: timestamp('last_attempt_at'),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+    lockedUntil: timestamp('locked_until'),
+    lockedBy: text('locked_by'),
+  },
+  table => ({
+    userStatusIdx: index('idempotency_keys_user_status_idx').on(table.userId, table.status, table.expiresAt),
+    expiresAtIdx: index('idempotency_keys_expires_at_idx')
+      .on(table.expiresAt)
+      .where(sql`${table.status} != 'completed'`),
+    uniquePendingOp: uniqueIndex('idempotency_keys_pending_uniq')
+      .on(table.id, table.status)
+      .where(sql`${table.status} = 'pending'`),
+    checkStatus: check(
+      'idempotency_keys_status_check',
+      sql`(
+        (${table.status} = 'pending' AND ${table.lockedUntil} IS NOT NULL) OR
+        (${table.status} IN ('completed', 'failed') AND ${table.lockedUntil} IS NULL)
+      )`
+    ),
+    checkExpiry: check('idempotency_keys_expiry_check', sql`${table.expiresAt} > ${table.createdAt}`),
+    checkAttempts: check('idempotency_keys_attempts_check', sql`${table.attemptCount} <= ${table.maxAttempts}`),
+  })
+);
+
+// Background Jobs Table
 export const backgroundJobs = pgTable(
   'background_jobs',
   {
-    // Core fields
     id: uuid('id').primaryKey().defaultRandom(),
-    type: text('type').notNull(), // 'asset_processing', 'migration', 'cleanup', etc.
-    status: text('status', { 
-      enum: ['pending', 'running', 'completed', 'failed', 'retry', 'cancelled'] 
-    }).notNull().default('pending'),
-    
-    // Priority and scheduling
-    priority: integer('priority').default(0).notNull(), // Higher = more important
+    type: text('type').notNull(),
+    status: text('status', {
+      enum: ['pending', 'running', 'completed', 'failed', 'retry', 'cancelled'],
+    })
+      .notNull()
+      .default('pending'),
+    priority: integer('priority').default(0).notNull(),
     scheduledAt: timestamp('scheduled_at').defaultNow().notNull(),
-    runAt: timestamp('run_at'), // When the job should run (for delayed jobs)
-    
-    // Progress tracking
-    progress: integer('progress').default(0), // 0-100
+    runAt: timestamp('run_at'),
+    progress: integer('progress').default(0),
     totalItems: integer('total_items'),
     processedItems: integer('processed_items').default(0),
-    
-    // Result and error handling
     result: jsonb('result'),
     error: jsonb('error'),
-    
-    // Retry logic
     retryCount: integer('retry_count').default(0).notNull(),
     maxRetries: integer('max_retries').default(3).notNull(),
     lastError: text('last_error'),
     nextRetryAt: timestamp('next_retry_at'),
-    
-    // Context and metadata
-    context: jsonb('context').default({}), // Job-specific context
-    createdBy: text('created_by'), // User ID or system component
-    
-    // Timestamps
+    context: jsonb('context').default({}),
+    createdBy: text('created_by'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
     startedAt: timestamp('started_at'),
     completedAt: timestamp('completed_at'),
   },
-  (table) => ({
-    // Index for job scheduling
-    statusRunAtIdx: index('background_jobs_status_run_at_idx')
-      .on(table.status, table.runAt, table.priority.desc()),
-    
-    // Index for cleanup of old jobs
-    createdAtIdx: index('background_jobs_created_at_idx')
-      .on(table.createdAt),
-    
-    // Index for finding jobs by type and status
-    typeStatusIdx: index('background_jobs_type_status_idx')
-      .on(table.type, table.status, table.scheduledAt),
-    
-    // Check constraints
-    checkProgress: check(
-      'background_jobs_progress_check',
-      sql`${table.progress} >= 0 AND ${table.progress} <= 100`
-    ),
-    
-    checkRetries: check(
-      'background_jobs_retries_check',
-      sql`${table.retryCount} <= ${table.maxRetries}`
-    ),
-    
+  table => ({
+    statusRunAtIdx: index('background_jobs_status_run_at_idx').on(table.status, table.runAt, table.priority.desc()),
+    createdAtIdx: index('background_jobs_created_at_idx').on(table.createdAt),
+    typeStatusIdx: index('background_jobs_type_status_idx').on(table.type, table.status, table.scheduledAt),
+    checkProgress: check('background_jobs_progress_check', sql`${table.progress} >= 0 AND ${table.progress} <= 100`),
+    checkRetries: check('background_jobs_retries_check', sql`${table.retryCount} <= ${table.maxRetries}`),
     checkTiming: check(
       'background_jobs_timing_check',
       sql`(
         (${table.status} = 'pending' AND ${table.startedAt} IS NULL) OR
         (${table.status} = 'running' AND ${table.startedAt} IS NOT NULL) OR
-        (${table.status} IN ('completed', 'failed', 'cancelled') AND 
-         ${table.startedAt} IS NOT NULL AND 
+        (${table.status} IN ('completed', 'failed', 'cancelled') AND
+         ${table.startedAt} IS NOT NULL AND
          ${table.completedAt} IS NOT NULL)
       )`
     ),
   })
 );
 
-export type BackgroundJob = typeof backgroundJobs.$inferSelect;
-export type NewBackgroundJob = typeof backgroundJobs.$inferInsert;
-
-// ==========================================
-// S3 CONFIGURATIONS TABLE - Store S3 credentials
-// ==========================================
-// This table stores S3-compatible storage configurations for users.
-// Each user can have multiple storage configurations.
-// ==========================================
+// S3 Configurations Table
 export const s3Configurations = pgTable(
   's3_configurations',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-    
-    // Connection details
-    name: text('name').notNull(), // User-defined name for this config
-    endpoint: text('endpoint').notNull(), // e.g., 's3.amazonaws.com' or 'minio:9000'
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    endpoint: text('endpoint').notNull(),
     region: text('region').notNull(),
     bucket: text('bucket').notNull(),
     accessKeyId: text('access_key_id').notNull(),
     secretAccessKey: text('secret_access_key').notNull(),
-    
-    // Advanced options
-    pathStyle: boolean('path_style').default(false), // Use path-style access
+    pathStyle: boolean('path_style').default(false),
     sslEnabled: boolean('ssl_enabled').default(true),
-    port: integer('port'), // Custom port if not standard (80/443)
-    
-    // Validation and status
+    port: integer('port'),
     isValid: boolean('is_valid').default(false),
     lastValidatedAt: timestamp('last_validated_at'),
     validationError: text('validation_error'),
-    
-    // Usage statistics
     totalAssets: integer('total_assets').default(0),
     totalBytes: bigint('total_bytes', { mode: 'number' }).default(0),
-    
-    // Metadata
-    isDefault: boolean('is_default').default(false), // Default config for the user
-    tags: jsonb('tags').default({}), // Custom tags for filtering/organization
-    
-    // Timestamps
+    isDefault: boolean('is_default').default(false),
+    tags: jsonb('tags').default({}),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
-  (table) => ({
-    // Index for looking up user's configs
+  table => ({
     userIdx: index('s3_configs_user_idx').on(table.userId, table.isDefault.desc()),
-    
-    // Ensure only one default per user
     uniqueDefaultPerUser: uniqueIndex('s3_configs_user_default_uniq')
       .on(table.userId, table.isDefault)
       .where(sql`${table.isDefault} = true`),
-    
-    // Check constraints
     checkPort: check(
       's3_configs_port_check',
       sql`${table.port} IS NULL OR (${table.port} > 0 AND ${table.port} <= 65535)`
@@ -2001,204 +1166,123 @@ export const s3Configurations = pgTable(
   })
 );
 
-export type S3Configuration = typeof s3Configurations.$inferSelect;
-export type NewS3Configuration = typeof s3Configurations.$inferInsert;
-
-// ==========================================
-// ASSET DELETE JOBS TABLE - Track asset deletion
-// ==========================================
-// This table tracks the deletion of assets across multiple storage backends.
-// It implements a two-phase deletion pattern for reliability.
-// ==========================================
+// Asset Delete Jobs Table
 export const assetDeleteJobs = pgTable(
   'asset_delete_jobs',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-    
-    // Status and progress
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     status: text('status', {
-      enum: ['pending', 'processing', 'completed', 'failed', 'partially_failed']
-    }).notNull().default('pending'),
-    
-    // What to delete
-    assetIds: uuid('asset_ids').array().notNull(), // Array of memory_assets.id to delete
-    storageBackend: storage_backend_t('storage_backend').notNull(), // Which backend to delete from
-    
-    // Progress tracking
+      enum: ['pending', 'processing', 'completed', 'failed', 'partially_failed'],
+    })
+      .notNull()
+      .default('pending'),
+    assetIds: uuid('asset_ids').array().notNull(),
+    storageBackend: storage_backend_t('storage_backend').notNull(),
     totalAssets: integer('total_assets').notNull(),
     processedAssets: integer('processed_assets').default(0).notNull(),
     failedAssets: integer('failed_assets').default(0).notNull(),
-    
-    // Results and errors
-    results: jsonb('results'), // Detailed results per asset
-    error: text('error'), // Global error if the entire job failed
-    
-    // Retry logic
+    results: jsonb('results'),
+    error: text('error'),
     retryCount: integer('retry_count').default(0).notNull(),
     maxRetries: integer('max_retries').default(3).notNull(),
     nextRetryAt: timestamp('next_retry_at'),
-    
-    // Timestamps
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
     startedAt: timestamp('started_at'),
     completedAt: timestamp('completed_at'),
   },
-  (table) => ({
-    // Index for finding pending jobs
-    statusIdx: index('asset_delete_jobs_status_idx')
-      .on(table.status, table.nextRetryAt),
-    
-    // Index for finding jobs by user
-    userIdx: index('asset_delete_jobs_user_idx')
-      .on(table.userId, table.createdAt.desc()),
-    
-    // Check constraints
+  table => ({
+    statusIdx: index('asset_delete_jobs_status_idx').on(table.status, table.nextRetryAt),
+    userIdx: index('asset_delete_jobs_user_idx').on(table.userId, table.createdAt.desc()),
     checkCounts: check(
       'asset_delete_jobs_counts_check',
       sql`${table.processedAssets} + ${table.failedAssets} <= ${table.totalAssets}`
     ),
-    
     checkStatus: check(
       'asset_delete_jobs_status_check',
       sql`(
         (${table.status} = 'pending' AND ${table.startedAt} IS NULL) OR
         (${table.status} = 'processing' AND ${table.startedAt} IS NOT NULL) OR
-        (${table.status} IN ('completed', 'failed', 'partially_failed') AND 
+        (${table.status} IN ('completed', 'failed', 'partially_failed') AND
          ${table.startedAt} IS NOT NULL)
       )`
     ),
   })
 );
 
-export type AssetDeleteJob = typeof assetDeleteJobs.$inferSelect;
-export type NewAssetDeleteJob = typeof assetDeleteJobs.$inferInsert;
-
-// ==========================================
-// BLOBS TABLE - Track blob storage
-// ==========================================
-// This table tracks blobs stored in various storage backends.
-// It's used for deduplication and reference counting.
-// ==========================================
+// Blobs Table
 export const blobs = pgTable(
   'blobs',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    
-    // Content identification
-    contentHash: text('content_hash').notNull(), // SHA-256 of the content
+    contentHash: text('content_hash').notNull(),
     sizeBytes: bigint('size_bytes', { mode: 'number' }).notNull(),
     mimeType: text('mime_type'),
-    
-    // Storage location
     storageBackend: storage_backend_t('storage_backend').notNull(),
-    storageKey: text('storage_key').notNull(), // Unique key in the storage backend
-    storageBucket: text('storage_bucket'), // Bucket/container name
-    
-    // Reference counting
+    storageKey: text('storage_key').notNull(),
+    storageBucket: text('storage_bucket'),
     referenceCount: integer('reference_count').default(1).notNull(),
-    
-    // Access control
     isPublic: boolean('is_public').default(false).notNull(),
-    
-    // Metadata
     metadata: jsonb('metadata').default({}),
-    
-    // Timestamps
     createdAt: timestamp('created_at').defaultNow().notNull(),
     lastAccessedAt: timestamp('last_accessed_at').defaultNow().notNull(),
-    expiresAt: timestamp('expires_at'), // For temporary blobs
+    expiresAt: timestamp('expires_at'),
   },
-  (table) => ({
-    // Index for deduplication
-    contentHashIdx: uniqueIndex('blobs_content_hash_idx')
-      .on(table.contentHash, table.storageBackend),
-    
-    // Index for finding blobs by storage location
-    storageIdx: index('blobs_storage_idx')
-      .on(table.storageBackend, table.storageKey, table.storageBucket),
-    
-    // Index for cleanup of unreferenced blobs
+  table => ({
+    contentHashIdx: uniqueIndex('blobs_content_hash_idx').on(table.contentHash, table.storageBackend),
+    storageIdx: index('blobs_storage_idx').on(table.storageBackend, table.storageKey, table.storageBucket),
     refCountIdx: index('blobs_ref_count_idx')
       .on(table.referenceCount, table.lastAccessedAt)
       .where(sql`${table.referenceCount} <= 0`),
-    
-    // Index for finding expired blobs
     expiresAtIdx: index('blobs_expires_at_idx')
       .on(table.expiresAt)
       .where(sql`${table.expiresAt} IS NOT NULL`),
   })
 );
 
-export type Blob = typeof blobs.$inferSelect;
-export type NewBlob = typeof blobs.$inferInsert;
-
-// ==========================================
-// UPLOAD SESSIONS TABLE - Track file uploads
-// ==========================================
-// This table tracks file uploads in progress, supporting
-// resumable uploads and chunked file transfers.
-// ==========================================
+// Upload Sessions Table
 export const uploadSessions = pgTable(
   'upload_sessions',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-    
-    // File information
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     fileName: text('file_name').notNull(),
     fileSize: bigint('file_size', { mode: 'number' }).notNull(),
     fileType: text('file_type').notNull(),
-    
-    // Upload status
     status: text('status', {
-      enum: ['pending', 'uploading', 'processing', 'completed', 'failed', 'aborted']
-    }).notNull().default('pending'),
-    
-    // Chunked upload support
-    chunkSize: integer('chunk_size'), // Size of each chunk in bytes
-    totalChunks: integer('total_chunks'), // Total number of chunks
+      enum: ['pending', 'uploading', 'processing', 'completed', 'failed', 'aborted'],
+    })
+      .notNull()
+      .default('pending'),
+    chunkSize: integer('chunk_size'),
+    totalChunks: integer('total_chunks'),
     uploadedChunks: integer('uploaded_chunks').default(0).notNull(),
-    
-    // Storage information
     storageBackend: storage_backend_t('storage_backend').notNull(),
-    storageKey: text('storage_key'), // Final storage key (set on completion)
-    
-    // Content verification
-    contentHash: text('content_hash'), // SHA-256 of the complete file
-    
-    // Error handling
+    storageKey: text('storage_key'),
+    contentHash: text('content_hash'),
     error: text('error'),
-    
-    // Metadata
     metadata: jsonb('metadata').default({}),
-    
-    // Timestamps
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
-    expiresAt: timestamp('expires_at').notNull(), // When the upload session expires
+    expiresAt: timestamp('expires_at').notNull(),
   },
-  (table) => ({
-    // Index for finding active uploads
-    userStatusIdx: index('upload_sessions_user_status_idx')
-      .on(table.userId, table.status, table.expiresAt),
-    
-    // Index for cleanup of expired sessions
-    expiresAtIdx: index('upload_sessions_expires_at_idx')
-      .on(table.expiresAt),
-    
-    // Check constraints
+  table => ({
+    userStatusIdx: index('upload_sessions_user_status_idx').on(table.userId, table.status, table.expiresAt),
+    expiresAtIdx: index('upload_sessions_expires_at_idx').on(table.expiresAt),
     checkChunks: check(
       'upload_sessions_chunks_check',
       sql`(
-        ${table.chunkSize} IS NULL OR 
-        (${table.chunkSize} > 0 AND 
-         ${table.totalChunks} IS NOT NULL AND 
+        ${table.chunkSize} IS NULL OR
+        (${table.chunkSize} > 0 AND
+         ${table.totalChunks} IS NOT NULL AND
          ${table.uploadedChunks} <= ${table.totalChunks})
       )`
     ),
-    
     checkStatus: check(
       'upload_sessions_status_check',
       sql`(
@@ -2209,58 +1293,131 @@ export const uploadSessions = pgTable(
   })
 );
 
-export type UploadSession = typeof uploadSessions.$inferSelect;
-export type NewUploadSession = typeof uploadSessions.$inferInsert;
-
-// ==========================================
-// UPLOAD CHUNKS TABLE - Track uploaded chunks
-// ==========================================
-// This table tracks individual chunks of file uploads for resumable uploads.
-// ==========================================
+// Upload Chunks Table
 export const uploadChunks = pgTable(
   'upload_chunks',
   {
     uploadSessionId: uuid('upload_session_id')
       .notNull()
       .references(() => uploadSessions.id, { onDelete: 'cascade' }),
-    
-    // Chunk information
-    chunkNumber: integer('chunk_number').notNull(), // 1-based index
-    chunkSize: integer('chunk_size').notNull(), // Size of this chunk in bytes
-    
-    // Storage information
+    chunkNumber: integer('chunk_number').notNull(),
+    chunkSize: integer('chunk_size').notNull(),
     storageBackend: storage_backend_t('storage_backend').notNull(),
-    storageKey: text('storage_key').notNull(), // Where this chunk is stored
-    
-    // Content verification
-    contentHash: text('content_hash'), // SHA-256 of this chunk
-    
-    // Status
+    storageKey: text('storage_key').notNull(),
+    contentHash: text('content_hash'),
     status: text('status', {
-      enum: ['pending', 'uploaded', 'verified', 'failed']
-    }).notNull().default('pending'),
-    
-    // Error information if upload failed
+      enum: ['pending', 'uploaded', 'verified', 'failed'],
+    })
+      .notNull()
+      .default('pending'),
     error: text('error'),
-    
-    // Timestamps
     uploadedAt: timestamp('uploaded_at'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
-  (table) => ({
-    // Composite primary key
+  table => ({
     pk: primaryKey(table.uploadSessionId, table.chunkNumber),
-    
-    // Index for finding chunks by session and status
-    sessionStatusIdx: index('upload_chunks_session_status_idx')
-      .on(table.uploadSessionId, table.status, table.chunkNumber),
-    
-    // Index for finding chunks by storage location
-    storageIdx: index('upload_chunks_storage_idx')
-      .on(table.storageBackend, table.storageKey),
+    sessionStatusIdx: index('upload_chunks_session_status_idx').on(
+      table.uploadSessionId,
+      table.status,
+      table.chunkNumber
+    ),
+    storageIdx: index('upload_chunks_storage_idx').on(table.storageBackend, table.storageKey),
   })
 );
 
+// Type inference helpers
+export type DBUser = typeof users.$inferSelect;
+export type NewDBUser = typeof users.$inferInsert;
+export type DBAllUser = typeof allUsers.$inferSelect;
+export type NewDBAllUser = typeof allUsers.$inferInsert;
+export type DBTemporaryUser = typeof temporaryUsers.$inferSelect;
+export type NewDBTemporaryUser = typeof temporaryUsers.$inferInsert;
+export type DBAccount = typeof accounts.$inferSelect;
+export type NewDBAccount = typeof accounts.$inferInsert;
+export type DBSession = typeof sessions.$inferSelect;
+export type NewDBSession = typeof sessions.$inferInsert;
+export type DBMemoryShare = typeof memoryShares.$inferSelect;
+export type NewDBMemoryShare = typeof memoryShares.$inferInsert;
+export type DBGroup = typeof group.$inferSelect;
+export type NewDBGroup = typeof group.$inferInsert;
+export type DBGroupMember = typeof groupMember.$inferSelect;
+export type NewDBGroupMember = typeof groupMember.$inferInsert;
+export type DBGallery = typeof galleries.$inferSelect;
+export type NewDBGallery = typeof galleries.$inferInsert;
+export type DBGalleryItem = typeof galleryItems.$inferSelect;
+export type NewDBGalleryItem = typeof galleryItems.$inferInsert;
+export type DBGalleryShare = typeof galleryShares.$inferSelect;
+export type NewDBGalleryShare = typeof galleryShares.$inferInsert;
+export type DBIINonce = typeof iiNonces.$inferSelect;
+export type NewDBIINonce = typeof iiNonces.$inferInsert;
+export type DBStorageEdge = typeof storageEdges.$inferSelect;
+export type NewDBStorageEdge = typeof storageEdges.$inferInsert;
+export type DBMemoryMetadata = typeof memoryMetadata.$inferSelect;
+export type NewDBMemoryMetadata = typeof memoryMetadata.$inferInsert;
+export type DBMemory = typeof memories.$inferSelect;
+export type NewDBMemory = typeof memories.$inferInsert;
+export type DBMemoryAsset = typeof memoryAssets.$inferSelect;
+export type NewDBMemoryAsset = typeof memoryAssets.$inferInsert;
+export type DBMemoryWithAssets = DBMemory & {
+  assets: DBMemoryAsset[];
+};
+export type AssetType = (typeof asset_type_t.enumValues)[number];
+export type ProcessingStatus = (typeof processing_status_t.enumValues)[number];
+export type StorageBackend = (typeof storage_backend_t.enumValues)[number];
+export type DBFolder = typeof folders.$inferSelect;
+export type NewDBFolder = typeof folders.$inferInsert;
+export type DBImageDetails = typeof imageDetails.$inferSelect;
+export type NewDBImageDetails = typeof imageDetails.$inferInsert;
+export type DBVideoDetails = typeof videoDetails.$inferSelect;
+export type NewDBVideoDetails = typeof videoDetails.$inferInsert;
+export type DBDocumentDetails = typeof documentDetails.$inferSelect;
+export type NewDBDocumentDetails = typeof documentDetails.$inferInsert;
+export type DBAudioDetails = typeof audioDetails.$inferSelect;
+export type NewDBAudioDetails = typeof audioDetails.$inferInsert;
+export type DBNoteDetails = typeof noteDetails.$inferSelect;
+export type NewDBNoteDetails = typeof noteDetails.$inferInsert;
+export type DBMemoryWithDetails = DBMemory & {
+  assets: DBMemoryAsset[];
+  folder?: DBFolder | null;
+  imageDetails?: DBImageDetails | null;
+  videoDetails?: DBVideoDetails | null;
+  documentDetails?: DBDocumentDetails | null;
+  audioDetails?: DBAudioDetails | null;
+  noteDetails?: DBNoteDetails | null;
+};
+export type DBRelationship = typeof relationship.$inferSelect;
+export type DBFamilyRelationship = typeof familyRelationship.$inferSelect;
+export type DBBusinessRelationship = typeof businessRelationship.$inferSelect;
+export type NewDBBusinessRelationship = typeof businessRelationship.$inferInsert;
+export type UserHostingPreference = typeof userHostingPreferences.$inferSelect;
+export type NewUserHostingPreference = typeof userHostingPreferences.$inferInsert;
+export type ServiceDeployment = typeof serviceDeployments.$inferSelect;
+export type NewServiceDeployment = typeof serviceDeployments.$inferInsert;
+export type IdempotencyKey = typeof idempotencyKeys.$inferSelect;
+export type NewIdempotencyKey = typeof idempotencyKeys.$inferInsert;
+export type BackgroundJob = typeof backgroundJobs.$inferSelect;
+export type NewBackgroundJob = typeof backgroundJobs.$inferInsert;
+export type S3Configuration = typeof s3Configurations.$inferSelect;
+export type NewS3Configuration = typeof s3Configurations.$inferInsert;
+export type AssetDeleteJob = typeof assetDeleteJobs.$inferSelect;
+export type NewAssetDeleteJob = typeof assetDeleteJobs.$inferInsert;
+export type Blob = typeof blobs.$inferSelect;
+export type NewBlob = typeof blobs.$inferInsert;
+export type UploadSession = typeof uploadSessions.$inferSelect;
+export type NewUploadSession = typeof uploadSessions.$inferInsert;
 export type UploadChunk = typeof uploadChunks.$inferSelect;
 export type NewUploadChunk = typeof uploadChunks.$inferInsert;
+export type MemoryType = (typeof MEMORY_TYPES)[number];
+export type AccessLevel = (typeof ACCESS_LEVELS)[number];
+export type MemberRole = (typeof MEMBER_ROLES)[number];
+export type DBImage = DBMemory;
+export type DBVideo = DBMemory;
+export type DBDocument = DBMemory;
+export type DBNote = DBMemory;
+export type DBAudio = DBMemory;
+export type NewDBImage = NewDBMemory;
+export type NewDBVideo = NewDBMemory;
+export type NewDBDocument = NewDBMemory;
+export type NewDBNote = NewDBMemory;
+export type NewDBAudio = NewDBMemory;
