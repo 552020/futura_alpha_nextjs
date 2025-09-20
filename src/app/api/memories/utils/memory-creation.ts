@@ -175,10 +175,10 @@ export async function createMemoryFromJson(
     recipients: recipients || [],
     unlockDate: unlockDate ? new Date(unlockDate) : null,
     metadata: metadata || {},
-    // Storage status fields - default to web2 storage for new memories
-    storageLocations: ['neon-db', 'vercel-blob'] as ('neon-db' | 'vercel-blob' | 'icp-canister' | 'aws-s3')[],
+    // Storage status fields - default to S3 storage for new memories
+    storageLocations: ['neon-db', 'aws-s3'] as ('neon-db' | 'vercel-blob' | 'icp-canister' | 'aws-s3')[],
     storageDuration: null, // null means permanent storage
-    storageCount: 2, // neon-db + vercel-blob
+    storageCount: 2, // neon-db + aws-s3
   };
 
   const [createdMemory] = await db.insert(memories).values(newMemory).returning();
@@ -330,9 +330,9 @@ export async function createMemoryFromBlob(
 
     // Create asset record
     const { memoryAssets } = await import('@/db/schema');
-    const storageBackend = blob.storageBackend || 'vercel_blob';
+    const storageBackend = blob.storageBackend || 's3';
     const storageKey = blob.storageKey || blob.pathname;
-    
+
     const assetData = {
       memoryId: createdMemory.id,
       assetType: 'original' as const,
@@ -348,7 +348,7 @@ export async function createMemoryFromBlob(
       processingStatus: 'completed' as const,
       processingError: null,
     };
-    
+
     console.log('📦 Creating asset with storage:', { storageBackend, storageKey });
 
     const [createdAsset] = await db.insert(memoryAssets).values(assetData).returning();

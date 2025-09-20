@@ -31,7 +31,7 @@ export class StorageManager {
 
   constructor(config: StorageManagerConfig = {}) {
     this.config = {
-      defaultBackend: config.defaultBackend || 'vercel_blob',
+      defaultBackend: config.defaultBackend || 's3',
       fallbackBackends: config.fallbackBackends || [], // No fallbacks for now - only use working providers
       maxRetries: config.maxRetries || 3,
       retryDelay: config.retryDelay || 1000,
