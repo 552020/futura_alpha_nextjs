@@ -461,43 +461,79 @@ async function uploadFileToS3(
 /**
  * Upload multiple files (folder upload) using blob-first approach
  */
-export const uploadFiles = async (
-  files: File[],
-  isOnboarding: boolean,
-  existingUserId?: string,
-  mode: UploadMode = 'folder',
-  storageBackend: StorageBackend | StorageBackend[] = 'vercel_blob',
-  userStoragePreference?: 'neon' | 'icp' | 'dual' | 's3'
-): Promise<UploadResponse[]> => {
-  console.log(`🚀 Starting folder upload for ${files.length} files...`);
+// Size of each chunk (5MB)
+const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
 
-  const uploadPromises = files.map((file, index) => {
-    console.log(`📤 Uploading file ${index + 1}/${files.length}: ${file.name}`);
-    return uploadFile(file, isOnboarding, existingUserId, mode, storageBackend, userStoragePreference);
-  });
+/**
+ * Upload a file in chunks
+ */
+async function uploadInChunks(
+  file: File,
+  url: string,
+  onProgress?: (progress: number) => void
+): Promise<void> {
+  const fileSize = file.size;
+  let offset = 0;
+  let chunkIndex = 0;
+  const totalChunks = Math.ceil(fileSize / CHUNK_SIZE);
 
-  try {
-    const results = await Promise.allSettled(uploadPromises);
+  while (offset < fileSize) {
+    const chunk = file.slice(offset, offset + CHUNK_SIZE);
+    const formData = new FormData();
+    formData.append('file', chunk);
+    formData.append('chunkIndex', chunkIndex.toString());
+    formData.append('totalChunks', totalChunks.toString());
+    formData.append('originalname', file.name);
+    formData.append('mimetype', file.type);
 
-    const successful = results
-      .filter((result): result is PromiseFulfilledResult<UploadResponse> => result.status === 'fulfilled')
-      .map(result => result.value);
+    const response = await fetch(url, {
+      method: 'POST',
+      body: formData,
+    });
 
-    const failed = results
-      .filter((result): result is PromiseRejectedResult => result.status === 'rejected')
-      .map((result, index) => ({
-        file: files[index].name,
-        error: result.reason.message,
-      }));
-
-    if (failed.length > 0) {
-      console.warn(`⚠️ ${failed.length} files failed to upload:`, failed);
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.message || 'Chunk upload failed');
     }
 
-    console.log(`✅ Folder upload completed: ${successful.length}/${files.length} successful`);
-    return successful;
+    offset += CHUNK_SIZE;
+    chunkIndex++;
+    
+    if (onProgress) {
+      const progress = Math.min(100, Math.round((offset / fileSize) * 100));
+      onProgress(progress);
+    }
+  }
+}
+
+/**
+ * Upload file to Vercel Blob Storage
+ */
+async function uploadFileToBlobStorage(
+  file: File,
+  isOnboarding: boolean,
+  existingUserId?: string
+): Promise<UploadResponse> {
+  console.log(`☁️ Starting blob storage upload for: ${file.name}`);
+
+  if (!existingUserId) {
+    throw new Error('User ID is required for blob storage upload');
+  }
+
+  try {
+    // For small files, use regular upload
+    const result = await uploadFile(
+      file,
+      isOnboarding,
+      existingUserId,
+      'files', // Default mode
+      'vercel_blob', // Default storage backend
+      undefined // No user storage preference by default
+    );
+
+    return result;
   } catch (error) {
-    console.error('❌ Folder upload failed:', error);
+    console.error(`❌ Failed to upload ${file.name}:`, error);
     throw error;
   }
-};
+}
