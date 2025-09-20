@@ -135,8 +135,9 @@ export async function storeInNewDatabase(params: {
     mimeType: AcceptedMimeType;
   };
   parentFolderId?: string | null;
+  storageBackend?: string;
 }) {
-  const { type, ownerId, url, file, metadata, parentFolderId } = params;
+  const { type, ownerId, url, file, metadata, parentFolderId, storageBackend = 's3' } = params;
 
   // Create memory in the new unified table
   const newMemory: NewDBMemory = {
@@ -149,10 +150,13 @@ export async function storeInNewDatabase(params: {
     parentFolderId: parentFolderId || null,
     ownerSecureCode: crypto.randomUUID(),
     metadata: {},
-    // Storage status fields - default to web2 storage for new memories
-    storageLocations: ['neon-db', 'vercel-blob'] as ('neon-db' | 'vercel-blob' | 'icp-canister' | 'aws-s3')[],
+    // Storage status fields - use actual storage backend
+    storageLocations:
+      storageBackend === 's3'
+        ? (['neon-db', 'aws-s3'] as ('neon-db' | 'vercel-blob' | 'icp-canister' | 'aws-s3')[])
+        : (['neon-db', 'vercel-blob'] as ('neon-db' | 'vercel-blob' | 'icp-canister' | 'aws-s3')[]),
     storageDuration: null, // null means permanent storage
-    storageCount: 2, // neon-db + vercel-blob
+    storageCount: 2, // neon-db + storage backend
   };
 
   const [createdMemory] = await db.insert(memories).values(newMemory).returning();
@@ -163,8 +167,14 @@ export async function storeInNewDatabase(params: {
     assetType: 'original',
     variant: 'default',
     url,
-    storageBackend: 'vercel_blob',
-    storageKey: url.split('/').pop() || '',
+    storageBackend: storageBackend as 'vercel_blob' | 's3' | 'icp' | 'arweave' | 'ipfs',
+    storageKey:
+      storageBackend === 's3'
+        ? url.replace(
+            `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_S3_REGION || 'eu-central-1'}.amazonaws.com/`,
+            ''
+          )
+        : url.split('/').pop() || '',
     bytes: metadata.size,
     width: null, // Will be populated by client-side processing
     height: null, // Will be populated by client-side processing
@@ -274,41 +284,316 @@ export async function createStorageEdgesForMemory(params: {
 /**
  * Clean up storage edges for a deleted memory
  * This function removes all storage edge records for a given memory
+ *
+ * FIXED: Now retrieves memory data BEFORE deletion to ensure S3 cleanup works properly
+ */
+import { deleteS3Object } from '@/lib/s3-utils';
+
+/**
+ * FIXED: Clean up storage edges for a deleted memory
+ * This function removes all storage edge records for a given memory
+ *
+ * KEY FIX: Now properly uses the passed memoryData instead of trying to fetch from DB
  */
 export async function cleanupStorageEdgesForMemory(params: {
   memoryId: string;
   memoryType: 'image' | 'video' | 'note' | 'document' | 'audio';
+  memoryData?: {
+    id: string;
+    type: 'image' | 'video' | 'note' | 'document' | 'audio';
+    metadata?: {
+      custom?: {
+        storageBackend?: string;
+        storageKey?: string;
+        [key: string]: unknown;
+      };
+      [key: string]: unknown;
+    } | null;
+    storageLocations?: string[] | null;
+    assets?: Array<{
+      storageBackend: string;
+      storageKey: string;
+      url?: string;
+      [key: string]: unknown;
+    }>;
+    [key: string]: unknown;
+  } | null;
 }) {
-  const { memoryId, memoryType } = params;
+  const { memoryId, memoryType, memoryData } = params;
+  const results: {
+    deletedEdges: Array<{ id: string }>;
+    deletedS3Objects: string[];
+    errors: string[];
+  } = {
+    deletedEdges: [],
+    deletedS3Objects: [],
+    errors: [],
+  };
 
   try {
-    // console.log("🧹 Cleaning up storage edges for memory:", { memoryId, memoryType });
+    console.log('🔄 Starting cleanup for memory:', memoryId);
 
-    // Import the storage edges table
-    const { storageEdges } = await import('@/db/schema');
+    // Import the storage edges and memory assets tables
+    const { storageEdges, memoryAssets } = await import('@/db/schema');
 
-    // Delete all storage edges for this memory
+    // FIXED: Use the provided memory data directly (don't try to fetch from DB)
+    const memory = memoryData;
+
+    console.log('🔍 Memory record for cleanup:', {
+      memoryId,
+      found: !!memory,
+      hasMetadata: !!memory?.metadata,
+      storageKey: memory?.metadata?.custom?.storageKey || 'not found',
+      storageBackend: memory?.metadata?.custom?.storageBackend || 'not found',
+      timestamp: new Date().toISOString(),
+    });
+
+    // If we don't have memory data, we can't do proper cleanup
+    if (!memory) {
+      console.error('❌ No memory data provided for cleanup - cannot determine S3 storage key');
+      return {
+        success: false,
+        error: 'No memory data provided for cleanup',
+        deletedCount: 0,
+        deletedS3Count: 0,
+      };
+    }
+
+    // Collect S3 assets from memory metadata
+    const s3Assets = [];
+
+    // Check if memory has S3 storage info in metadata
+    const metadata = memory?.metadata;
+    const custom = metadata?.custom;
+    const storageBackend = custom?.storageBackend;
+    const storageKey = custom?.storageKey;
+    const hasS3Metadata = storageBackend === 's3' && storageKey;
+
+    if (hasS3Metadata && storageKey) {
+      console.log('✅ Found S3 storage info in memory metadata:', {
+        storageKey,
+        backend: storageBackend,
+        timestamp: new Date().toISOString(),
+      });
+
+      s3Assets.push({
+        id: 'metadata-asset',
+        memoryId,
+        storageKey: storageKey,
+        storageBackend: 's3',
+        bytes: memory.metadata?.size,
+        mimeType: memory.metadata?.mimeType as string | undefined,
+      });
+    } else {
+      console.log('⚠️ No S3 storage info found in memory metadata:', {
+        hasMetadata: !!memory?.metadata,
+        hasCustom: !!memory?.metadata?.custom,
+        storageBackend: memory?.metadata?.custom?.storageBackend,
+        storageKey: memory.metadata?.custom?.storageKey,
+      });
+    }
+
+    // Also check memory_assets table and storage edges as before
+    const dbAssets = await db.select().from(memoryAssets).where(eq(memoryAssets.memoryId, memoryId));
+    console.log(`🔍 Found ${dbAssets.length} assets in memory_assets table`);
+
+    // Type assertion for dbAssets
+    const typedDbAssets = dbAssets as Array<{
+      id: string;
+      memoryId: string;
+      storageBackend: string;
+      storageKey: string;
+      [key: string]: unknown;
+    }>;
+
+    const edges = await db
+      .select()
+      .from(storageEdges)
+      .where(and(eq(storageEdges.memoryId, memoryId), eq(storageEdges.memoryType, memoryType)));
+
+    console.log(`🔍 Found ${edges.length} storage edges`);
+
+    // Filter and add S3 assets from database
+    const s3DbAssets = typedDbAssets.filter(asset => {
+      const backend = String(asset.storageBackend || '')
+        .toLowerCase()
+        .trim();
+      return backend === 's3' || backend === 'aws-s3' || backend.includes('s3');
+    });
+
+    // Add S3 edges - handle potential type mismatch with the backend enum
+    const s3Edges = edges.filter(edge => {
+      const backend = String(edge.backend).toLowerCase();
+      return backend === 'aws-s3' || backend === 's3' || backend.includes('s3');
+    });
+
+    // Combine all S3 assets
+    const allS3Assets = [
+      ...s3Assets,
+      ...s3DbAssets.map(asset => ({
+        id: asset.id,
+        memoryId: asset.memoryId,
+        storageKey: asset.storageKey,
+        storageBackend: asset.storageBackend,
+        bytes: asset.bytes,
+        mimeType: asset.mimeType,
+      })),
+      ...s3Edges.map(edge => ({
+        id: `edge-${edge.id}`,
+        memoryId,
+        storageKey: extractS3KeyFromUrl(edge.location || ''),
+        storageBackend: 's3',
+        bytes: edge.sizeBytes,
+        mimeType: null,
+      })),
+    ];
+
+    // Remove duplicates based on storageKey
+    const uniqueS3Assets = allS3Assets.reduce(
+      (unique, asset) => {
+        if (asset.storageKey && !unique.find(u => u.storageKey === asset.storageKey)) {
+          unique.push(asset);
+        }
+        return unique;
+      },
+      [] as typeof allS3Assets
+    );
+
+    console.log(
+      `🗑️ Found ${uniqueS3Assets.length} unique S3 assets to delete:`,
+      uniqueS3Assets.map(a => ({ id: a.id, key: a.storageKey }))
+    );
+
+    // Delete S3 objects
+    const s3DeletePromises = uniqueS3Assets.map(async asset => {
+      if (!asset.storageKey) return;
+
+      try {
+        console.log(`🔄 Attempting to delete S3 object: ${asset.storageKey}`);
+        const success = await deleteS3Object(asset.storageKey);
+
+        if (success) {
+          console.log(`✅ Successfully deleted S3 object: ${asset.storageKey}`);
+          results.deletedS3Objects.push(asset.storageKey);
+        } else {
+          const msg = `Failed to delete S3 object: ${asset.storageKey}`;
+          console.error(msg);
+          results.errors.push(msg);
+        }
+      } catch (error) {
+        const errorMsg = `Error deleting S3 object ${asset.storageKey}: ${error}`;
+        console.error(errorMsg);
+        results.errors.push(errorMsg);
+      }
+    });
+
+    await Promise.all(s3DeletePromises);
+
+    // Delete storage edges and memory assets from database
     const deletedEdges = await db
       .delete(storageEdges)
       .where(and(eq(storageEdges.memoryId, memoryId), eq(storageEdges.memoryType, memoryType)))
       .returning();
 
-    // console.log("✅ Storage edges cleaned up successfully:", {
-    //   memoryId,
-    //   memoryType,
-    //   deletedCount: deletedEdges.length,
-    // });
+    const deletedAssets = await db.delete(memoryAssets).where(eq(memoryAssets.memoryId, memoryId)).returning();
+
+    results.deletedEdges = deletedEdges;
+
+    console.log(`🗑️ Deleted ${deletedEdges.length} storage edges and ${deletedAssets.length} assets from database`);
 
     return {
-      success: true,
+      success: results.errors.length === 0,
       deletedCount: deletedEdges.length,
-      deletedEdges,
+      deletedS3Count: results.deletedS3Objects.length,
+      deletedEdges: results.deletedEdges,
+      deletedS3Objects: results.deletedS3Objects,
+      errors: results.errors.length > 0 ? results.errors : undefined,
     };
   } catch (error) {
-    console.error('❌ Error cleaning up storage edges:', error);
+    console.error('❌ Error cleaning up storage:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : String(error),
+      deletedS3Objects: results.deletedS3Objects,
+      errors: results.errors,
     };
   }
 }
+
+// Helper function to extract S3 key from URL
+function extractS3KeyFromUrl(url: string): string {
+  if (!url) return '';
+
+  const s3Domain = '.s3.amazonaws.com/';
+  const s3UrlIndex = url.indexOf(s3Domain);
+
+  if (s3UrlIndex > -1) {
+    return url.substring(s3UrlIndex + s3Domain.length).split('?')[0];
+  }
+
+  // If it's already just a key, return as-is
+  return url;
+}
+
+/**
+ * FIXED: Get memory data before deletion for cleanup purposes
+ * This function retrieves all necessary memory information before the memory is deleted
+ */
+export async function getMemoryDataForCleanup(memoryId: string) {
+  try {
+    console.log(`📋 Retrieving memory data for cleanup: ${memoryId}`);
+
+    const memory = await db.query.memories.findFirst({
+      where: eq(memories.id, memoryId),
+      with: {
+        assets: true,
+        folder: true,
+      },
+    });
+
+    if (!memory) {
+      console.warn(`❌ Memory ${memoryId} not found for cleanup data retrieval`);
+      return null;
+    }
+
+    console.log('✅ Retrieved memory data for cleanup:', {
+      id: memory.id,
+      type: memory.type,
+      hasMetadata: !!memory.metadata,
+      hasCustomMetadata: !!(memory.metadata as { custom?: Record<string, unknown> })?.custom,
+      storageBackend: (memory.metadata as { custom?: { storageBackend?: string } })?.custom?.storageBackend,
+      storageKey: (memory.metadata as { custom?: { storageKey?: string } })?.custom?.storageKey,
+      storageLocations: memory.storageLocations,
+      assetsCount: memory.assets?.length || 0,
+    });
+
+    return memory;
+  } catch (error) {
+    console.error('❌ Error retrieving memory data for cleanup:', error);
+    return null;
+  }
+}
+
+/**
+ * Usage example for the DELETE endpoint:
+ *
+ * // In your DELETE memory API endpoint:
+ * export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+ *   // ... authentication checks ...
+ *
+ *   // 1. Get memory data BEFORE deleting it
+ *   const memoryData = await getMemoryDataForCleanup(params.id);
+ *
+ *   // 2. Delete the memory from the main table
+ *   await db.delete(memories).where(eq(memories.id, params.id));
+ *
+ *   // 3. Clean up storage with the retrieved data
+ *   const cleanupResult = await cleanupStorageEdgesForMemory({
+ *     memoryId: params.id,
+ *     memoryType: memoryData?.type || 'image', // fallback type
+ *     memoryData: memoryData // pass the data we retrieved earlier
+ *   });
+ *
+ *   // ... return response ...
+ * }
+ */

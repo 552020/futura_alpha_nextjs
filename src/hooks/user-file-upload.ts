@@ -33,10 +33,9 @@ export function useFileUpload({ isOnboarding = false, mode = 'folder', onSuccess
   const { data: preferences } = useStoragePreferences();
   const uploadStorageMutation = useUploadStorage();
 
-  function mapPrefToBackend(pref?: 'neon' | 'icp' | 'dual'): 'neon-db' | 'icp-canister' {
+  function mapPrefToBackend(pref?: 'neon' | 'icp' | 'dual' | 's3'): 'neon-db' | 'icp-canister' {
     if (pref === 'icp') return 'icp-canister';
-    if (pref === 'dual') return 'neon-db'; // MVP: prefer neon when dual
-    return 'neon-db';
+    return 'neon-db'; // default for neon, dual, s3, undefined
   }
 
   async function requestUploadStorage(preferred?: 'neon-db' | 'icp-canister') {
@@ -173,17 +172,11 @@ export function useFileUpload({ isOnboarding = false, mode = 'folder', onSuccess
       // Create a temporary URL for preview
       const url = URL.createObjectURL(file);
 
-      // 1) Request upload storage (MVP mock)
-      // const storage = await requestUploadStorage(); // Unused in new flow
-
-      // 2) Use unified upload service with storage preference
-      const userStoragePreference = preferences?.preference; // "neon" | "icp" | "dual"
+      // Use unified upload service with storage preference
+      const userStoragePreference = preferences?.preference; // "neon" | "icp" | "dual" | "s3"
       console.log(`🔍 User storage preference: ${userStoragePreference}`);
 
       // For ICP preference, check authentication first
-      // NOTE: ICP users ALWAYS need Internet Identity authentication, even during onboarding
-      // This is different from Neon users where onboarding creates temporary users without auth
-      // ICP canister interactions require authenticated principals, so onboarding still needs II
       if (userStoragePreference === 'icp') {
         console.log(`🔐 Checking ICP authentication...`);
         const { icpUploadService } = await import('@/services/icp-upload');
@@ -194,13 +187,22 @@ export function useFileUpload({ isOnboarding = false, mode = 'folder', onSuccess
         console.log(`✅ ICP authentication confirmed`);
       }
 
-      // Use the new unified uploadFile function
+      // Temporary override for testing - force S3 uploads
+      const storageBackend = 's3' as const;
+      console.log('🔧 TEMPORARY OVERRIDE: Forcing S3 uploads for testing');
+      // Original code (commented out for reference):
+      // let storageBackend: 'vercel_blob' | 's3' = 'vercel_blob';
+      // if (userStoragePreference === 's3') {
+      //   storageBackend = 's3';
+      // }
+
+      // Use the unified uploadFile function
       console.log(`🚀 Calling uploadFile with parameters:`, {
         fileName: file.name,
         isOnboarding,
         existingUserId,
         mode,
-        storageBackend: 'vercel_blob',
+        storageBackend,
         userStoragePreference,
       });
 
@@ -209,7 +211,7 @@ export function useFileUpload({ isOnboarding = false, mode = 'folder', onSuccess
         isOnboarding,
         existingUserId,
         mode,
-        'vercel_blob', // storageBackend (only used for non-ICP flows)
+        storageBackend,
         userStoragePreference
       );
 
@@ -358,9 +360,13 @@ export function useFileUpload({ isOnboarding = false, mode = 'folder', onSuccess
             formData.append('file', file);
           });
 
+          // Add storage backend information to ensure consistent behavior with single file uploads
+          formData.append('storageBackend', 's3');
+          
           // Note: The unified POST /api/memories endpoint handles user authentication internally
           // No need to pass userId as it will be determined from the session or onboarding context
 
+          console.log('📤 Uploading folder with storageBackend=s3');
           const response = await fetch('/api/memories', { method: 'POST', body: formData });
 
           type FolderResp = {

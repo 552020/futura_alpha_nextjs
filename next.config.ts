@@ -85,13 +85,23 @@ const nextConfig: NextConfig = {
         port: '3000',
         pathname: '/images/**',
       },
-      // Vercel Blob storage
+      // S3 bucket for user-uploaded images
       {
         protocol: 'https',
-        hostname: '*.public.blob.vercel-storage.com',
+        hostname: 'futura0.s3.eu-central-1.amazonaws.com',
         pathname: '/**',
       },
-      // Add other external domains as needed
+      // Generic S3 pattern for other potential buckets
+      {
+        protocol: 'https',
+        hostname: '*.s3.eu-central-1.amazonaws.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.s3.amazonaws.com',
+        pathname: '/**',
+      },
     ],
   },
   async rewrites() {

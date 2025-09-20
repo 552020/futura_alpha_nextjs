@@ -23,31 +23,70 @@ import { auth } from '@/auth';
 import { db } from '@/db/db';
 import { allUsers, memories, folders, galleries, galleryItems } from '@/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
+import { cleanupStorageEdgesForMemory } from './utils/memory-database';
+
+// Type for memory with metadata for deletion operations
+interface MemoryForDeletion {
+  id: string;
+  type: 'image' | 'video' | 'note' | 'document' | 'audio';
+  metadata?: {
+    custom?: {
+      storageBackend?: string;
+      storageKey?: string;
+      [key: string]: unknown;
+    };
+    [key: string]: unknown;
+  } | null;
+  custom?: {
+    storageBackend?: string;
+    storageKey?: string;
+    [key: string]: unknown;
+  };
+  storageBackend?: string;
+  storageKey?: string;
+  storageLocations?: string[] | null;
+  [key: string]: unknown; // Index signature to allow additional properties
+}
 
 // Helper function to clean up storage edges for deleted memories
-async function cleanupStorageEdgesForMemories(memories: Array<{ id: string; type: string }>) {
-  const { cleanupStorageEdgesForMemory } = await import('./utils');
+async function cleanupStorageEdgesForMemories(memoriesToDelete: MemoryForDeletion[]) {
+  console.log(`🧹 Starting cleanup for ${memoriesToDelete.length} memories`);
 
-  const cleanupPromises = memories.map(({ id, type }) =>
-    cleanupStorageEdgesForMemory({
-      memoryId: id,
-      memoryType: type as 'image' | 'video' | 'note' | 'document' | 'audio',
-    })
-  );
+  const cleanupPromises = memoriesToDelete.map(memoryData => {
+    if (!memoryData) {
+      console.warn('⚠️ Received undefined memory data in cleanup');
+      return Promise.resolve({ success: false });
+    }
+
+    console.log(`🧹 Cleaning up memory: ${memoryData.id} (${memoryData.type})`);
+
+    return cleanupStorageEdgesForMemory({
+      memoryId: memoryData.id,
+      memoryType: memoryData.type as 'image' | 'video' | 'note' | 'document' | 'audio',
+      memoryData,
+    });
+  });
 
   const results = await Promise.allSettled(cleanupPromises);
 
   let successCount = 0;
   let errorCount = 0;
 
-  results.forEach(result => {
+  results.forEach((result, index) => {
+    const memory = memoriesToDelete[index];
     if (result.status === 'fulfilled' && result.value.success) {
       successCount++;
+      console.log(`✅ Successfully cleaned up memory: ${memory?.id || 'unknown'}`);
     } else {
       errorCount++;
+      console.error(
+        `❌ Failed to clean up memory ${memory?.id || 'unknown'}:`,
+        result.status === 'rejected' ? result.reason : result.value
+      );
     }
   });
 
+  console.log(`🧹 Cleanup complete. Success: ${successCount}, Errors: ${errorCount}`);
   return { successCount, errorCount };
 }
 
@@ -78,58 +117,113 @@ export async function handleApiMemoryDelete(request: NextRequest): Promise<NextR
     const type = searchParams.get('type');
     const folder = searchParams.get('folder'); // folder name to delete
     const all = searchParams.get('all');
+    const memoryId = searchParams.get('id'); // Single memory ID to delete
 
     let deletedCount = 0;
 
-    if (all === 'true') {
+    if (memoryId) {
+      // Single memory deletion
+      console.log(`🗑️ Deleting single memory: ${memoryId}`);
+
+      // 1. FIRST: Get the memory data BEFORE deletion
+      const memoryData = await db.query.memories.findFirst({
+        where: and(eq(memories.id, memoryId), eq(memories.ownerId, allUserRecord.id)),
+        with: {
+          assets: true,
+          folder: true,
+        },
+      });
+
+      if (!memoryData) {
+        console.error(`❌ Memory not found: ${memoryId}`);
+        return NextResponse.json({ error: 'Memory not found' }, { status: 404 });
+      }
+
+      // 2. THEN: Delete the memory from database
+      const [deletedMemoryRow] = await db
+        .delete(memories)
+        .where(and(eq(memories.id, memoryId), eq(memories.ownerId, allUserRecord.id)))
+        .returning();
+
+      if (!deletedMemoryRow) {
+        console.error(`❌ Failed to delete memory or memory not found: ${memoryId}`);
+        return NextResponse.json({ error: 'Memory not found' }, { status: 404 });
+      }
+
+      console.log(`✅ Deleted memory from database: ${memoryId}`);
+
+      // 3. FINALLY: Clean up storage edges with pre-fetched data
+      const cleanupResult = await cleanupStorageEdgesForMemory({
+        memoryId,
+        memoryType: memoryData.type as 'image' | 'video' | 'document' | 'audio' | 'note',
+        memoryData,
+      });
+
+      if (!cleanupResult.success) {
+        console.error(`❌ Failed to clean up storage for memory ${memoryId}:`, cleanupResult.error);
+      } else {
+        console.log(`✅ Successfully cleaned up storage for memory: ${memoryId}`);
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: 'Memory deleted successfully',
+        memoryId,
+      });
+    } else if (all === 'true') {
       // Delete all memories, folders, and galleries for the user
       console.log('🗑️ Clearing all data for user:', allUserRecord.id);
 
-      // 1. Delete all memories
-      const deletedMemories = await db.delete(memories).where(eq(memories.ownerId, allUserRecord.id)).returning();
-      console.log('🗑️ Deleted memories:', deletedMemories.length);
+      // 1. First get all memories that will be deleted for cleanup
+      const memoriesToDelete = await db.query.memories.findMany({
+        where: eq(memories.ownerId, allUserRecord.id),
+        with: {
+          assets: true,
+          folder: true,
+        },
+      });
 
-      // 2. Delete all galleries (and their items)
-      // First get all gallery IDs for this user
+      if (memoriesToDelete.length > 0) {
+        await cleanupStorageEdgesForMemories(memoriesToDelete);
+      }
+
+      // 2. Delete all memories
+      const deletedMemoriesResult = await db.delete(memories).where(eq(memories.ownerId, allUserRecord.id)).returning();
+
+      // 3. Delete galleries & gallery items
       const userGalleries = await db.query.galleries.findMany({
         where: eq(galleries.ownerId, allUserRecord.id),
         columns: { id: true },
       });
-
       const galleryIds = userGalleries.map(g => g.id);
 
-      // Delete gallery items for all user's galleries
-      let deletedGalleryItemsCount = 0;
       if (galleryIds.length > 0) {
-        const deletedGalleryItems = await db
-          .delete(galleryItems)
-          .where(inArray(galleryItems.galleryId, galleryIds))
-          .returning();
-        deletedGalleryItemsCount = deletedGalleryItems.length;
+        await db.delete(galleryItems).where(inArray(galleryItems.galleryId, galleryIds)).returning();
       }
+      await db.delete(galleries).where(eq(galleries.ownerId, allUserRecord.id)).returning();
 
-      // Delete all galleries
-      const deletedGalleries = await db.delete(galleries).where(eq(galleries.ownerId, allUserRecord.id)).returning();
-      console.log('🗑️ Deleted galleries:', deletedGalleries.length, 'gallery items:', deletedGalleryItemsCount);
+      // 4. Delete folders
+      await db.delete(folders).where(eq(folders.ownerId, allUserRecord.id)).returning();
 
-      // 3. Delete all folders
-      const deletedFolders = await db.delete(folders).where(eq(folders.ownerId, allUserRecord.id)).returning();
-      console.log('🗑️ Deleted folders:', deletedFolders.length);
-
-      deletedCount = deletedMemories.length;
-
-      // Clean up storage edges for deleted memories
-      const memoriesToCleanup = deletedMemories.map(memory => ({
-        id: memory.id,
-        type: memory.type,
-      }));
-
-      if (memoriesToCleanup.length > 0) {
-        await cleanupStorageEdgesForMemories(memoriesToCleanup);
-      }
+      deletedCount = deletedMemoriesResult.length;
     } else if (type) {
       // Delete specific type
-      const deletedMemories = await db
+      const memoriesToDelete = await db.query.memories.findMany({
+        where: and(
+          eq(memories.ownerId, allUserRecord.id),
+          eq(memories.type, type as 'image' | 'video' | 'document' | 'note' | 'audio')
+        ),
+        with: {
+          assets: true,
+          folder: true,
+        },
+      });
+
+      if (memoriesToDelete.length > 0) {
+        await cleanupStorageEdgesForMemories(memoriesToDelete);
+      }
+
+      const deletedMemoriesResult = await db
         .delete(memories)
         .where(
           and(
@@ -139,35 +233,27 @@ export async function handleApiMemoryDelete(request: NextRequest): Promise<NextR
         )
         .returning();
 
-      deletedCount = deletedMemories.length;
-
-      // Clean up storage edges for deleted memories
-      const memoriesToCleanup = deletedMemories.map(memory => ({
-        id: memory.id,
-        type: memory.type,
-      }));
-
-      if (memoriesToCleanup.length > 0) {
-        await cleanupStorageEdgesForMemories(memoriesToCleanup);
-      }
+      deletedCount = deletedMemoriesResult.length;
     } else if (folder) {
-      // Delete memories in specific folder (using parentFolderId)
-      const deletedMemories = await db
+      // Delete memories in specific folder
+      const memoriesToDelete = await db.query.memories.findMany({
+        where: and(eq(memories.ownerId, allUserRecord.id), eq(memories.parentFolderId, folder)),
+        with: {
+          assets: true,
+          folder: true,
+        },
+      });
+
+      if (memoriesToDelete.length > 0) {
+        await cleanupStorageEdgesForMemories(memoriesToDelete);
+      }
+
+      const deletedMemoriesResult = await db
         .delete(memories)
         .where(and(eq(memories.ownerId, allUserRecord.id), eq(memories.parentFolderId, folder)))
         .returning();
 
-      deletedCount = deletedMemories.length;
-
-      // Clean up storage edges for deleted memories
-      const memoriesToCleanup = deletedMemories.map(memory => ({
-        id: memory.id,
-        type: memory.type,
-      }));
-
-      if (memoriesToCleanup.length > 0) {
-        await cleanupStorageEdgesForMemories(memoriesToCleanup);
-      }
+      deletedCount = deletedMemoriesResult.length;
     } else {
       return NextResponse.json(
         {
