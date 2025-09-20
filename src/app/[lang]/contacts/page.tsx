@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { useAuthGuard } from "@/utils/authentication";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Loader2, UserPlus, Mail, Phone } from "lucide-react";
-import RequireAuth from "@/components/auth/require-auth";
+import { useAuthGuard } from '@/utils/authentication';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, UserPlus, Mail, Phone } from 'lucide-react';
+import RequireAuth from '@/components/auth/require-auth';
 
 interface Contact {
   id: string;
@@ -14,8 +14,8 @@ interface Contact {
   email?: string;
   phone?: string;
   avatar?: string;
-  relationship: "parent" | "child" | "sibling" | "spouse" | "friend" | "other";
-  status: "connected" | "pending" | "invited";
+  relationship: 'parent' | 'child' | 'sibling' | 'spouse' | 'friend' | 'other';
+  status: 'connected' | 'pending' | 'invited';
 }
 
 export default function ContactsPage() {
@@ -24,48 +24,48 @@ export default function ContactsPage() {
   // Sample contacts data
   const sampleContacts: Contact[] = [
     {
-      id: "1",
-      name: "Sarah Johnson",
-      email: "sarah@example.com",
-      phone: "+1 (555) 123-4567",
-      relationship: "spouse",
-      status: "connected",
+      id: '1',
+      name: 'Sarah Johnson',
+      email: 'sarah@example.com',
+      phone: '+1 (555) 123-4567',
+      relationship: 'spouse',
+      status: 'connected',
     },
     {
-      id: "2",
-      name: "Michael Johnson",
-      email: "mike@example.com",
-      relationship: "child",
-      status: "connected",
+      id: '2',
+      name: 'Michael Johnson',
+      email: 'mike@example.com',
+      relationship: 'child',
+      status: 'connected',
     },
     {
-      id: "3",
-      name: "Emma Johnson",
-      email: "emma@example.com",
-      relationship: "child",
-      status: "pending",
+      id: '3',
+      name: 'Emma Johnson',
+      email: 'emma@example.com',
+      relationship: 'child',
+      status: 'pending',
     },
     {
-      id: "4",
-      name: "Robert Sr.",
-      email: "dad@example.com",
-      phone: "+1 (555) 987-6543",
-      relationship: "parent",
-      status: "connected",
+      id: '4',
+      name: 'Robert Sr.',
+      email: 'dad@example.com',
+      phone: '+1 (555) 987-6543',
+      relationship: 'parent',
+      status: 'connected',
     },
     {
-      id: "5",
-      name: "Mary Johnson",
-      email: "mary@example.com",
-      relationship: "parent",
-      status: "connected",
+      id: '5',
+      name: 'Mary Johnson',
+      email: 'mary@example.com',
+      relationship: 'parent',
+      status: 'connected',
     },
     {
-      id: "6",
-      name: "David Wilson",
-      email: "david@example.com",
-      relationship: "friend",
-      status: "invited",
+      id: '6',
+      name: 'David Wilson',
+      email: 'david@example.com',
+      relationship: 'friend',
+      status: 'invited',
     },
   ];
 
@@ -85,39 +85,39 @@ export default function ContactsPage() {
 
   const getRelationshipColor = (relationship: string) => {
     switch (relationship) {
-      case "parent":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300";
-      case "child":
-        return "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300";
-      case "sibling":
-        return "bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300";
-      case "spouse":
-        return "bg-pink-100 text-pink-800 dark:bg-pink-900/20 dark:text-pink-300";
-      case "friend":
-        return "bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300";
+      case 'parent':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300';
+      case 'child':
+        return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
+      case 'sibling':
+        return 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300';
+      case 'spouse':
+        return 'bg-pink-100 text-pink-800 dark:bg-pink-900/20 dark:text-pink-300';
+      case 'friend':
+        return 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300';
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300";
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300';
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "connected":
-        return "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300";
-      case "pending":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300";
-      case "invited":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300";
+      case 'connected':
+        return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
+      case 'invited':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300';
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300";
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300';
     }
   };
 
   const getInitials = (name: string) => {
     return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
+      .split(' ')
+      .map(n => n[0])
+      .join('')
       .slice(0, 2)
       .toUpperCase();
   };
@@ -136,7 +136,7 @@ export default function ContactsPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {sampleContacts.map((contact) => (
+        {sampleContacts.map(contact => (
           <Card key={contact.id} className="hover:shadow-md transition-shadow">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3">

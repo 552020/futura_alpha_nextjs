@@ -1,20 +1,21 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
-import { useAuthGuard } from "@/utils/authentication";
-import { Button } from "@/components/ui/button";
-import { galleryService } from "@/services/gallery";
-import { GalleryWithItems } from "@/types/gallery";
-import { GalleryTopBar } from "@/components/galleries/gallery-top-bar";
-import RequireAuth from "@/components/auth/require-auth";
-import { CreateGalleryModal } from "@/components/galleries/create-gallery-modal";
-import { LoadingSpinner } from "@/components/common/loading-spinner";
-import { ErrorState } from "@/components/common/error-state";
-import { GalleryGrid } from "@/components/galleries/gallery-grid";
+import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
+import { useAuthGuard } from '@/utils/authentication';
+import { Button } from '@/components/ui/button';
+import { galleryService } from '@/services/gallery';
+import { GalleryWithItems } from '@/types/gallery';
+import { GalleryTopBar } from '@/components/galleries/gallery-top-bar';
+import RequireAuth from '@/components/auth/require-auth';
+import { CreateGalleryModal } from '@/components/galleries/create-gallery-modal';
+import { LoadingSpinner } from '@/components/common/loading-spinner';
+import { ErrorState } from '@/components/common/error-state';
+import { GalleryGrid } from '@/components/galleries/gallery-grid';
 
 // Mock data flag for development
-const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_GALLERY === "true";
+// 📝 Sample data generation script: scripts/mock-data/create-gallery-sample-data.ts
+const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_GALLERY === 'true';
 
 export default function GalleryPage() {
   const params = useParams();
@@ -23,7 +24,7 @@ export default function GalleryPage() {
 
   const [galleries, setGalleries] = useState<GalleryWithItems[]>([]);
   const [filteredGalleries, setFilteredGalleries] = useState<GalleryWithItems[]>([]);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -43,8 +44,8 @@ export default function GalleryPage() {
       setGalleries(result.galleries);
       setFilteredGalleries(result.galleries);
     } catch (err) {
-      console.error("Error loading galleries:", err);
-      setError("Failed to load galleries");
+      console.error('Error loading galleries:', err);
+      setError('Failed to load galleries');
     } finally {
       setIsLoading(false);
     }
@@ -65,7 +66,7 @@ export default function GalleryPage() {
     setFilteredGalleries(filtered);
   };
 
-  const handleViewModeChange = (mode: "grid" | "list") => {
+  const handleViewModeChange = (mode: 'grid' | 'list') => {
     setViewMode(mode);
   };
 

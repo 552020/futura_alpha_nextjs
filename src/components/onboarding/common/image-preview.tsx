@@ -1,12 +1,12 @@
-import Image from "next/image";
-import { TempFile } from "@/contexts/onboarding-context";
+import Image from 'next/image';
+import { TempFile } from '@/contexts/onboarding-context';
 
 interface ImagePreviewProps {
   file: TempFile;
   className?: string;
 }
 
-export function ImagePreview({ file, className = "" }: ImagePreviewProps) {
+export function ImagePreview({ file, className = '' }: ImagePreviewProps) {
   if (!file.url) return null;
 
   return (

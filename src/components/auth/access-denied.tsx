@@ -1,5 +1,5 @@
-import { signIn } from "next-auth/react";
-import Link from "next/link";
+import { signIn } from 'next-auth/react';
+import Link from 'next/link';
 export default function AccessDenied() {
   return (
     <>
@@ -7,7 +7,7 @@ export default function AccessDenied() {
       <p>
         <Link
           href="/auth/signin"
-          onClick={(e) => {
+          onClick={e => {
             e.preventDefault();
             signIn();
           }}

@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 /**
  * Linked Accounts Component
@@ -7,20 +7,20 @@
  * including Principal ID and linking status.
  */
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Copy, Link as LinkIcon, Unlink } from "lucide-react";
-import { useIICoAuth } from "@/hooks/use-ii-coauth";
-import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Copy, Link as LinkIcon, Unlink } from 'lucide-react';
+import { useIICoAuth } from '@/hooks/use-ii-coauth';
+import { useToast } from '@/hooks/use-toast';
+import { useState } from 'react';
 
 interface LinkedAccountsProps {
   showActions?: boolean;
   className?: string;
 }
 
-export function LinkedAccounts({ showActions = true, className = "" }: LinkedAccountsProps) {
+export function LinkedAccounts({ showActions = true, className = '' }: LinkedAccountsProps) {
   const { hasLinkedII, linkedIcPrincipal, isCoAuthActive, statusMessage, statusClass } = useIICoAuth();
   const { toast } = useToast();
   const [isCopying, setIsCopying] = useState(false);
@@ -33,15 +33,15 @@ export function LinkedAccounts({ showActions = true, className = "" }: LinkedAcc
     try {
       await navigator.clipboard.writeText(linkedIcPrincipal);
       toast({
-        title: "Copied!",
-        description: "Principal ID copied to clipboard",
+        title: 'Copied!',
+        description: 'Principal ID copied to clipboard',
       });
     } catch (error) {
-      console.error("Failed to copy:", error);
+      console.error('Failed to copy:', error);
       toast({
-        title: "Copy Failed",
-        description: "Failed to copy principal ID to clipboard",
-        variant: "destructive",
+        title: 'Copy Failed',
+        description: 'Failed to copy principal ID to clipboard',
+        variant: 'destructive',
       });
     } finally {
       setIsCopying(false);
@@ -56,11 +56,11 @@ export function LinkedAccounts({ showActions = true, className = "" }: LinkedAcc
       const signinUrl = `/en/sign-ii-only?callbackUrl=${encodeURIComponent(currentUrl)}`;
       window.location.href = signinUrl;
     } catch (error) {
-      console.error("Failed to redirect to II signin page:", error);
+      console.error('Failed to redirect to II signin page:', error);
       toast({
-        title: "Redirect Failed",
-        description: "Failed to redirect to Internet Identity linking page",
-        variant: "destructive",
+        title: 'Redirect Failed',
+        description: 'Failed to redirect to Internet Identity linking page',
+        variant: 'destructive',
       });
     }
   };
@@ -69,9 +69,9 @@ export function LinkedAccounts({ showActions = true, className = "" }: LinkedAcc
   const handleUnlinkII = () => {
     // This would typically show confirmation dialog
     toast({
-      title: "Unlink II Account",
-      description: "This action will remove your linked Internet Identity account.",
-      variant: "destructive",
+      title: 'Unlink II Account',
+      description: 'This action will remove your linked Internet Identity account.',
+      variant: 'destructive',
     });
     // TODO: Implement II unlinking flow
   };

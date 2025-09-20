@@ -1,6 +1,6 @@
-import { Memory } from "./memory";
-import { DBGallery, DBGalleryItem } from "@/db/schema";
-import { ErrorInfo } from "react";
+import { Memory } from './memory';
+import { DBGallery, DBGalleryItem } from '@/db/schema';
+import { ErrorInfo } from 'react';
 
 // Gallery with items - extends existing DB types
 export interface GalleryWithItems extends DBGallery {
@@ -13,13 +13,13 @@ export interface GalleryWithItems extends DBGallery {
     icpComplete: boolean;
     icpAny: boolean;
     icpCompletePercentage: number;
-    status: "stored_forever" | "partially_stored" | "web2_only";
+    status: 'stored_forever' | 'partially_stored' | 'web2_only';
   };
 }
 
 // Gallery creation request
 export interface CreateGalleryRequest {
-  type: "from-folder" | "from-memories";
+  type: 'from-folder' | 'from-memories';
   folderName?: string;
   memories?: Array<{ id: string; type: string }>;
   title: string;
@@ -85,7 +85,7 @@ export interface GalleryImage {
 export interface MockGalleryConfig {
   count: number;
   imageCount: number;
-  aspectRatio: "landscape" | "portrait" | "mixed" | "wild";
+  aspectRatio: 'landscape' | 'portrait' | 'mixed' | 'wild';
   titles: string[];
   descriptions: string[];
 }

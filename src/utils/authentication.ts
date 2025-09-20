@@ -1,18 +1,18 @@
-import { useSession } from "next-auth/react";
-import { useOnboarding } from "@/contexts/onboarding-context";
-import { useRouter } from "next/navigation";
-import { useParams } from "next/navigation";
+import { useSession } from 'next-auth/react';
+import { useOnboarding } from '@/contexts/onboarding-context';
+import { useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 
 export function useAuthGuard() {
   const { data: session, status } = useSession();
   const { userData } = useOnboarding();
   const router = useRouter();
   const params = useParams();
-  const lang = params.lang || "en";
+  const lang = params.lang || 'en';
 
-  const isAuthenticated = status === "authenticated" && session?.user?.id;
+  const isAuthenticated = status === 'authenticated' && session?.user?.id;
   const isTemporaryUser = userData.allUserId && userData.isTemporary;
-  const isLoading = status === "loading";
+  const isLoading = status === 'loading';
 
   const redirectToSignIn = () => {
     if (!isLoading && !isAuthenticated && !isTemporaryUser) {

@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "../../../../../auth";
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '../../../../../auth';
 
 // Mock storage preferences for development
 const MOCK_STORAGE_PREFERENCES = {
-  preference: "neon" as const,
-  primary: "neon-db" as const,
+  preference: 'neon' as const,
+  primary: 'neon-db' as const,
   updatedAt: new Date().toISOString(),
 };
 
@@ -13,15 +13,15 @@ export async function GET() {
     const session = await auth();
 
     if (!session?.user) {
-      return NextResponse.json({ error: "UNAUTHORIZED", message: "Authentication required" }, { status: 401 });
+      return NextResponse.json({ error: 'UNAUTHORIZED', message: 'Authentication required' }, { status: 401 });
     }
 
     // Return mock data for now
     return NextResponse.json(MOCK_STORAGE_PREFERENCES);
   } catch (error) {
-    console.error("Error fetching storage preferences:", error);
+    console.error('Error fetching storage preferences:', error);
     return NextResponse.json(
-      { error: "INTERNAL_ERROR", message: "Failed to fetch storage preferences" },
+      { error: 'INTERNAL_ERROR', message: 'Failed to fetch storage preferences' },
       { status: 500 }
     );
   }
@@ -32,7 +32,7 @@ export async function PATCH(request: NextRequest) {
     const session = await auth();
 
     if (!session?.user) {
-      return NextResponse.json({ error: "UNAUTHORIZED", message: "Authentication required" }, { status: 401 });
+      return NextResponse.json({ error: 'UNAUTHORIZED', message: 'Authentication required' }, { status: 401 });
     }
 
     const body = await request.json();
@@ -42,12 +42,12 @@ export async function PATCH(request: NextRequest) {
     if (!preference || !primary) {
       return NextResponse.json(
         {
-          error: "VALIDATION_ERROR",
-          message: "Missing required fields",
+          error: 'VALIDATION_ERROR',
+          message: 'Missing required fields',
           data: {
             field_errors: {
-              preference: preference ? [] : ["preference is required"],
-              primary: primary ? [] : ["primary is required"],
+              preference: preference ? [] : ['preference is required'],
+              primary: primary ? [] : ['primary is required'],
             },
           },
         },
@@ -64,9 +64,9 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json(updatedPreferences);
   } catch (error) {
-    console.error("Error updating storage preferences:", error);
+    console.error('Error updating storage preferences:', error);
     return NextResponse.json(
-      { error: "INTERNAL_ERROR", message: "Failed to update storage preferences" },
+      { error: 'INTERNAL_ERROR', message: 'Failed to update storage preferences' },
       { status: 500 }
     );
   }

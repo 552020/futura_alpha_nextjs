@@ -1,8 +1,8 @@
-import jwt from "jsonwebtoken";
-import { config } from "dotenv";
+import jwt from 'jsonwebtoken';
+import { config } from 'dotenv';
 
 // Load environment variables
-config({ path: ".env.local" });
+config({ path: '.env.local' });
 
 // 🎯 JWT GENERATION UTILITY FOR TESTING
 // This creates valid JWT tokens that NextAuth will accept
@@ -48,9 +48,9 @@ export function generateTestJWT(user: TestUserJWT): string {
     sub: user.id,
     email: user.email,
     name: user.name,
-    role: user.role || "user",
+    role: user.role || 'user',
     businessUserId: user.businessUserId,
-    loginProvider: user.loginProvider || "google",
+    loginProvider: user.loginProvider || 'google',
     activeIcPrincipal: user.activeIcPrincipal,
     linkedIcPrincipal: user.linkedIcPrincipal,
     iat: now,
@@ -58,7 +58,7 @@ export function generateTestJWT(user: TestUserJWT): string {
   };
 
   // Sign the JWT with the same secret NextAuth uses
-  return jwt.sign(payload, secret, { algorithm: "HS256" });
+  return jwt.sign(payload, secret, { algorithm: 'HS256' });
 }
 
 /**
@@ -67,7 +67,7 @@ export function generateTestJWT(user: TestUserJWT): string {
 export function generateGoogleUserJWT(user: TestUserJWT): string {
   return generateTestJWT({
     ...user,
-    loginProvider: "google",
+    loginProvider: 'google',
   });
 }
 
@@ -108,16 +108,16 @@ export function generateExpiredJWT(user: TestUserJWT): string {
     sub: user.id,
     email: user.email,
     name: user.name,
-    role: user.role || "user",
+    role: user.role || 'user',
     businessUserId: user.businessUserId,
-    loginProvider: user.loginProvider || "google",
+    loginProvider: user.loginProvider || 'google',
     activeIcPrincipal: user.activeIcPrincipal,
     linkedIcPrincipal: user.linkedIcPrincipal,
     iat: now - 60 * 60 * 2, // 2 hours ago
     exp: now - 60 * 60, // 1 hour ago (expired)
   };
 
-  return jwt.sign(payload, secret, { algorithm: "HS256" });
+  return jwt.sign(payload, secret, { algorithm: 'HS256' });
 }
 
 /**
@@ -131,7 +131,7 @@ export function verifyTestJWT(token: string): JWTPayload {
   }
 
   try {
-    return jwt.verify(token, secret, { algorithms: ["HS256"] }) as JWTPayload;
+    return jwt.verify(token, secret, { algorithms: ['HS256'] }) as JWTPayload;
   } catch (error) {
     throw new Error(`❌ Invalid JWT token: ${error}`);
   }

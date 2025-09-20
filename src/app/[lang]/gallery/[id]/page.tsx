@@ -1,25 +1,26 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useCallback, Suspense } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
-import Image from "next/image";
-import { useAuthGuard } from "@/utils/authentication";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Share2, Edit, Globe, Lock, ImageIcon, Trash2, Eye, EyeOff, Maximize2, HardDrive } from "lucide-react";
-import { galleryService } from "@/services/gallery";
-import { GalleryWithItems } from "@/types/gallery";
-import { ForeverStorageProgressModal } from "@/components/galleries/forever-storage-progress-modal";
-import { StorageStatusBadge, getGalleryStorageStatus } from "@/components/common/storage-status-badge";
-import { MemoryStorageBadge } from "@/components/common/memory-storage-badge";
-import { GalleryStorageSummary } from "@/components/galleries/gallery-storage-summary";
+import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import Image from 'next/image';
+import { useAuthGuard } from '@/utils/authentication';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Share2, Edit, Globe, Lock, ImageIcon, Trash2, Eye, EyeOff, Maximize2, HardDrive } from 'lucide-react';
+import { galleryService } from '@/services/gallery';
+import { GalleryWithItems } from '@/types/gallery';
+import { ForeverStorageProgressModal } from '@/components/galleries/forever-storage-progress-modal';
+import { StorageStatusBadge, getGalleryStorageStatus } from '@/components/common/storage-status-badge';
+import { MemoryStorageBadge } from '@/components/common/memory-storage-badge';
+import { GalleryStorageSummary } from '@/components/galleries/gallery-storage-summary';
+import { getBlurPlaceholder, IMAGE_SIZES } from '@/utils/image-utils';
 
 // Mock data flag for development - same pattern as dashboard
 // const USE_MOCK_DATA = true;
-const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_GALLERY === "true";
+const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_GALLERY === 'true';
 
 function GalleryViewContent() {
-  const { id } = useParams();
+  const { id, lang } = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
   const { isAuthorized, isLoading: authLoading } = useAuthGuard();
@@ -38,8 +39,8 @@ function GalleryViewContent() {
       const result = await galleryService.getGallery(id as string, USE_MOCK_DATA);
       setGallery(result.gallery);
     } catch (err) {
-      console.error("Error loading gallery:", err);
-      setError("Failed to load gallery");
+      console.error('Error loading gallery:', err);
+      setError('Failed to load gallery');
     } finally {
       setIsLoading(false);
     }
@@ -53,38 +54,41 @@ function GalleryViewContent() {
 
   // Auto-open modal if returning from II linking flow
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const shouldOpen = searchParams?.get("storeForever") === "1";
+    if (typeof window === 'undefined') return;
+    const shouldOpen = searchParams?.get('storeForever') === '1';
     if (shouldOpen) {
       setShowForeverStorageModal(true);
       // Clean the query param to avoid reopening on refresh
       const url = new URL(window.location.href);
-      url.searchParams.delete("storeForever");
-      window.history.replaceState({}, "", url.toString());
+      url.searchParams.delete('storeForever');
+      window.history.replaceState({}, '', url.toString());
     }
   }, [searchParams]);
 
   const handleImageClick = (index: number) => {
-    // Navigate to preview page with the specific image index
-    router.push(`/gallery/${id}/preview?image=${index}`);
+    // Navigate to individual memory page (same as dashboard/folder behavior)
+    if (gallery?.items?.[index]?.memory) {
+      const memory = gallery.items[index].memory;
+      router.push(`/${lang}/dashboard/${memory.id}`);
+    }
   };
 
   const handleImageError = useCallback((imageUrl: string) => {
-    setFailedImages((prev) => new Set(prev).add(imageUrl));
+    setFailedImages(prev => new Set(prev).add(imageUrl));
   }, []);
 
   const handleDeleteGallery = async () => {
-    if (!gallery || !confirm("Are you sure you want to delete this gallery? This action cannot be undone.")) {
+    if (!gallery || !confirm('Are you sure you want to delete this gallery? This action cannot be undone.')) {
       return;
     }
 
     try {
       setIsDeleting(true);
       await galleryService.deleteGallery(gallery.id, USE_MOCK_DATA);
-      router.push("/gallery");
+      router.push('/gallery');
     } catch (err) {
-      console.error("Error deleting gallery:", err);
-      setError("Failed to delete gallery");
+      console.error('Error deleting gallery:', err);
+      setError('Failed to delete gallery');
     } finally {
       setIsDeleting(false);
     }
@@ -106,8 +110,8 @@ function GalleryViewContent() {
       );
       setGallery(updatedGallery);
     } catch (err) {
-      console.error("Error updating gallery privacy:", err);
-      setError("Failed to update gallery privacy");
+      console.error('Error updating gallery privacy:', err);
+      setError('Failed to update gallery privacy');
     } finally {
       setIsUpdating(false);
     }
@@ -119,46 +123,46 @@ function GalleryViewContent() {
   };
 
   const getStoreForeverButtonState = () => {
-    if (!gallery) return { text: "Store Forever", disabled: true, variant: "outline" as const };
+    if (!gallery) return { text: 'Store Forever', disabled: true, variant: 'outline' as const };
 
     // Check if gallery has storage status
     if (gallery.storageStatus) {
       switch (gallery.storageStatus.status) {
-        case "stored_forever":
+        case 'stored_forever':
           return {
-            text: "Already Stored",
+            text: 'Already Stored',
             disabled: true,
-            variant: "secondary" as const,
+            variant: 'secondary' as const,
             className:
-              "border-green-200 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-300 dark:hover:bg-green-950",
+              'border-green-200 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-300 dark:hover:bg-green-950',
           };
-        case "partially_stored":
+        case 'partially_stored':
           return {
-            text: "Continue Storing",
+            text: 'Continue Storing',
             disabled: false,
-            variant: "outline" as const,
+            variant: 'outline' as const,
             className:
-              "border-orange-200 text-orange-700 hover:bg-orange-50 dark:border-orange-800 dark:text-orange-300 dark:hover:bg-orange-950",
+              'border-orange-200 text-orange-700 hover:bg-orange-50 dark:border-orange-800 dark:text-orange-300 dark:hover:bg-orange-950',
           };
-        case "web2_only":
+        case 'web2_only':
         default:
           return {
-            text: "Store Forever",
+            text: 'Store Forever',
             disabled: false,
-            variant: "outline" as const,
+            variant: 'outline' as const,
             className:
-              "border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950",
+              'border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950',
           };
       }
     }
 
     // Fallback for galleries without storage status
     return {
-      text: "Store Forever",
+      text: 'Store Forever',
       disabled: false,
-      variant: "outline" as const,
+      variant: 'outline' as const,
       className:
-        "border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950",
+        'border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950',
     };
   };
 
@@ -172,8 +176,8 @@ function GalleryViewContent() {
   };
 
   const handleForeverStorageError = (error: Error) => {
-    console.error("Error storing gallery forever:", error);
-    setError("Failed to store gallery forever");
+    console.error('Error storing gallery forever:', error);
+    setError('Failed to store gallery forever');
   };
 
   const handleShareGallery = () => {
@@ -227,11 +231,11 @@ function GalleryViewContent() {
                   <div className="relative group">
                     <StorageStatusBadge status={getGalleryStorageStatus(gallery)} />
                     <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                      {gallery.storageStatus?.status === "stored_forever"
-                        ? "Gallery stored permanently on Internet Computer"
-                        : gallery.storageStatus?.status === "partially_stored"
-                        ? "Gallery partially stored on Internet Computer"
-                        : "Gallery stored in standard database"}
+                      {gallery.storageStatus?.status === 'stored_forever'
+                        ? 'Gallery stored permanently on Internet Computer'
+                        : gallery.storageStatus?.status === 'partially_stored'
+                          ? 'Gallery partially stored on Internet Computer'
+                          : 'Gallery stored in standard database'}
                     </div>
                   </div>
                   <Badge variant="outline" className="text-xs font-normal">
@@ -298,14 +302,14 @@ function GalleryViewContent() {
                         {buttonState.text}
                       </Button>
                       <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                        {gallery?.storageStatus?.status === "stored_forever"
-                          ? "This gallery is already permanently stored on the Internet Computer"
-                          : gallery?.storageStatus?.status === "partially_stored"
-                          ? "Continue storing the remaining items on the Internet Computer"
-                          : "Store this gallery permanently on the Internet Computer blockchain"}
+                        {gallery?.storageStatus?.status === 'stored_forever'
+                          ? 'This gallery is already permanently stored on the Internet Computer'
+                          : gallery?.storageStatus?.status === 'partially_stored'
+                            ? 'Continue storing the remaining items on the Internet Computer'
+                            : 'Store this gallery permanently on the Internet Computer blockchain'}
                       </div>
                     </div>
-                    {gallery?.storageStatus?.status === "stored_forever" && (
+                    {gallery?.storageStatus?.status === 'stored_forever' && (
                       <Button
                         variant="outline"
                         size="sm"
@@ -361,7 +365,9 @@ function GalleryViewContent() {
                       fill
                       className="object-cover"
                       onError={() => handleImageError(item.memory.url!)}
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                      sizes={IMAGE_SIZES.gallery}
+                      placeholder="blur"
+                      blurDataURL={getBlurPlaceholder()}
                     />
                   </div>
                 ) : (

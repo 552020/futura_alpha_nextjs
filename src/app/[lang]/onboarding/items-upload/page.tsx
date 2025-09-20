@@ -1,6 +1,6 @@
-import { getDictionary } from "@/utils/dictionaries";
-import ItemsUploadClient from "./items-upload-client";
-import ItemsUploadClientExperiment from "./items-upload-client-experiment";
+import { getDictionary } from '@/utils/dictionaries';
+import ItemsUploadClient from './items-upload-client';
+import ItemsUploadClientExperiment from './items-upload-client-experiment';
 
 interface PageProps {
   params: Promise<{ lang: string }>;

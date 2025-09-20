@@ -36,7 +36,6 @@ src/db/fixtures/
 ## Users
 
 1. **Margot Tenenbaum**
-
    - Email: margot@tenenbaum.com
    - Profile Image: `margot.jpg`
    - Memories:
@@ -44,7 +43,6 @@ src/db/fixtures/
      - Shared with: Eli Cash, Richie Tenenbaum
 
 2. **Richie Tenenbaum**
-
    - Email: richie@tenenbaum.com
    - Profile Image: `richard.jpeg`
    - Memories:
@@ -53,7 +51,6 @@ src/db/fixtures/
      - Both shared with: Margot Tenenbaum
 
 3. **Eli Cash**
-
    - Email: eli@cash.com
    - Profile Image: `eli.webp`
    - Memories:

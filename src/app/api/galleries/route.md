@@ -64,7 +64,6 @@
 ### ❓ **SIMPLIFY - Overkill for Demo**
 
 1. **POST `/api/galleries`** - Creates empty gallery
-
    - **Problem**: Users expect galleries with content
    - **Solution**: Create gallery only when adding first memory
 
@@ -75,7 +74,6 @@
 ### ❌ **REMOVE - Too Complex for Demo**
 
 1. **All sharing routes** (`/api/galleries/[id]/share/*`)
-
    - **Problem**: Complex access control, multiple sharing types
    - **Solution**: Remove for demo, add later if needed
 
@@ -160,3 +158,8 @@ See `src/app/api/galleries/__tests__/README.md` for detailed testing documentati
 15. [x] `GET /api/galleries/[id]` - Include gallery items/memories in response with access control
 16. [x] `PATCH /api/galleries/[id]` - Update metadata (title, description) - already implemented
 17. [x] `DELETE /api/galleries/[id]` - Ensure cascade delete of gallery items - already implemented
+
+### Schema Migration Fixes
+
+18. [x] `POST /api/galleries` - Fixed schema mismatch: Updated to use unified `memories` table instead of separate per-type tables
+19. [x] `POST /api/galleries` - Fixed folder resolution: Now uses `parentFolderId` instead of `metadata->>'folderName'`

@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { useState, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { signIn, useSession } from "next-auth/react";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { signIn, useSession } from 'next-auth/react';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, ArrowLeft } from 'lucide-react';
 
 function SignIIOnlyContent() {
   const router = useRouter();
@@ -15,8 +15,8 @@ function SignIIOnlyContent() {
   const [error, setError] = useState<string | null>(null);
 
   // Get callback URL from query params, default to dashboard
-  const callbackUrl = searchParams.get("callbackUrl") || "/en/dashboard";
-  const safeCallbackUrl = callbackUrl.startsWith("/") ? callbackUrl : "/en/dashboard";
+  const callbackUrl = searchParams.get('callbackUrl') || '/en/dashboard';
+  const safeCallbackUrl = callbackUrl.startsWith('/') ? callbackUrl : '/en/dashboard';
 
   async function handleInternetIdentity() {
     if (iiBusy) return;
@@ -24,11 +24,11 @@ function SignIIOnlyContent() {
     setIiBusy(true);
     try {
       // 1) Ensure II identity with AuthClient.login
-      const { loginWithII } = await import("@/ic/ii");
+      const { loginWithII } = await import('@/ic/ii');
       const { identity } = await loginWithII();
 
       // 2) Fetch challenge and register (create proof/nonce)
-      const { fetchChallenge, registerWithNonce } = await import("@/lib/ii-client");
+      const { fetchChallenge, registerWithNonce } = await import('@/lib/ii-client');
       const challenge = await fetchChallenge(safeCallbackUrl);
       await registerWithNonce(challenge.nonce, identity);
 
@@ -36,22 +36,22 @@ function SignIIOnlyContent() {
       const hasActiveSession = !!session?.user?.id;
       if (hasActiveSession) {
         // Link: verify nonce server-side and upsert account
-        const res = await fetch("/api/auth/link-ii", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        const res = await fetch('/api/auth/link-ii', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ nonce: challenge.nonce }),
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
 
           // Handle Principal conflict specifically
-          if (data.code === "PRINCIPAL_CONFLICT") {
+          if (data.code === 'PRINCIPAL_CONFLICT') {
             throw new Error(
-              "This Internet Identity is already linked to another account. Each II Principal can only be linked to one account for security reasons."
+              'This Internet Identity is already linked to another account. Each II Principal can only be linked to one account for security reasons.'
             );
           }
 
-          throw new Error(data.error || data.message || "Failed to link Internet Identity");
+          throw new Error(data.error || data.message || 'Failed to link Internet Identity');
         }
 
         // Get the principal from the response
@@ -66,8 +66,8 @@ function SignIIOnlyContent() {
       }
 
       // Fallback: standalone II sign-in when no session exists
-      await signIn("ii", {
-        principal: "", // authorize() will validate via /api/ii/verify-nonce
+      await signIn('ii', {
+        principal: '', // authorize() will validate via /api/ii/verify-nonce
         nonceId: challenge.nonceId,
         nonce: challenge.nonce,
         redirect: true,
@@ -111,7 +111,7 @@ function SignIIOnlyContent() {
                 Connecting to Internet Identity…
               </>
             ) : (
-              "Sign in with Internet Identity"
+              'Sign in with Internet Identity'
             )}
           </Button>
         </div>
@@ -124,7 +124,7 @@ function SignIIOnlyContent() {
 
         <div className="mt-6 text-center">
           <p className="text-xs text-muted-foreground">
-            Need help?{" "}
+            Need help?{' '}
             <a href="#" className="underline">
               Learn more about Internet Identity
             </a>

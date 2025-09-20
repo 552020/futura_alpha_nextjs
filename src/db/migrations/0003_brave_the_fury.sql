@@ -1,2 +1,0 @@
-ALTER TABLE "document" ALTER COLUMN "metadata" SET DEFAULT '{"size":0,"mimeType":"","originalName":"","uploadedAt":"2025-03-25T09:32:58.599Z"}'::json;--> statement-breakpoint
-ALTER TABLE "image" ALTER COLUMN "metadata" SET DEFAULT '{"size":0,"mimeType":"","originalName":"","uploadedAt":"2025-03-25T09:32:58.598Z"}'::json;
