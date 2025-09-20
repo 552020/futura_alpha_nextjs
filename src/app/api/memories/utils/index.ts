@@ -23,5 +23,4 @@ export * from './memory-creation';
 // Response formatting utilities
 export * from './response-formatting';
 
-// Legacy utilities (deprecated)
-export * from './legacy';
+// Legacy utilities (deprecated) - removed as legacy.ts file doesn't exist
