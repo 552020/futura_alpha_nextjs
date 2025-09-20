@@ -3,7 +3,7 @@ import path from 'path';
 
 // Configuration
 const GALLERIES_DIR = path.join(process.cwd(), 'public/mock/galleries');
-const OUTPUT_FILE = path.join(process.cwd(), 'src/app/[lang]/gallery/generated-gallery-data.ts');
+const OUTPUT_FILE = path.join(process.cwd(), 'scripts/mock-data/generated-gallery-data.ts');
 
 // Gallery configurations
 const GALLERY_CONFIGS = [

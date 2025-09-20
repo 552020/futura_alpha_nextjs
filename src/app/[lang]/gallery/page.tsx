@@ -14,6 +14,7 @@ import { ErrorState } from '@/components/common/error-state';
 import { GalleryGrid } from '@/components/galleries/gallery-grid';
 
 // Mock data flag for development
+// 📝 Sample data generation script: scripts/mock-data/create-gallery-sample-data.ts
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_GALLERY === 'true';
 
 export default function GalleryPage() {

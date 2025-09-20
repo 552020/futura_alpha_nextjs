@@ -6,7 +6,7 @@ import {
   GalleryDetailResponse,
   UpdateGalleryRequest,
 } from '@/types/gallery';
-import { generatedGalleries, getGeneratedGallery } from '@/app/[lang]/gallery/generated-gallery-data';
+import { generatedGalleries, getGeneratedGallery } from '../../scripts/mock-data/generated-gallery-data';
 import { icpGalleryService, type GalleryData, type StoreGalleryResponse } from './icp-gallery';
 import { Principal } from '@dfinity/principal';
 

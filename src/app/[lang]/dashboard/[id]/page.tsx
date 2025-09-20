@@ -10,10 +10,11 @@ import { useAuthGuard } from '@/utils/authentication';
 import { format } from 'date-fns';
 import { shortenTitle } from '@/lib/utils';
 import { MemoryStorageBadge } from '@/components/common/memory-storage-badge';
-import { sampleDashboardMemories } from '../../../../scripts/mock-data/create-dashboard-sample-data';
+import { sampleDashboardMemories } from '../../../../../scripts/mock-data/create-dashboard-sample-data';
 import { getBlurPlaceholder, IMAGE_SIZES } from '@/utils/image-utils';
 
 // Demo flag - set to true to use mock data for demo
+// 📝 Sample data generation script: scripts/mock-data/create-dashboard-sample-data.ts
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_MEMORY === 'true';
 
 interface MemoryAsset {

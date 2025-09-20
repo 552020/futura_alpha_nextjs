@@ -1,4 +1,4 @@
-import { Memory as BaseMemory } from '../../../types/memory';
+import { Memory as BaseMemory } from '../../src/types/memory';
 
 // Extended Memory interface for gallery with additional properties
 interface Memory extends BaseMemory {

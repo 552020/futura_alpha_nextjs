@@ -1,4 +1,4 @@
-import { Memory } from '../../../types/memory';
+import { Memory } from '../../src/types/memory';
 
 // Extended Memory interface for dashboard with status information
 interface DashboardMemory extends Memory {

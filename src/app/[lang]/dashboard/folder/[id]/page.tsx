@@ -12,7 +12,7 @@ import { FolderTopBar } from '@/components/dashboard/folder-top-bar';
 import { TawkChat } from '@/components/chat/tawk-chat';
 import { fetchMemories, deleteMemory, type MemoryWithFolder, type DashboardItem } from '@/services/memories';
 import { Memory } from '@/types/memory';
-import { sampleDashboardMemories } from '../../../../../scripts/mock-data/create-dashboard-sample-data';
+import { sampleDashboardMemories } from '../../../../../../scripts/mock-data/create-dashboard-sample-data';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/breadcrumb';
 
 // Demo flag - set to true to use mock data for demo
+// 📝 Sample data generation script: scripts/mock-data/create-dashboard-sample-data.ts
 // const USE_MOCK_DATA = true;
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_FOLDER === 'true';
 
