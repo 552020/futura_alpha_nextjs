@@ -81,6 +81,23 @@ const nextConfig: NextConfig = {
         port: '3000',
         pathname: '/images/**',
       },
+      // S3 bucket for user-uploaded images
+      {
+        protocol: 'https',
+        hostname: 'futura0.s3.eu-central-1.amazonaws.com',
+        pathname: '/**',
+      },
+      // Generic S3 pattern for other potential buckets
+      {
+        protocol: 'https',
+        hostname: '*.s3.eu-central-1.amazonaws.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.s3.amazonaws.com',
+        pathname: '/**',
+      },
     ],
   },
   async rewrites() {
