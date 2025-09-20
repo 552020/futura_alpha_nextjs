@@ -1,6 +1,6 @@
 ```ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserId } from '@/lib/auth';
+import { getUserId } from '@/lib/auth-utils';
 import { generateS3Key, createMultipartUpload, generatePresignedPartUrl } from '@/lib/s3-service';
 import { isS3Configured } from '@/lib/s3';
 

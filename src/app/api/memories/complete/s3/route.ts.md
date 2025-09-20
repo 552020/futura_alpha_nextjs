@@ -1,5 +1,5 @@
 <!-- // import { NextRequest, NextResponse } from 'next/server';
-// import { getUserId } from '@/lib/auth';
+// import { getUserId } from '@/lib/auth-utils';
 // import { handleS3UploadCompletion } from '@/lib/s3-service';
 // import { isS3Configured } from '@/lib/s3';
 
