@@ -40,25 +40,32 @@ export async function getUserIdForUpload(params: {
         console.error('❌ Permanent user not found in database');
         console.error('Session user ID:', session.user.id);
         console.error('User email:', session.user.email);
-        
+
         // Try to create the user if they don't exist
         try {
           console.log('Attempting to create user from session data...');
-          const [newUser] = await db.insert(users).values({
-            id: session.user.id,
-            email: session.user.email || '',
-            name: session.user.name || '',
-            image: session.user.image || null,
-          }).returning();
-          
+          const [newUser] = await db
+            .insert(users)
+            .values({
+              id: session.user.id,
+              email: session.user.email || '',
+              name: session.user.name || '',
+              image: session.user.image || null,
+            })
+            .returning();
+
           if (newUser) {
             console.log('✅ Successfully created user from session:', newUser.id);
             // Create corresponding all_users entry
-            const [allUserRecord] = await db.insert(allUsers).values({
-              userId: newUser.id,
-              // Add any other required fields with default values
-            }).returning();
-            
+            const [allUserRecord] = await db
+              .insert(allUsers)
+              .values({
+                type: 'user',
+                userId: newUser.id,
+                // Add any other required fields with default values
+              })
+              .returning();
+
             if (allUserRecord) {
               return { allUserId: allUserRecord.id, error: null };
             }
@@ -66,14 +73,17 @@ export async function getUserIdForUpload(params: {
         } catch (createError) {
           console.error('Failed to create user:', createError);
         }
-        
+
         return {
           allUserId: '',
-          error: NextResponse.json({ 
-            error: 'User not found in database',
-            details: 'The authenticated user does not exist in the database',
-            sessionUserId: session.user.id 
-          }, { status: 404 }),
+          error: NextResponse.json(
+            {
+              error: 'User not found in database',
+              details: 'The authenticated user does not exist in the database',
+              sessionUserId: session.user.id,
+            },
+            { status: 404 }
+          ),
         };
       }
 

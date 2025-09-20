@@ -14,14 +14,20 @@ import { put } from '@vercel/blob';
 import { generateBlobFilename } from '@/lib/storage/blob-config';
 import { uploadToS3 } from '@/lib/s3';
 
-export async function uploadFileToStorage(file: File, existingBuffer?: Buffer, storageBackend: string = 'vercel_blob'): Promise<string> {
+export async function uploadFileToStorage(file: File, existingBuffer?: Buffer, storageBackend: string = 'vercel_blob', userId?: string): Promise<string> {
   if (storageBackend === 's3') {
     console.log('☁️ Using S3 storage backend for file:', file.name);
     
     try {
       // Use the existing S3 utility function
       const buffer = existingBuffer || Buffer.from(await file.arrayBuffer());
-      const url = await uploadToS3(new File([buffer], file.name, { type: file.type }));
+      
+      // Create a clean file name without path for S3
+      const cleanFileName = file.name.split('/').pop() || file.name;
+      const s3File = new File([buffer], cleanFileName, { type: file.type });
+      
+      // Upload to S3 with the clean file name and user ID
+      const url = await uploadToS3(s3File, undefined, userId);
       console.log('✅ Successfully uploaded to S3:', url);
       return url;
     } catch (error) {
@@ -53,13 +59,13 @@ export async function uploadFileToStorage(file: File, existingBuffer?: Buffer, s
 export async function uploadFileToStorageWithErrorHandling(
   file: File,
   buffer: Buffer,
-  uploadFileToStorage: (file: File, buffer?: Buffer, storageBackend?: string) => Promise<string>,
-  storageBackend: string = 'vercel_blob'
-): Promise<{ url: string; error: string | null }> {
-  let url;
+  uploadFn: typeof uploadFileToStorage,
+  storageBackend: string = 'vercel_blob',
+  userId?: string
+): Promise<{ url: string; error: null } | { url: null; error: string }> {
   try {
     console.log(`📤 Starting ${storageBackend} file upload for: ${file.name}`);
-    url = await uploadFileToStorage(file, buffer, storageBackend);
+    const url = await uploadFn(file, buffer, storageBackend, userId);
     console.log(`✅ File uploaded successfully to ${storageBackend}:`, url);
     return { url, error: null };
   } catch (uploadError) {

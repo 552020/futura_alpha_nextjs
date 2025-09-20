@@ -213,12 +213,13 @@ async function handleFolderUpload(formData: FormData, allUserId: string): Promis
           // Get storage backend from form data (default to 'vercel_blob' if not specified)
           const storageBackend = formData.get('storageBackend') as string || 'vercel_blob';
           
-          // Upload file to storage
+          // Upload file to storage with user ID
           const { url, error: uploadError } = await uploadFileToStorageWithErrorHandling(
             file,
             validationResult!.buffer!,
             uploadFileToStorage,
-            storageBackend
+            storageBackend,
+            allUserId // Pass the user ID to include in the S3 path
           );
           if (uploadError) {
             console.error(`❌ Upload failed for ${name}:`, uploadError);
@@ -237,6 +238,8 @@ async function handleFolderUpload(formData: FormData, allUserId: string): Promis
             file: {
               ...file,
               name: file.name.split('/').pop() || file.name, // Clean filename
+              // Ensure the file object has the clean name for S3
+              ...(storageBackend === 's3' && { name: file.name.split('/').pop() || file.name })
             },
             parentFolderId: createdFolder.id, // ✅ Link to folder
             metadata: {

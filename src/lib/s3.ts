@@ -31,23 +31,25 @@ export function isS3Configured(): boolean {
   return configured;
 }
 
-// Generate a safe file name
-function generateSafeFileName(originalName: string): string {
+// Generate a safe file name with user ID in the path
+function generateSafeFileName(originalName: string, userId: string = 'anonymous'): string {
   const timestamp = Date.now();
   const safeFileName = originalName.replace(/[^a-zA-Z0-9-_\.]/g, "_");
-  const fullName = `uploads/${timestamp}-${safeFileName}`;
+  // Include user ID in the path: uploads/{userId}/{timestamp}-{filename}
+  const fullName = `uploads/${userId}/${timestamp}-${safeFileName}`;
   console.log('Generated file name:', fullName);
   return fullName;
 }
 
 // Upload file to S3
-export async function uploadToS3(file: File, buffer?: Buffer): Promise<string> {
+export async function uploadToS3(file: File, buffer?: Buffer, userId?: string): Promise<string> {
   if (!isS3Configured()) {
     throw new Error('S3 is not properly configured. Please check your environment variables.');
   }
 
   const fileBuffer = buffer || Buffer.from(await file.arrayBuffer());
-  const fileName = generateSafeFileName(file.name);
+  const cleanFileName = file.name.split('/').pop() || file.name; // Remove any path from the file name
+  const fileName = generateSafeFileName(cleanFileName, userId);
 
   const uploadParams: PutObjectCommandInput = {
     Bucket: S3_BUCKET,
