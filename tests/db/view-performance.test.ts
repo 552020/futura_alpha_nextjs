@@ -32,7 +32,7 @@ describe('View Performance Tests', () => {
     for (let i = 0; i < 50; i++) {
       const memoryId = `test-performance-${i.toString().padStart(3, '0')}`;
       const syncStates = ['idle', 'migrating', 'failed'] as const;
-      const backends = ['neon-db', 'vercel-blob', 'icp-canister'] as const;
+      const backends = ['neon', 'vercel_blob', 'icp'] as const;
       const artifacts = ['metadata', 'asset'] as const;
       const memoryTypes = ['image', 'video', 'note', 'document', 'audio'] as const;
 
@@ -116,7 +116,7 @@ describe('View Performance Tests', () => {
       db.execute(sql`SELECT COUNT(*) FROM sync_status WHERE sync_state = 'migrating'`),
       db.execute(sql`SELECT COUNT(*) FROM sync_status WHERE sync_state = 'failed'`),
       db.execute(sql`SELECT COUNT(*) FROM sync_status WHERE is_stuck = true`),
-      db.execute(sql`SELECT COUNT(*) FROM sync_status WHERE backend = 'icp-canister'`),
+      db.execute(sql`SELECT COUNT(*) FROM sync_status WHERE backend = 'icp'`),
     ];
 
     const results = await Promise.all(promises);

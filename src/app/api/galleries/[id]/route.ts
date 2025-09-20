@@ -183,6 +183,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       try {
         // console.log(`Processing item: ${item.memoryId} (type: ${item.memoryType})`);
 
+        // Define the type for memory with assets
+        type MemoryWithAssets = typeof memories.$inferSelect & {
+          assets: Array<{
+            id: string;
+            memoryId: string;
+            variantType: 'display' | 'thumb' | null;
+            url: string;
+            mimeType?: string | null; // Allow null for mimeType to match the database schema
+          }>;
+        };
+
         // Fetch memory from unified memories table with assets
         const memory = await db.query.memories.findFirst({
           where: and(
@@ -192,52 +203,55 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           with: {
             assets: true,
           },
-        });
+        }) as MemoryWithAssets | undefined;
 
         if (memory) {
           // console.log(`Found memory for item ${item.memoryId}`);
 
           // Extract URL from assets (similar to dashboard logic)
           const getAssetUrl = (
-            assets: GalleryAsset[] | undefined,
+            assets: { variantType: string | null; url: string }[] | undefined,
             preferredType: 'display' | 'original' = 'display'
           ): string | undefined => {
             if (!assets || assets.length === 0) return undefined;
 
-            const preferredAsset = assets.find(asset => asset.assetType === preferredType);
-            if (preferredAsset) return preferredAsset.url;
+            // For 'original', we look for assets where variantType is null
+            if (preferredType === 'original') {
+              const originalAsset = assets.find(asset => asset.variantType === null);
+              if (originalAsset) return originalAsset.url;
+            } else {
+              // For 'display', look for variantType 'display' or fall back to 'thumb'
+              const displayAsset = assets.find(asset => asset.variantType === 'display');
+              if (displayAsset) return displayAsset.url;
+              
+              const thumbAsset = assets.find(asset => asset.variantType === 'thumb');
+              if (thumbAsset) return thumbAsset.url;
+            }
 
-            const originalAsset = assets.find(asset => asset.assetType === 'original');
-            if (originalAsset) return originalAsset.url;
-
+            // Fall back to the first asset if no match found
             return assets[0]?.url;
           };
-          // Define asset type
-          interface GalleryAsset {
-            assetType: string;
-            url: string;
-            mimeType?: string;
-          }
-
           // Extract MIME type from assets
-          const getAssetMimeType = (assets: GalleryAsset[] | undefined): string | undefined => {
+          const getAssetMimeType = (assets: { variantType: string | null; mimeType?: string | null }[] | undefined): string | undefined => {
             if (!assets || assets.length === 0) return undefined;
 
-            // Try to find display asset first, then original
-            const displayAsset = assets.find(asset => asset.assetType === 'display');
-            if (displayAsset) return displayAsset.mimeType;
+            // First try to get the display variant
+            const displayAsset = assets.find(asset => asset.variantType === 'display');
+            if (displayAsset?.mimeType) return displayAsset.mimeType;
 
-            const originalAsset = assets.find(asset => asset.assetType === 'original');
-            if (originalAsset) return originalAsset.mimeType;
+            // Then try to get the original (where variantType is null)
+            const originalAsset = assets.find(asset => asset.variantType === null);
+            if (originalAsset?.mimeType) return originalAsset.mimeType;
 
-            return assets[0]?.mimeType;
+            // Return the first asset's mimeType if it exists
+            return assets[0]?.mimeType ?? undefined;
           };
 
           // Transform memory to include url and mimeType from assets
           const memoryWithUrl = {
             ...memory,
-            url: getAssetUrl(memory.assets),
-            mimeType: getAssetMimeType(memory.assets),
+            url: memory.assets ? getAssetUrl(memory.assets) : undefined,
+            mimeType: memory.assets ? getAssetMimeType(memory.assets) : undefined,
           };
 
           itemsWithMemories.push({

@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
           mimeType: mimeType,
           storageBackend: 'vercel_blob',
           storageKey: tokenPayload.filename,
-          sha256: checksum,
+          contentHash: checksum, // Using contentHash instead of sha256 to match schema
           variant: null,
           ...metadata,
         },

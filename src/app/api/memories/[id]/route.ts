@@ -7,9 +7,9 @@ import { allUsers, memories } from '@/db/schema';
 // Helper function to add storage status to memory (similar to gallery utils)
 function addStorageStatusToMemory(memory: typeof memories.$inferSelect) {
   // Calculate storage status from the memory's own fields
-  const hasNeonStorage = memory.storageLocations?.includes('neon-db') || false;
-  const hasBlobStorage = memory.storageLocations?.includes('vercel-blob') || false;
-  const hasIcpStorage = memory.storageLocations?.includes('icp-canister') || false;
+  const hasNeonStorage = memory.storageLocations?.includes('neon') || false;
+  const hasBlobStorage = memory.storageLocations?.includes('vercel_blob') || false;
+  const hasIcpStorage = memory.storageLocations?.includes('icp') || false;
 
   // Determine overall status
   let overallStatus: 'stored_forever' | 'partially_stored' | 'web2_only';

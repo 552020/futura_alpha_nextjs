@@ -53,9 +53,13 @@ export async function processImageDerivatives(input: ImageProcessingWorkflowInpu
     console.log(`📤 Uploaded derivatives: display=${displayResult.url}, thumb=${thumbResult.url}`);
 
     // Create asset records in database
+    // Generate a single group ID for all derivative assets
+    const groupId = crypto.randomUUID();
+    
     const assetData = [
       {
         memoryId: input.memoryId,
+        groupId,
         assetType: 'display' as const,
         variant: null,
         url: displayResult.url,
@@ -65,12 +69,12 @@ export async function processImageDerivatives(input: ImageProcessingWorkflowInpu
         width: processedAssets.display.width,
         height: processedAssets.display.height,
         mimeType: processedAssets.display.mimeType,
-        sha256: null,
+        contentHash: null,
         processingStatus: 'completed' as const,
-        processingError: null,
       },
       {
         memoryId: input.memoryId,
+        groupId,
         assetType: 'thumb' as const,
         variant: null,
         url: thumbResult.url,
@@ -80,9 +84,8 @@ export async function processImageDerivatives(input: ImageProcessingWorkflowInpu
         width: processedAssets.thumb.width,
         height: processedAssets.thumb.height,
         mimeType: processedAssets.thumb.mimeType,
-        sha256: null,
+        contentHash: null,
         processingStatus: 'completed' as const,
-        processingError: null,
       },
     ];
 
@@ -97,7 +100,6 @@ export async function processImageDerivatives(input: ImageProcessingWorkflowInpu
         .update(memoryAssets)
         .set({
           processingStatus: 'failed',
-          processingError: error instanceof Error ? error.message : 'Unknown error',
         })
         .where(eq(memoryAssets.memoryId, input.memoryId));
     } catch (updateError) {

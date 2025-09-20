@@ -125,9 +125,10 @@ export async function POST(request: NextRequest) {
           unlockDate: memoryData.unlockDate ? new Date(memoryData.unlockDate) : null,
           metadata: memoryData.metadata || {},
           // Storage status fields - default to web2 storage for new memories
-          storageLocations: ['neon-db', 'vercel-blob'] as ('neon-db' | 'vercel-blob' | 'icp-canister' | 'aws-s3')[],
+          storageLocations: ['neon', 'vercel_blob'] as ('s3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs' | 'neon')[],
           storageDuration: null, // null means permanent storage
-          storageCount: 2, // neon-db + vercel-blob
+          storageCount: 2, // neon + vercel_blob,
+          createdBy: session.user.id, // Add the required createdBy field
         };
 
         const [createdMemory] = await db.insert(memories).values(newMemory).returning();
@@ -147,7 +148,7 @@ export async function POST(request: NextRequest) {
               width?: number;
               height?: number;
               mimeType: string;
-              sha256?: string;
+              contentHash?: string; // Using contentHash instead of sha256 to match schema
               processingStatus?: string;
               processingError?: string;
             }) => ({
@@ -161,9 +162,8 @@ export async function POST(request: NextRequest) {
               width: asset.width || null,
               height: asset.height || null,
               mimeType: asset.mimeType,
-              sha256: asset.sha256 || null,
+              contentHash: asset.contentHash || null,
               processingStatus: asset.processingStatus || 'completed',
-              processingError: asset.processingError || null,
             })
           );
 

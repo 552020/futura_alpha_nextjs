@@ -531,8 +531,8 @@ export const memoryAssets = pgTable(
     groupId: uuid('group_id').notNull(),
 
     // Variant modeling for different asset types
-    variantOfAssetId: uuid('variant_of_asset_id').references(() => memoryAssets.id, { onDelete: 'cascade' }), // Self-referential
-    variantType: text('variant_type', { enum: ['display', 'thumb'] }), // NULL = original
+    variantOfAssetId: uuid('variant_of_asset_id').references((): string => memoryAssets.id, { onDelete: 'cascade' }), // Self-referential
+    variantType: text('variant_type', { enum: ['display', 'thumb'] as const }).$type<'display' | 'thumb' | null>(), // NULL = original
 
     // Asset type and basic info
     assetType: asset_type_t('asset_type').notNull(),
@@ -1634,49 +1634,68 @@ export const userHostingPreferences = pgTable(
  * This table tracks the actual deployment locations of a user's services.
  * It can have multiple entries per user to track deployment history.
  */
+// Define the service deployment type
+interface ServiceDeployment {
+  id: string;
+  userId: string;
+  frontendLocation: string;
+  backendLocation: string;
+  databaseLocation: string;
+  blobLocation: string;
+  isActive: boolean;
+  deployedAt: Date;
+  lastCheckedAt: Date | null;
+  deploymentMetadata: {
+    version?: string;
+    region?: string;
+    url?: string;
+    status?: 'deploying' | 'active' | 'failed' | 'deleting' | 'migrating';
+    error?: string;
+    migration?: {
+      from: string;
+      startedAt: string;
+      progress?: number;
+    };
+  };
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Explicitly type the table to avoid circular references
+const serviceDeploymentsTable = {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: text('user_id')
+    .notNull()
+    .references((): string => users.id, { onDelete: 'cascade' }),
+  frontendLocation: frontend_hosting_t('frontend_location').notNull(),
+  backendLocation: backend_hosting_t('backend_location').notNull(),
+  databaseLocation: database_hosting_t('database_location').notNull(),
+  blobLocation: blob_hosting_t('blob_location').notNull(),
+  isActive: boolean('is_active').default(false).notNull(),
+  deployedAt: timestamp('deployed_at').defaultNow().notNull(),
+  lastCheckedAt: timestamp('last_checked_at'),
+  deploymentMetadata: json('deployment_metadata')
+    .$type<ServiceDeployment['deploymentMetadata']>()
+    .default({}),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+} as const;
+
+// Define the type for the table parameter
+type ServiceDeploymentsTableType = {
+  userId: { name: string };
+  isActive: { name: string };
+};
+
 export const serviceDeployments = pgTable(
   'service_deployments',
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    userId: text('user_id')
-      .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
-
-    // Service locations - using the most specific enum for each
-    frontendLocation: frontend_hosting_t('frontend_location').notNull(),
-    backendLocation: backend_hosting_t('backend_location').notNull(),
-    databaseLocation: database_hosting_t('database_location').notNull(),
-    blobLocation: blob_hosting_t('blob_location').notNull(),
-
-    // Deployment status
-    isActive: boolean('is_active').default(false).notNull(),
-    deployedAt: timestamp('deployed_at').defaultNow().notNull(),
-    lastCheckedAt: timestamp('last_checked_at'),
-
-    // Additional metadata
-    deploymentMetadata: json('deployment_metadata')
-      .$type<{
-        version?: string;
-        region?: string;
-        url?: string;
-        status?: 'deploying' | 'active' | 'failed' | 'deleting' | 'migrating';
-        error?: string;
-        migration?: {
-          from: string; // deployment ID
-          startedAt: string;
-          progress?: number;
-        };
-      }>()
-      .default({}),
-
-    // Timestamps
-    createdAt: timestamp('created_at').defaultNow().notNull(),
-    updatedAt: timestamp('updated_at').defaultNow().notNull(),
-  },
-  table => ({
+  serviceDeploymentsTable,
+  (table: ServiceDeploymentsTableType) => ({
     // Index for looking up active deployments
-    activeDeploymentIdx: index('service_deployments_user_active_idx').on(table.userId, table.isActive),
-
+    activeDeploymentIdx: index('service_deployments_user_active_idx').on(
+      table.userId,
+      table.isActive
+    ),
     // Index for faster lookups by user
     userIdx: index('service_deployments_user_idx').on(table.userId),
   })

@@ -33,7 +33,7 @@ describe('Storage Edges Table', () => {
       memoryId: TEST_MEMORY_ID,
       memoryType: 'image' as const,
       artifact: 'metadata' as const,
-      backend: 'neon-db' as const,
+      backend: 'neon' as const,
       present: true,
       location: 'neon://memory/metadata',
       contentHash: 'sha256:abc123',
@@ -62,7 +62,7 @@ describe('Storage Edges Table', () => {
       memoryId: TEST_MEMORY_ID,
       memoryType: 'image' as const,
       artifact: 'asset' as const,
-      backend: 'vercel-blob' as const,
+      backend: 'vercel_blob' as const,
       present: true,
       location: 'blob://assets/image.jpg',
       contentHash: 'sha256:def456',
@@ -95,10 +95,10 @@ describe('Storage Edges Table', () => {
     const presentOnNeon = await db
       .select()
       .from(storageEdges)
-      .where(and(eq(storageEdges.backend, 'neon-db'), eq(storageEdges.present, true)));
+      .where(and(eq(storageEdges.backend, 'neon'), eq(storageEdges.present, true)));
 
     expect(presentOnNeon.length).toBeGreaterThan(0);
-    expect(presentOnNeon.every(edge => edge.backend === 'neon-db')).toBe(true);
+    expect(presentOnNeon.every(edge => edge.backend === 'neon')).toBe(true);
     expect(presentOnNeon.every(edge => edge.present === true)).toBe(true);
   });
 
@@ -114,7 +114,7 @@ describe('Storage Edges Table', () => {
       memoryId: TEST_MEMORY_ID,
       memoryType: 'image' as const,
       artifact: 'metadata' as const,
-      backend: 'neon-db' as const,
+      backend: 'neon' as const,
       present: true,
       location: 'neon://memory/metadata',
       contentHash: 'sha256:abc123',
@@ -130,7 +130,7 @@ describe('Storage Edges Table', () => {
       memoryId: TEST_MEMORY_ID,
       memoryType: 'image' as const,
       artifact: 'metadata' as const,
-      backend: 'icp-canister' as const,
+      backend: 'icp' as const,
       present: false,
       syncState: 'migrating' as const,
       lastSyncedAt: new Date(),
@@ -152,7 +152,7 @@ describe('Storage Edges Table', () => {
         and(
           eq(storageEdges.memoryId, TEST_MEMORY_ID),
           eq(storageEdges.artifact, 'metadata'),
-          eq(storageEdges.backend, 'icp-canister')
+          eq(storageEdges.backend, 'icp')
         )
       )
       .returning();
@@ -196,7 +196,7 @@ describe('Storage Edges Table', () => {
       memoryId: TEST_MEMORY_ID,
       memoryType: 'video' as const,
       artifact: 'metadata' as const,
-      backend: 'neon-db' as const,
+      backend: 'neon' as const,
       present: true,
       location: 'neon://video/metadata',
       contentHash: 'sha256:video123',
@@ -215,7 +215,7 @@ describe('Storage Edges Table', () => {
     // Test all memory types
     const memoryTypes = ['image', 'video', 'note', 'document', 'audio'] as const;
     const artifacts = ['metadata', 'asset'] as const;
-    const backends = ['neon-db', 'vercel-blob', 'icp-canister'] as const;
+    const backends = ['neon', 'vercel_blob', 'icp'] as const;
     const syncStates = ['idle', 'migrating', 'failed'] as const;
 
     // Test with a different memory ID to avoid unique constraint violation

@@ -28,7 +28,9 @@ export async function findCommonAncestor(userAId: string, userBId: string) {
       LIMIT 1;
     `);
 
-    return result.rows.length > 0 ? result.rows[0] : null;
+    // Safely access the first row with type safety
+    const firstRow = Array.isArray(result.rows) && result.rows.length > 0 ? result.rows[0] : null;
+    return firstRow as { commonAncestor: string; totalDepth: number } | null;
   } catch (error) {
     console.error('Error finding common ancestor:', error);
     throw new Error('Database error.');

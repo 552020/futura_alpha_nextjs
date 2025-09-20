@@ -351,9 +351,12 @@ export async function uploadImageWithMultipleAssetsSimplified(
       progress: 100,
     });
 
+    // Ensure we have valid data and it's an array
+    const memoryData = Array.isArray(result?.data) ? result.data : [];
+    
     return {
       success: true,
-      memory: result.data[0], // Single file upload returns array with one item
+      memory: memoryData[0], // Single file upload returns array with one item
     };
   } catch (error) {
     onProgress?.({

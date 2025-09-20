@@ -16,7 +16,7 @@ export type GalleryWithStorageStatus = DBGallery & {
  */
 export function addStorageStatusToGallery(gallery: DBGallery): GalleryWithStorageStatus {
   // Calculate storage status from the gallery's own fields
-  const hasIcpStorage = gallery.storageLocations?.includes('icp-canister') || false;
+  const hasIcpStorage = gallery.storageLocations?.includes('icp') || false;
   const totalMemories = gallery.totalMemories || 0;
 
   // For now, assume all memories in ICP storage are complete

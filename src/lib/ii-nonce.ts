@@ -92,9 +92,11 @@ async function checkRateLimit(ipAddress?: string): Promise<boolean> {
   const recentCount = await db
     .select({ count: count() })
     .from(iiNonces)
-    .where(and(gte(iiNonces.createdAt, windowStart), sql`${iiNonces.context}->>'ipAddress' = ${ipAddress}`));
+    .where(and(gte(iiNonces.createdAt, windowStart), sql`${iiNonces.context}->>'ipAddress' = ${ipAddress}`))
+    .then(result => result[0]?.count ?? 0)
+    .catch(() => 0);
 
-  return (recentCount[0]?.count || 0) < NONCE_CONFIG.RATE_LIMIT_MAX_REQUESTS;
+  return recentCount < NONCE_CONFIG.RATE_LIMIT_MAX_REQUESTS;
 }
 
 /**

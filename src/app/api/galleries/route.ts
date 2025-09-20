@@ -206,7 +206,7 @@ export async function POST(request: NextRequest) {
 
     // Calculate storage distribution
     const storageDistribution: Record<string, number> = {};
-    const allStorageLocations = new Set<'neon-db' | 'vercel-blob' | 'icp-canister' | 'aws-s3'>();
+    const allStorageLocations = new Set<'s3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs' | 'neon'>();
     let totalDuration = 0;
     let permanentCount = 0;
 

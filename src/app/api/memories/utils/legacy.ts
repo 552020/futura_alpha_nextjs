@@ -50,6 +50,9 @@ export async function storeInDatabase(params: {
         isPublic: false,
         parentFolderId: null,
         ownerSecureCode,
+        createdBy: ownerId, // Add required createdBy field
+        storageLocations: [], // Add required field with default value
+        storageCount: 0, // Add required field with default value
       })
       .returning();
     memoryData = image;
@@ -65,6 +68,9 @@ export async function storeInDatabase(params: {
         isPublic: false,
         parentFolderId: null,
         ownerSecureCode,
+        createdBy: ownerId,
+        storageLocations: [],
+        storageCount: 0,
       })
       .returning();
     memoryData = video;
@@ -80,6 +86,9 @@ export async function storeInDatabase(params: {
         isPublic: false,
         parentFolderId: null,
         ownerSecureCode,
+        createdBy: ownerId,
+        storageLocations: [],
+        storageCount: 0,
       })
       .returning();
     memoryData = document;

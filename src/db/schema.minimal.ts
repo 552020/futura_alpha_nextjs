@@ -1,5 +1,4 @@
-import { pgTable, text, timestamp, uuid, integer, jsonb, index } from 'drizzle-orm/pg-core';
-import { sql } from 'drizzle-orm';
+import { pgTable, text, timestamp, uuid, index } from 'drizzle-orm/pg-core';
 
 // Minimal users table
 export const users = pgTable('user', {

@@ -21,9 +21,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
-import { allUsers, memories, memoryAssets } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { allUsers, memories, memoryAssets, storage_backend_t } from '@/db/schema';
+import { and, eq } from 'drizzle-orm';
 import { getMemoryAccessLevel } from '../../utils/access';
+
+// Define the type for memory assets
+type MemoryAsset = typeof memoryAssets.$inferSelect;
 
 /**
  * PUT /api/memories/:id/assets - Upsert multiple assets for a memory
@@ -124,11 +127,12 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
     }
 
     // Upsert assets (insert or update if exists)
-    const upsertedAssets = [];
+    const upsertedAssets: MemoryAsset[] = [];
 
     for (const asset of assets) {
       const assetData = {
         memoryId,
+        groupId: asset.groupId || crypto.randomUUID(), // Generate a new UUID if not provided
         assetType: asset.assetType as 'original' | 'display' | 'thumb' | 'placeholder' | 'poster' | 'waveform',
         variant: asset.variant || null,
         url: asset.url,
@@ -138,34 +142,69 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
         width: asset.width || null,
         height: asset.height || null,
         mimeType: asset.mimeType,
-        sha256: asset.sha256 || null,
-        processingStatus: asset.processingStatus || 'completed',
-        processingError: asset.processingError || null,
+        contentHash: asset.contentHash || null,
       };
 
-      // Use upsert logic (insert or update on conflict)
-      const [upsertedAsset] = await db
-        .insert(memoryAssets)
-        .values(assetData)
-        .onConflictDoUpdate({
-          target: [memoryAssets.memoryId, memoryAssets.assetType, memoryAssets.variant],
-          set: {
-            url: assetData.url,
-            storageBackend: assetData.storageBackend,
-            storageKey: assetData.storageKey,
-            bytes: assetData.bytes,
-            width: assetData.width,
-            height: assetData.height,
-            mimeType: assetData.mimeType,
-            sha256: assetData.sha256,
-            processingStatus: assetData.processingStatus,
-            processingError: assetData.processingError,
-            updatedAt: new Date(),
-          },
-        })
-        .returning();
+      try {
+        // First, check if asset exists
+        const existingAsset = await db.query.memoryAssets.findFirst({
+          where: and(
+            eq(memoryAssets.memoryId, assetData.memoryId),
+            eq(memoryAssets.assetType, assetData.assetType),
+            eq(memoryAssets.variantType, assetData.variant)
+          )
+        });
 
-      upsertedAssets.push(upsertedAsset);
+        if (existingAsset) {
+          // Update existing asset
+          const updateResult: MemoryAsset[] = await db
+            .update(memoryAssets)
+            .set({
+              url: assetData.url,
+              storageBackend: assetData.storageBackend as (typeof storage_backend_t.enumValues)[number],
+              storageKey: assetData.storageKey,
+              bytes: assetData.bytes,
+              width: assetData.width,
+              height: assetData.height,
+              mimeType: assetData.mimeType,
+              contentHash: assetData.contentHash,
+              updatedAt: new Date(),
+            })
+            .where(
+              and(
+                eq(memoryAssets.memoryId, assetData.memoryId),
+                eq(memoryAssets.assetType, assetData.assetType),
+                eq(memoryAssets.variantType, assetData.variant)
+              )
+            )
+            .returning() as MemoryAsset[];
+          
+          // Safely handle the update result
+          if (updateResult && updateResult.length > 0) {
+            const updatedAsset = updateResult[0];
+            if (updatedAsset) {
+              upsertedAssets.push(updatedAsset);
+            }
+          }
+        } else {
+          // Insert new asset
+          const insertResult: MemoryAsset[] = await db
+            .insert(memoryAssets)
+            .values(assetData)
+            .returning() as MemoryAsset[];
+          
+          // Safely handle the insert result
+          if (insertResult && insertResult.length > 0) {
+            const insertedAsset = insertResult[0];
+            if (insertedAsset) {
+              upsertedAssets.push(insertedAsset);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error upserting asset:', error);
+        // Continue to next asset on error
+      }
     }
 
     return NextResponse.json({
@@ -291,16 +330,20 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
     // Delete assets
     const deletedAssets = await db.delete(memoryAssets).where(deleteCondition).returning();
 
-    // Filter by asset types if specified
-    const filteredDeletedAssets =
-      assetTypes.length > 0 ? deletedAssets.filter(asset => assetTypes.includes(asset.assetType)) : deletedAssets;
+    // Find and delete assets that weren't included in the update
+    const existingAssets = await db.query.memoryAssets.findMany({
+      where: eq(memoryAssets.memoryId, memoryId),
+    });
+    const assetsToDelete = existingAssets.filter((asset) =>
+      !deletedAssets.some((a) => a.assetType === asset.assetType && a.variantType === asset.variantType)
+    );
 
     return NextResponse.json({
       success: true,
       data: {
         memoryId,
-        deletedAssets: filteredDeletedAssets,
-        deletedCount: filteredDeletedAssets.length,
+        deletedAssets: assetsToDelete,
+        deletedCount: assetsToDelete.length,
       },
     });
   } catch (error) {

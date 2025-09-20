@@ -61,15 +61,14 @@ export function getStorageProviderStatuses(): StorageProviderStatus[] {
       requirements: ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_S3_BUCKET']
     },
     {
-      name: 'vercel-blob',
+      name: 'vercel_blob',
       configured: isVercelBlobConfigured(),
       available: isVercelBlobConfigured(),
       priority: 2,
-      description: 'Vercel Blob - Managed blob storage',
       requirements: ['BLOB_READ_WRITE_TOKEN or Vercel deployment']
     },
     {
-      name: 'icp-canister',
+      name: 'icp',
       configured: isICPConfigured(),
       available: isICPConfigured(),
       priority: 3,
