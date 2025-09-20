@@ -29,7 +29,7 @@ export async function uploadFileToStorage(
 
       // Create a clean file name without path for S3
       const cleanFileName = file.name.split('/').pop() || file.name;
-      const s3File = new File([buffer], cleanFileName, { type: file.type });
+      const s3File = new File([new Uint8Array(buffer)], cleanFileName, { type: file.type });
 
       // Upload to S3 with the clean file name and user ID
       const url = await uploadToS3(s3File, undefined, userId);
