@@ -12,7 +12,7 @@ import { FolderTopBar } from '@/components/dashboard/folder-top-bar';
 import { TawkChat } from '@/components/chat/tawk-chat';
 import { fetchMemories, deleteMemory, type MemoryWithFolder, type DashboardItem } from '@/services/memories';
 import { Memory } from '@/types/memory';
-import { sampleDashboardMemories } from '../../sample-data';
+import { sampleDashboardMemories } from '../../../../../scripts/mock-data/create-dashboard-sample-data';
 import {
   Breadcrumb,
   BreadcrumbItem,
