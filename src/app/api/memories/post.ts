@@ -210,11 +210,15 @@ async function handleFolderUpload(formData: FormData, allUserId: string): Promis
             return { success: false, fileName: name, error: validationError };
           }
 
+          // Get storage backend from form data (default to 'vercel_blob' if not specified)
+          const storageBackend = formData.get('storageBackend') as string || 'vercel_blob';
+          
           // Upload file to storage
           const { url, error: uploadError } = await uploadFileToStorageWithErrorHandling(
             file,
             validationResult!.buffer!,
-            uploadFileToStorage
+            uploadFileToStorage,
+            storageBackend
           );
           if (uploadError) {
             console.error(`❌ Upload failed for ${name}:`, uploadError);
@@ -403,11 +407,15 @@ async function handleFileUpload(formData: FormData, ownerId: string): Promise<Ne
           return { success: false, fileName: name, error: validationError };
         }
 
+        // Get storage backend from form data (default to 'vercel_blob' if not specified)
+        const storageBackend = formData.get('storageBackend') as string || 'vercel_blob';
+        
         // Upload file to storage
         const { url, error: uploadError } = await uploadFileToStorageWithErrorHandling(
           file,
           validationResult!.buffer!,
-          uploadFileToStorage
+          uploadFileToStorage,
+          storageBackend
         );
         if (uploadError) {
           console.error(`❌ Upload failed for ${name}:`, uploadError);

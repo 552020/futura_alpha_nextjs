@@ -357,9 +357,13 @@ export function useFileUpload({ isOnboarding = false, mode = 'folder', onSuccess
             formData.append('file', file);
           });
 
+          // Add storage backend information to ensure consistent behavior with single file uploads
+          formData.append('storageBackend', 's3');
+          
           // Note: The unified POST /api/memories endpoint handles user authentication internally
           // No need to pass userId as it will be determined from the session or onboarding context
 
+          console.log('📤 Uploading folder with storageBackend=s3');
           const response = await fetch('/api/memories', { method: 'POST', body: formData });
 
           type FolderResp = {
