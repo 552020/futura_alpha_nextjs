@@ -1,3 +1,4 @@
+```ts
 import { isS3Configured, getPreferredStorageType } from './s3';
 
 export interface StorageProviderStatus {
@@ -22,20 +23,14 @@ export interface StorageConfiguration {
 export function isVercelBlobConfigured(): boolean {
   // Vercel Blob typically works out of the box in Vercel deployments
   // or with BLOB_READ_WRITE_TOKEN in development
-  return !!(
-    process.env.BLOB_READ_WRITE_TOKEN ||
-    process.env.VERCEL_ENV
-  );
+  return !!(process.env.BLOB_READ_WRITE_TOKEN || process.env.VERCEL_ENV);
 }
 
 /**
  * Check if ICP Canister is configured
  */
 export function isICPConfigured(): boolean {
-  return !!(
-    process.env.NEXT_PUBLIC_ICP_CANISTER_ID &&
-    process.env.NEXT_PUBLIC_ICP_NETWORK
-  );
+  return !!(process.env.NEXT_PUBLIC_ICP_CANISTER_ID && process.env.NEXT_PUBLIC_ICP_NETWORK);
 }
 
 /**
@@ -58,7 +53,7 @@ export function getStorageProviderStatuses(): StorageProviderStatus[] {
       available: isS3Configured(),
       priority: 1,
       description: 'Amazon S3 - Scalable object storage',
-      requirements: ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_S3_BUCKET']
+      requirements: ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_S3_BUCKET'],
     },
     {
       name: 'vercel-blob',
@@ -66,7 +61,7 @@ export function getStorageProviderStatuses(): StorageProviderStatus[] {
       available: isVercelBlobConfigured(),
       priority: 2,
       description: 'Vercel Blob - Managed blob storage',
-      requirements: ['BLOB_READ_WRITE_TOKEN or Vercel deployment']
+      requirements: ['BLOB_READ_WRITE_TOKEN or Vercel deployment'],
     },
     {
       name: 'icp-canister',
@@ -74,7 +69,7 @@ export function getStorageProviderStatuses(): StorageProviderStatus[] {
       available: isICPConfigured(),
       priority: 3,
       description: 'Internet Computer Protocol - Decentralized storage',
-      requirements: ['NEXT_PUBLIC_ICP_CANISTER_ID', 'NEXT_PUBLIC_ICP_NETWORK']
+      requirements: ['NEXT_PUBLIC_ICP_CANISTER_ID', 'NEXT_PUBLIC_ICP_NETWORK'],
     },
     {
       name: 'neon-db',
@@ -82,8 +77,8 @@ export function getStorageProviderStatuses(): StorageProviderStatus[] {
       available: isNeonDBConfigured(),
       priority: 4,
       description: 'Neon Database - PostgreSQL-based storage',
-      requirements: ['DATABASE_URL or NEON_DATABASE_URL']
-    }
+      requirements: ['DATABASE_URL or NEON_DATABASE_URL'],
+    },
   ];
 }
 
@@ -117,7 +112,7 @@ export function getStorageConfiguration(): StorageConfiguration {
     preferred,
     available: providers,
     fallbacks,
-    warnings
+    warnings,
   };
 }
 
@@ -126,9 +121,7 @@ export function getStorageConfiguration(): StorageConfiguration {
  */
 export function getBestAvailableStorage(): string {
   const providers = getStorageProviderStatuses();
-  const availableProviders = providers
-    .filter(p => p.available)
-    .sort((a, b) => a.priority - b.priority);
+  const availableProviders = providers.filter(p => p.available).sort((a, b) => a.priority - b.priority);
 
   return availableProviders[0]?.name || 'vercel-blob'; // fallback to vercel-blob
 }
@@ -176,7 +169,7 @@ export function validateStorageConfiguration(): {
     valid: errors.length === 0,
     errors,
     warnings,
-    recommendations
+    recommendations,
   };
 }
 
@@ -250,7 +243,7 @@ export function checkRequiredEnvVars(): {
     'NEXT_PUBLIC_ICP_NETWORK',
     // Database vars
     'DATABASE_URL',
-    'NEON_DATABASE_URL'
+    'NEON_DATABASE_URL',
   ];
 
   const present: string[] = [];
@@ -266,3 +259,4 @@ export function checkRequiredEnvVars(): {
 
   return { missing, present };
 }
+```

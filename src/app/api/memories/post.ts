@@ -14,6 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db/db';
 import { folders } from '@/db/schema';
+import { getAllUserId } from './utils/memory-creation';
 
 // Import organized utilities
 import {
@@ -34,7 +35,6 @@ import {
   storeInNewDatabase,
 
   // Memory creation
-  getAllUserId,
   createMemoryFromJson,
   createMemoryFromBlob,
   createUploadResponse,
