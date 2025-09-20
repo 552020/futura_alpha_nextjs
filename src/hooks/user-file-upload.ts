@@ -105,6 +105,9 @@ export function useFileUpload({ isOnboarding = false, mode = 'folder', onSuccess
       el.setAttribute('webkitdirectory', '');
       el.setAttribute('directory', '');
       el.multiple = true;
+    } else if (mode === 'files') {
+      // Enable multiple file selection for Files mode
+      el.multiple = true;
     }
 
     el.click();
@@ -417,23 +420,169 @@ export function useFileUpload({ isOnboarding = false, mode = 'folder', onSuccess
     }
 
     if (mode == 'files') {
-      const file = event.target.files?.[0];
-      if (!file) return;
+      const files = event.target.files;
+      if (!files || files.length === 0) return;
 
-      console.log(`🎯 DASHBOARD FILE UPLOAD TRIGGERED:`, {
-        fileName: file.name,
-        fileSize: file.size,
-        fileSizeMB: (file.size / (1024 * 1024)).toFixed(2),
-        fileType: file.type,
-        mode,
-        isOnboarding,
-      });
+      if (files.length === 1) {
+        // Single file: use existing single file logic (backward compatibility)
+        const file = files[0];
+        console.log(`🎯 DASHBOARD SINGLE FILE UPLOAD TRIGGERED:`, {
+          fileName: file.name,
+          fileSize: file.size,
+          fileSizeMB: (file.size / (1024 * 1024)).toFixed(2),
+          fileType: file.type,
+          mode,
+          isOnboarding,
+        });
 
-      setIsLoading(true);
-      // Get the authenticated user's ID from the session
-      const userId = session?.user?.id;
-      await processSingleFile(file, false, userId);
-      setIsLoading(false);
+        setIsLoading(true);
+        // Get the authenticated user's ID from the session
+        const userId = session?.user?.id;
+        await processSingleFile(file, false, userId);
+        setIsLoading(false);
+      } else {
+        // Multiple files: reuse folder upload logic
+        console.log(`🎯 DASHBOARD MULTIPLE FILES UPLOAD TRIGGERED:`, {
+          fileCount: files.length,
+          files: Array.from(files).map(f => ({
+            name: f.name,
+            size: f.size,
+            sizeMB: (f.size / (1024 * 1024)).toFixed(2),
+            type: f.type,
+          })),
+          mode,
+          isOnboarding,
+        });
+
+        // Check file count limit
+        if (!UPLOAD_LIMITS.isFileCountValid(files.length)) {
+          toast({
+            variant: 'destructive',
+            title: 'Too many files',
+            description: UPLOAD_LIMITS.getFileCountErrorMessage(files.length),
+          });
+          return;
+        }
+
+        // Check total size limit
+        const totalSize = Array.from(files).reduce((sum, file) => sum + file.size, 0);
+        if (!UPLOAD_LIMITS.isTotalSizeValid(totalSize)) {
+          toast({
+            variant: 'destructive',
+            title: 'Upload too large',
+            description: UPLOAD_LIMITS.getTotalSizeErrorMessage(totalSize),
+          });
+          return;
+        }
+
+        setIsLoading(true);
+
+        try {
+          // 1) Request upload storage (MVP mock)
+          const storage = await requestUploadStorage();
+
+          let data:
+            | {
+                results?: Array<{
+                  memoryId: string;
+                  size?: number;
+                  checksum_sha256?: string | null;
+                  name?: string;
+                  type?: string;
+                }>;
+                userId?: string;
+                successfulUploads?: number;
+              }
+            | undefined;
+
+          // 2) Route to appropriate upload service based on chosen storage
+          if (storage.chosen_storage === 'icp-canister') {
+            // Pre-check Internet Identity authentication before attempting ICP upload
+            const { icpUploadService } = await import('@/services/icp-upload');
+            const isAuthenticated = await icpUploadService.isAuthenticated();
+            if (!isAuthenticated) {
+              throw new Error('Please connect your Internet Identity to upload to ICP');
+            }
+
+            const icpResults = await icpUploadService.uploadFolder(Array.from(files), storage, () => {});
+
+            // Convert ICP results to expected format
+            data = {
+              results: icpResults.map((result, index) => ({
+                memoryId: result.memoryId,
+                size: result.size,
+                name: files[index].name,
+                type: files[index].type,
+                checksum_sha256: result.checksum_sha256,
+              })),
+            };
+          } else {
+            // Upload multiple files using unified POST /api/memories endpoint
+            const formData = new FormData();
+            Array.from(files).forEach(file => {
+              formData.append('file', file);
+            });
+
+            // Note: The unified POST /api/memories endpoint handles user authentication internally
+            // No need to pass userId as it will be determined from the session or onboarding context
+
+            const response = await fetch('/api/memories', { method: 'POST', body: formData });
+
+            type MultipleFilesResp = {
+              error?: string;
+              userId?: string;
+              successfulUploads?: number;
+              results?: Array<{ memoryId: string; size?: number; checksum_sha256?: string | null }>;
+            };
+            const json = (await response.json()) as MultipleFilesResp;
+            data = json;
+
+            if (!response.ok) {
+              throw new Error(json?.error || 'Multiple files upload failed');
+            }
+          }
+
+          // Best-effort verify first reported memory
+          const appMemoryId = data?.results?.[0]?.memoryId;
+          if (appMemoryId) {
+            await verifyUpload({
+              appMemoryId,
+              backend: storage.chosen_storage,
+              idem: storage.idem,
+              size: data?.results?.[0]?.size || null,
+              checksum_sha256: data?.results?.[0]?.checksum_sha256 || null,
+              remote_id: data?.results?.[0]?.memoryId || appMemoryId,
+            });
+          }
+
+          // Update context with results (onboarding)
+          if (isOnboarding && data?.successfulUploads && data.successfulUploads > 0) {
+            updateUserData({
+              uploadedFileCount: data.successfulUploads,
+              allUserId: data.userId ?? '',
+              memoryId: data.results?.[0]?.memoryId ?? '',
+            });
+
+            if (session) {
+              setCurrentStep('share');
+            } else {
+              setCurrentStep('user-info');
+            }
+          }
+
+          onSuccess?.();
+        } catch (error) {
+          console.error('Multiple files upload error:', error);
+          toast({
+            variant: 'destructive',
+            title: 'Upload failed',
+            description: error instanceof Error ? error.message : 'Please try again.',
+          });
+          onError?.(error as Error);
+        } finally {
+          setIsLoading(false);
+        }
+      }
     }
   };
 
