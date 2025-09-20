@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import React, { useEffect } from "react";
+import React, { useEffect } from 'react';
 
 export default function TailwindTestPage() {
   useEffect(() => {
-    console.log("TailwindTestPage mounted");
+    console.log('TailwindTestPage mounted');
 
     // Log all loaded stylesheets
     console.log(
-      "All loaded stylesheets:",
-      Array.from(document.styleSheets).map((sheet) => ({
+      'All loaded stylesheets:',
+      Array.from(document.styleSheets).map(sheet => ({
         href: sheet.href,
         type: sheet.type,
         rules: sheet.cssRules?.length,
@@ -44,7 +44,7 @@ export default function TailwindTestPage() {
           0_0_92px_#fff,
           0_0_102px_#fff,
           0_0_151px_#fff]"
-          style={{ top: "0.5px", left: "0.5px" }}
+          style={{ top: '0.5px', left: '0.5px' }}
         >
           Neon White
         </h1>

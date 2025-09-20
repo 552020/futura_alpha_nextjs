@@ -1,4 +1,4 @@
-import { seedTenenbaum } from "./fixtures/tenenbaum";
+import { seedTenenbaum } from './fixtures/tenenbaum';
 
 export async function seed() {
   // console.log("🌱 Starting database seeding...");
@@ -10,7 +10,7 @@ export async function seed() {
     // console.log("✅ Database seeding completed successfully");
     process.exit(0);
   } catch (error) {
-    console.error("❌ Error seeding database:", error);
+    console.error('❌ Error seeding database:', error);
     process.exit(1);
   }
 }

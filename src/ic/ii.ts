@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { AuthClient } from "@dfinity/auth-client";
-import type { Identity } from "@dfinity/agent";
-import { clearAgentCache } from "./agent";
+import { AuthClient } from '@dfinity/auth-client';
+import type { Identity } from '@dfinity/agent';
+import { clearAgentCache } from './agent';
 
 let cachedAuthClientPromise: Promise<AuthClient> | null = null;
 
@@ -23,7 +23,7 @@ export function getSessionTtlNs(): bigint | undefined {
 export async function loginWithII(): Promise<{ identity: Identity; principal: string }> {
   // console.log("loginWithII");
   const provider = process.env.NEXT_PUBLIC_II_URL || process.env.NEXT_PUBLIC_II_URL_FALLBACK;
-  if (!provider) throw new Error("II URL not configured");
+  if (!provider) throw new Error('II URL not configured');
   // console.log("loginWithII", "provider", provider);
   const authClient = await getAuthClient();
   const maxTimeToLive = getSessionTtlNs();

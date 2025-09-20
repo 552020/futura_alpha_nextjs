@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { backendActor } from "@/ic/backend";
-import { Identity } from "@dfinity/agent";
-import { Principal } from "@dfinity/principal";
+import { backendActor } from '@/ic/backend';
+import { Identity } from '@dfinity/agent';
+import { Principal } from '@dfinity/principal';
 
 // ============================================================================
 // TYPES - Will be updated when declarations are regenerated
@@ -228,16 +228,16 @@ export class ICPGalleryService {
       const result = await actor.galleries_create(galleryData);
 
       // Handle Candid result union type
-      if ("Err" in result) {
+      if ('Err' in result) {
         const error = result.Err;
         const errorMessage =
-          "Internal" in error
+          'Internal' in error
             ? error.Internal
-            : "InvalidArgument" in error
-            ? error.InvalidArgument
-            : "Conflict" in error
-            ? error.Conflict
-            : "Unknown error";
+            : 'InvalidArgument' in error
+              ? error.InvalidArgument
+              : 'Conflict' in error
+                ? error.Conflict
+                : 'Unknown error';
         return {
           success: false,
           message: `Failed to create gallery: ${errorMessage}`,
@@ -250,14 +250,14 @@ export class ICPGalleryService {
         success: true,
         gallery_id: gallery.id,
         icp_gallery_id: gallery.id,
-        message: "Gallery created successfully",
+        message: 'Gallery created successfully',
         storage_location: gallery.storage_location,
       };
     } catch (error) {
-      console.error("Error storing gallery forever:", error);
+      console.error('Error storing gallery forever:', error);
       return {
         success: false,
-        message: `Failed to store gallery: ${error instanceof Error ? error.message : "Unknown error"}`,
+        message: `Failed to store gallery: ${error instanceof Error ? error.message : 'Unknown error'}`,
         storage_location: { Failed: null },
       };
     }
@@ -277,8 +277,8 @@ export class ICPGalleryService {
       // console.log("Get my galleries - placeholder");
       return [];
     } catch (error) {
-      console.error("Error getting user galleries:", error);
-      throw new Error(`Failed to get galleries: ${error instanceof Error ? error.message : "Unknown error"}`);
+      console.error('Error getting user galleries:', error);
+      throw new Error(`Failed to get galleries: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -298,8 +298,8 @@ export class ICPGalleryService {
 
       return null;
     } catch (error) {
-      console.error("Error getting gallery:", error);
-      throw new Error(`Failed to get gallery: ${error instanceof Error ? error.message : "Unknown error"}`);
+      console.error('Error getting gallery:', error);
+      throw new Error(`Failed to get gallery: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -319,13 +319,13 @@ export class ICPGalleryService {
 
       return {
         success: true,
-        message: "Gallery updated successfully",
+        message: 'Gallery updated successfully',
       };
     } catch (error) {
-      console.error("Error updating gallery:", error);
+      console.error('Error updating gallery:', error);
       return {
         success: false,
-        message: `Failed to update gallery: ${error instanceof Error ? error.message : "Unknown error"}`,
+        message: `Failed to update gallery: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
     }
   }
@@ -346,13 +346,13 @@ export class ICPGalleryService {
 
       return {
         success: true,
-        message: "Gallery deleted successfully",
+        message: 'Gallery deleted successfully',
       };
     } catch (error) {
-      console.error("Error deleting gallery:", error);
+      console.error('Error deleting gallery:', error);
       return {
         success: false,
-        message: `Failed to delete gallery: ${error instanceof Error ? error.message : "Unknown error"}`,
+        message: `Failed to delete gallery: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
     }
   }
@@ -378,13 +378,13 @@ export class ICPGalleryService {
       return {
         success: true,
         memory_id: `memory_${Date.now()}`,
-        message: "Memory added successfully to capsule",
+        message: 'Memory added successfully to capsule',
       };
     } catch (error) {
-      console.error("Error adding memory to capsule:", error);
+      console.error('Error adding memory to capsule:', error);
       return {
         success: false,
-        message: `Failed to add memory: ${error instanceof Error ? error.message : "Unknown error"}`,
+        message: `Failed to add memory: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
     }
   }
@@ -405,8 +405,8 @@ export class ICPGalleryService {
 
       return null;
     } catch (error) {
-      console.error("Error getting memory:", error);
-      throw new Error(`Failed to get memory: ${error instanceof Error ? error.message : "Unknown error"}`);
+      console.error('Error getting memory:', error);
+      throw new Error(`Failed to get memory: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -426,13 +426,13 @@ export class ICPGalleryService {
 
       return {
         success: true,
-        message: "Memory updated successfully",
+        message: 'Memory updated successfully',
       };
     } catch (error) {
-      console.error("Error updating memory:", error);
+      console.error('Error updating memory:', error);
       return {
         success: false,
-        message: `Failed to update memory: ${error instanceof Error ? error.message : "Unknown error"}`,
+        message: `Failed to update memory: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
     }
   }
@@ -453,13 +453,13 @@ export class ICPGalleryService {
 
       return {
         success: true,
-        message: "Memory deleted successfully",
+        message: 'Memory deleted successfully',
       };
     } catch (error) {
-      console.error("Error deleting memory:", error);
+      console.error('Error deleting memory:', error);
       return {
         success: false,
-        message: `Failed to delete memory: ${error instanceof Error ? error.message : "Unknown error"}`,
+        message: `Failed to delete memory: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
     }
   }
@@ -483,14 +483,14 @@ export class ICPGalleryService {
       return {
         success: true,
         memories: [],
-        message: "Memories retrieved successfully",
+        message: 'Memories retrieved successfully',
       };
     } catch (error) {
-      console.error("Error listing memories:", error);
+      console.error('Error listing memories:', error);
       return {
         success: false,
         memories: [],
-        message: `Failed to list memories: ${error instanceof Error ? error.message : "Unknown error"}`,
+        message: `Failed to list memories: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
     }
   }
@@ -516,9 +516,9 @@ export class ICPGalleryService {
     }));
 
     const gallery: Gallery = {
-      id: String(web2Gallery.id || "unknown"),
+      id: String(web2Gallery.id || 'unknown'),
       owner_principal: ownerPrincipal,
-      title: String(web2Gallery.title || "Untitled Gallery"),
+      title: String(web2Gallery.title || 'Untitled Gallery'),
       description: web2Gallery.description ? [String(web2Gallery.description)] : [],
       is_public: Boolean(web2Gallery.is_public),
       created_at: BigInt((web2Gallery.created_at as number) || Date.now()),
@@ -549,7 +549,7 @@ export class ICPGalleryService {
 
       return true; // Assume user has capsule for now
     } catch (error) {
-      console.error("Error checking capsule status:", error);
+      console.error('Error checking capsule status:', error);
       return false;
     }
   }

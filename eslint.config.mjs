@@ -1,6 +1,6 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
+import { FlatCompat } from '@eslint/eslintrc';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -10,17 +10,17 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  ...compat.extends('next/core-web-vitals', 'next/typescript'),
   {
     ignores: [
-      "src/ic/declarations/**/*", // Auto-generated ICP declarations - no linting needed
-      "**/ic/declarations/**/*", // Alternative path pattern
+      'src/ic/declarations/**/*', // Auto-generated ICP declarations - no linting needed
+      '**/ic/declarations/**/*', // Alternative path pattern
     ],
   },
   {
     rules: {
       // Disable jsx-a11y/alt-text for Lucide icon components (they're SVGs, not img elements)
-      "jsx-a11y/alt-text": "off",
+      'jsx-a11y/alt-text': 'off',
     },
   },
 ];

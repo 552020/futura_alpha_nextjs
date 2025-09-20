@@ -1,8 +1,8 @@
-import { Memory } from "@/types/memory";
+import { Memory } from '@/types/memory';
 
 // Extended Memory interface for dashboard with status information
 interface DashboardMemory extends Memory {
-  status: "private" | "shared" | "public";
+  status: 'private' | 'shared' | 'public';
   sharedWithCount?: number;
   sharedBy?: string;
   metadata?: {
@@ -53,8 +53,8 @@ const getRandomDate = (): string => {
 };
 
 // Helper function to generate random status
-const getRandomStatus = (): "private" | "shared" | "public" => {
-  const statuses: ("private" | "shared" | "public")[] = ["private", "shared", "public"];
+const getRandomStatus = (): 'private' | 'shared' | 'public' => {
+  const statuses: ('private' | 'shared' | 'public')[] = ['private', 'shared', 'public'];
   return statuses[Math.floor(Math.random() * statuses.length)];
 };
 
@@ -79,7 +79,7 @@ const generateIndividualMemories = (): DashboardMemory[] => {
   const getDescription = (baseDescription: string, index: number): string => {
     if (noDescriptionCount < CONFIG.INDIVIDUAL_CHARACTERISTICS.noDescription) {
       noDescriptionCount++;
-      return "";
+      return '';
     }
     if (longDescriptionCount < CONFIG.INDIVIDUAL_CHARACTERISTICS.longDescription) {
       longDescriptionCount++;
@@ -92,9 +92,9 @@ const generateIndividualMemories = (): DashboardMemory[] => {
   for (let i = 1; i <= CONFIG.INDIVIDUAL_MEMORIES.image; i++) {
     individualMemories.push({
       id: `ind-${memoryIndex}`,
-      title: getTitle("Individual Image", i),
-      description: getDescription("Standalone image", i),
-      type: "image",
+      title: getTitle('Individual Image', i),
+      description: getDescription('Standalone image', i),
+      type: 'image',
       url: `/mock/dashboard/images/test_image_${memoryIndex}.webp`,
       thumbnail: `/mock/dashboard/images/test_image_${memoryIndex}.webp`,
       createdAt: getRandomDate(),
@@ -107,9 +107,9 @@ const generateIndividualMemories = (): DashboardMemory[] => {
   for (let i = 1; i <= CONFIG.INDIVIDUAL_MEMORIES.video; i++) {
     individualMemories.push({
       id: `ind-${memoryIndex}`,
-      title: getTitle("Individual Video", i),
-      description: getDescription("Standalone video", i),
-      type: "video",
+      title: getTitle('Individual Video', i),
+      description: getDescription('Standalone video', i),
+      type: 'video',
       url: `/mock/dashboard/video/test_video_${memoryIndex}.mp4`,
       createdAt: getRandomDate(),
       status: getRandomStatus(),
@@ -121,9 +121,9 @@ const generateIndividualMemories = (): DashboardMemory[] => {
   for (let i = 1; i <= CONFIG.INDIVIDUAL_MEMORIES.note; i++) {
     individualMemories.push({
       id: `ind-${memoryIndex}`,
-      title: getTitle("Individual Note", i),
-      description: getDescription("Standalone note", i),
-      type: "note",
+      title: getTitle('Individual Note', i),
+      description: getDescription('Standalone note', i),
+      type: 'note',
       url: `/mock/dashboard/notes/test_note_${memoryIndex}.txt`,
       createdAt: getRandomDate(),
       status: getRandomStatus(),
@@ -135,9 +135,9 @@ const generateIndividualMemories = (): DashboardMemory[] => {
   for (let i = 1; i <= CONFIG.INDIVIDUAL_MEMORIES.audio; i++) {
     individualMemories.push({
       id: `ind-${memoryIndex}`,
-      title: getTitle("Individual Audio", i),
-      description: getDescription("Standalone audio recording", i),
-      type: "audio",
+      title: getTitle('Individual Audio', i),
+      description: getDescription('Standalone audio recording', i),
+      type: 'audio',
       url: `/mock/dashboard/audio/test_audio_${memoryIndex}.mp3`,
       createdAt: getRandomDate(),
       status: getRandomStatus(),
@@ -149,9 +149,9 @@ const generateIndividualMemories = (): DashboardMemory[] => {
   for (let i = 1; i <= CONFIG.INDIVIDUAL_MEMORIES.document; i++) {
     individualMemories.push({
       id: `ind-${memoryIndex}`,
-      title: getTitle("Individual Document", i),
-      description: getDescription("Standalone document", i),
-      type: "document",
+      title: getTitle('Individual Document', i),
+      description: getDescription('Standalone document', i),
+      type: 'document',
       url: `/mock/dashboard/documents/test_document_${memoryIndex}.md`,
       createdAt: getRandomDate(),
       status: getRandomStatus(),
@@ -173,14 +173,14 @@ const generateFolder1Memories = (): DashboardMemory[] => {
       id: `family-${memoryIndex}`,
       title: `Family Photo ${i}`,
       description: `Beautiful family moment captured on camera ${i}`,
-      type: "image",
+      type: 'image',
       url: `/mock/dashboard/images/test_image_${memoryIndex}.webp`,
       thumbnail: `/mock/dashboard/images/test_image_${memoryIndex}.webp`,
       createdAt: getRandomDate(),
       status: getRandomStatus(),
       metadata: {
         originalPath: `Family Album/family_photo_${i}.jpg`,
-        folderName: "Family-Album",
+        folderName: 'Family-Album',
       },
     });
     memoryIndex++;
@@ -192,13 +192,13 @@ const generateFolder1Memories = (): DashboardMemory[] => {
       id: `family-${memoryIndex}`,
       title: `Family Video ${i}`,
       description: `Precious family video moment ${i}`,
-      type: "video",
+      type: 'video',
       url: `/mock/dashboard/video/test_video_${memoryIndex}.mp4`,
       createdAt: getRandomDate(),
       status: getRandomStatus(),
       metadata: {
         originalPath: `Family Album/family_video_${i}.mp4`,
-        folderName: "Family-Album",
+        folderName: 'Family-Album',
       },
     });
     memoryIndex++;
@@ -210,13 +210,13 @@ const generateFolder1Memories = (): DashboardMemory[] => {
       id: `family-${memoryIndex}`,
       title: `Family Note ${i}`,
       description: `Important family note ${i}`,
-      type: "note",
+      type: 'note',
       url: `/mock/dashboard/notes/test_note_${memoryIndex}.txt`,
       createdAt: getRandomDate(),
       status: getRandomStatus(),
       metadata: {
         originalPath: `Family Album/family_note_${i}.txt`,
-        folderName: "Family-Album",
+        folderName: 'Family-Album',
       },
     });
     memoryIndex++;
@@ -236,14 +236,14 @@ const generateFolder2Memories = (): DashboardMemory[] => {
       id: `project-${memoryIndex}`,
       title: `Project Image ${i}`,
       description: `Project screenshot ${i}`,
-      type: "image",
+      type: 'image',
       url: `/mock/dashboard/images/test_image_${memoryIndex}.webp`,
       thumbnail: `/mock/dashboard/images/test_image_${memoryIndex}.webp`,
       createdAt: getRandomDate(),
       status: getRandomStatus(),
       metadata: {
         originalPath: `Project Files/project_image_${i}.jpg`,
-        folderName: "Project-Files",
+        folderName: 'Project-Files',
       },
     });
     memoryIndex++;
@@ -255,13 +255,13 @@ const generateFolder2Memories = (): DashboardMemory[] => {
       id: `project-${memoryIndex}`,
       title: `Project Video ${i}`,
       description: `Project demo video ${i}`,
-      type: "video",
+      type: 'video',
       url: `/mock/dashboard/video/test_video_${memoryIndex}.mp4`,
       createdAt: getRandomDate(),
       status: getRandomStatus(),
       metadata: {
         originalPath: `Project Files/project_video_${i}.mp4`,
-        folderName: "Project-Files",
+        folderName: 'Project-Files',
       },
     });
     memoryIndex++;
@@ -273,13 +273,13 @@ const generateFolder2Memories = (): DashboardMemory[] => {
       id: `project-${memoryIndex}`,
       title: `Project Document ${i}`,
       description: `Project documentation ${i}`,
-      type: "document",
+      type: 'document',
       url: `/mock/dashboard/documents/test_document_${memoryIndex}.md`,
       createdAt: getRandomDate(),
       status: getRandomStatus(),
       metadata: {
         originalPath: `Project Files/project_document_${i}.md`,
-        folderName: "Project-Files",
+        folderName: 'Project-Files',
       },
     });
     memoryIndex++;
@@ -291,13 +291,13 @@ const generateFolder2Memories = (): DashboardMemory[] => {
       id: `project-${memoryIndex}`,
       title: `Project Note ${i}`,
       description: `Project meeting notes ${i}`,
-      type: "note",
+      type: 'note',
       url: `/mock/dashboard/notes/test_note_${memoryIndex}.txt`,
       createdAt: getRandomDate(),
       status: getRandomStatus(),
       metadata: {
         originalPath: `Project Files/project_note_${i}.txt`,
-        folderName: "Project-Files",
+        folderName: 'Project-Files',
       },
     });
     memoryIndex++;
@@ -309,13 +309,13 @@ const generateFolder2Memories = (): DashboardMemory[] => {
       id: `project-${memoryIndex}`,
       title: `Project Audio ${i}`,
       description: `Project audio recording ${i}`,
-      type: "audio",
+      type: 'audio',
       url: `/mock/dashboard/audio/test_audio_${memoryIndex}.mp3`,
       createdAt: getRandomDate(),
       status: getRandomStatus(),
       metadata: {
         originalPath: `Project Files/project_audio_${i}.mp3`,
-        folderName: "Project-Files",
+        folderName: 'Project-Files',
       },
     });
     memoryIndex++;

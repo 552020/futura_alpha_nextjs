@@ -1,6 +1,4 @@
-import { db } from "@/db/db";
-import { getGalleryPresenceById, DBGalleryPresence } from "@/db/schema";
-import { DBGallery } from "@/db/schema";
+import { DBGallery } from '@/db/schema';
 
 export type GalleryWithStorageStatus = DBGallery & {
   storageStatus: {
@@ -9,91 +7,50 @@ export type GalleryWithStorageStatus = DBGallery & {
     icpComplete: boolean;
     icpAny: boolean;
     icpCompletePercentage: number;
-    status: "stored_forever" | "partially_stored" | "web2_only";
+    status: 'stored_forever' | 'partially_stored' | 'web2_only';
   };
 };
 
 /**
- * Enhance a gallery with computed storage status from the gallery_presence view
+ * Enhance a gallery with storage status from the gallery's own fields
  */
-export async function addStorageStatusToGallery(gallery: DBGallery): Promise<GalleryWithStorageStatus> {
-  try {
-    // Query the gallery_presence view for this gallery
-    const result = await db.execute(getGalleryPresenceById(gallery.id));
-    const rows = (result as { rows?: unknown[] })?.rows || [];
+export function addStorageStatusToGallery(gallery: DBGallery): GalleryWithStorageStatus {
+  // Calculate storage status from the gallery's own fields
+  const hasIcpStorage = gallery.storageLocations?.includes('icp') || false;
+  const totalMemories = gallery.totalMemories || 0;
 
-    if (rows.length === 0) {
-      // No presence data available, return gallery with default storage status
-      return {
-        ...gallery,
-        storageStatus: {
-          totalMemories: 0,
-          icpCompleteMemories: 0,
-          icpComplete: false,
-          icpAny: false,
-          icpCompletePercentage: 0,
-          status: "web2_only" as const,
-        },
-      };
-    }
+  // For now, assume all memories in ICP storage are complete
+  // In the future, this could be calculated from individual memory storage status
+  const icpCompleteMemories = hasIcpStorage ? totalMemories : 0;
 
-    const presenceData = rows[0] as DBGalleryPresence;
+  const icpCompletePercentage = totalMemories > 0 ? Math.round((icpCompleteMemories / totalMemories) * 100) : 0;
 
-    return {
-      ...gallery,
-      storageStatus: {
-        totalMemories: presenceData.total_memories,
-        icpCompleteMemories: presenceData.icp_complete_memories,
-        icpComplete: presenceData.icp_complete,
-        icpAny: presenceData.icp_any,
-        icpCompletePercentage:
-          presenceData.total_memories > 0
-            ? Math.round((presenceData.icp_complete_memories / presenceData.total_memories) * 100)
-            : 0,
-        status: presenceData.icp_complete ? "stored_forever" : presenceData.icp_any ? "partially_stored" : "web2_only",
-      },
-    };
-  } catch (error) {
-    console.error("Error adding storage status to gallery:", gallery.id, error);
-
-    // Return gallery with default storage status on error
-    return {
-      ...gallery,
-      storageStatus: {
-        totalMemories: 0,
-        icpCompleteMemories: 0,
-        icpComplete: false,
-        icpAny: false,
-        icpCompletePercentage: 0,
-        status: "web2_only" as const,
-      },
-    };
+  // Determine overall status
+  let status: 'stored_forever' | 'partially_stored' | 'web2_only';
+  if (hasIcpStorage && icpCompleteMemories === totalMemories) {
+    status = 'stored_forever';
+  } else if (hasIcpStorage) {
+    status = 'partially_stored';
+  } else {
+    status = 'web2_only';
   }
+
+  return {
+    ...gallery,
+    storageStatus: {
+      totalMemories,
+      icpCompleteMemories,
+      icpComplete: hasIcpStorage && icpCompleteMemories === totalMemories,
+      icpAny: hasIcpStorage,
+      icpCompletePercentage,
+      status,
+    },
+  };
 }
 
 /**
- * Enhance multiple galleries with computed storage status
+ * Enhance multiple galleries with storage status
  */
-export async function addStorageStatusToGalleries(galleries: DBGallery[]): Promise<GalleryWithStorageStatus[]> {
-  const enhancedGalleries = await Promise.allSettled(galleries.map((gallery) => addStorageStatusToGallery(gallery)));
-
-  return enhancedGalleries.map((result) => {
-    if (result.status === "fulfilled") {
-      return result.value;
-    } else {
-      console.error("Error enhancing gallery with storage status:", result.reason);
-      // Return original gallery with default storage status on error
-      return {
-        ...galleries[0], // This is a fallback, should be the corresponding gallery
-        storageStatus: {
-          totalMemories: 0,
-          icpCompleteMemories: 0,
-          icpComplete: false,
-          icpAny: false,
-          icpCompletePercentage: 0,
-          status: "web2_only" as const,
-        },
-      };
-    }
-  });
+export function addStorageStatusToGalleries(galleries: DBGallery[]): GalleryWithStorageStatus[] {
+  return galleries.map(gallery => addStorageStatusToGallery(gallery));
 }

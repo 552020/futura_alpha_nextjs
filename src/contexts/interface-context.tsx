@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { usePathname } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 
-type InterfaceMode = "marketing" | "app";
+type InterfaceMode = 'marketing' | 'app';
 
 interface InterfaceContextType {
   mode: InterfaceMode;
@@ -23,31 +23,31 @@ interface InterfaceContextType {
 const InterfaceContext = createContext<InterfaceContextType | undefined>(undefined);
 
 // Define app routes that should use app mode
-const APP_ROUTES = ["/dashboard", "/feed", "/shared", "/user", "/contacts", "/gallery"];
+const APP_ROUTES = ['/dashboard', '/feed', '/shared', '/user', '/contacts', '/gallery'];
 
 // Helper function to determine if a path is an app route
 function isAppRoute(path: string): boolean {
   // Remove the language prefix if it exists
-  const pathWithoutLang = path.replace(/^\/[a-z]{2}/, "");
-  return APP_ROUTES.some((route) => pathWithoutLang.startsWith(route));
+  const pathWithoutLang = path.replace(/^\/[a-z]{2}/, '');
+  return APP_ROUTES.some(route => pathWithoutLang.startsWith(route));
 }
 
 export function InterfaceProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const [mode, setMode] = useState<InterfaceMode>("marketing");
+  const [mode, setMode] = useState<InterfaceMode>('marketing');
   const [devMode, setDevMode] = useState(false);
 
   // Derive role-based permissions from user role
-  const userRole = session?.user?.role || "user";
-  const isDeveloper = userRole === "developer" || userRole === "admin" || userRole === "superadmin";
-  const isAdmin = userRole === "admin" || userRole === "superadmin";
-  const isSuperAdmin = userRole === "superadmin";
+  const userRole = session?.user?.role || 'user';
+  const isDeveloper = userRole === 'developer' || userRole === 'admin' || userRole === 'superadmin';
+  const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+  const isSuperAdmin = userRole === 'superadmin';
 
   // Role utility functions
-  const isAtLeastModerator = ["moderator", "admin", "developer", "superadmin"].includes(userRole);
-  const isAtLeastAdmin = ["admin", "superadmin"].includes(userRole);
-  const isAtLeastDeveloper = ["developer", "superadmin"].includes(userRole);
+  const isAtLeastModerator = ['moderator', 'admin', 'developer', 'superadmin'].includes(userRole);
+  const isAtLeastAdmin = ['admin', 'superadmin'].includes(userRole);
+  const isAtLeastDeveloper = ['developer', 'superadmin'].includes(userRole);
 
   useEffect(() => {
     // console.log("InterfaceProvider Debug:", {
@@ -58,7 +58,7 @@ export function InterfaceProvider({ children }: { children: ReactNode }) {
     //   isDeveloper,
     //   isAdmin,
     // });
-    setMode(isAppRoute(pathname) ? "app" : "marketing");
+    setMode(isAppRoute(pathname) ? 'app' : 'marketing');
   }, [pathname, session?.user?.role, isDeveloper, isAdmin]);
 
   return (
@@ -84,7 +84,7 @@ export function InterfaceProvider({ children }: { children: ReactNode }) {
 export function useInterface() {
   const context = useContext(InterfaceContext);
   if (context === undefined) {
-    throw new Error("useInterface must be used within an InterfaceProvider");
+    throw new Error('useInterface must be used within an InterfaceProvider');
   }
   return context;
 }

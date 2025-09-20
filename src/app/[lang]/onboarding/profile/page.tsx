@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { Profile } from "@/components/user/profile";
-import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { Profile } from '@/components/user/profile';
+import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 
 /**
  * Note on Suspense and Component Structure:
@@ -22,8 +22,8 @@ import { Suspense } from "react";
 
 function OnboardingProfilePage() {
   const searchParams = useSearchParams();
-  const fileUrl = searchParams.get("fileUrl");
-  const fileName = searchParams.get("fileName");
+  const fileUrl = searchParams.get('fileUrl');
+  const fileName = searchParams.get('fileName');
 
   // Recreate the file object from URL params
   const uploadedFile =

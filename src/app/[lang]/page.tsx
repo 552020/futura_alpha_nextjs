@@ -1,9 +1,9 @@
-import Hero from "@/components/marketing/hero";
-import HeroDemo from "@/components/marketing/hero-demo";
-import { getDictionary } from "@/utils/dictionaries";
-import { cookies } from "next/headers";
-import { auth } from "@/auth";
-import { redirect } from "next/navigation";
+import Hero from '@/components/marketing/hero';
+import HeroDemo from '@/components/marketing/hero-demo';
+import { getDictionary } from '@/utils/dictionaries';
+import { cookies } from 'next/headers';
+import { auth } from '@/auth';
+import { redirect } from 'next/navigation';
 
 type PageProps = {
   params: Promise<{
@@ -11,7 +11,7 @@ type PageProps = {
   }>;
 };
 
-const DEFAULT_SEGMENT = "family";
+const DEFAULT_SEGMENT = 'family';
 
 export default async function LangPage({ params }: PageProps) {
   // Resolve the params promise
@@ -27,13 +27,13 @@ export default async function LangPage({ params }: PageProps) {
 
   // Get the preferred segment from cookies, default to "family" if not found
   const cookieStore = await cookies();
-  const segment = cookieStore.get("segment")?.value || DEFAULT_SEGMENT;
+  const segment = cookieStore.get('segment')?.value || DEFAULT_SEGMENT;
 
   // Get dictionary for the language WITH the preferred segment
   const dict = await getDictionary(resolvedParams.lang, { segment });
 
   const heroMode = process.env.NEXT_PUBLIC_HERO;
-  const showVault = heroMode === "vault";
+  const showVault = heroMode === 'vault';
 
   return (
     <main className="bg-white dark:bg-[#0A0A0B]">

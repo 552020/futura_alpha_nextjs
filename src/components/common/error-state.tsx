@@ -1,6 +1,6 @@
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { AlertCircle } from "lucide-react";
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { AlertCircle } from 'lucide-react';
 
 interface ErrorStateProps {
   title?: string;
@@ -13,16 +13,16 @@ interface ErrorStateProps {
 }
 
 export function ErrorState({
-  title = "Something went wrong",
+  title = 'Something went wrong',
   message,
   onRetry,
-  retryText = "Try Again",
+  retryText = 'Try Again',
   className,
   fullScreen = false,
   showIcon = true,
 }: ErrorStateProps) {
   const errorContent = (
-    <div className={cn("text-center", className)}>
+    <div className={cn('text-center', className)}>
       {showIcon && <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />}
       <h2 className="text-2xl font-semibold mb-4">{title}</h2>
       {message && <p className="text-muted-foreground mb-6">{message}</p>}

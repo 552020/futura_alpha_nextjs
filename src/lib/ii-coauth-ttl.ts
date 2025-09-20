@@ -24,11 +24,11 @@ export const II_COAUTH_CONFIG = {
  * TTL Status for II co-auth
  */
 export type IICoAuthTTLStatus =
-  | "active" // Within main TTL window
-  | "grace" // Within grace period (expired but still usable)
-  | "expired" // Fully expired, requires re-auth
-  | "warning" // Approaching expiration (for UI warnings)
-  | "inactive"; // No co-auth active
+  | 'active' // Within main TTL window
+  | 'grace' // Within grace period (expired but still usable)
+  | 'expired' // Fully expired, requires re-auth
+  | 'warning' // Approaching expiration (for UI warnings)
+  | 'inactive'; // No co-auth active
 
 /**
  * Check the TTL status of II co-auth
@@ -45,7 +45,7 @@ export function checkIICoAuthTTL(assertedAt?: number): {
 } {
   if (!assertedAt) {
     return {
-      status: "inactive",
+      status: 'inactive',
       remainingMs: 0,
       remainingMinutes: 0,
       isExpired: true,
@@ -62,7 +62,7 @@ export function checkIICoAuthTTL(assertedAt?: number): {
   // Check if fully expired (beyond grace period)
   if (elapsed > II_COAUTH_CONFIG.TTL_MS + II_COAUTH_CONFIG.GRACE_PERIOD_MS) {
     return {
-      status: "expired",
+      status: 'expired',
       remainingMs: 0,
       remainingMinutes: 0,
       isExpired: true,
@@ -74,7 +74,7 @@ export function checkIICoAuthTTL(assertedAt?: number): {
   // Check if in grace period
   if (elapsed > II_COAUTH_CONFIG.TTL_MS) {
     return {
-      status: "grace",
+      status: 'grace',
       remainingMs: Math.max(0, II_COAUTH_CONFIG.TTL_MS + II_COAUTH_CONFIG.GRACE_PERIOD_MS - elapsed),
       remainingMinutes: Math.ceil(
         Math.max(0, II_COAUTH_CONFIG.TTL_MS + II_COAUTH_CONFIG.GRACE_PERIOD_MS - elapsed) / (60 * 1000)
@@ -88,7 +88,7 @@ export function checkIICoAuthTTL(assertedAt?: number): {
   // Check if approaching expiration (warning threshold)
   if (remainingMs <= II_COAUTH_CONFIG.WARNING_THRESHOLD_MS) {
     return {
-      status: "warning",
+      status: 'warning',
       remainingMs,
       remainingMinutes,
       isExpired: false,
@@ -99,7 +99,7 @@ export function checkIICoAuthTTL(assertedAt?: number): {
 
   // Active within main TTL window
   return {
-    status: "active",
+    status: 'active',
     remainingMs,
     remainingMinutes,
     isExpired: false,
@@ -115,7 +115,7 @@ export function checkIICoAuthTTL(assertedAt?: number): {
  */
 export function isIICoAuthValid(assertedAt?: number): boolean {
   const ttlStatus = checkIICoAuthTTL(assertedAt);
-  return ttlStatus.status === "active" || ttlStatus.status === "grace";
+  return ttlStatus.status === 'active' || ttlStatus.status === 'grace';
 }
 
 /**
@@ -125,7 +125,7 @@ export function isIICoAuthValid(assertedAt?: number): boolean {
  */
 export function requiresIIReAuth(assertedAt?: number): boolean {
   const ttlStatus = checkIICoAuthTTL(assertedAt);
-  return ttlStatus.status === "expired";
+  return ttlStatus.status === 'expired';
 }
 
 /**
@@ -137,18 +137,18 @@ export function getIICoAuthStatusMessage(assertedAt?: number): string {
   const ttlStatus = checkIICoAuthTTL(assertedAt);
 
   switch (ttlStatus.status) {
-    case "active":
+    case 'active':
       return `II Active (${ttlStatus.remainingMinutes}m remaining)`;
-    case "grace":
+    case 'grace':
       return `II Expired (${ttlStatus.remainingMinutes}m grace period)`;
-    case "warning":
+    case 'warning':
       return `II Expiring Soon (${ttlStatus.remainingMinutes}m remaining)`;
-    case "expired":
-      return "II Expired - Re-authenticate Required";
-    case "inactive":
-      return "II Not Active";
+    case 'expired':
+      return 'II Expired - Re-authenticate Required';
+    case 'inactive':
+      return 'II Not Active';
     default:
-      return "II Status Unknown";
+      return 'II Status Unknown';
   }
 }
 
@@ -161,17 +161,17 @@ export function getIICoAuthStatusClass(assertedAt?: number): string {
   const ttlStatus = checkIICoAuthTTL(assertedAt);
 
   switch (ttlStatus.status) {
-    case "active":
-      return "text-green-600";
-    case "grace":
-      return "text-orange-600";
-    case "warning":
-      return "text-yellow-600";
-    case "expired":
-      return "text-red-600";
-    case "inactive":
-      return "text-gray-500";
+    case 'active':
+      return 'text-green-600';
+    case 'grace':
+      return 'text-orange-600';
+    case 'warning':
+      return 'text-yellow-600';
+    case 'expired':
+      return 'text-red-600';
+    case 'inactive':
+      return 'text-gray-500';
     default:
-      return "text-gray-500";
+      return 'text-gray-500';
   }
 }

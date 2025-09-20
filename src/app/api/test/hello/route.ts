@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET() {
   try {
@@ -6,20 +6,20 @@ export async function GET() {
     // No authentication required
     return NextResponse.json(
       {
-        message: "Hello from test endpoint!",
+        message: 'Hello from test endpoint!',
         timestamp: new Date().toISOString(),
-        method: "GET",
-        endpoint: "/api/test/hello",
-        status: "success",
+        method: 'GET',
+        endpoint: '/api/test/hello',
+        status: 'success',
       },
       { status: 200 }
     );
   } catch (error) {
     return NextResponse.json(
       {
-        message: "Error in test endpoint",
-        error: error instanceof Error ? error.message : "Unknown error",
-        status: "error",
+        message: 'Error in test endpoint',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        status: 'error',
       },
       { status: 500 }
     );
@@ -33,21 +33,21 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       {
-        message: "Hello from POST test endpoint!",
+        message: 'Hello from POST test endpoint!',
         receivedData: body,
         timestamp: new Date().toISOString(),
-        method: "POST",
-        endpoint: "/api/test/hello",
-        status: "success",
+        method: 'POST',
+        endpoint: '/api/test/hello',
+        status: 'success',
       },
       { status: 200 }
     );
   } catch (error) {
     return NextResponse.json(
       {
-        message: "Error in POST test endpoint",
-        error: error instanceof Error ? error.message : "Unknown error",
-        status: "error",
+        message: 'Error in POST test endpoint',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        status: 'error',
       },
       { status: 500 }
     );

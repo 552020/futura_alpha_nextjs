@@ -1,7 +1,7 @@
-import { vi } from "vitest";
+import { vi } from 'vitest';
 
 // Mock Next.js router
-vi.mock("next/navigation", () => ({
+vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: vi.fn(),
     back: vi.fn(),
@@ -15,10 +15,10 @@ vi.mock("next/navigation", () => ({
 }));
 
 // Mock NextAuth
-vi.mock("next-auth/react", () => ({
+vi.mock('next-auth/react', () => ({
   useSession: vi.fn(() => ({
     data: null,
-    status: "unauthenticated",
+    status: 'unauthenticated',
     update: vi.fn(),
   })),
   signIn: vi.fn(),
@@ -26,8 +26,8 @@ vi.mock("next-auth/react", () => ({
 }));
 
 // Mock environment variables
-process.env.NEXTAUTH_SECRET = "test-secret";
-process.env.NEXTAUTH_URL = "http://localhost:3000";
+process.env.NEXTAUTH_SECRET = 'test-secret';
+process.env.NEXTAUTH_URL = 'http://localhost:3000';
 
 // Global test utilities
 global.ResizeObserver = vi.fn().mockImplementation(() => ({

@@ -1,5 +1,5 @@
-import { put } from "@vercel/blob";
-import { join } from "path";
+import { put } from '@vercel/blob';
+import { join } from 'path';
 
 /**
  * Uploads a file to blob storage from a buffer or file path
@@ -12,11 +12,11 @@ export async function uploadFromPath(content: Buffer, filename: string, folder?:
   try {
     const pathname = folder ? join(folder, filename) : filename;
     const { url } = await put(pathname, content, {
-      access: "public",
+      access: 'public',
     });
     return url;
   } catch (error) {
-    console.error("Error uploading to blob storage:", error);
+    console.error('Error uploading to blob storage:', error);
     throw error;
   }
 }

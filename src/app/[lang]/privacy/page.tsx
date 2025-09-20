@@ -46,10 +46,10 @@ export default async function PrivacyPolicyPage({ params }: { params: Promise<{ 
         <h2 className="text-xl font-semibold mt-8">6. Your Rights</h2>
         <p>
           Depending on your jurisdiction, you may have rights to access, correct, or delete your personal data. To make
-          a request, contact us via the form on the{" "}
+          a request, contact us via the form on the{' '}
           <a className="underline" href={`/${lang}/contact`}>
             Contact
-          </a>{" "}
+          </a>{' '}
           page.
         </p>
 
@@ -61,10 +61,10 @@ export default async function PrivacyPolicyPage({ params }: { params: Promise<{ 
 
         <h2 className="text-xl font-semibold mt-8">8. Contact Us</h2>
         <p>
-          Questions about privacy? Visit{" "}
+          Questions about privacy? Visit{' '}
           <a className="underline" href={`/${lang}/contact`}>
             Contact
-          </a>{" "}
+          </a>{' '}
           and send us a message.
         </p>
       </section>

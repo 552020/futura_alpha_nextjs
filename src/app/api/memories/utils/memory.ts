@@ -1,39 +1,35 @@
-import { db } from "@/db/db";
-import { documents, images, notes, videos } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import type { DBDocument, DBImage, DBNote, DBVideo } from "@/db/schema";
-import type { MemoryType } from "@/db/schema";
+/**
+ * MEMORY UTILITIES - UNIFIED SCHEMA
+ *
+ * This module provides utilities for working with the unified memories table.
+ * It replaces the old separate tables (documents, images, notes, videos) with
+ * a single memories table that handles all memory types.
+ *
+ * USAGE:
+ * - Find memories by ID across all types
+ * - Work with unified memory structure
+ * - Support all memory types: image, video, document, note, audio
+ */
 
-export type MemoryWithType = {
-  type: MemoryType;
-  data: DBDocument | DBImage | DBNote | DBVideo;
-};
+import { db } from '@/db/db';
+import { memories } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+import type { DBMemoryWithAssets } from '@/db/schema';
+
+// With unified schema, MemoryWithType includes assets
+export type MemoryWithType = DBMemoryWithAssets;
 
 /**
- * Finds a memory by ID across all memory types (document, image, note, video)
+ * Finds a memory by ID in the unified memories table
  * @param id The ID of the memory to find
- * @returns The memory with its type, or null if not found
+ * @returns The memory record, or null if not found
  */
 export async function findMemory(id: string): Promise<MemoryWithType | null> {
-  const document = await db.query.documents.findFirst({
-    where: eq(documents.id, id),
+  const memory = await db.query.memories.findFirst({
+    where: eq(memories.id, id),
+    with: {
+      assets: true,
+    },
   });
-  if (document) return { type: "document", data: document };
-
-  const image = await db.query.images.findFirst({
-    where: eq(images.id, id),
-  });
-  if (image) return { type: "image", data: image };
-
-  const note = await db.query.notes.findFirst({
-    where: eq(notes.id, id),
-  });
-  if (note) return { type: "note", data: note };
-
-  const video = await db.query.videos.findFirst({
-    where: eq(videos.id, id),
-  });
-  if (video) return { type: "video", data: video };
-
-  return null;
+  return memory || null;
 }

@@ -1,15 +1,17 @@
-import { useState, useRef } from "react";
-import { useToast } from "@/hooks/use-toast";
-import { useOnboarding } from "@/contexts/onboarding-context";
-import { useSession } from "next-auth/react";
-import { uploadFile } from "@/services/upload";
-import { icpUploadService } from "@/services/icp-upload";
+import { useState, useRef } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { useOnboarding } from '@/contexts/onboarding-context';
+import { useSession } from 'next-auth/react';
+import { uploadFile } from '@/services/upload';
+// Lazy import to avoid eager loading of ICP declarations
+// import { icpUploadService } from '@/services/icp-upload';
 // We'll need to create this context for post-onboarding state
 // import { useVault } from '@/contexts/vault-context';
-import { useUploadStorage, isUploadStorageExpired } from "@/hooks/use-upload-storage";
-import { useStoragePreferences } from "@/hooks/use-storage-preferences";
+import { useUploadStorage, isUploadStorageExpired } from '@/hooks/use-upload-storage';
+import { useStoragePreferences } from '@/hooks/use-storage-preferences';
+import { UPLOAD_LIMITS } from '@/config/upload-limits';
 
-type UploadMode = "folder" | "files";
+type UploadMode = 'folder' | 'files';
 
 interface UseFileUploadProps {
   mode?: UploadMode;
@@ -18,7 +20,7 @@ interface UseFileUploadProps {
   onError?: (error: Error) => void;
 }
 
-export function useFileUpload({ isOnboarding = false, mode = "folder", onSuccess, onError }: UseFileUploadProps) {
+export function useFileUpload({ isOnboarding = false, mode = 'folder', onSuccess, onError }: UseFileUploadProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { addFile: addOnboardingFile, updateUserData, setCurrentStep } = useOnboarding();
@@ -31,36 +33,35 @@ export function useFileUpload({ isOnboarding = false, mode = "folder", onSuccess
   const { data: preferences } = useStoragePreferences();
   const uploadStorageMutation = useUploadStorage();
 
-  function mapPrefToBackend(pref?: "neon" | "icp" | "dual"): "neon-db" | "icp-canister" {
-    if (pref === "icp") return "icp-canister";
-    if (pref === "dual") return "neon-db"; // MVP: prefer neon when dual
-    return "neon-db";
+  function mapPrefToBackend(pref?: 'neon' | 'icp' | 'dual' | 's3'): 'neon-db' | 'icp-canister' {
+    if (pref === 'icp') return 'icp-canister';
+    return 'neon-db'; // default for neon, dual, s3, undefined
   }
 
-  async function requestUploadStorage(preferred?: "neon-db" | "icp-canister") {
+  async function requestUploadStorage(preferred?: 'neon-db' | 'icp-canister') {
     const chosenPreferred = preferred ?? mapPrefToBackend(preferences?.preference);
     const resp = await uploadStorageMutation.mutateAsync({ preferred: chosenPreferred });
     const storage = resp.uploadStorage;
 
     if (isUploadStorageExpired(storage.expires_at)) {
-      throw new Error("Upload storage selection expired. Please try again.");
+      throw new Error('Upload storage selection expired. Please try again.');
     }
     return storage;
   }
 
   async function verifyUpload(args: {
     appMemoryId: string;
-    backend: "neon-db" | "icp-canister" | "vercel-blob";
+    backend: 'neon-db' | 'icp-canister' | 'vercel-blob';
     idem: string;
     size?: number | null;
     checksum_sha256?: string | null;
     remote_id?: string | null;
   }) {
     try {
-      await fetch("/api/upload/verify", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
+      await fetch('/api/upload/verify', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           app_memory_id: args.appMemoryId,
           backend: args.backend,
@@ -95,13 +96,13 @@ export function useFileUpload({ isOnboarding = false, mode = "folder", onSuccess
     if (!el) return;
 
     // reset to file mode first
-    el.removeAttribute("webkitdirectory");
-    el.removeAttribute("directory");
+    el.removeAttribute('webkitdirectory');
+    el.removeAttribute('directory');
     el.multiple = false;
 
-    if (mode === "folder") {
-      el.setAttribute("webkitdirectory", "");
-      el.setAttribute("directory", "");
+    if (mode === 'folder') {
+      el.setAttribute('webkitdirectory', '');
+      el.setAttribute('directory', '');
       el.multiple = true;
     }
 
@@ -109,9 +110,9 @@ export function useFileUpload({ isOnboarding = false, mode = "folder", onSuccess
   };
 
   const checkFileSize = (file: File) => {
-    if (file.size > 50 * 1024 * 1024) {
-      console.error("❌ File too large");
-      throw new Error("File too large");
+    if (!UPLOAD_LIMITS.isFileSizeValid(file.size)) {
+      console.error('❌ File too large:', UPLOAD_LIMITS.getFileSizeErrorMessage(file.size));
+      throw new Error(UPLOAD_LIMITS.getFileSizeErrorMessage(file.size));
     }
   };
 
@@ -141,61 +142,104 @@ export function useFileUpload({ isOnboarding = false, mode = "folder", onSuccess
     // Set the next step based on authentication status
     if (session) {
       // console.log("🔄 Setting current step to share (authenticated user)");
-      setCurrentStep("share");
+      setCurrentStep('share');
     } else {
       // console.log("🔄 Setting current step to user-info (unauthenticated user)");
-      setCurrentStep("user-info");
+      setCurrentStep('user-info');
     }
   };
 
   const processSingleFile = async (file: File, skipSuccess = false, existingUserId?: string) => {
+    console.log(`📁 Processing single file: ${file.name} (${file.size} bytes)`);
+    console.log(`📊 DASHBOARD UPLOAD ANALYSIS:`, {
+      fileName: file.name,
+      fileSize: file.size,
+      fileSizeMB: (file.size / (1024 * 1024)).toFixed(2),
+      fileType: file.type,
+      isOnboarding,
+      mode,
+      existingUserId,
+      isLargeFile: file.size / (1024 * 1024) > 4,
+      threshold: '4MB',
+    });
+
     try {
       checkFileSize(file);
 
       // Create a temporary URL for preview
       const url = URL.createObjectURL(file);
 
-      // 1) Request upload storage (MVP mock)
-      const storage = await requestUploadStorage();
+      // Use unified upload service with storage preference
+      const userStoragePreference = preferences?.preference; // "neon" | "icp" | "dual" | "s3"
+      console.log(`🔍 User storage preference: ${userStoragePreference}`);
 
-      let data:
-        | {
-            data?: { id: string };
-            results?: Array<{ memoryId: string; size?: number; checksum_sha256?: string | null }>;
-            userId?: string;
-            successfulUploads?: number;
-          }
-        | undefined;
-
-      // 2) Route to appropriate upload service based on chosen storage
-      if (storage.chosen_storage === "icp-canister") {
-        // Pre-check Internet Identity authentication before attempting ICP upload
+      // For ICP preference, check authentication first
+      if (userStoragePreference === 'icp') {
+        console.log(`🔐 Checking ICP authentication...`);
+        const { icpUploadService } = await import('@/services/icp-upload');
         const isAuthenticated = await icpUploadService.isAuthenticated();
         if (!isAuthenticated) {
-          throw new Error("Please connect your Internet Identity to upload to ICP");
+          throw new Error('Please connect your Internet Identity to upload to ICP');
         }
-
-        const icpResult = await icpUploadService.uploadFile(file, storage, () => {});
-
-        // Convert ICP result to expected format
-        data = {
-          data: { id: icpResult.memoryId },
-          results: [
-            {
-              memoryId: icpResult.memoryId,
-              size: icpResult.size,
-              checksum_sha256: icpResult.checksum_sha256,
-            },
-          ],
-        };
-      } else {
-        // Upload to Neon/Vercel Blob (existing path)
-        data = (await uploadFile(file, isOnboarding, existingUserId, mode)) as unknown as typeof data;
+        console.log(`✅ ICP authentication confirmed`);
       }
 
-      // 3) Verify after upload (best-effort)
+      // Temporary override for testing - force S3 uploads
+      const storageBackend = 's3' as const;
+      console.log('🔧 TEMPORARY OVERRIDE: Forcing S3 uploads for testing');
+      // Original code (commented out for reference):
+      // let storageBackend: 'vercel_blob' | 's3' = 'vercel_blob';
+      // if (userStoragePreference === 's3') {
+      //   storageBackend = 's3';
+      // }
+
+      // Use the unified uploadFile function
+      console.log(`🚀 Calling uploadFile with parameters:`, {
+        fileName: file.name,
+        isOnboarding,
+        existingUserId,
+        mode,
+        storageBackend,
+        userStoragePreference,
+      });
+
+      const uploadResult = await uploadFile(
+        file,
+        isOnboarding,
+        existingUserId,
+        mode,
+        storageBackend,
+        userStoragePreference
+      );
+
+      // Convert to expected format for compatibility
+      // Note: uploadResult.data is an array of memories from the backend
+      const memory = Array.isArray(uploadResult.data) ? uploadResult.data[0] : uploadResult.data;
+
+      // Check if we have a valid memory response
+      if (!memory || !memory.id) {
+        console.error('❌ Invalid upload response:', uploadResult);
+        throw new Error('Upload failed: Invalid response from server');
+      }
+
+      const data = {
+        data: { id: memory.id },
+        results: [
+          {
+            memoryId: memory.id,
+            size: file.size, // Use original file size since assets array might not be available
+            checksum_sha256: null, // Will be filled by verification if available
+          },
+        ],
+        userId: existingUserId || '', // Add userId for compatibility
+      };
+
+      // 3) Verify after upload (best-effort) - only for non-ICP flows
+      // ICP flows handle verification internally
       const appMemoryId = data?.data?.id;
-      if (appMemoryId) {
+      if (appMemoryId && userStoragePreference !== 'icp') {
+        // For non-ICP flows, we still need to get storage info for verification
+        const storage = await requestUploadStorage();
         await verifyUpload({
           appMemoryId,
           backend: storage.chosen_storage,
@@ -208,7 +252,7 @@ export function useFileUpload({ isOnboarding = false, mode = "folder", onSuccess
 
       if (isOnboarding && data) {
         updateOnboardingContext(
-          { data: { ownerId: data.userId ?? "", id: data.data?.id ?? appMemoryId ?? "" } },
+          { data: { ownerId: data.userId ?? '', id: data.data?.id ?? appMemoryId ?? '' } },
           file,
           url
         );
@@ -218,37 +262,49 @@ export function useFileUpload({ isOnboarding = false, mode = "folder", onSuccess
         onSuccess?.();
       }
     } catch (error) {
-      let title = "Something went wrong";
-      let description = "Please try uploading again.";
+      let title = 'Something went wrong';
+      let description = 'Please try uploading again.';
 
-      if (error instanceof Error && error.message === "File too large") {
-        title = "File too large";
-        description = "Please upload a file smaller than 50MB.";
+      if (error instanceof Error && error.message.includes('File too large')) {
+        title = 'File too large';
+        description = error.message; // Use the detailed error message from UPLOAD_LIMITS
       }
 
-      if (error instanceof Error && error.message.includes("intent")) {
-        title = "Upload not ready";
+      if (error instanceof Error && error.message.includes('intent')) {
+        title = 'Upload not ready';
         description = error.message;
       }
 
-      console.error("❌ Upload error:", error);
+      console.error('❌ Upload error:', error);
 
-      toast({ variant: "destructive", title, description });
+      toast({ variant: 'destructive', title, description });
 
       onError?.(error as Error);
     }
   };
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (mode == "folder") {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (mode == 'folder') {
       const files = event.target.files;
       if (!files) return;
 
-      if (files.length > 25) {
+      // Check file count limit
+      if (!UPLOAD_LIMITS.isFileCountValid(files.length)) {
         toast({
-          variant: "destructive",
-          title: "Too many files",
-          description: "Please select a folder with 25 files or fewer.",
+          variant: 'destructive',
+          title: 'Too many files',
+          description: UPLOAD_LIMITS.getFileCountErrorMessage(files.length),
+        });
+        return;
+      }
+
+      // Check total size limit
+      const totalSize = Array.from(files).reduce((sum, file) => sum + file.size, 0);
+      if (!UPLOAD_LIMITS.isTotalSizeValid(totalSize)) {
+        toast({
+          variant: 'destructive',
+          title: 'Upload too large',
+          description: UPLOAD_LIMITS.getTotalSizeErrorMessage(totalSize),
         });
         return;
       }
@@ -274,11 +330,12 @@ export function useFileUpload({ isOnboarding = false, mode = "folder", onSuccess
           | undefined;
 
         // 2) Route to appropriate upload service based on chosen storage
-        if (storage.chosen_storage === "icp-canister") {
+        if (storage.chosen_storage === 'icp-canister') {
           // Pre-check Internet Identity authentication before attempting ICP upload
+          const { icpUploadService } = await import('@/services/icp-upload');
           const isAuthenticated = await icpUploadService.isAuthenticated();
           if (!isAuthenticated) {
-            throw new Error("Please connect your Internet Identity to upload to ICP");
+            throw new Error('Please connect your Internet Identity to upload to ICP');
           }
 
           const icpResults = await icpUploadService.uploadFolder(Array.from(files), storage, () => {});
@@ -294,14 +351,16 @@ export function useFileUpload({ isOnboarding = false, mode = "folder", onSuccess
             })),
           };
         } else {
-          // Upload folder to Neon/Vercel Blob (existing path)
+          // Upload folder using unified POST /api/memories endpoint
           const formData = new FormData();
-          Array.from(files).forEach((file) => {
-            formData.append("file", file);
+          Array.from(files).forEach(file => {
+            formData.append('file', file);
           });
 
-          const endpoint = isOnboarding ? "/api/memories/upload/onboarding/folder" : "/api/memories/upload/folder";
-          const response = await fetch(endpoint, { method: "POST", body: formData });
+          // Note: The unified POST /api/memories endpoint handles user authentication internally
+          // No need to pass userId as it will be determined from the session or onboarding context
+
+          const response = await fetch('/api/memories', { method: 'POST', body: formData });
 
           type FolderResp = {
             error?: string;
@@ -313,7 +372,7 @@ export function useFileUpload({ isOnboarding = false, mode = "folder", onSuccess
           data = json;
 
           if (!response.ok) {
-            throw new Error(json?.error || "Folder upload failed");
+            throw new Error(json?.error || 'Folder upload failed');
           }
         }
 
@@ -334,24 +393,24 @@ export function useFileUpload({ isOnboarding = false, mode = "folder", onSuccess
         if (isOnboarding && data?.successfulUploads && data.successfulUploads > 0) {
           updateUserData({
             uploadedFileCount: data.successfulUploads,
-            allUserId: data.userId ?? "",
-            memoryId: data.results?.[0]?.memoryId ?? "",
+            allUserId: data.userId ?? '',
+            memoryId: data.results?.[0]?.memoryId ?? '',
           });
 
           if (session) {
-            setCurrentStep("share");
+            setCurrentStep('share');
           } else {
-            setCurrentStep("user-info");
+            setCurrentStep('user-info');
           }
         }
 
         onSuccess?.();
       } catch (error) {
-        console.error("Folder upload error:", error);
+        console.error('Folder upload error:', error);
         toast({
-          variant: "destructive",
-          title: "Upload failed",
-          description: error instanceof Error ? error.message : "Please try again.",
+          variant: 'destructive',
+          title: 'Upload failed',
+          description: error instanceof Error ? error.message : 'Please try again.',
         });
         onError?.(error as Error);
       } finally {
@@ -359,14 +418,26 @@ export function useFileUpload({ isOnboarding = false, mode = "folder", onSuccess
       }
     }
 
-    if (mode == "files") {
+    if (mode == 'files') {
       const file = event.target.files?.[0];
       if (!file) return;
+
+      console.log(`🎯 DASHBOARD FILE UPLOAD TRIGGERED:`, {
+        fileName: file.name,
+        fileSize: file.size,
+        fileSizeMB: (file.size / (1024 * 1024)).toFixed(2),
+        fileType: file.type,
+        mode,
+        isOnboarding,
+      });
+
       setIsLoading(true);
-      await processSingleFile(file, false, undefined);
+      // Get the authenticated user's ID from the session
+      const userId = session?.user?.id;
+      await processSingleFile(file, false, userId);
       setIsLoading(false);
     }
   };
 
-  return { isLoading, fileInputRef, handleUploadClick, handleFileChange };
+  return { isLoading, fileInputRef, handleUploadClick, handleFileUpload };
 }

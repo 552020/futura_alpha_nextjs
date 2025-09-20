@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useCallback } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
-import Image from "next/image";
-import { useAuthGuard } from "@/utils/authentication";
-import { Button } from "@/components/ui/button";
-import { X, ChevronLeft, ChevronRight, Download, Share2, HardDrive } from "lucide-react";
-import { galleryService } from "@/services/gallery";
-import { GalleryWithItems } from "@/types/gallery";
-import { ForeverStorageProgressModal } from "@/components/galleries/forever-storage-progress-modal";
-import { MemoryStorageBadge } from "@/components/common/memory-storage-badge";
-import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect, useCallback } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import Image from 'next/image';
+import { useAuthGuard } from '@/utils/authentication';
+import { Button } from '@/components/ui/button';
+import { X, ChevronLeft, ChevronRight, Download, Share2, HardDrive } from 'lucide-react';
+import { galleryService } from '@/services/gallery';
+import { GalleryWithItems } from '@/types/gallery';
+import { ForeverStorageProgressModal } from '@/components/galleries/forever-storage-progress-modal';
+import { MemoryStorageBadge } from '@/components/common/memory-storage-badge';
+import { useToast } from '@/hooks/use-toast';
 
 // Gallery Hero Cover Component
 function GalleryHeroCover({
@@ -28,7 +28,7 @@ function GalleryHeroCover({
       {gallery.items[0]?.memory.url && !failedImages.has(gallery.items[0].memory.url) ? (
         <Image
           src={gallery.items[0].memory.url}
-          alt={gallery.items[0].memory.title || "Gallery Cover"}
+          alt={gallery.items[0].memory.title || 'Gallery Cover'}
           fill
           className="object-cover"
           onError={() => onImageError(gallery.items[0].memory.url!)}
@@ -105,12 +105,12 @@ function StickyHeader({
               {isPublishing ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
-                  {gallery.isPublic ? "Hiding..." : "Publishing..."}
+                  {gallery.isPublic ? 'Hiding...' : 'Publishing...'}
                 </>
               ) : gallery.isPublic ? (
-                "Hide"
+                'Hide'
               ) : (
-                "Publish"
+                'Publish'
               )}
             </Button>
           </div>
@@ -248,7 +248,7 @@ function GalleryGrid({
   );
 }
 
-const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_GALLERY === "true";
+const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_GALLERY === 'true';
 
 function GalleryPreviewContent() {
   const { id } = useParams();
@@ -274,8 +274,8 @@ function GalleryPreviewContent() {
       const result = await galleryService.getGallery(id as string, USE_MOCK_DATA);
       setGallery(result.gallery);
     } catch (err) {
-      console.error("Error loading gallery:", err);
-      setError("Failed to load gallery");
+      console.error('Error loading gallery:', err);
+      setError('Failed to load gallery');
     } finally {
       setIsLoading(false);
     }
@@ -289,13 +289,13 @@ function GalleryPreviewContent() {
 
   // Auto-open modal if returning from II linking flow
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const shouldOpen = searchParams?.get("storeForever") === "1";
+    if (typeof window === 'undefined') return;
+    const shouldOpen = searchParams?.get('storeForever') === '1';
     if (shouldOpen) {
       setShowForeverStorageModal(true);
       const url = new URL(window.location.href);
-      url.searchParams.delete("storeForever");
-      window.history.replaceState({}, "", url.toString());
+      url.searchParams.delete('storeForever');
+      window.history.replaceState({}, '', url.toString());
     }
   }, [searchParams]);
 
@@ -320,7 +320,7 @@ function GalleryPreviewContent() {
   }, [selectedImageIndex, gallery]);
 
   const handleImageError = useCallback((imageUrl: string) => {
-    setFailedImages((prev) => new Set(prev).add(imageUrl));
+    setFailedImages(prev => new Set(prev).add(imageUrl));
   }, []);
 
   const handleExitPreview = useCallback(() => {
@@ -335,16 +335,16 @@ function GalleryPreviewContent() {
       await galleryService.updateGallery(gallery.id, { isPublic: !gallery.isPublic });
 
       // Update local state
-      setGallery((prev) => (prev ? { ...prev, isPublic: !prev.isPublic } : null));
+      setGallery(prev => (prev ? { ...prev, isPublic: !prev.isPublic } : null));
 
       // Show success message (you can add toast notification here)
       // console.log(`Gallery ${gallery.isPublic ? "hidden" : "published"} successfully`);
       toast({
-        title: "Success",
-        description: `Gallery ${gallery.isPublic ? "hidden" : "published"} successfully`,
+        title: 'Success',
+        description: `Gallery ${gallery.isPublic ? 'hidden' : 'published'} successfully`,
       });
     } catch (error) {
-      console.error("Failed to update gallery:", error);
+      console.error('Failed to update gallery:', error);
       // Show error message (you can add toast notification here)
     } finally {
       setIsPublishing(false);
@@ -359,7 +359,7 @@ function GalleryPreviewContent() {
       const currentImage = gallery.items[selectedImageIndex];
       if (currentImage?.memory.url) {
         // Create a temporary link and trigger download
-        const link = document.createElement("a");
+        const link = document.createElement('a');
         link.href = currentImage.memory.url;
         link.download = currentImage.memory.title || `gallery-image-${selectedImageIndex + 1}.jpg`;
         document.body.appendChild(link);
@@ -367,7 +367,7 @@ function GalleryPreviewContent() {
         document.body.removeChild(link);
       }
     } catch (error) {
-      console.error("Failed to download image:", error);
+      console.error('Failed to download image:', error);
     } finally {
       setIsDownloading(false);
     }
@@ -379,18 +379,18 @@ function GalleryPreviewContent() {
     try {
       setIsSharing(true);
       await galleryService.shareGallery(gallery.id, {
-        sharedWithType: "public",
-        sharedWithId: "public",
+        sharedWithType: 'public',
+        sharedWithId: 'public',
       });
 
       // Show success message (you can add toast notification here)
       // console.log("Gallery shared successfully");
       toast({
-        title: "Success",
-        description: "Gallery shared successfully",
+        title: 'Success',
+        description: 'Gallery shared successfully',
       });
     } catch (error) {
-      console.error("Failed to share gallery:", error);
+      console.error('Failed to share gallery:', error);
       // Show error message (you can add toast notification here)
     } finally {
       setIsSharing(false);
@@ -403,16 +403,16 @@ function GalleryPreviewContent() {
 
   const handleForeverStorageSuccess = async () => {
     toast({
-      title: "Success!",
-      description: "Gallery stored forever on ICP successfully!",
+      title: 'Success!',
+      description: 'Gallery stored forever on ICP successfully!',
     });
     // Refresh gallery data to show updated storage status
     await loadGallery();
   };
 
   const handleForeverStorageError = (error: Error) => {
-    console.error("Error storing gallery forever:", error);
-    setError("Failed to store gallery forever");
+    console.error('Error storing gallery forever:', error);
+    setError('Failed to store gallery forever');
   };
 
   // Handle keyboard navigation
@@ -420,27 +420,27 @@ function GalleryPreviewContent() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (selectedImageIndex !== null) {
         switch (e.key) {
-          case "Escape":
+          case 'Escape':
             handleCloseLightbox();
             break;
-          case "ArrowLeft":
+          case 'ArrowLeft':
             handlePreviousImage();
             break;
-          case "ArrowRight":
+          case 'ArrowRight':
             handleNextImage();
             break;
         }
       } else {
         switch (e.key) {
-          case "Escape":
+          case 'Escape':
             handleExitPreview();
             break;
         }
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedImageIndex, handleCloseLightbox, handlePreviousImage, handleNextImage, handleExitPreview]);
 
   if (authLoading || isLoading) {
@@ -473,7 +473,7 @@ function GalleryPreviewContent() {
       <div className="flex items-center justify-center min-h-screen bg-black">
         <div className="text-center text-white">
           <h2 className="text-2xl font-semibold mb-4">Error</h2>
-          <p className="text-gray-300 mb-6">{error || "Gallery not found"}</p>
+          <p className="text-gray-300 mb-6">{error || 'Gallery not found'}</p>
           <Button onClick={handleExitPreview} variant="outline">
             Go Back
           </Button>

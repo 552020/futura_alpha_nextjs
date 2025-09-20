@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { TawkChat } from "./tawk-chat";
+import { TawkChat } from './tawk-chat';
 
 export function TawkChatWrapper() {
   return <TawkChat />;

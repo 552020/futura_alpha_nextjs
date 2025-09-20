@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect } from 'vitest';
 
 // ============================================================================
 // LEARNING SUPERTEST - BASIC CONCEPTS
@@ -6,13 +6,13 @@ import { describe, it, expect } from "vitest";
 
 // Note: This is a learning example. In real testing, we'd test actual API endpoints.
 
-describe("Learning Supertest Basics", () => {
+describe('Learning Supertest Basics', () => {
   // ============================================================================
   // 1. BASIC HTTP REQUEST TESTING
   // ============================================================================
 
-  describe("HTTP Request Basics", () => {
-    it("should understand GET request structure", () => {
+  describe('HTTP Request Basics', () => {
+    it('should understand GET request structure', () => {
       // This is the basic structure (we'll implement it later):
       // const response = await request(app)
       //   .get("/api/example")
@@ -22,7 +22,7 @@ describe("Learning Supertest Basics", () => {
       expect(true).toBe(true); // Placeholder
     });
 
-    it("should understand POST request structure", () => {
+    it('should understand POST request structure', () => {
       // This is the basic structure (we'll implement it later):
       // const response = await request(app)
       //   .post("/api/example")
@@ -38,8 +38,8 @@ describe("Learning Supertest Basics", () => {
   // 2. RESPONSE VALIDATION PATTERNS
   // ============================================================================
 
-  describe("Response Validation", () => {
-    it("should validate status codes", () => {
+  describe('Response Validation', () => {
+    it('should validate status codes', () => {
       // Common status codes we'll test:
       const statusCodes = {
         success: 200, // OK
@@ -58,16 +58,16 @@ describe("Learning Supertest Basics", () => {
       expect(statusCodes.badRequest).toBe(400);
     });
 
-    it("should validate response body structure", () => {
+    it('should validate response body structure', () => {
       // Example response structure we'll validate:
       const expectedResponse = {
         success: true,
         data: {
-          id: "user-123",
-          name: "John Doe",
-          email: "john@example.com",
+          id: 'user-123',
+          name: 'John Doe',
+          email: 'john@example.com',
         },
-        message: "User created successfully",
+        message: 'User created successfully',
       };
 
       // We'll use these patterns:
@@ -76,7 +76,7 @@ describe("Learning Supertest Basics", () => {
       // expect(response.body.data.name).toBe("John Doe");
 
       expect(expectedResponse.success).toBe(true);
-      expect(expectedResponse.data).toHaveProperty("id");
+      expect(expectedResponse.data).toHaveProperty('id');
     });
   });
 
@@ -84,13 +84,13 @@ describe("Learning Supertest Basics", () => {
   // 3. AUTHENTICATION TESTING PATTERNS
   // ============================================================================
 
-  describe("Authentication Testing", () => {
-    it("should understand auth header patterns", () => {
+  describe('Authentication Testing', () => {
+    it('should understand auth header patterns', () => {
       // Common authentication patterns:
       const authHeaders = {
-        bearer: "Authorization: Bearer <token>",
-        apiKey: "X-API-Key: <key>",
-        session: "Cookie: session=<session-id>",
+        bearer: 'Authorization: Bearer <token>',
+        apiKey: 'X-API-Key: <key>',
+        session: 'Cookie: session=<session-id>',
       };
 
       // We'll use these patterns:
@@ -98,23 +98,23 @@ describe("Learning Supertest Basics", () => {
       // .set("X-API-Key", apiKey)
       // .set("Cookie", `session=${sessionId}`)
 
-      expect(authHeaders.bearer).toContain("Bearer");
-      expect(authHeaders.apiKey).toContain("X-API-Key");
+      expect(authHeaders.bearer).toContain('Bearer');
+      expect(authHeaders.apiKey).toContain('X-API-Key');
     });
 
-    it("should understand unauthorized scenarios", () => {
+    it('should understand unauthorized scenarios', () => {
       // Test scenarios for auth:
       const authScenarios = {
-        noToken: "No authentication provided",
-        invalidToken: "Invalid or expired token",
-        wrongPermissions: "Token valid but insufficient permissions",
+        noToken: 'No authentication provided',
+        invalidToken: 'Invalid or expired token',
+        wrongPermissions: 'Token valid but insufficient permissions',
       };
 
       // We'll test these scenarios:
       // expect(response.status).toBe(401); // Unauthorized
       // expect(response.body.error).toBe("Authentication required");
 
-      expect(authScenarios.noToken).toBe("No authentication provided");
+      expect(authScenarios.noToken).toBe('No authentication provided');
     });
   });
 
@@ -122,15 +122,15 @@ describe("Learning Supertest Basics", () => {
   // 4. ERROR HANDLING TESTING PATTERNS
   // ============================================================================
 
-  describe("Error Handling Testing", () => {
-    it("should understand error response patterns", () => {
+  describe('Error Handling Testing', () => {
+    it('should understand error response patterns', () => {
       // Common error response structure:
       const errorResponse = {
         success: false,
-        error: "Validation failed",
-        message: "Required fields are missing",
-        code: "VALIDATION_ERROR",
-        details: ["email is required", "name is required"],
+        error: 'Validation failed',
+        message: 'Required fields are missing',
+        code: 'VALIDATION_ERROR',
+        details: ['email is required', 'name is required'],
       };
 
       // We'll validate error responses:
@@ -140,18 +140,18 @@ describe("Learning Supertest Basics", () => {
       // expect(response.body.details).toHaveLength(2);
 
       expect(errorResponse.success).toBe(false);
-      expect(errorResponse.code).toBe("VALIDATION_ERROR");
+      expect(errorResponse.code).toBe('VALIDATION_ERROR');
     });
 
-    it("should understand different error types", () => {
+    it('should understand different error types', () => {
       // Different types of errors we'll test:
       const errorTypes = {
-        validation: { status: 400, type: "Bad Request" },
-        authentication: { status: 401, type: "Unauthorized" },
-        authorization: { status: 403, type: "Forbidden" },
-        notFound: { status: 404, type: "Not Found" },
-        conflict: { status: 409, type: "Conflict" },
-        serverError: { status: 500, type: "Internal Server Error" },
+        validation: { status: 400, type: 'Bad Request' },
+        authentication: { status: 401, type: 'Unauthorized' },
+        authorization: { status: 403, type: 'Forbidden' },
+        notFound: { status: 404, type: 'Not Found' },
+        conflict: { status: 409, type: 'Conflict' },
+        serverError: { status: 500, type: 'Internal Server Error' },
       };
 
       expect(errorTypes.validation.status).toBe(400);
@@ -163,30 +163,30 @@ describe("Learning Supertest Basics", () => {
   // 5. TESTING PATTERNS WE'LL USE
   // ============================================================================
 
-  describe("Testing Patterns for Our ICP System", () => {
-    it("should understand our ICP API testing needs", () => {
+  describe('Testing Patterns for Our ICP System', () => {
+    it('should understand our ICP API testing needs', () => {
       // What we'll test in our ICP system:
       const icpTestScenarios = {
         linkII: {
-          endpoint: "POST /api/auth/link-ii",
-          success: { status: 200, body: { success: true, principal: "..." } },
+          endpoint: 'POST /api/auth/link-ii',
+          success: { status: 200, body: { success: true, principal: '...' } },
           errors: [
-            { status: 400, error: "Invalid nonce" },
-            { status: 401, error: "Unauthorized" },
-            { status: 409, error: "Principal already linked" },
+            { status: 400, error: 'Invalid nonce' },
+            { status: 401, error: 'Unauthorized' },
+            { status: 409, error: 'Principal already linked' },
           ],
         },
         unlinkII: {
-          endpoint: "DELETE /api/auth/unlink-ii",
+          endpoint: 'DELETE /api/auth/unlink-ii',
           success: { status: 200, body: { success: true } },
           errors: [
-            { status: 401, error: "Unauthorized" },
-            { status: 404, error: "No II account linked" },
+            { status: 401, error: 'Unauthorized' },
+            { status: 404, error: 'No II account linked' },
           ],
         },
       };
 
-      expect(icpTestScenarios.linkII.endpoint).toBe("POST /api/auth/link-ii");
+      expect(icpTestScenarios.linkII.endpoint).toBe('POST /api/auth/link-ii');
       expect(icpTestScenarios.linkII.errors).toHaveLength(3);
     });
   });

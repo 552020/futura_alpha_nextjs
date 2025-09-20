@@ -3,42 +3,35 @@
 ### **0. Imports Overview**
 
 ```ts
-import NextAuth, { type DefaultSession } from "next-auth";
-import "next-auth/jwt";
-import GitHub from "next-auth/providers/github";
-import Google from "next-auth/providers/google";
-import CredentialsProvider from "next-auth/providers/credentials";
-import { DrizzleAdapter } from "@auth/drizzle-adapter";
-import { db } from "@/db/db";
-import { compare } from "bcrypt";
+import NextAuth, { type DefaultSession } from 'next-auth';
+import 'next-auth/jwt';
+import GitHub from 'next-auth/providers/github';
+import Google from 'next-auth/providers/google';
+import CredentialsProvider from 'next-auth/providers/credentials';
+import { DrizzleAdapter } from '@auth/drizzle-adapter';
+import { db } from '@/db/db';
+import { compare } from 'bcrypt';
 ```
 
 1. `import NextAuth, { type DefaultSession } from "next-auth";`
-
    - Main import for NextAuth.js, provides the core `NextAuth()` function and `DefaultSession` types for extending sessions.
 
 2. `import "next-auth/jwt";`
-
    - Extends NextAuth types (JWT-specific augmentation). Required if you're customizing the JWT token structure.
 
 3. `import GitHub from "next-auth/providers/github";`
-
    - GitHub OAuth provider for authentication.
 
 4. `import Google from "next-auth/providers/google";`
-
    - Google OAuth provider for authentication.
 
 5. `import { DrizzleAdapter } from "@auth/drizzle-adapter";`
-
    - Adapter to connect NextAuth to your database via Drizzle ORM.
 
 6. `import { db } from "@/db/db";`
-
    - Your local database instance (configured Drizzle instance).
 
 7. `import CredentialsProvider from "next-auth/providers/credentials";`
-
    - Provider that enables custom email/password-based authentication.
 
 8. `import { compare } from "bcrypt";`
@@ -75,7 +68,7 @@ We pass a a big initialization object into `NextAuth({})` containing
 This is what is also suggested in the docs, in the [installation](https://authjs.dev/getting-started/installation). We do it in the suggested file `auth.ts`.
 
 ```ts
-import NextAuth from "next-auth";
+import NextAuth from 'next-auth';
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [],
@@ -163,8 +156,8 @@ The providers object is an array of providers, like `GitHub`, `Google`, or for e
 
 ```js
 GitHub({
-  clientId: "...",
-  clientSecret: "...",
+  clientId: '...',
+  clientSecret: '...',
   profile(profile) {
     return {
       id: profile.id, // GitHub ID
@@ -296,7 +289,7 @@ return {
   email: profile.email,
   name: profile.name,
   image: profile.picture,
-  role: "user",
+  role: 'user',
 };
 ```
 
@@ -419,7 +412,7 @@ callbacks: {
 
   ```ts
   session: {
-    strategy: "jwt";
+    strategy: 'jwt';
   } // (or "database")
   ```
 
@@ -447,7 +440,7 @@ pages: {
 ### How to add a role to the user
 
 ```ts
-declare module "next-auth" {
+declare module 'next-auth' {
   interface User {
     role?: string;
   }
@@ -455,7 +448,7 @@ declare module "next-auth" {
     accessToken?: string;
     user: User & {
       id: string;
-    } & DefaultSession["user"];
+    } & DefaultSession['user'];
   }
 }
 ```
@@ -463,7 +456,6 @@ declare module "next-auth" {
 #### Why This Works
 
 1. **Proper Type Extension Order**:
-
    - First extends `User` interface with `role`
    - Then builds `Session.user` from:
      - Extended `User` (with role)
@@ -490,7 +482,7 @@ interface Session {
   user: {
     id: string;
     role: string;
-  } & DefaultSession["user"];
+  } & DefaultSession['user'];
 }
 ```
 
@@ -501,7 +493,7 @@ interface Session {
 ```typescript
 interface Session {
   accessToken?: string;
-  user: DefaultSession["user"] & {
+  user: DefaultSession['user'] & {
     id: string;
     role: string;
   };
@@ -533,7 +525,7 @@ interface Session {
 
 ```typescript
 const session = await auth();
-if (session?.user?.role === "admin") {
+if (session?.user?.role === 'admin') {
   // Type-safe role access
 }
 ```
@@ -586,20 +578,20 @@ npm install pino
 
 ```ts
 // logger.js
-import pino from "pino";
+import pino from 'pino';
 export const logger = pino({
-  level: process.env.LOG_LEVEL || "info", // "debug", "error", "warn"
+  level: process.env.LOG_LEVEL || 'info', // "debug", "error", "warn"
 });
 ```
 
 Then in your code:
 
 ```ts
-import { logger } from "@/lib/logger";
+import { logger } from '@/lib/logger';
 
-logger.debug("This will only log in debug mode");
-logger.info("This is general info");
-logger.error("Something went wrong");
+logger.debug('This will only log in debug mode');
+logger.info('This is general info');
+logger.error('Something went wrong');
 ```
 
 And control with `.env`:
@@ -704,7 +696,7 @@ profile(profile) {
 Or log the whole profile:
 
 ```ts
-console.log("OAuth profile received:", profile);
+console.log('OAuth profile received:', profile);
 ```
 
 ---
@@ -727,8 +719,8 @@ You are **protecting routes** by checking `request.nextUrl.pathname` and `auth.u
 Example:
 
 ```ts
-if (pathname.startsWith("/tests")) {
-  return ["admin", "superadmin", "developer"].includes(auth?.user?.role ?? "");
+if (pathname.startsWith('/tests')) {
+  return ['admin', 'superadmin', 'developer'].includes(auth?.user?.role ?? '');
 }
 ```
 
@@ -870,8 +862,8 @@ You’re 100% correct here too:
 
 ```js
 GitHub({
-  clientId: "...",
-  clientSecret: "...",
+  clientId: '...',
+  clientSecret: '...',
   profile(profile) {
     return {
       id: profile.id, // GitHub ID
@@ -994,7 +986,7 @@ jwt({ token, account, user }) {
 - You’re using:
   ```ts
   session: {
-    strategy: "jwt";
+    strategy: 'jwt';
   }
   ```
 - So every time a page loads and uses `getSession()` or `useSession()`, NextAuth needs to **decode the JWT**, and it calls this callback to do so.

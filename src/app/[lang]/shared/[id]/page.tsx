@@ -1,11 +1,11 @@
-import { notFound } from "next/navigation";
-import { db } from "@/db/db";
-import { memoryShares, allUsers } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
-import { findMemory } from "@/app/api/memories/utils/memory";
-import { MemoryViewer } from "@/components/memory/memory-viewer";
-import { Card } from "@/components/ui/card";
-import { auth } from "@/auth";
+import { notFound } from 'next/navigation';
+import { db } from '@/db/db';
+import { memoryShares, allUsers } from '@/db/schema';
+import { eq, and } from 'drizzle-orm';
+import { findMemory } from '@/app/api/memories/utils/memory';
+import { MemoryViewer } from '@/components/memory/memory-viewer';
+import { Card } from '@/components/ui/card';
+import { auth } from '@/auth';
 
 interface SharedMemoryPageProps {
   params: Promise<{
@@ -17,7 +17,7 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
   const { id } = await params;
   const session = await auth();
 
-  console.log("🔍 DEBUG SharedMemoryPage - Auth Check:", {
+  console.log('🔍 DEBUG SharedMemoryPage - Auth Check:', {
     id,
     hasSession: !!session,
     userId: session?.user?.id,
@@ -25,7 +25,7 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
   });
 
   if (!session?.user?.id) {
-    console.log("❌ DEBUG SharedMemoryPage - No authenticated user");
+    console.log('❌ DEBUG SharedMemoryPage - No authenticated user');
     notFound();
   }
 
@@ -35,7 +35,7 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
       where: eq(allUsers.userId, session.user.id),
     });
 
-    console.log("🔍 DEBUG SharedMemoryPage - AllUser Lookup:", {
+    console.log('🔍 DEBUG SharedMemoryPage - AllUser Lookup:', {
       found: !!allUserRecord,
       userId: session.user.id,
       allUserId: allUserRecord?.id,
@@ -43,28 +43,28 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
     });
 
     if (!allUserRecord) {
-      console.log("❌ DEBUG SharedMemoryPage - No allUser record found");
+      console.log('❌ DEBUG SharedMemoryPage - No allUser record found');
       notFound();
     }
 
     // First try to find the memory
     const memory = await findMemory(id);
-    console.log("🔍 DEBUG SharedMemoryPage - Memory Lookup:", {
+    console.log('🔍 DEBUG SharedMemoryPage - Memory Lookup:', {
       memoryFound: !!memory,
       memoryId: id,
-      ownerId: memory?.data?.ownerId,
+      ownerId: memory?.ownerId,
       timestamp: new Date().toISOString(),
     });
 
     if (!memory) {
-      console.log("❌ DEBUG SharedMemoryPage - Memory not found");
+      console.log('❌ DEBUG SharedMemoryPage - Memory not found');
       notFound();
     }
 
-    const isOwner = memory.data.ownerId === allUserRecord.id;
-    console.log("🔍 DEBUG SharedMemoryPage - Ownership Check:", {
+    const isOwner = memory.ownerId === allUserRecord.id;
+    console.log('🔍 DEBUG SharedMemoryPage - Ownership Check:', {
       isOwner,
-      memoryOwnerId: memory.data.ownerId,
+      memoryOwnerId: memory.ownerId,
       currentUserAllId: allUserRecord.id,
       timestamp: new Date().toISOString(),
     });
@@ -74,7 +74,7 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
       where: and(eq(memoryShares.memoryId, id), eq(memoryShares.sharedWithId, allUserRecord.id)),
     });
 
-    console.log("🔍 DEBUG SharedMemoryPage - Share Check:", {
+    console.log('🔍 DEBUG SharedMemoryPage - Share Check:', {
       hasShare: !!share,
       shareDetails: share
         ? {
@@ -90,8 +90,8 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
     // 1. The owner of the memory OR
     // 2. Have a share record
     if (!isOwner && !share) {
-      console.log("❌ DEBUG SharedMemoryPage - Access Denied:", {
-        reason: "User is not owner and has no share record",
+      console.log('❌ DEBUG SharedMemoryPage - Access Denied:', {
+        reason: 'User is not owner and has no share record',
         isOwner,
         hasShare: !!share,
         userId: allUserRecord.id,
@@ -101,21 +101,21 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
       notFound();
     }
 
-    console.log("✅ DEBUG SharedMemoryPage - Access Granted:", {
-      reason: isOwner ? "User is owner" : "User has share record",
-      accessLevel: isOwner ? "write" : share?.accessLevel || "read",
+    console.log('✅ DEBUG SharedMemoryPage - Access Granted:', {
+      reason: isOwner ? 'User is owner' : 'User has share record',
+      accessLevel: isOwner ? 'write' : share?.accessLevel || 'read',
       timestamp: new Date().toISOString(),
     });
 
-    const accessLevel = isOwner ? "write" : share?.accessLevel || "read";
+    const accessLevel = isOwner ? 'write' : share?.accessLevel || 'read';
 
     return (
       <div className="container mx-auto py-8">
         <Card className="p-6">
           <div className="mb-4">
-            <h1 className="text-2xl font-bold">{isOwner ? "Your Memory" : "Shared Memory"}</h1>
+            <h1 className="text-2xl font-bold">{isOwner ? 'Your Memory' : 'Shared Memory'}</h1>
             <p className="text-muted-foreground">
-              {isOwner ? "You are viewing this memory as the owner" : `You have ${accessLevel} access to this memory`}
+              {isOwner ? 'You are viewing this memory as the owner' : `You have ${accessLevel} access to this memory`}
             </p>
           </div>
 
@@ -124,7 +124,7 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
       </div>
     );
   } catch (error) {
-    console.error("Error accessing shared memory:", error);
+    console.error('Error accessing shared memory:', error);
     notFound();
   }
 }

@@ -1,4 +1,4 @@
-import { Memory } from "@/types/memory";
+import { Memory } from '@/types/memory';
 
 interface RawMemoryData {
   images: Array<{
@@ -52,7 +52,7 @@ interface RawMemoryData {
 const extractFilename = (title: string, metadata?: { originalPath?: string; folderName?: string }): string => {
   // If we have originalPath metadata, extract just the filename
   if (metadata?.originalPath) {
-    const pathParts = metadata.originalPath.split("/");
+    const pathParts = metadata.originalPath.split('/');
     return pathParts[pathParts.length - 1] || title;
   }
   return title;
@@ -60,19 +60,19 @@ const extractFilename = (title: string, metadata?: { originalPath?: string; fold
 
 export const normalizeMemories = (data: RawMemoryData): Memory[] => {
   return [
-    ...data.images.map((img) => ({
+    ...data.images.map(img => ({
       id: img.id,
-      type: "image" as const,
-      title: extractFilename(img.title || "Untitled Image", img.metadata),
+      type: 'image' as const,
+      title: extractFilename(img.title || 'Untitled Image', img.metadata),
       description: img.description,
       createdAt: img.createdAt,
       thumbnail: img.url,
       metadata: img.metadata,
     })),
-    ...data.videos.map((video) => ({
+    ...data.videos.map(video => ({
       id: video.id,
-      type: "video" as const,
-      title: extractFilename(video.title || "Untitled Video", video.metadata),
+      type: 'video' as const,
+      title: extractFilename(video.title || 'Untitled Video', video.metadata),
       description: video.description,
       createdAt: video.createdAt,
       thumbnail: video.url,
@@ -80,21 +80,21 @@ export const normalizeMemories = (data: RawMemoryData): Memory[] => {
       mimeType: video.mimeType,
       metadata: video.metadata,
     })),
-    ...data.documents.map((doc) => ({
+    ...data.documents.map(doc => ({
       id: doc.id,
-      type: "document" as const,
-      title: extractFilename(doc.title || "Untitled Document", doc.metadata),
+      type: 'document' as const,
+      title: extractFilename(doc.title || 'Untitled Document', doc.metadata),
       description: doc.description,
       createdAt: doc.createdAt,
       url: doc.url,
       mimeType: doc.mimeType,
       metadata: doc.metadata,
     })),
-    ...data.notes.map((note) => ({
+    ...data.notes.map(note => ({
       id: note.id,
-      type: "note" as const,
+      type: 'note' as const,
       title: extractFilename(note.title, note.metadata),
-      description: note.content.substring(0, 100) + "...",
+      description: note.content.substring(0, 100) + '...',
       createdAt: note.createdAt,
       content: note.content,
       metadata: note.metadata,

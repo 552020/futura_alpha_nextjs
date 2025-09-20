@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useSession, signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { ArrowDown, Trash2, FileType, FileText } from "lucide-react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import Image from "next/image";
+import { useState } from 'react';
+import { useSession, signIn } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { ArrowDown, Trash2, FileType, FileText } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import Image from 'next/image';
 
 // Define types for our data
 interface PhotoItem {
@@ -44,8 +44,8 @@ export default function TestFiles() {
   const [files, setFiles] = useState<FilesResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [deleteStatus, setDeleteStatus] = useState<{ id: string; status: "deleting" | "error" | null }>({
-    id: "",
+  const [deleteStatus, setDeleteStatus] = useState<{ id: string; status: 'deleting' | 'error' | null }>({
+    id: '',
     status: null,
   });
 
@@ -54,11 +54,11 @@ export default function TestFiles() {
     setError(null);
 
     try {
-      let url = "/api/files";
+      let url = '/api/files';
 
       // Add query params if provided
       const params = new URLSearchParams();
-      if (type) params.append("type", type);
+      if (type) params.append('type', type);
       if (params.toString()) url += `?${params.toString()}`;
 
       const response = await fetch(url);
@@ -70,9 +70,9 @@ export default function TestFiles() {
       const data = await response.json();
       setFiles(data);
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to fetch files";
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch files';
       setError(errorMessage);
-      console.error("Error fetching files:", err);
+      console.error('Error fetching files:', err);
     } finally {
       setLoading(false);
     }
@@ -80,11 +80,11 @@ export default function TestFiles() {
 
   const deleteFile = async (id: string) => {
     // Set deleting status
-    setDeleteStatus({ id, status: "deleting" });
+    setDeleteStatus({ id, status: 'deleting' });
 
     try {
       const response = await fetch(`/api/files/${id}`, {
-        method: "DELETE",
+        method: 'DELETE',
       });
 
       if (!response.ok) {
@@ -94,21 +94,21 @@ export default function TestFiles() {
       // If deletion was successful, remove the item from state
       if (files) {
         setFiles({
-          photos: files.photos.filter((photo) => photo.id !== id),
-          files: files.files.filter((file) => file.id !== id),
-          texts: files.texts.filter((text) => text.id !== id),
+          photos: files.photos.filter(photo => photo.id !== id),
+          files: files.files.filter(file => file.id !== id),
+          texts: files.texts.filter(text => text.id !== id),
         });
       }
 
       // Reset delete status
-      setDeleteStatus({ id: "", status: null });
+      setDeleteStatus({ id: '', status: null });
     } catch (err) {
-      console.error("Error deleting file:", err);
-      setDeleteStatus({ id, status: "error" });
+      console.error('Error deleting file:', err);
+      setDeleteStatus({ id, status: 'error' });
 
       // Reset status after 3 seconds
       setTimeout(() => {
-        setDeleteStatus({ id: "", status: null });
+        setDeleteStatus({ id: '', status: null });
       }, 3000);
     }
   };
@@ -118,7 +118,7 @@ export default function TestFiles() {
   };
 
   // If not authenticated, show login button
-  if (status === "unauthenticated") {
+  if (status === 'unauthenticated') {
     return (
       <div className="p-8 max-w-xl mx-auto text-center">
         <h1 className="text-2xl font-bold mb-6">Files Test</h1>
@@ -137,13 +137,13 @@ export default function TestFiles() {
           <ArrowDown className="w-4 h-4 mr-2" />
           Fetch All Files
         </Button>
-        <Button variant="outline" onClick={() => fetchFiles("photo")}>
+        <Button variant="outline" onClick={() => fetchFiles('photo')}>
           Photos
         </Button>
-        <Button variant="outline" onClick={() => fetchFiles("file")}>
+        <Button variant="outline" onClick={() => fetchFiles('file')}>
           Files
         </Button>
-        <Button variant="outline" onClick={() => fetchFiles("text")}>
+        <Button variant="outline" onClick={() => fetchFiles('text')}>
           Texts
         </Button>
       </div>
@@ -152,7 +152,7 @@ export default function TestFiles() {
 
       {error && <div className="bg-red-50 text-red-700 p-4 rounded mb-6">Error: {error}</div>}
 
-      {status === "authenticated" && (
+      {status === 'authenticated' && (
         <div>
           {files && (
             <div className="mt-8 space-y-10">
@@ -161,7 +161,7 @@ export default function TestFiles() {
                 <div>
                   <h3 className="font-medium mb-4 text-lg">Photos ({files.photos.length})</h3>
                   <div className="flex flex-wrap gap-2">
-                    {files.photos.map((photo) => (
+                    {files.photos.map(photo => (
                       <div
                         key={photo.id}
                         className="w-20 h-20 border border-gray-200 rounded overflow-hidden bg-gray-50 flex flex-col relative group cursor-pointer"
@@ -180,25 +180,25 @@ export default function TestFiles() {
                           <a
                             href={`/api/files/${photo.id}/download`}
                             className="text-xs text-blue-600 hover:underline"
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={e => e.stopPropagation()}
                             download
                           >
                             Download
                           </a>
 
                           <button
-                            onClick={(e) => {
+                            onClick={e => {
                               e.stopPropagation();
                               deleteFile(photo.id);
                             }}
                             disabled={deleteStatus.id === photo.id}
                             className={`text-xs text-red-500 hover:text-red-700 ${
-                              deleteStatus.id === photo.id ? "opacity-50" : ""
+                              deleteStatus.id === photo.id ? 'opacity-50' : ''
                             }`}
                             title="Delete"
                           >
-                            {deleteStatus.id === photo.id && deleteStatus.status === "deleting" ? (
-                              "..."
+                            {deleteStatus.id === photo.id && deleteStatus.status === 'deleting' ? (
+                              '...'
                             ) : (
                               <Trash2 size={10} />
                             )}
@@ -227,7 +227,7 @@ export default function TestFiles() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {files.files.map((file) => (
+                        {files.files.map(file => (
                           <TableRow
                             key={file.id}
                             className="cursor-pointer hover:bg-gray-50"
@@ -237,7 +237,7 @@ export default function TestFiles() {
                               <FileType className="h-5 w-5 text-gray-400" />
                             </TableCell>
                             <TableCell className="font-medium">{file.filename}</TableCell>
-                            <TableCell>{file.mimeType.split("/")[1].toUpperCase()}</TableCell>
+                            <TableCell>{file.mimeType.split('/')[1].toUpperCase()}</TableCell>
                             <TableCell>{(parseInt(file.size) / 1024).toFixed(1)} KB</TableCell>
                             <TableCell>{new Date(file.createdAt).toLocaleDateString()}</TableCell>
                             <TableCell>
@@ -245,25 +245,25 @@ export default function TestFiles() {
                                 <a
                                   href={`/api/files/${file.id}/download`}
                                   className="text-blue-500 hover:text-blue-700"
-                                  onClick={(e) => e.stopPropagation()}
+                                  onClick={e => e.stopPropagation()}
                                   download
                                   title="Download"
                                 >
                                   <ArrowDown size={14} />
                                 </a>
                                 <button
-                                  onClick={(e) => {
+                                  onClick={e => {
                                     e.stopPropagation();
                                     deleteFile(file.id);
                                   }}
                                   disabled={deleteStatus.id === file.id}
                                   className={`text-red-500 hover:text-red-700 ${
-                                    deleteStatus.id === file.id ? "opacity-50" : ""
+                                    deleteStatus.id === file.id ? 'opacity-50' : ''
                                   }`}
                                   title="Delete"
                                 >
-                                  {deleteStatus.id === file.id && deleteStatus.status === "deleting" ? (
-                                    "..."
+                                  {deleteStatus.id === file.id && deleteStatus.status === 'deleting' ? (
+                                    '...'
                                   ) : (
                                     <Trash2 size={14} />
                                   )}
@@ -294,7 +294,7 @@ export default function TestFiles() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {files.texts.map((text) => (
+                        {files.texts.map(text => (
                           <TableRow
                             key={text.id}
                             className="cursor-pointer hover:bg-gray-50"
@@ -313,25 +313,25 @@ export default function TestFiles() {
                                 <a
                                   href={`/api/files/${text.id}/download`}
                                   className="text-blue-500 hover:text-blue-700"
-                                  onClick={(e) => e.stopPropagation()}
+                                  onClick={e => e.stopPropagation()}
                                   download
                                   title="Download"
                                 >
                                   <ArrowDown size={14} />
                                 </a>
                                 <button
-                                  onClick={(e) => {
+                                  onClick={e => {
                                     e.stopPropagation();
                                     deleteFile(text.id);
                                   }}
                                   disabled={deleteStatus.id === text.id}
                                   className={`text-red-500 hover:text-red-700 ${
-                                    deleteStatus.id === text.id ? "opacity-50" : ""
+                                    deleteStatus.id === text.id ? 'opacity-50' : ''
                                   }`}
                                   title="Delete"
                                 >
-                                  {deleteStatus.id === text.id && deleteStatus.status === "deleting" ? (
-                                    "..."
+                                  {deleteStatus.id === text.id && deleteStatus.status === 'deleting' ? (
+                                    '...'
                                   ) : (
                                     <Trash2 size={14} />
                                   )}

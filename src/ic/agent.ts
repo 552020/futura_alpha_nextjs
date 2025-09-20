@@ -1,21 +1,27 @@
-import { HttpAgent, type Identity } from "@dfinity/agent";
+import { HttpAgent, type Identity } from '@dfinity/agent';
 
 const host =
   process.env.NEXT_PUBLIC_IC_HOST ??
-  (process.env.NEXT_PUBLIC_DFX_NETWORK === "ic" ? "https://icp-api.io" : "http://127.0.0.1:4943");
+  (process.env.NEXT_PUBLIC_DFX_NETWORK === 'ic' ? 'https://icp-api.io' : 'http://127.0.0.1:4943');
 
 const agentCache = new Map<string, Promise<HttpAgent>>(); // key = principal or "anon"
 
 export function createAgent(identity?: Identity): Promise<HttpAgent> {
-  const key = identity ? identity.getPrincipal().toText() : "anon";
+  const key = identity ? identity.getPrincipal().toText() : 'anon';
   if (!agentCache.has(key)) {
     agentCache.set(
       key,
       (async () => {
         const agent = await HttpAgent.create({ host, identity });
-        if (process.env.NEXT_PUBLIC_DFX_NETWORK !== "ic") {
-          // dev/local only
-          await agent.fetchRootKey();
+        if (process.env.NEXT_PUBLIC_DFX_NETWORK !== 'ic') {
+          // dev/local only - handle gracefully if ICP replica is not running
+          try {
+            await agent.fetchRootKey();
+          } catch {
+            console.warn('⚠️ ICP replica not available. ICP features will be disabled.');
+            console.warn('To enable ICP features, run: dfx start');
+            // Don't throw - let the app continue without ICP functionality
+          }
         }
         return agent;
       })()

@@ -1,13 +1,13 @@
-import { Actor, HttpAgent } from "@dfinity/agent";
-import { webcrypto } from "node:crypto";
-import { idlFactory } from "@/ic/declarations/backend/backend.did.js";
+import { Actor, HttpAgent } from '@dfinity/agent';
+import { webcrypto } from 'node:crypto';
+import { idlFactory } from '@/ic/declarations/backend/backend.did.js';
 
 /**
  * Polyfill crypto for Node.js environment
  * This is required for @dfinity/agent to work in server-side environments
  */
 function polyfillCrypto() {
-  if (typeof global !== "undefined" && !global.crypto) {
+  if (typeof global !== 'undefined' && !global.crypto) {
     // @ts-expect-error Node global typing mismatch
     global.crypto = webcrypto;
   }
@@ -22,11 +22,11 @@ export async function createServerSideActor() {
   polyfillCrypto();
 
   const agent = new HttpAgent({
-    host: process.env.NEXT_PUBLIC_IC_HOST || "http://127.0.0.1:4943",
+    host: process.env.NEXT_PUBLIC_IC_HOST || 'http://127.0.0.1:4943',
   });
 
   // For local development, we need to fetch the root key
-  if (process.env.NEXT_PUBLIC_DFX_NETWORK === "local") {
+  if (process.env.NEXT_PUBLIC_DFX_NETWORK === 'local') {
     await agent.fetchRootKey();
   }
 

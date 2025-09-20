@@ -1,9 +1,9 @@
-import { auth } from "@/auth";
-import { db } from "@/db/db";
-import { eq } from "drizzle-orm";
-import { documents, images, notes } from "@/db/schema";
-import { notFound } from "next/navigation";
-import FileDetailEditor from "@/app/tests/files/[id]/file-detail-editor";
+import { auth } from '@/auth';
+import { db } from '@/db/db';
+import { eq } from 'drizzle-orm';
+import { documents, images, notes } from '@/db/schema';
+import { notFound } from 'next/navigation';
+import FileDetailEditor from '@/app/tests/files/[id]/file-detail-editor';
 
 // Server component to handle data fetching
 export default async function FileDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -38,7 +38,7 @@ export default async function FileDetailPage({ params }: { params: Promise<{ id:
       );
     }
 
-    return <FileDetailEditor fileDetails={{ type: "image", data: photo }} />;
+    return <FileDetailEditor fileDetails={{ type: 'image', data: photo }} />;
   }
 
   // Try to find in files
@@ -57,7 +57,7 @@ export default async function FileDetailPage({ params }: { params: Promise<{ id:
       );
     }
 
-    return <FileDetailEditor fileDetails={{ type: "document", data: file }} />;
+    return <FileDetailEditor fileDetails={{ type: 'document', data: file }} />;
   }
 
   // Try to find in texts
@@ -76,7 +76,7 @@ export default async function FileDetailPage({ params }: { params: Promise<{ id:
       );
     }
 
-    return <FileDetailEditor fileDetails={{ type: "note", data: text }} />;
+    return <FileDetailEditor fileDetails={{ type: 'note', data: text }} />;
   }
 
   // If we get here, the file doesn't exist
