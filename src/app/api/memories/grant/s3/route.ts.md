@@ -1,3 +1,4 @@
+```ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserId } from '@/lib/auth';
 import { generateS3Key, createMultipartUpload, generatePresignedPartUrl } from '@/lib/s3-service';
@@ -81,3 +82,4 @@ export async function OPTIONS() {
     },
   });
 }
+```
