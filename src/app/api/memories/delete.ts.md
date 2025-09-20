@@ -1,5 +1,7 @@
 # DELETE /api/memories - Branch 397 vs Branch 405 Comparison
 
+**Purpose**: This document compares the memory deletion functionality between two branches to identify improvements and architectural issues. The delete for the single memory functioinality should not be here!
+
 ## Overview
 
 This document compares the `delete.ts` file between:
