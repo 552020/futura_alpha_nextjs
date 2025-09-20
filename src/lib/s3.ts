@@ -1,5 +1,5 @@
 import { S3Client, PutObjectCommand, PutObjectCommandInput } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+// import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 // S3 Configuration
 const s3Config = {
@@ -34,7 +34,7 @@ export function isS3Configured(): boolean {
 // Generate a safe file name with user ID in the path
 function generateSafeFileName(originalName: string, userId: string = 'anonymous'): string {
   const timestamp = Date.now();
-  const safeFileName = originalName.replace(/[^a-zA-Z0-9-_\.]/g, "_");
+  const safeFileName = originalName.replace(/[^a-zA-Z0-9-_\.]/g, '_');
   // Include user ID in the path: uploads/{userId}/{timestamp}-{filename}
   const fullName = `uploads/${userId}/${timestamp}-${safeFileName}`;
   console.log('Generated file name:', fullName);
@@ -75,61 +75,61 @@ export async function uploadToS3(file: File, buffer?: Buffer, userId?: string): 
   }
 }
 
-// Generate presigned URL for upload (if needed)
-export async function generatePresignedUploadUrl(fileName: string, contentType: string): Promise<string> {
-  if (!isS3Configured()) {
-    throw new Error('S3 is not properly configured. Please check your environment variables.');
-  }
+// Generate presigned URL for upload (if needed) - COMMENTED OUT FOR MVP
+// export async function generatePresignedUploadUrl(fileName: string, contentType: string): Promise<string> {
+//   if (!isS3Configured()) {
+//     throw new Error('S3 is not properly configured. Please check your environment variables.');
+//   }
 
-  const safeFileName = generateSafeFileName(fileName);
+//   const safeFileName = generateSafeFileName(fileName);
 
-  const command = new PutObjectCommand({
-    Bucket: S3_BUCKET,
-    Key: safeFileName,
-    ContentType: contentType,
-    // ACL: 'public-read',
-  });
+//   const command = new PutObjectCommand({
+//     Bucket: S3_BUCKET,
+//     Key: safeFileName,
+//     ContentType: contentType,
+//     // ACL: 'public-read',
+//   });
 
-  console.log('Generating presigned URL for:', safeFileName);
+//   console.log('Generating presigned URL for:', safeFileName);
 
-  try {
-    const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 }); // 1 hour
-    console.log('Presigned URL:', signedUrl);
-    return signedUrl;
-  } catch (error) {
-    console.error('Error generating presigned URL:', error);
-    throw new Error('Failed to generate presigned URL');
-  }
-}
+//   try {
+//     const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 }); // 1 hour
+//     console.log('Presigned URL:', signedUrl);
+//     return signedUrl;
+//   } catch (error) {
+//     console.error('Error generating presigned URL:', error);
+//     throw new Error('Failed to generate presigned URL');
+//   }
+// }
 
-// Get public URL for an S3 object
-export function getS3PublicUrl(key: string): string {
-  const url = `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/${key}`;
-  console.log('S3 Public URL:', url);
-  return url;
-}
+// Get public URL for an S3 object - COMMENTED OUT FOR MVP
+// export function getS3PublicUrl(key: string): string {
+//   const url = `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/${key}`;
+//   console.log('S3 Public URL:', url);
+//   return url;
+// }
 
-// Delete file from S3
-export async function deleteFromS3(key: string): Promise<void> {
-  if (!isS3Configured()) {
-    throw new Error('S3 is not properly configured. Please check your environment variables.');
-  }
+// Delete file from S3 - COMMENTED OUT FOR MVP
+// export async function deleteFromS3(key: string): Promise<void> {
+//   if (!isS3Configured()) {
+//     throw new Error('S3 is not properly configured. Please check your environment variables.');
+//   }
 
-  try {
-    const { DeleteObjectCommand } = await import('@aws-sdk/client-s3');
-    const command = new DeleteObjectCommand({
-      Bucket: S3_BUCKET,
-      Key: key,
-    });
+//   try {
+//     const { DeleteObjectCommand } = await import('@aws-sdk/client-s3');
+//     const command = new DeleteObjectCommand({
+//       Bucket: S3_BUCKET,
+//       Key: key,
+//     });
 
-    console.log('Deleting from S3:', key);
-    await s3Client.send(command);
-    console.log('Deleted successfully:', key);
-  } catch (error) {
-    console.error('Error deleting from S3:', error);
-    throw new Error('Failed to delete file from S3');
-  }
-}
+//     console.log('Deleting from S3:', key);
+//     await s3Client.send(command);
+//     console.log('Deleted successfully:', key);
+//   } catch (error) {
+//     console.error('Error deleting from S3:', error);
+//     throw new Error('Failed to delete file from S3');
+//   }
+// }
 
 // Extract S3 key from URL
 export function extractS3KeyFromUrl(url: string): string | null {
@@ -146,19 +146,19 @@ export function extractS3KeyFromUrl(url: string): string | null {
   }
 }
 
-// Storage type enum
-export type StorageType = 'vercel-blob' | 's3' | 'icp-canister' | 'neon-db';
+// Storage type enum - COMMENTED OUT FOR MVP
+// export type StorageType = 'vercel-blob' | 's3' | 'icp-canister' | 'neon-db';
 
-// Get preferred storage type
-export function getPreferredStorageType(): StorageType {
-  const preferred = process.env.PREFERRED_STORAGE_TYPE as StorageType;
+// Get preferred storage type - COMMENTED OUT FOR MVP
+// export function getPreferredStorageType(): StorageType {
+//   const preferred = process.env.PREFERRED_STORAGE_TYPE as StorageType;
 
-  if (preferred && ['vercel-blob', 's3', 'icp-canister', 'neon-db'].includes(preferred)) {
-    console.log('Preferred storage type from env:', preferred);
-    return preferred;
-  }
+//   if (preferred && ['vercel-blob', 's3', 'icp-canister', 'neon-db'].includes(preferred)) {
+//     console.log('Preferred storage type from env:', preferred);
+//     return preferred;
+//   }
 
-  const fallback = isS3Configured() ? 's3' : 'vercel-blob';
-  console.log('Using storage type fallback:', fallback);
-  return fallback;
-}
+//   const fallback = isS3Configured() ? 's3' : 'vercel-blob';
+//   console.log('Using storage type fallback:', fallback);
+//   return fallback;
+// }
