@@ -62,7 +62,7 @@ async function generatePresignedUrl(key: string): Promise<string> {
     });
 
     console.log('📡 Presigned URL response status:', response.status);
-    
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error('❌ Failed to generate presigned URL:', errorText);
@@ -71,11 +71,11 @@ async function generatePresignedUrl(key: string): Promise<string> {
 
     const data = await response.json();
     console.log('✅ Received presigned URL:', data.url ? 'URL received' : 'No URL in response');
-    
+
     if (!data.url) {
       throw new Error('No URL returned from presigned URL endpoint');
     }
-    
+
     return data.url;
   } catch (error) {
     console.error('❌ Error in generatePresignedUrl:', error);
@@ -83,7 +83,10 @@ async function generatePresignedUrl(key: string): Promise<string> {
   }
 }
 
-const getAssetUrl = async (assets: MemoryAsset[] | undefined, preferredType: AssetType = 'display'): Promise<string | undefined> => {
+const getAssetUrl = async (
+  assets: MemoryAsset[] | undefined,
+  preferredType: AssetType = 'display'
+): Promise<string | undefined> => {
   if (!assets || assets.length === 0) return undefined;
 
   // Helper function to construct URL from bucket and storageKey
@@ -93,14 +96,14 @@ const getAssetUrl = async (assets: MemoryAsset[] | undefined, preferredType: Ass
       type: asset.assetType,
       hasStorageKey: !!asset.storageKey,
       hasDirectUrl: !!asset.url,
-      bucket: asset.bucket
+      bucket: asset.bucket,
     });
 
     if (!asset.storageKey) {
       console.log('ℹ️ No storageKey, using direct URL:', asset.url);
       return asset.url || '';
     }
-    
+
     try {
       console.log('🔑 Attempting to get presigned URL for:', asset.storageKey);
       const presignedUrl = await generatePresignedUrl(asset.storageKey);
@@ -109,14 +112,15 @@ const getAssetUrl = async (assets: MemoryAsset[] | undefined, preferredType: Ass
     } catch (error) {
       console.warn('⚠️ Falling back to direct URL for asset:', {
         id: asset.id,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
-      
+
       // Fallback to direct URL if presigned URL generation fails
-      const bucket = process.env.NEXT_PUBLIC_AWS_S3_BUCKET || process.env.AWS_S3_BUCKET || asset.bucket || 'default-bucket';
+      const bucket =
+        process.env.NEXT_PUBLIC_AWS_S3_BUCKET || process.env.AWS_S3_BUCKET || asset.bucket || 'default-bucket';
       const region = process.env.NEXT_PUBLIC_AWS_S3_REGION || 'eu-central-1';
       const directUrl = `https://${bucket}.s3.${region}.amazonaws.com/${asset.storageKey}`;
-      
+
       console.log('🔄 Using direct URL as fallback:', directUrl);
       return directUrl;
     }
@@ -157,7 +161,7 @@ export default function MemoryDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   // Cache for presigned URLs to prevent duplicate requests
   const urlCache = useRef<Map<string, string>>(new Map());
-  
+
   // Store asset URLs in a ref to avoid re-renders
   const assetUrlsRef = useRef<{
     displayUrl?: string;
@@ -168,19 +172,17 @@ export default function MemoryDetailPage() {
   // Function to get a cached URL or generate a new one
   const getCachedAssetUrl = useCallback(async (assets: MemoryAsset[] = [], type: AssetType) => {
     if (!assets.length) return undefined;
-    
+
     // Find the asset
-    const asset = assets.find(a => a.assetType === type) || 
-                 assets.find(a => a.assetType === 'original') || 
-                 assets[0];
-    
+    const asset = assets.find(a => a.assetType === type) || assets.find(a => a.assetType === 'original') || assets[0];
+
     if (!asset?.storageKey) return undefined;
-    
+
     // Check cache first
     if (urlCache.current.has(asset.storageKey)) {
       return urlCache.current.get(asset.storageKey);
     }
-    
+
     try {
       // Generate new URL if not in cache
       const url = await getAssetUrl(assets, type);
@@ -195,28 +197,31 @@ export default function MemoryDetailPage() {
   }, []);
 
   // Function to load asset URLs
-  const loadAssetUrls = useCallback(async (assets: MemoryAsset[] = []) => {
-    if (!assets.length) return assetUrlsRef.current;
-    
-    try {
-      const [display, original] = await Promise.all([
-        getCachedAssetUrl(assets, 'display'),
-        getCachedAssetUrl(assets, 'original'),
-      ]);
-      
-      const newAssetUrls = {
-        displayUrl: display,
-        originalUrl: original,
-        mimeType: getAssetMimeType(assets),
-      };
-      
-      assetUrlsRef.current = newAssetUrls;
-      return newAssetUrls;
-    } catch (error) {
-      console.error('Error loading asset URLs:', error);
-      return assetUrlsRef.current;
-    }
-  }, [getCachedAssetUrl]);
+  const loadAssetUrls = useCallback(
+    async (assets: MemoryAsset[] = []) => {
+      if (!assets.length) return assetUrlsRef.current;
+
+      try {
+        const [display, original] = await Promise.all([
+          getCachedAssetUrl(assets, 'display'),
+          getCachedAssetUrl(assets, 'original'),
+        ]);
+
+        const newAssetUrls = {
+          displayUrl: display,
+          originalUrl: original,
+          mimeType: getAssetMimeType(assets),
+        };
+
+        assetUrlsRef.current = newAssetUrls;
+        return newAssetUrls;
+      } catch (error) {
+        console.error('Error loading asset URLs:', error);
+        return assetUrlsRef.current;
+      }
+    },
+    [getCachedAssetUrl]
+  );
 
   const fetchMemory = useCallback(async () => {
     try {
@@ -284,7 +289,7 @@ export default function MemoryDetailPage() {
         let displayUrl: string | undefined;
         let originalUrl: string | undefined;
         let mimeType: string | undefined;
-        
+
         if (assets && assets.length > 0) {
           const loadedUrls = await loadAssetUrls(assets);
           displayUrl = loadedUrls.displayUrl;
@@ -297,8 +302,8 @@ export default function MemoryDetailPage() {
         console.log('🔍 Extracted MIME type:', mimeType);
 
         // Get the thumbnail URL with caching
-        const thumbnailUrl = assets ? (await getCachedAssetUrl(assets, 'thumb')) : undefined;
-        
+        const thumbnailUrl = assets ? await getCachedAssetUrl(assets, 'thumb') : undefined;
+
         const transformedMemory: Memory = {
           id: memoryData.id,
           type: memoryData.type,

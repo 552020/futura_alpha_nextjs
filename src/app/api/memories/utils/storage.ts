@@ -14,18 +14,23 @@ import { put } from '@vercel/blob';
 import { generateBlobFilename } from '@/lib/storage/blob-config';
 import { uploadToS3 } from '@/lib/s3';
 
-export async function uploadFileToStorage(file: File, existingBuffer?: Buffer, storageBackend: string = 'vercel_blob', userId?: string): Promise<string> {
+export async function uploadFileToStorage(
+  file: File,
+  existingBuffer?: Buffer,
+  storageBackend: string = 'vercel_blob',
+  userId?: string
+): Promise<string> {
   if (storageBackend === 's3') {
     console.log('☁️ Using S3 storage backend for file:', file.name);
-    
+
     try {
       // Use the existing S3 utility function
       const buffer = existingBuffer || Buffer.from(await file.arrayBuffer());
-      
+
       // Create a clean file name without path for S3
       const cleanFileName = file.name.split('/').pop() || file.name;
       const s3File = new File([buffer], cleanFileName, { type: file.type });
-      
+
       // Upload to S3 with the clean file name and user ID
       const url = await uploadToS3(s3File, undefined, userId);
       console.log('✅ Successfully uploaded to S3:', url);
@@ -71,7 +76,7 @@ export async function uploadFileToStorageWithErrorHandling(
   } catch (uploadError) {
     console.error(`❌ ${storageBackend} upload error:`, uploadError);
     return {
-      url: '',
+      url: null,
       error: uploadError instanceof Error ? uploadError.message : String(uploadError),
     };
   }

@@ -135,8 +135,9 @@ export async function storeInNewDatabase(params: {
     mimeType: AcceptedMimeType;
   };
   parentFolderId?: string | null;
+  storageBackend?: string;
 }) {
-  const { type, ownerId, url, file, metadata, parentFolderId } = params;
+  const { type, ownerId, url, file, metadata, parentFolderId, storageBackend = 's3' } = params;
 
   // Create memory in the new unified table
   const newMemory: NewDBMemory = {
@@ -149,10 +150,13 @@ export async function storeInNewDatabase(params: {
     parentFolderId: parentFolderId || null,
     ownerSecureCode: crypto.randomUUID(),
     metadata: {},
-    // Storage status fields - default to web2 storage for new memories
-    storageLocations: ['neon-db', 'vercel-blob'] as ('neon-db' | 'vercel-blob' | 'icp-canister' | 'aws-s3')[],
+    // Storage status fields - use actual storage backend
+    storageLocations:
+      storageBackend === 's3'
+        ? (['neon-db', 'aws-s3'] as ('neon-db' | 'vercel-blob' | 'icp-canister' | 'aws-s3')[])
+        : (['neon-db', 'vercel-blob'] as ('neon-db' | 'vercel-blob' | 'icp-canister' | 'aws-s3')[]),
     storageDuration: null, // null means permanent storage
-    storageCount: 2, // neon-db + vercel-blob
+    storageCount: 2, // neon-db + storage backend
   };
 
   const [createdMemory] = await db.insert(memories).values(newMemory).returning();
@@ -163,8 +167,14 @@ export async function storeInNewDatabase(params: {
     assetType: 'original',
     variant: 'default',
     url,
-    storageBackend: 'vercel_blob',
-    storageKey: url.split('/').pop() || '',
+    storageBackend: storageBackend as 'vercel_blob' | 's3' | 'icp' | 'arweave' | 'ipfs',
+    storageKey:
+      storageBackend === 's3'
+        ? url.replace(
+            `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_S3_REGION || 'eu-central-1'}.amazonaws.com/`,
+            ''
+          )
+        : url.split('/').pop() || '',
     bytes: metadata.size,
     width: null, // Will be populated by client-side processing
     height: null, // Will be populated by client-side processing
@@ -300,8 +310,8 @@ export async function cleanupStorageEdgesForMemory(params: {
       [key: string]: unknown;
     } | null;
     storageLocations?: string[] | null;
-    assets?: Array<{ 
-      storageBackend: string; 
+    assets?: Array<{
+      storageBackend: string;
       storageKey: string;
       url?: string;
       [key: string]: unknown;
@@ -386,7 +396,7 @@ export async function cleanupStorageEdgesForMemory(params: {
     // Also check memory_assets table and storage edges as before
     const dbAssets = await db.select().from(memoryAssets).where(eq(memoryAssets.memoryId, memoryId));
     console.log(`🔍 Found ${dbAssets.length} assets in memory_assets table`);
-    
+
     // Type assertion for dbAssets
     const typedDbAssets = dbAssets as Array<{
       id: string;
