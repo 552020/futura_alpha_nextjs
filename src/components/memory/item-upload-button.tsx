@@ -1,8 +1,8 @@
-import { useState } from "react";
-import { Plus, Loader2, Upload } from "lucide-react";
-import { useFileUpload } from "@/hooks/user-file-upload";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useState } from 'react';
+import { Plus, Loader2, Upload } from 'lucide-react';
+import { useFileUpload } from '@/hooks/user-file-upload';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 // Button variant interfaces
 interface BaseButtonProps {
@@ -30,7 +30,7 @@ const LargeIconButton = ({ onClick, isLoading }: BaseButtonProps) => (
     role="button"
     tabIndex={0}
     onClick={onClick}
-    onKeyDown={(e) => e.key === "Enter" && onClick()}
+    onKeyDown={e => e.key === 'Enter' && onClick()}
     className="w-20 h-20 rounded-full bg-black hover:bg-white dark:bg-white dark:hover:bg-black flex items-center justify-center cursor-pointer text-white hover:text-black dark:text-black dark:hover:text-white border-2 border-transparent hover:border-black dark:hover:border-white transition-all"
   >
     {isLoading ? <Loader2 size={72} className="animate-spin" /> : <Plus size={72} />}
@@ -75,7 +75,7 @@ const AlbumButton = ({ onClick, isLoading }: BaseButtonProps) => (
         Uploading...
       </div>
     ) : (
-      "Album"
+      'Album'
     )}
   </button>
 );
@@ -97,7 +97,7 @@ const OneShotButton = ({ onClick, isLoading, buttonText }: BaseButtonProps) => (
         Uploading...
       </div>
     ) : (
-      buttonText || "One Shot"
+      buttonText || 'One Shot'
     )}
   </button>
 );
@@ -119,7 +119,7 @@ const DashboardAddFolderButton = ({ onClick, isLoading, buttonText }: BaseButton
         Uploading...
       </div>
     ) : (
-      buttonText || "Add Folder"
+      buttonText || 'Add Folder'
     )}
   </button>
 );
@@ -141,7 +141,7 @@ const DashboardAddFileButton = ({ onClick, isLoading, buttonText }: BaseButtonPr
         Uploading...
       </div>
     ) : (
-      buttonText || "Add File"
+      buttonText || 'Add File'
     )}
   </button>
 );
@@ -167,20 +167,20 @@ const NativeFileInput = ({ onChange }: FileInputProps) => (
 //   onError?: (error: Error) => void;
 // }
 
-type UploadMode = "folder" | "files";
+type UploadMode = 'folder' | 'files';
 
 interface ItemUploadButtonProps {
   mode?: UploadMode; // NEW
   isOnboarding?: boolean;
   variant?:
-    | "button"
-    | "icon"
-    | "large-icon"
-    | "native"
-    | "album-button"
-    | "one-shot-button"
-    | "dashboard-add-folder"
-    | "dashboard-add-file";
+    | 'button'
+    | 'icon'
+    | 'large-icon'
+    | 'native'
+    | 'album-button'
+    | 'one-shot-button'
+    | 'dashboard-add-folder'
+    | 'dashboard-add-file';
   buttonText?: string; // Custom button text
   onSuccess?: () => void;
   onError?: (e: Error) => void;
@@ -205,46 +205,46 @@ interface ItemUploadButtonProps {
  * - This is just TypeScript being overly strict about experimental attributes
  */
 export function ItemUploadButton({
-  mode = "folder",
+  mode = 'folder',
   isOnboarding = false,
-  variant = "button",
+  variant = 'button',
   buttonText,
   onSuccess,
   onError,
 }: ItemUploadButtonProps) {
   const [showUploadDialog, setShowUploadDialog] = useState(false);
 
-  const { isLoading, fileInputRef, handleUploadClick, handleFileChange } = useFileUpload({
+  const { isLoading, fileInputRef, handleUploadClick, handleFileUpload } = useFileUpload({
     isOnboarding,
     mode,
     onSuccess: () => {
       setShowUploadDialog(false);
       onSuccess?.();
     },
-    onError: (error) => {
+    onError: error => {
       onError?.(error);
     },
   });
 
   const renderUploadButton = () => {
-    if (variant === "native") {
-      return <NativeFileInput onChange={handleFileChange} />;
+    if (variant === 'native') {
+      return <NativeFileInput onChange={handleFileUpload} />;
     }
 
     const commonProps = { onClick: handleUploadClick, isLoading, buttonText };
 
     switch (variant) {
-      case "large-icon":
+      case 'large-icon':
         return <LargeIconButton {...commonProps} />;
-      case "icon":
+      case 'icon':
         return <IconButton {...commonProps} />;
-      case "album-button":
+      case 'album-button':
         return <AlbumButton {...commonProps} />;
-      case "one-shot-button":
+      case 'one-shot-button':
         return <OneShotButton {...commonProps} />;
-      case "dashboard-add-folder":
+      case 'dashboard-add-folder':
         return <DashboardAddFolderButton {...commonProps} />;
-      case "dashboard-add-file":
+      case 'dashboard-add-file':
         return <DashboardAddFileButton {...commonProps} />;
       default:
         return <DefaultButton {...commonProps} />;
@@ -254,11 +254,11 @@ export function ItemUploadButton({
   return (
     <>
       {/* Hidden file input - only needed for non-native variants */}
-      {variant !== "native" && (
+      {variant !== 'native' && (
         <input
           type="file"
           ref={fileInputRef}
-          onChange={handleFileChange}
+          onChange={handleFileUpload}
           className="hidden"
           multiple={false}
           accept="image/*,video/*,audio/*"
@@ -269,7 +269,7 @@ export function ItemUploadButton({
       {renderUploadButton()}
 
       {/* Upload Dialog - shown while uploading */}
-      {variant !== "native" && (
+      {variant !== 'native' && (
         <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
           <DialogContent>
             <DialogHeader>

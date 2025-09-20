@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useInterface } from "@/contexts/interface-context";
-import { useRouter } from "next/navigation";
-import { OnboardModal } from "@/components/onboarding/onboard-modal";
+import { useState } from 'react';
+import { useInterface } from '@/contexts/interface-context';
+import { useRouter } from 'next/navigation';
+import { OnboardModal } from '@/components/onboarding/onboard-modal';
 // import { ItemUploadButton } from "@/components/memory/item-upload-button";
-import { ItemUploadButton } from "@/components/memory/item-upload-button";
-import { Dictionary } from "@/utils/dictionaries";
+import { ItemUploadButton } from '@/components/memory/item-upload-button';
+import { Dictionary } from '@/utils/dictionaries';
 
 // Hardcoded constants for this component
-const COMPONENT_PATH = "items-upload";
-const VARIATION = "wedding-memory";
+const COMPONENT_PATH = 'items-upload';
+const VARIATION = 'wedding-memory';
 const DOUBLE_BUTTON = true; // Set to false for original design, true for toggle buttons
 const WITH_SUBTITLE = false; // Set to false for wedding vertical
 
@@ -23,7 +23,7 @@ export default function ItemsUploadClient({ lang, dict }: ItemsUploadClientProps
   const router = useRouter();
   const { setMode } = useInterface();
   const [showOnboardModal, setShowOnboardModal] = useState(false);
-  const [uploadMode, setUploadMode] = useState<"folder" | "files">("folder"); // eslint-disable-line @typescript-eslint/no-unused-vars
+  const [uploadMode, setUploadMode] = useState<'folder' | 'files'>('folder'); // eslint-disable-line @typescript-eslint/no-unused-vars
 
   const handleUploadSuccess = () => {
     setShowOnboardModal(true);
@@ -35,7 +35,7 @@ export default function ItemsUploadClient({ lang, dict }: ItemsUploadClientProps
 
   const handleOnboardingComplete = () => {
     setShowOnboardModal(false);
-    setMode("app");
+    setMode('app');
     router.push(`/${lang}/onboarding/profile`);
   };
 

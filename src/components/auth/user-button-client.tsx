@@ -1,26 +1,26 @@
-"use client";
+'use client';
 
-import { useSession, signIn } from "next-auth/react";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+import { useSession, signIn } from 'next-auth/react';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { SignOut } from "./auth-components";
-import Link from "next/link";
+} from '@/components/ui/dropdown-menu';
+import { SignOut } from './auth-components';
+import Link from 'next/link';
 // Removed tooltip to avoid click interception; using native title on button instead
-import { useIICoAuth } from "@/hooks/use-ii-coauth";
-import { Badge } from "@/components/ui/badge";
+import { useIICoAuth } from '@/hooks/use-ii-coauth';
+import { Badge } from '@/components/ui/badge';
 
-export default function UserButtonClient({ lang = "en" }: { lang?: string }) {
+export default function UserButtonClient({ lang = 'en' }: { lang?: string }) {
   const { data: session, status } = useSession();
   const { isCoAuthActive, activeIcPrincipal, statusMessage, statusClass } = useIICoAuth();
 
-  if (status === "loading") {
+  if (status === 'loading') {
     return (
       <Button variant="ghost" className="relative h-8 w-8 rounded-full" disabled>
         Loading...
@@ -28,7 +28,7 @@ export default function UserButtonClient({ lang = "en" }: { lang?: string }) {
     );
   }
 
-  if (status === "unauthenticated" || !session?.user) {
+  if (status === 'unauthenticated' || !session?.user) {
     return (
       <Button variant="ghost" onClick={() => signIn()}>
         Sign In
@@ -41,11 +41,11 @@ export default function UserButtonClient({ lang = "en" }: { lang?: string }) {
   const name =
     session.user.name ||
     session.user.email ||
-    (principal ? `Principal ${principal.slice(0, 8)}…${principal.slice(-6)}` : "User");
+    (principal ? `Principal ${principal.slice(0, 8)}…${principal.slice(-6)}` : 'User');
   const initials = name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
+    .split(' ')
+    .map(n => n[0])
+    .join('')
     .slice(0, 2)
     .toUpperCase();
 

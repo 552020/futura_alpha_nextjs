@@ -1,5 +1,5 @@
-import { db } from "@/db/db";
-import { allUsers, temporaryUsers } from "@/db/schema";
+import { db } from '@/db/db';
+import { allUsers, temporaryUsers } from '@/db/schema';
 
 /**
  * Creates a base temporary user and corresponding allUsers entry.
@@ -8,21 +8,21 @@ import { allUsers, temporaryUsers } from "@/db/schema";
  * @param role - The role of the temporary user ("inviter" or "invitee")
  * @returns The created temporary user and allUsers entries
  */
-export async function createTemporaryUserBase(role: "inviter" | "invitee") {
+export async function createTemporaryUserBase(role: 'inviter' | 'invitee') {
   const [temporaryUser] = await db
     .insert(temporaryUsers)
     .values({
       secureCode: crypto.randomUUID(),
       secureCodeExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
       role,
-      registrationStatus: "pending",
+      registrationStatus: 'pending',
     })
     .returning();
 
   const [allUser] = await db
     .insert(allUsers)
     .values({
-      type: "temporary",
+      type: 'temporary',
       temporaryUserId: temporaryUser.id,
     })
     .returning();

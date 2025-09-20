@@ -5,9 +5,9 @@
  * TTL monitoring, and co-auth actions.
  */
 
-import { useSession } from "next-auth/react";
-import { useCallback, useEffect, useState } from "react";
-import { checkIICoAuthTTL, requiresIIReAuth } from "@/lib/ii-coauth-ttl";
+import { useSession } from 'next-auth/react';
+import { useCallback, useEffect, useState } from 'react';
+import { checkIICoAuthTTL, requiresIIReAuth } from '@/lib/ii-coauth-ttl';
 
 // Extended session user interface for II co-auth
 interface ExtendedSessionUser {
@@ -93,7 +93,7 @@ export function useIICoAuth(): IICoAuthState {
       try {
         await update({ activeIcPrincipal: principal });
       } catch (error) {
-        console.error("Failed to activate II co-auth:", error);
+        console.error('Failed to activate II co-auth:', error);
         throw error;
       }
     },
@@ -105,7 +105,7 @@ export function useIICoAuth(): IICoAuthState {
     try {
       await update({ clearActiveIc: true });
     } catch (error) {
-      console.error("Failed to disconnect II co-auth:", error);
+      console.error('Failed to disconnect II co-auth:', error);
       throw error;
     }
   }, [update]);
@@ -141,25 +141,25 @@ export function useIICoAuth(): IICoAuthState {
 
     // UI helpers
     statusMessage:
-      ttlStatus.status === "active"
+      ttlStatus.status === 'active'
         ? `II Active (${ttlStatus.remainingMinutes}m remaining)`
-        : ttlStatus.status === "grace"
-        ? `II Expired (${ttlStatus.remainingMinutes}m grace period)`
-        : ttlStatus.status === "warning"
-        ? `II Expiring Soon (${ttlStatus.remainingMinutes}m remaining)`
-        : ttlStatus.status === "expired"
-        ? "II Expired - Re-authenticate Required"
-        : "II Not Active",
+        : ttlStatus.status === 'grace'
+          ? `II Expired (${ttlStatus.remainingMinutes}m grace period)`
+          : ttlStatus.status === 'warning'
+            ? `II Expiring Soon (${ttlStatus.remainingMinutes}m remaining)`
+            : ttlStatus.status === 'expired'
+              ? 'II Expired - Re-authenticate Required'
+              : 'II Not Active',
     statusClass:
-      ttlStatus.status === "active"
-        ? "text-green-600"
-        : ttlStatus.status === "grace"
-        ? "text-orange-600"
-        : ttlStatus.status === "warning"
-        ? "text-yellow-600"
-        : ttlStatus.status === "expired"
-        ? "text-red-600"
-        : "text-gray-500",
+      ttlStatus.status === 'active'
+        ? 'text-green-600'
+        : ttlStatus.status === 'grace'
+          ? 'text-orange-600'
+          : ttlStatus.status === 'warning'
+            ? 'text-yellow-600'
+            : ttlStatus.status === 'expired'
+              ? 'text-red-600'
+              : 'text-gray-500',
     remainingMinutes: ttlStatus.remainingMinutes,
 
     // Actions
@@ -178,7 +178,7 @@ export function useIICoAuthRequired(action: string) {
   const coAuthState = useIICoAuth();
 
   // Define which actions require II co-auth
-  const requiresIICoAuth = ["create-gallery-forever", "upload-to-icp", "sync-to-icp", "icp-storage-operation"].includes(
+  const requiresIICoAuth = ['create-gallery-forever', 'upload-to-icp', 'sync-to-icp', 'icp-storage-operation'].includes(
     action
   );
 
@@ -207,7 +207,7 @@ export function useIIActivationFlow() {
       try {
         await coAuthState.activateII(principal);
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Failed to activate II";
+        const errorMessage = error instanceof Error ? error.message : 'Failed to activate II';
         setActivationError(errorMessage);
         throw error;
       } finally {

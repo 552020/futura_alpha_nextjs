@@ -1,99 +1,222 @@
-"use client";
+'use client';
 
-import { useEffect, useState, useMemo } from "react";
-import Image from "next/image";
-import { useAuthGuard } from "@/utils/authentication";
-import { Loader2 } from "lucide-react";
-import RequireAuth from "@/components/auth/require-auth";
+/**
+ * FEED PAGE - STUB IMPLEMENTATION
+ *
+ * PURPOSE:
+ * This page shows a chronological timeline of memories shared WITH the current user.
+ * It's ordered by SHARING DATE (when it was shared) for a social media-like feed experience.
+ *
+ * STRUCTURE:
+ * - Timeline format with sharing events
+ * - Most recently shared memories appear first
+ * - Shows who shared what and when
+ * - Clickable items that navigate to the full memory view
+ * - Infinite scroll for loading more items
+ *
+ * DIFFERENCE FROM /shared:
+ * - /shared: Organized by SHARER (grouped by person)
+ * - /feed: Organized by SHARING DATE (chronological timeline)
+ *
+ * NOTE: This is a stub implementation. The actual functionality needs to be
+ * properly tested and refined. The API integration is in place but may need
+ * adjustments based on real usage patterns.
+ */
 
-interface FeedItem {
-  id: string;
-  type: "youtube" | "text" | "image";
-  title: string;
-  content: string;
-  createdAt: string;
-  author: string;
+import { useEffect, useState, useCallback, use, useMemo } from 'react';
+import { useInView } from 'react-intersection-observer';
+import { useAuthGuard } from '@/utils/authentication';
+import { Loader2 } from 'lucide-react';
+import RequireAuth from '@/components/auth/require-auth';
+import { Memory } from '@/types/memory';
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
+import Image from 'next/image';
+
+interface FeedItem extends Memory {
+  status: 'shared';
+  sharedBy: { id: string; name: string };
+  sharedWithCount: number;
+  sharedAt: string; // When it was shared with the user
 }
 
-export default function FeedPage() {
+export default function FeedPage({ params }: { params: Promise<{ lang: string }> }) {
+  // Unwrap params using React.use()
+  const { lang } = use(params);
+
   const { isAuthorized, isTemporaryUser, userId, isLoading } = useAuthGuard();
+  const router = useRouter();
+  const { toast } = useToast();
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
   const [isLoadingFeed, setIsLoadingFeed] = useState(true);
+  const [hasMore, setHasMore] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const { ref } = useInView();
 
-  // Sample feed data - in a real app, this would come from an API
-  const sampleFeedItems = useMemo<FeedItem[]>(
+  // Mock data flag - set to true to use mock data for demo
+  const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_FEED === 'true';
+
+  // Sample feed data - Rick Astley video and welcome message
+  const sampleFeedItems: FeedItem[] = useMemo(
     () => [
       {
-        id: "1",
-        type: "youtube",
-        title: "Rick Astley - Never Gonna Give You Up",
-        content: "https://www.youtube.com/embed/dQw4w9WgXcQ?si=rKeJHC7Y8EuIaKLH",
+        id: 'mock-1',
+        type: 'video',
+        title: 'Rick Astley - Never Gonna Give You Up',
+        description: 'A classic music video that never gets old',
+        url: 'https://www.youtube.com/embed/dQw4w9WgXcQ?si=rKeJHC7Y8EuIaKLH',
+        thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg',
         createdAt: new Date().toISOString(),
-        author: "Rick Astley",
+        updatedAt: new Date().toISOString(),
+        ownerId: 'mock-user-1',
+        status: 'shared',
+        sharedBy: { id: 'mock-user-1', name: 'Rick Astley' },
+        sharedWithCount: 1,
+        sharedAt: new Date().toISOString(),
       },
       {
-        id: "2",
-        type: "text",
-        title: "Welcome to the Feed!",
-        content:
-          "This is where you can see shared content from your family and friends. You can embed YouTube videos, share photos, and post updates.",
+        id: 'mock-2',
+        type: 'note',
+        title: 'Welcome to the Feed!',
+        description:
+          'This is where you can see shared content from your family and friends. You can embed YouTube videos, share photos, and post updates.',
+        url: '',
+        thumbnail: '',
         createdAt: new Date().toISOString(),
-        author: "Futura Team",
+        updatedAt: new Date().toISOString(),
+        ownerId: 'mock-user-2',
+        status: 'shared',
+        sharedBy: { id: 'mock-user-2', name: 'Futura Team' },
+        sharedWithCount: 1,
+        sharedAt: new Date().toISOString(),
       },
     ],
     []
   );
 
-  // Removed automatic redirect - now handled by RequireAuth component in render
+  const fetchFeedItems = useCallback(async () => {
+    if (USE_MOCK_DATA) {
+      // Use mock data for demo
+      setFeedItems(sampleFeedItems);
+      setHasMore(false);
+      setIsLoadingFeed(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/memories/shared?page=${currentPage}&orderBy=sharedAt`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch feed items');
+      }
+
+      const data = await response.json();
+
+      // Transform shared memories into feed items
+      const feedItems = data.data.map((memory: unknown) => {
+        const m = memory as Record<string, unknown>;
+        return {
+          ...m,
+          status: 'shared' as const,
+          sharedBy: m.sharedBy || { id: 'unknown', name: 'Unknown' },
+          sharedWithCount: m.sharedWithCount || 1,
+          sharedAt: m.sharedAt || m.createdAt, // Use sharing date or fallback to creation date
+        };
+      });
+
+      setFeedItems(prev => {
+        if (currentPage === 1) return feedItems;
+        return [...prev, ...feedItems];
+      });
+      setHasMore(data.hasMore);
+    } catch (error) {
+      console.error('Error fetching feed items:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load feed items. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoadingFeed(false);
+    }
+  }, [currentPage, toast, USE_MOCK_DATA, sampleFeedItems]);
 
   useEffect(() => {
     if (isAuthorized && userId) {
-      // Simulate loading feed data
-      setTimeout(() => {
-        setFeedItems(sampleFeedItems);
-        setIsLoadingFeed(false);
-      }, 1000);
+      fetchFeedItems();
     }
-  }, [isAuthorized, userId, sampleFeedItems]);
+  }, [isAuthorized, userId, fetchFeedItems]);
 
-  const renderFeedItem = (item: FeedItem) => {
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 100) {
+        if (!isLoadingFeed && hasMore) {
+          setCurrentPage(prev => prev + 1);
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isLoadingFeed, hasMore]);
+
+  const renderMemoryPreview = (item: FeedItem) => {
     switch (item.type) {
-      case "youtube":
+      case 'image':
         return (
-          <div className="aspect-video w-full">
-            <iframe
-              width="100%"
-              height="100%"
-              src={item.content}
-              title={item.title}
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              referrerPolicy="strict-origin-when-cross-origin"
-              allowFullScreen
-              className="rounded-lg"
-            />
+          <div className="relative w-full h-48 rounded-lg overflow-hidden bg-gray-100">
+            {item.thumbnail ? (
+              <Image src={item.thumbnail} alt={item.title || 'Shared image'} fill className="object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-gray-400">📷 Image</div>
+            )}
           </div>
         );
-      case "text":
+      case 'video':
         return (
-          <div className="prose max-w-none">
-            <p className="text-gray-700 dark:text-gray-300">{item.content}</p>
+          <div className="relative w-full h-48 rounded-lg overflow-hidden bg-gray-100">
+            {item.url && item.url.includes('youtube.com') ? (
+              <iframe
+                width="100%"
+                height="100%"
+                src={item.url}
+                title={item.title || 'Shared video'}
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerPolicy="strict-origin-when-cross-origin"
+                allowFullScreen
+                className="rounded-lg"
+              />
+            ) : item.thumbnail ? (
+              <Image src={item.thumbnail} alt={item.title || 'Shared video'} fill className="object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-gray-400">🎥 Video</div>
+            )}
           </div>
         );
-      case "image":
+      case 'document':
         return (
-          <div className="relative w-full h-64">
-            <Image
-              src={item.content}
-              alt={item.title}
-              fill
-              className="rounded-lg object-cover"
-              sizes="(max-width: 768px) 100vw, 50vw"
-            />
+          <div className="w-full h-24 rounded-lg bg-gray-100 flex items-center justify-center">
+            <div className="text-gray-400 text-2xl">📄</div>
+          </div>
+        );
+      case 'note':
+        return (
+          <div className="w-full h-24 rounded-lg bg-gray-100 flex items-center justify-center">
+            <div className="text-gray-400 text-2xl">📝</div>
+          </div>
+        );
+      case 'audio':
+        return (
+          <div className="w-full h-24 rounded-lg bg-gray-100 flex items-center justify-center">
+            <div className="text-gray-400 text-2xl">🎵</div>
           </div>
         );
       default:
-        return null;
+        return (
+          <div className="w-full h-24 rounded-lg bg-gray-100 flex items-center justify-center">
+            <div className="text-gray-400 text-2xl">📎</div>
+          </div>
+        );
     }
   };
 
@@ -145,35 +268,49 @@ export default function FeedPage() {
         </div>
       ) : feedItems.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-12 text-center">
-          <h3 className="text-lg font-medium">No feed items yet</h3>
+          <h3 className="text-lg font-medium">No shared memories yet</h3>
           <p className="mt-2 text-sm text-muted-foreground">
-            When your family shares content, it will appear here in the feed.
+            When someone shares a memory with you, it will appear here in your feed.
           </p>
         </div>
       ) : (
         <div className="space-y-6">
-          {feedItems.map((item) => (
+          {feedItems.map(item => (
             <div
               key={item.id}
-              className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6"
+              className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => router.push(`/${lang}/shared/${item.id}`)}
             >
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                  {item.author.charAt(0).toUpperCase()}
+                <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium">
+                  {item.sharedBy.name.charAt(0).toUpperCase()}
                 </div>
-                <div>
-                  <h3 className="font-semibold">{item.author}</h3>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold">{item.sharedBy.name}</h3>
+                    <span className="text-sm text-gray-500">shared a {item.type}</span>
+                  </div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {new Date(item.createdAt).toLocaleDateString()}
+                    {new Date(item.sharedAt).toLocaleDateString()} at {new Date(item.sharedAt).toLocaleTimeString()}
                   </p>
                 </div>
               </div>
 
-              <h4 className="text-lg font-medium mb-3">{item.title}</h4>
+              <div className="space-y-3">
+                <h4 className="text-lg font-medium">{item.title || `Untitled ${item.type}`}</h4>
+                {item.description && <p className="text-gray-600 dark:text-gray-300">{item.description}</p>}
 
-              {renderFeedItem(item)}
+                {renderMemoryPreview(item)}
+              </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Loading indicator */}
+      {isLoadingFeed && (
+        <div className="mt-8 flex justify-center" ref={ref}>
+          <Loader2 className="h-8 w-8 animate-spin" />
         </div>
       )}
     </div>

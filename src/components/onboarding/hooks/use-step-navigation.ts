@@ -1,17 +1,17 @@
-import { useCallback } from "react";
-import { OnboardingStep, useOnboarding } from "@/contexts/onboarding-context";
-import { useSession } from "next-auth/react";
+import { useCallback } from 'react';
+import { OnboardingStep, useOnboarding } from '@/contexts/onboarding-context';
+import { useSession } from 'next-auth/react';
 
 // Define step sequences for different user states
-const UNAUTHENTICATED_STEPS: OnboardingStep[] = ["upload", "user-info", "share", "sign-up", "complete"];
-const AUTHENTICATED_STEPS: OnboardingStep[] = ["upload", "share", "complete"];
+const UNAUTHENTICATED_STEPS: OnboardingStep[] = ['upload', 'user-info', 'share', 'sign-up', 'complete'];
+const AUTHENTICATED_STEPS: OnboardingStep[] = ['upload', 'share', 'complete'];
 
 export function useStepNavigation() {
   const { currentStep, setCurrentStep } = useOnboarding();
   const { status } = useSession();
 
   // Get the appropriate step sequence based on auth status
-  const steps = status === "authenticated" ? AUTHENTICATED_STEPS : UNAUTHENTICATED_STEPS;
+  const steps = status === 'authenticated' ? AUTHENTICATED_STEPS : UNAUTHENTICATED_STEPS;
   const currentStepIndex = steps.indexOf(currentStep);
 
   const canGoBack = currentStepIndex > 0;

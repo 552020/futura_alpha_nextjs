@@ -1,20 +1,20 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Menu, Share2, Twitter, Instagram, Facebook } from "lucide-react";
-import { useSession } from "next-auth/react";
-import { ModeToggle } from "@/components/common/mode-toggle";
-import { SettingsButton } from "@/components/user/settings-button";
-import NavBar from "@/components/layout/nav-bar";
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Menu, Share2, Twitter, Instagram, Facebook } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import { ModeToggle } from '@/components/common/mode-toggle';
+import { SettingsButton } from '@/components/user/settings-button';
+import NavBar from '@/components/layout/nav-bar';
 // import UserButtonClient from "@/components/user-button-client";
-import UserButtonClientWithII from "@/components/auth/user-button-client-with-ii";
-import { useInterface } from "@/contexts/interface-context";
-import { LanguageSwitcher } from "@/components/i18n/language-switcher";
-import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader, SheetClose } from "@/components/ui/sheet";
-import { Dictionary } from "@/utils/dictionaries";
-import { usePathname } from "next/navigation";
-import { useToast } from "@/hooks/use-toast";
+import UserButtonClientWithII from '@/components/auth/user-button-client-with-ii';
+import { useInterface } from '@/contexts/interface-context';
+import { LanguageSwitcher } from '@/components/i18n/language-switcher';
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader, SheetClose } from '@/components/ui/sheet';
+import { Dictionary } from '@/utils/dictionaries';
+import { usePathname } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
 // Define a proper type for the dictionary with optional fields
 type HeaderDictionary = Dictionary;
@@ -25,10 +25,10 @@ export default function Header({ dict, lang }: { dict: HeaderDictionary; lang?: 
   const pathname = usePathname();
   const { toast } = useToast();
   // Use the passed lang prop if available, otherwise get it from params
-  const currentLang = lang || "en";
+  const currentLang = lang || 'en';
 
   // Hide header on gallery preview pages
-  const isGalleryPreview = pathname.includes("/gallery/") && pathname.includes("/preview");
+  const isGalleryPreview = pathname.includes('/gallery/') && pathname.includes('/preview');
 
   if (isGalleryPreview) {
     return null;
@@ -38,16 +38,16 @@ export default function Header({ dict, lang }: { dict: HeaderDictionary; lang?: 
     if (navigator.share) {
       try {
         await navigator.share({
-          title: "Check out this content!",
-          text: "I found this interesting content and wanted to share it with you.",
+          title: 'Check out this content!',
+          text: 'I found this interesting content and wanted to share it with you.',
           url: window.location.href,
         });
         // console.log("Content shared successfully");
       } catch (error) {
-        if ((error as Error).name === "AbortError") {
+        if ((error as Error).name === 'AbortError') {
           // console.log("Web Share API not supported");
         } else {
-          console.error("Error sharing content:", error);
+          console.error('Error sharing content:', error);
         }
       }
     } else {
@@ -56,15 +56,15 @@ export default function Header({ dict, lang }: { dict: HeaderDictionary; lang?: 
       try {
         await navigator.clipboard.writeText(window.location.href);
         toast({
-          title: "Link copied!",
-          description: "The link has been copied to your clipboard.",
+          title: 'Link copied!',
+          description: 'The link has been copied to your clipboard.',
         });
       } catch (error) {
-        console.error("Failed to copy link:", error);
+        console.error('Failed to copy link:', error);
         toast({
-          title: "Error",
-          description: "Failed to copy link to clipboard.",
-          variant: "destructive",
+          title: 'Error',
+          description: 'Failed to copy link to clipboard.',
+          variant: 'destructive',
         });
       }
     }
@@ -111,14 +111,14 @@ export default function Header({ dict, lang }: { dict: HeaderDictionary; lang?: 
 
           {/* Settings button - hide on mobile, and hide when unauthenticated */}
           <div className="hidden md:block transition-opacity hover:opacity-80">
-            {status === "authenticated" && session?.user ? <SettingsButton /> : null}
+            {status === 'authenticated' && session?.user ? <SettingsButton /> : null}
           </div>
 
           {/* Mobile: Burger menu - MOBILE ONLY */}
           <div className="md:hidden transition-opacity hover:opacity-80">
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="hover:bg-muted">
+                <Button variant="ghost" size="icon" className="hover:bg-muted" suppressHydrationWarning>
                   <Menu className="h-5 w-5" />
                   <span className="sr-only">Toggle menu</span>
                 </Button>
@@ -150,7 +150,7 @@ export default function Header({ dict, lang }: { dict: HeaderDictionary; lang?: 
                   <div className="border-t pt-4">
                     <div className="flex flex-col space-y-2">
                       {/* Settings in footer section (only when authenticated) */}
-                      {status === "authenticated" && session?.user ? (
+                      {status === 'authenticated' && session?.user ? (
                         <SheetClose asChild>
                           <Link
                             href={`/${currentLang}/user/settings`}
@@ -165,7 +165,7 @@ export default function Header({ dict, lang }: { dict: HeaderDictionary; lang?: 
                           href={`/${currentLang}/terms`}
                           className="transition-all duration-200 ease-in-out px-4 py-3 hover:text-primary hover:bg-muted rounded-none focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 text-base w-full flex items-center text-muted-foreground"
                         >
-                          {dict?.footer?.terms || "Terms"}
+                          {dict?.footer?.terms || 'Terms'}
                         </Link>
                       </SheetClose>
                       <SheetClose asChild>
@@ -173,7 +173,7 @@ export default function Header({ dict, lang }: { dict: HeaderDictionary; lang?: 
                           href={`/${currentLang}/privacy`}
                           className="transition-all duration-200 ease-in-out px-4 py-3 hover:text-primary hover:bg-muted rounded-none focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 text-base w-full flex items-center text-muted-foreground"
                         >
-                          {dict?.footer?.privacy || "Privacy"}
+                          {dict?.footer?.privacy || 'Privacy'}
                         </Link>
                       </SheetClose>
                       <SheetClose asChild>
@@ -183,7 +183,7 @@ export default function Header({ dict, lang }: { dict: HeaderDictionary; lang?: 
                           className="transition-all duration-200 ease-in-out px-4 py-3 hover:text-primary hover:bg-muted rounded-none focus:outline-none focus:ring-0 focus:bg-transparent text-base w-full flex items-center gap-2 text-muted-foreground"
                         >
                           <Share2 className="h-4 w-4" />
-                          <span>{dict?.footer?.share || "Share"}</span>
+                          <span>{dict?.footer?.share || 'Share'}</span>
                         </button>
                       </SheetClose>
                     </div>

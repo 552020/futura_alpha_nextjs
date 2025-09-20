@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createServerSideActor } from "@/lib/server-actor";
+import { NextRequest, NextResponse } from 'next/server';
+import { createServerSideActor } from '@/lib/server-actor';
 
 // Rate limiting store (in production, use Redis or similar)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
@@ -32,8 +32,8 @@ function checkRateLimit(ip: string): boolean {
  * Check origin/referer for basic CSRF protection
  */
 function checkOrigin(request: NextRequest): boolean {
-  const origin = request.headers.get("origin");
-  const referer = request.headers.get("referer");
+  const origin = request.headers.get('origin');
+  const referer = request.headers.get('referer');
   const allowedOrigin = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_SITE_URL;
 
   if (!allowedOrigin) {
@@ -81,20 +81,20 @@ export async function POST(request: NextRequest) {
   try {
     // Extract request context first for security checks
     const headersList = await request.headers;
-    const forwardedFor = headersList.get("x-forwarded-for");
-    const realIp = headersList.get("x-real-ip");
-    const ipAddress = forwardedFor?.split(",")[0]?.trim() || realIp || "unknown";
+    const forwardedFor = headersList.get('x-forwarded-for');
+    const realIp = headersList.get('x-real-ip');
+    const ipAddress = forwardedFor?.split(',')[0]?.trim() || realIp || 'unknown';
 
     // Security Check 1: Origin/Referer validation (CSRF protection)
     if (!checkOrigin(request)) {
       console.warn(`II Verify: Invalid origin/referer from IP ${ipAddress}`);
-      return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
+      return NextResponse.json({ error: 'Invalid origin' }, { status: 403 });
     }
 
     // Security Check 2: Rate limiting
     if (!checkRateLimit(ipAddress)) {
       console.warn(`II Verify: Rate limit exceeded for IP ${ipAddress}`);
-      return NextResponse.json({ error: "Rate limit exceeded. Please try again later." }, { status: 429 });
+      return NextResponse.json({ error: 'Rate limit exceeded. Please try again later.' }, { status: 429 });
     }
 
     // Parse request body
@@ -102,12 +102,12 @@ export async function POST(request: NextRequest) {
     const { nonce } = body;
 
     // Security Check 3: Validate nonce
-    if (!nonce || typeof nonce !== "string") {
-      return NextResponse.json({ error: "nonce is required and must be a string" }, { status: 400 });
+    if (!nonce || typeof nonce !== 'string') {
+      return NextResponse.json({ error: 'nonce is required and must be a string' }, { status: 400 });
     }
 
     if (nonce.length < 10) {
-      return NextResponse.json({ error: "nonce is too short" }, { status: 400 });
+      return NextResponse.json({ error: 'nonce is too short' }, { status: 400 });
     }
 
     // Security logging (never log raw nonce)
@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const nonceResult = (await actor.verify_nonce(nonce)) as { Ok: any } | { Err: any };
 
-    if ("Err" in nonceResult) {
+    if ('Err' in nonceResult) {
       // console.log(`II Verify: No proof found for nonce from IP ${ipAddress}`);
       return NextResponse.json({
         success: false,
@@ -136,11 +136,11 @@ export async function POST(request: NextRequest) {
       principal: principalStr,
     });
   } catch (error) {
-    console.error("Error verifying II nonce:", error);
+    console.error('Error verifying II nonce:', error);
     return NextResponse.json(
       {
         success: false,
-        error: "Failed to verify nonce",
+        error: 'Failed to verify nonce',
       },
       { status: 500 }
     );
@@ -155,25 +155,25 @@ export async function POST(request: NextRequest) {
  */
 export async function GET() {
   // Disable in production
-  if (process.env.NODE_ENV === "production") {
-    return NextResponse.json({ error: "Endpoint not available" }, { status: 404 });
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Endpoint not available' }, { status: 404 });
   }
 
   return NextResponse.json({
-    endpoint: "/api/ii/verify-nonce",
-    method: "POST",
-    description: "Verifies a nonce with the canister for Internet Identity authentication",
+    endpoint: '/api/ii/verify-nonce',
+    method: 'POST',
+    description: 'Verifies a nonce with the canister for Internet Identity authentication',
     security: {
       rateLimit: `${RATE_LIMIT_MAX_REQUESTS} requests per ${RATE_LIMIT_WINDOW_MS / 1000}s per IP`,
-      originCheck: "Same-origin requests only",
+      originCheck: 'Same-origin requests only',
     },
     requestBody: {
-      nonce: "string - the nonce to verify with the canister",
+      nonce: 'string - the nonce to verify with the canister',
     },
     response: {
-      success: "boolean - whether verification was successful",
-      principal: "string (optional) - the principal that proved the nonce",
-      error: "string (optional) - error message if verification failed",
+      success: 'boolean - whether verification was successful',
+      principal: 'string (optional) - the principal that proved the nonce',
+      error: 'string (optional) - error message if verification failed',
     },
   });
 }

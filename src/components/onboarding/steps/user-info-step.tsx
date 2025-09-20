@@ -1,10 +1,10 @@
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useOnboarding } from "@/contexts/onboarding-context";
-import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
-import { StepContainer } from "../common/step-container";
-import { StepNavigation } from "../common/step-navigation";
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useOnboarding } from '@/contexts/onboarding-context';
+import Image from 'next/image';
+import { useEffect, useRef, useState } from 'react';
+import { StepContainer } from '../common/step-container';
+import { StepNavigation } from '../common/step-navigation';
 
 interface UserInfoStepProps {
   withImage?: boolean;
@@ -37,7 +37,7 @@ export function UserInfoStep({
 
   // Sync local state with context when userData changes
   useEffect(() => {
-    if (currentStep === "user-info") {
+    if (currentStep === 'user-info') {
       setLocalName(userData.name);
       setLocalEmail(userData.email);
     }
@@ -45,14 +45,14 @@ export function UserInfoStep({
 
   // Focus for name field
   useEffect(() => {
-    if (currentStep === "user-info" && nameInputRef.current) {
+    if (currentStep === 'user-info' && nameInputRef.current) {
       nameInputRef.current.focus();
     }
   }, [currentStep, localName]);
 
   // Focus for email field
   useEffect(() => {
-    if (currentStep === "user-info" && emailInputRef.current) {
+    if (currentStep === 'user-info' && emailInputRef.current) {
       emailInputRef.current.focus();
     }
   }, [currentStep, localEmail]);

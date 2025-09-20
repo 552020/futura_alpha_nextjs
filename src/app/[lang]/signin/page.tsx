@@ -1,29 +1,29 @@
-"use client";
+'use client';
 
-import { useState, Suspense } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { signIn } from "next-auth/react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useState, Suspense } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { signIn } from 'next-auth/react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 // ICP imports moved to dynamic imports inside functions
 
 // Prevent static generation of this page
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 function SignInPageInternal() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const lang = (params?.lang as string) || "en";
-  const callbackUrl = searchParams.get("callbackUrl") || `/${lang}/dashboard`;
+  const lang = (params?.lang as string) || 'en';
+  const callbackUrl = searchParams.get('callbackUrl') || `/${lang}/dashboard`;
 
   // Ensure callbackUrl is always a valid relative URL
-  const safeCallbackUrl = callbackUrl?.startsWith("/") ? callbackUrl : `/${lang}/dashboard`;
+  const safeCallbackUrl = callbackUrl?.startsWith('/') ? callbackUrl : `/${lang}/dashboard`;
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [iiBusy, setIiBusy] = useState(false);
@@ -35,14 +35,14 @@ function SignInPageInternal() {
     setBusy(true);
     setError(null);
     try {
-      const res = await signIn("credentials", {
+      const res = await signIn('credentials', {
         email,
         password,
         redirect: false,
         callbackUrl: safeCallbackUrl,
       });
       if (res?.error) {
-        setError("Invalid email or password");
+        setError('Invalid email or password');
         return;
       }
       // console.log("handleCredentialsSignIn", res);
@@ -50,13 +50,13 @@ function SignInPageInternal() {
       // Navigate after successful credentials sign-in
       router.push(safeCallbackUrl);
     } catch {
-      setError("Sign in failed. Please try again.");
+      setError('Sign in failed. Please try again.');
     } finally {
       setBusy(false);
     }
   }
 
-  function handleProvider(provider: "github" | "google") {
+  function handleProvider(provider: 'github' | 'google') {
     if (busy) return;
     setBusy(true);
     // Provider flows use NextAuth redirects; NextAuth redirect callback will land on /{lang}/dashboard
@@ -72,25 +72,25 @@ function SignInPageInternal() {
     try {
       // 1. Ensure II identity with AuthClient.login
       // console.log("handleInternetIdentity", "before loginWithII");
-      const { loginWithII } = await import("@/ic/ii");
+      const { loginWithII } = await import('@/ic/ii');
       const { principal, identity } = await loginWithII();
       // console.log("handleInternetIdentity", "after loginWithII", principal);
 
       // Fetch challenge → get { nonceId, nonce }
       // console.log("handleInternetIdentity", "before fetchChallenge");
-      const { fetchChallenge } = await import("@/lib/ii-client");
+      const { fetchChallenge } = await import('@/lib/ii-client');
       const challenge = await fetchChallenge(safeCallbackUrl);
       // console.log("handleInternetIdentity", "after fetchChallenge", challenge);
 
       // Register user and prove nonce in one call
       // console.log("handleInternetIdentity", "before registerWithNonce");
-      const { registerWithNonce } = await import("@/lib/ii-client");
+      const { registerWithNonce } = await import('@/lib/ii-client');
       await registerWithNonce(challenge.nonce, identity);
       // console.log("handleInternetIdentity", "after registerWithNonce");
 
       // Call signIn with principal + nonceId + actual nonce (without callbackUrl to avoid URL construction error)
       // console.log("handleInternetIdentity", "before signIn", principal, challenge.nonceId);
-      const signInResult = await signIn("ii", {
+      const signInResult = await signIn('ii', {
         principal,
         nonceId: challenge.nonceId,
         nonce: challenge.nonce, // Pass the actual nonce for verification
@@ -99,15 +99,15 @@ function SignInPageInternal() {
       });
       // console.log("handleInternetIdentity", "after signIn", signInResult);
 
-              // (Optional) After success, call capsules_bind_neon() on canister
+      // (Optional) After success, call capsules_bind_neon() on canister
       if (signInResult?.ok) {
         // console.log("handleInternetIdentity", "before markBoundOnCanister");
         try {
-          const { markBoundOnCanister } = await import("@/lib/ii-client");
+          const { markBoundOnCanister } = await import('@/lib/ii-client');
           await markBoundOnCanister(identity);
           // console.log("handleInternetIdentity", "after markBoundOnCanister - success");
         } catch (error) {
-          console.warn("handleInternetIdentity", "markBoundOnCanister failed", error);
+          console.warn('handleInternetIdentity', 'markBoundOnCanister failed', error);
           // Don't fail the auth flow if this optional step fails
         }
 
@@ -119,12 +119,12 @@ function SignInPageInternal() {
         // );
         router.push(safeCallbackUrl);
       } else {
-        console.error("handleInternetIdentity", "signIn failed", signInResult?.error);
-        setError(`Authentication failed: ${signInResult?.error || "Unknown error"}`);
+        console.error('handleInternetIdentity', 'signIn failed', signInResult?.error);
+        setError(`Authentication failed: ${signInResult?.error || 'Unknown error'}`);
       }
     } catch (e) {
-      console.error("DEBUG: II authentication error:", e);
-      console.error("DEBUG: Error stack:", e instanceof Error ? e.stack : "No stack trace");
+      console.error('DEBUG: II authentication error:', e);
+      console.error('DEBUG: Error stack:', e instanceof Error ? e.stack : 'No stack trace');
       const msg = e instanceof Error ? e.message : String(e);
       setError(`Internet Identity sign-in failed: ${msg}`);
     } finally {
@@ -134,7 +134,7 @@ function SignInPageInternal() {
 
   function close() {
     // Prefer going back; if no history, go home for lang
-    if (typeof window !== "undefined" && window.history.length > 1) {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
       router.back();
     } else {
       router.push(`/${lang}`);
@@ -152,11 +152,11 @@ function SignInPageInternal() {
         </div>
 
         <div className="grid gap-3">
-          <Button variant="outline" onClick={() => handleProvider("google")} disabled={busy || iiBusy}>
+          <Button variant="outline" onClick={() => handleProvider('google')} disabled={busy || iiBusy}>
             Sign in with Google
           </Button>
           <Button variant="outline" onClick={handleInternetIdentity} disabled={iiBusy || busy}>
-            {iiBusy ? "Connecting to Internet Identity…" : "Sign in with Internet Identity"}
+            {iiBusy ? 'Connecting to Internet Identity…' : 'Sign in with Internet Identity'}
           </Button>
         </div>
 
@@ -176,7 +176,7 @@ function SignInPageInternal() {
               id="email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={e => setEmail(e.target.value)}
               placeholder="Enter your email"
               required
             />
@@ -187,14 +187,14 @@ function SignInPageInternal() {
               id="password"
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={e => setPassword(e.target.value)}
               placeholder="Enter your password"
               required
             />
           </div>
           {error && <p className="text-sm text-red-500">{error}</p>}
           <Button type="submit" className="w-full" disabled={busy}>
-            {busy ? "Signing in..." : "Sign in with Email"}
+            {busy ? 'Signing in...' : 'Sign in with Email'}
           </Button>
         </form>
 

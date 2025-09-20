@@ -1,3 +1,0 @@
-ALTER TABLE "document" ALTER COLUMN "metadata" SET DEFAULT '{"size":0,"mimeType":"","originalName":"","uploadedAt":"2025-04-01T15:41:54.193Z"}'::json;--> statement-breakpoint
-ALTER TABLE "image" ALTER COLUMN "metadata" SET DEFAULT '{"size":0,"mimeType":"","originalName":"","uploadedAt":"2025-04-01T15:41:54.192Z"}'::json;--> statement-breakpoint
-ALTER TABLE "video" ADD COLUMN "is_public" boolean DEFAULT false;

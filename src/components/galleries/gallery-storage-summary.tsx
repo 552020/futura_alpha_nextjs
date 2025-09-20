@@ -1,8 +1,8 @@
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { HardDrive, Database, Cloud } from "lucide-react";
-import { useBatchMemoryStorageStatus, getGalleryStorageSummary } from "@/hooks/use-memory-storage-status";
-import type { GalleryWithItems } from "@/types/gallery";
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { HardDrive, Database, Cloud } from 'lucide-react';
+import { useBatchMemoryStorageStatus, getGalleryStorageSummary } from '@/hooks/use-memory-storage-status';
+import type { GalleryWithItems } from '@/types/gallery';
 
 interface GalleryStorageSummaryProps {
   gallery: GalleryWithItems;
@@ -10,20 +10,20 @@ interface GalleryStorageSummaryProps {
   className?: string;
 }
 
-export function GalleryStorageSummary({ gallery, onStoreForever, className = "" }: GalleryStorageSummaryProps) {
+export function GalleryStorageSummary({ gallery, onStoreForever, className = '' }: GalleryStorageSummaryProps) {
   const memories =
     gallery.items
-      ?.map((item) => ({
+      ?.map(item => ({
         id: item.memory?.id,
         type: item.memory?.type,
       }))
-      .filter((memory) => memory.id && memory.type) || [];
+      .filter(memory => memory.id && memory.type) || [];
 
   const { statusMap, isLoading } = useBatchMemoryStorageStatus(memories);
   const summary = getGalleryStorageSummary(statusMap, memories);
 
   // Don't show if all memories are Web2-only and not loading
-  if (!isLoading && summary.overallStatus === "web2_only" && summary.total > 0) {
+  if (!isLoading && summary.overallStatus === 'web2_only' && summary.total > 0) {
     return null;
   }
 
@@ -43,7 +43,7 @@ export function GalleryStorageSummary({ gallery, onStoreForever, className = "" 
                 <Database className="h-4 w-4 text-muted-foreground" />
                 <span className="font-medium text-sm">Storage Status</span>
               </div>
-              {summary.overallStatus === "partially_stored" && onStoreForever && (
+              {summary.overallStatus === 'partially_stored' && onStoreForever && (
                 <Button
                   variant="outline"
                   size="sm"

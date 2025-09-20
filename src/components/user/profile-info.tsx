@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { User, Shield, Calendar, Clock, Eye } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { User, Shield, Calendar, Clock, Eye } from 'lucide-react';
 
 interface ProfileInfoProps {
   user: {
@@ -26,25 +26,25 @@ interface ProfileInfoProps {
 
 export function ProfileInfo({ user }: ProfileInfoProps) {
   const formatDate = (date: Date | string | null | undefined) => {
-    if (!date) return "N/A";
-    return new Date(date).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
+    if (!date) return 'N/A';
+    return new Date(date).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   };
 
   const formatRelativeTime = (date: Date | string | null | undefined) => {
-    if (!date) return "N/A";
+    if (!date) return 'N/A';
     const now = new Date();
     const targetDate = new Date(date);
     const diffInMs = now.getTime() - targetDate.getTime();
     const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
 
-    if (diffInDays === 0) return "Today";
-    if (diffInDays === 1) return "Yesterday";
+    if (diffInDays === 0) return 'Today';
+    if (diffInDays === 1) return 'Yesterday';
     if (diffInDays < 7) return `${diffInDays} days ago`;
     if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
     if (diffInDays < 365) return `${Math.floor(diffInDays / 30)} months ago`;
@@ -70,7 +70,7 @@ export function ProfileInfo({ user }: ProfileInfoProps) {
         <div className="space-y-3">
           <div className="flex items-center">
             <span className="text-slate-600 dark:text-slate-400 w-24 flex-shrink-0">Email:</span>
-            <span className="font-medium">{user.email || "Not set"}</span>
+            <span className="font-medium">{user.email || 'Not set'}</span>
           </div>
           <div className="flex items-center">
             <span className="text-slate-600 dark:text-slate-400 w-24 flex-shrink-0">Joined:</span>
@@ -79,12 +79,12 @@ export function ProfileInfo({ user }: ProfileInfoProps) {
           <div className="flex items-center">
             <span className="text-slate-600 dark:text-slate-400 w-24 flex-shrink-0">Role:</span>
             <Badge variant="secondary" className="capitalize">
-              {user.role || "user"}
+              {user.role || 'user'}
             </Badge>
           </div>
           <div className="flex items-center">
             <span className="text-slate-600 dark:text-slate-400 w-24 flex-shrink-0">Plan:</span>
-            <Badge variant="secondary">{user.plan || "free"}</Badge>
+            <Badge variant="secondary">{user.plan || 'free'}</Badge>
           </div>
           <div className="flex items-center">
             <span className="text-slate-600 dark:text-slate-400 w-24 flex-shrink-0">Status:</span>
@@ -110,11 +110,11 @@ export function ProfileInfo({ user }: ProfileInfoProps) {
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-slate-600 dark:text-slate-400">Bio:</span>
-                <span className="font-medium max-w-xs text-right">{user.metadata?.bio || "No bio added"}</span>
+                <span className="font-medium max-w-xs text-right">{user.metadata?.bio || 'No bio added'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-600 dark:text-slate-400">Location:</span>
-                <span className="font-medium">{user.metadata?.location || "Not specified"}</span>
+                <span className="font-medium">{user.metadata?.location || 'Not specified'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-600 dark:text-slate-400">Website:</span>
@@ -122,7 +122,7 @@ export function ProfileInfo({ user }: ProfileInfoProps) {
                   {user.metadata?.website ? (
                     <a
                       href={
-                        user.metadata.website.startsWith("http")
+                        user.metadata.website.startsWith('http')
                           ? user.metadata.website
                           : `https://${user.metadata.website}`
                       }
@@ -133,7 +133,7 @@ export function ProfileInfo({ user }: ProfileInfoProps) {
                       {user.metadata.website}
                     </a>
                   ) : (
-                    "Not specified"
+                    'Not specified'
                   )}
                 </span>
               </div>
@@ -186,7 +186,7 @@ export function ProfileInfo({ user }: ProfileInfoProps) {
                 <span className="font-medium text-sm">Two-Factor Auth</span>
               </div>
               <p className="text-xs text-slate-600 dark:text-slate-400">
-                {user.plan === "premium" ? "Available" : "Premium feature"}
+                {user.plan === 'premium' ? 'Available' : 'Premium feature'}
               </p>
             </div>
             <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border">
@@ -195,7 +195,7 @@ export function ProfileInfo({ user }: ProfileInfoProps) {
                 <span className="font-medium text-sm">Session Timeout</span>
               </div>
               <p className="text-xs text-slate-600 dark:text-slate-400">
-                {user.plan === "premium" ? "Extended" : "Standard"}
+                {user.plan === 'premium' ? 'Extended' : 'Standard'}
               </p>
             </div>
           </div>

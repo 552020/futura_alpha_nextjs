@@ -1,16 +1,16 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import request from "supertest";
-import { testDb } from "@/db/test-db";
-import { users, allUsers } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import request from 'supertest';
+import { testDb } from '@/db/test-db';
+import { users, allUsers } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 
 // 🎯 AUTH BYPASS TESTING - IMMEDIATE UNBLOCKING
 // This test demonstrates that we can now test authenticated endpoints
 // by bypassing NextAuth complexity in test environment
 
-describe("Auth Bypass Testing - Immediate ICP Endpoint Testing", () => {
+describe('Auth Bypass Testing - Immediate ICP Endpoint Testing', () => {
   // Point Supertest directly at your running dev server
-  const baseURL = "http://localhost:3000";
+  const baseURL = 'http://localhost:3000';
 
   // Store test user IDs for cleanup
   let testUser1Id: string;
@@ -33,33 +33,33 @@ This should unblock your ICP endpoint testing!
       const [testUser1] = await testDb
         .insert(users)
         .values({
-          email: "test-bypass-1@example.com",
-          name: "Test Bypass User 1",
-          username: "testbypass1",
-          role: "user",
-          plan: "free",
+          email: 'test-bypass-1@example.com',
+          name: 'Test Bypass User 1',
+          username: 'testbypass1',
+          role: 'user',
+          plan: 'free',
         })
         .returning();
 
       const [testUser2] = await testDb
         .insert(users)
         .values({
-          email: "test-bypass-2@example.com",
-          name: "Test Bypass User 2",
-          username: "testbypass2",
-          role: "admin",
-          plan: "premium",
+          email: 'test-bypass-2@example.com',
+          name: 'Test Bypass User 2',
+          username: 'testbypass2',
+          role: 'admin',
+          plan: 'premium',
         })
         .returning();
 
       // Create allUsers records
       await Promise.all([
         testDb.insert(allUsers).values({
-          type: "user",
+          type: 'user',
           userId: testUser1.id,
         }),
         testDb.insert(allUsers).values({
-          type: "user",
+          type: 'user',
           userId: testUser2.id,
         }),
       ]);
@@ -76,7 +76,7 @@ This should unblock your ICP endpoint testing!
 Now let's test the auth bypass!
       `);
     } catch (error) {
-      console.error("❌ Error creating test users:", error);
+      console.error('❌ Error creating test users:', error);
       throw error;
     }
   });
@@ -86,14 +86,14 @@ Now let's test the auth bypass!
     try {
       await testDb.delete(users).where(eq(users.id, testUser1Id));
       await testDb.delete(users).where(eq(users.id, testUser2Id));
-      console.log("🧹 Test users cleaned up successfully");
+      console.log('🧹 Test users cleaned up successfully');
     } catch (error) {
-      console.error("❌ Error cleaning up test users:", error);
+      console.error('❌ Error cleaning up test users:', error);
     }
   });
 
-  describe("Testing Auth Bypass with Headers", () => {
-    it("should test basic user authentication bypass", async () => {
+  describe('Testing Auth Bypass with Headers', () => {
+    it('should test basic user authentication bypass', async () => {
       console.log(`
 🔍 TESTING BASIC AUTH BYPASS:
 - Setting TEST_AUTH_BYPASS=1
@@ -105,23 +105,23 @@ Testing authenticated endpoint with auth bypass...
 
       // Test the authenticated endpoint with auth bypass
       const response = await request(baseURL)
-        .get("/api/test/auth")
-        .set("x-test-user-id", testUser1Id)
-        .set("x-test-user-email", "test-bypass-1@example.com")
-        .set("x-test-user-name", "Test Bypass User 1")
-        .set("x-test-user-role", "user")
+        .get('/api/test/auth')
+        .set('x-test-user-id', testUser1Id)
+        .set('x-test-user-email', 'test-bypass-1@example.com')
+        .set('x-test-user-name', 'Test Bypass User 1')
+        .set('x-test-user-role', 'user')
         .expect(200);
 
       expect(response.body).toMatchObject({
-        message: "Hello from authenticated GET test endpoint!",
+        message: 'Hello from authenticated GET test endpoint!',
         user: {
           id: testUser1Id,
-          email: "test-bypass-1@example.com",
-          name: "Test Bypass User 1",
-          role: "user",
-          loginProvider: "google",
+          email: 'test-bypass-1@example.com',
+          name: 'Test Bypass User 1',
+          role: 'user',
+          loginProvider: 'google',
         },
-        status: "success",
+        status: 'success',
       });
 
       console.log(`
@@ -133,7 +133,7 @@ Testing authenticated endpoint with auth bypass...
       `);
     });
 
-    it("should test admin user with different role", async () => {
+    it('should test admin user with different role', async () => {
       console.log(`
 🔍 TESTING ADMIN USER AUTH BYPASS:
 - User: ${testUser2Id}
@@ -145,23 +145,23 @@ Testing admin endpoint with auth bypass...
 
       // Test the authenticated endpoint
       const response = await request(baseURL)
-        .get("/api/test/auth")
-        .set("x-test-user-id", testUser2Id)
-        .set("x-test-user-email", "test-bypass-2@example.com")
-        .set("x-test-user-name", "Test Bypass User 2")
-        .set("x-test-user-role", "admin")
+        .get('/api/test/auth')
+        .set('x-test-user-id', testUser2Id)
+        .set('x-test-user-email', 'test-bypass-2@example.com')
+        .set('x-test-user-name', 'Test Bypass User 2')
+        .set('x-test-user-role', 'admin')
         .expect(200);
 
       expect(response.body).toMatchObject({
-        message: "Hello from authenticated GET test endpoint!",
+        message: 'Hello from authenticated GET test endpoint!',
         user: {
           id: testUser2Id,
-          email: "test-bypass-2@example.com",
-          name: "Test Bypass User 2",
-          role: "admin",
-          loginProvider: "google",
+          email: 'test-bypass-2@example.com',
+          name: 'Test Bypass User 2',
+          role: 'admin',
+          loginProvider: 'google',
         },
-        status: "success",
+        status: 'success',
       });
 
       console.log(`
@@ -173,7 +173,7 @@ Testing admin endpoint with auth bypass...
       `);
     });
 
-    it("should test user with linked Internet Identity Principal", async () => {
+    it('should test user with linked Internet Identity Principal', async () => {
       console.log(`
 🔍 TESTING II USER WITH LINKED PRINCIPAL:
 - User: ${testUser1Id}
@@ -183,29 +183,29 @@ Testing admin endpoint with auth bypass...
 Testing II user with auth bypass...
       `);
 
-      const linkedPrincipal = "2vxsx-fae";
+      const linkedPrincipal = '2vxsx-fae';
 
       // Test the authenticated endpoint with II Principal
       const response = await request(baseURL)
-        .get("/api/test/auth")
-        .set("x-test-user-id", testUser1Id)
-        .set("x-test-user-email", "test-bypass-1@example.com")
-        .set("x-test-user-name", "Test Bypass User 1")
-        .set("x-test-user-role", "user")
-        .set("x-test-linked-principal", linkedPrincipal)
+        .get('/api/test/auth')
+        .set('x-test-user-id', testUser1Id)
+        .set('x-test-user-email', 'test-bypass-1@example.com')
+        .set('x-test-user-name', 'Test Bypass User 1')
+        .set('x-test-user-role', 'user')
+        .set('x-test-linked-principal', linkedPrincipal)
         .expect(200);
 
       expect(response.body).toMatchObject({
-        message: "Hello from authenticated GET test endpoint!",
+        message: 'Hello from authenticated GET test endpoint!',
         user: {
           id: testUser1Id,
-          email: "test-bypass-1@example.com",
-          name: "Test Bypass User 1",
-          role: "user",
-          loginProvider: "google",
+          email: 'test-bypass-1@example.com',
+          name: 'Test Bypass User 1',
+          role: 'user',
+          loginProvider: 'google',
           linkedIcPrincipal: linkedPrincipal,
         },
-        status: "success",
+        status: 'success',
       });
 
       console.log(`
@@ -216,7 +216,7 @@ Testing II user with auth bypass...
       `);
     });
 
-    it("should test user with active II co-authentication", async () => {
+    it('should test user with active II co-authentication', async () => {
       console.log(`
 🔍 TESTING ACTIVE II CO-AUTHENTICATION:
 - User: ${testUser1Id}
@@ -227,31 +227,31 @@ Testing II user with auth bypass...
 Testing active co-auth with auth bypass...
       `);
 
-      const activePrincipal = "2vxsx-fae";
+      const activePrincipal = '2vxsx-fae';
 
       // Test the authenticated endpoint with active II co-auth
       const response = await request(baseURL)
-        .get("/api/test/auth")
-        .set("x-test-user-id", testUser1Id)
-        .set("x-test-user-email", "test-bypass-1@example.com")
-        .set("x-test-user-name", "Test Bypass User 1")
-        .set("x-test-user-role", "user")
-        .set("x-test-linked-principal", activePrincipal)
-        .set("x-test-active-principal", activePrincipal)
+        .get('/api/test/auth')
+        .set('x-test-user-id', testUser1Id)
+        .set('x-test-user-email', 'test-bypass-1@example.com')
+        .set('x-test-user-name', 'Test Bypass User 1')
+        .set('x-test-user-role', 'user')
+        .set('x-test-linked-principal', activePrincipal)
+        .set('x-test-active-principal', activePrincipal)
         .expect(200);
 
       expect(response.body).toMatchObject({
-        message: "Hello from authenticated GET test endpoint!",
+        message: 'Hello from authenticated GET test endpoint!',
         user: {
           id: testUser1Id,
-          email: "test-bypass-1@example.com",
-          name: "Test Bypass User 1",
-          role: "user",
-          loginProvider: "google",
+          email: 'test-bypass-1@example.com',
+          name: 'Test Bypass User 1',
+          role: 'user',
+          loginProvider: 'google',
           linkedIcPrincipal: activePrincipal,
           icpPrincipal: activePrincipal,
         },
-        status: "success",
+        status: 'success',
       });
 
       console.log(`
@@ -264,8 +264,8 @@ Testing active co-auth with auth bypass...
     });
   });
 
-  describe("Next Steps: Testing Real ICP Endpoints", () => {
-    it("should outline how to test your real ICP endpoints", () => {
+  describe('Next Steps: Testing Real ICP Endpoints', () => {
+    it('should outline how to test your real ICP endpoints', () => {
       console.log(`
 🎯 NEXT STEPS: TESTING REAL ICP ENDPOINTS WITH AUTH BYPASS
 
@@ -298,5 +298,3 @@ Now that we have auth bypass working, we can test:
     });
   });
 });
-
-
