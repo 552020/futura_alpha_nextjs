@@ -55,8 +55,11 @@ export function useHostingPreferences() {
       if (!res.ok) throw await parseError(res);
       return res.json();
     },
-    staleTime: 30_000,
-    refetchOnWindowFocus: true,
+    staleTime: Infinity, // Never consider data stale - fetch only once per session
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes after component unmounts
+    refetchOnWindowFocus: false, // Don't refetch when switching tabs
+    refetchOnMount: false, // Don't refetch when component mounts if data exists
+    refetchOnReconnect: false, // Don't refetch when network reconnects
   });
 }
 

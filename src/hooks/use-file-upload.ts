@@ -145,13 +145,29 @@ export function useFileUpload({ isOnboarding = false, mode = 'directory', onSucc
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const fileList = event.target.files;
+    // console.log('🔍 DEBUG: handleFileUpload called with:', {
+    //   mode,
+    //   filesLength: fileList?.length || 0,
+    //   files: fileList ? Array.from(fileList).map(f => f.name) : 'null',
+    // });
+
+    if (!fileList || fileList.length === 0) {
+      // console.log('❌ DEBUG: No files found, returning early');
+      return;
+    }
+
+    // Convert FileList to static Array BEFORE clearing input
+    const files = Array.from(fileList);
+    // console.log('🔍 DEBUG: Converted to static array:', {
+    //   filesLength: files.length,
+    //   files: files.map(f => f.name),
+    // });
+
     // Reset input value to allow selecting the same files again
     event.target.value = '';
 
     if (mode === 'directory') {
-      const files = event.target.files;
-      if (!files) return;
-
       setIsLoading(true);
       try {
         await processMultipleFilesService({
@@ -169,11 +185,13 @@ export function useFileUpload({ isOnboarding = false, mode = 'directory', onSucc
       } finally {
         setIsLoading(false);
       }
-    }
-
-    if (mode === 'multiple-files' || mode === 'single') {
-      const files = event.target.files;
-      if (!files || files.length === 0) return;
+    } else if (mode === 'multiple-files' || mode === 'single') {
+      // console.log('🔍 DEBUG: Entering multiple-files/single branch with:', {
+      //   mode,
+      //   filesLength: files.length,
+      //   condition: `files.length === 1 (${files.length === 1}) || mode === 'single' (${mode === 'single'})`,
+      //   willUseSingle: files.length === 1 || mode === 'single',
+      // });
 
       if (files.length === 1 || mode === 'single') {
         // Single file: use existing single file logic
