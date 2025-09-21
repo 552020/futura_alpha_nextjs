@@ -121,3 +121,4 @@ These scripts are designed to be run in CI/CD pipelines:
 - These scripts will warn about potential data loss
 - In development, you can usually accept data loss
 - In production, create proper migrations with data transformation
+

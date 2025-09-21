@@ -66,7 +66,13 @@ export const asset_type_t = pgEnum('asset_type_t', [
   'poster',
   'waveform',
 ]);
-export const processing_status_t = pgEnum('processing_status_t', ['pending', 'processing', 'completed', 'failed']);
+export const processing_status_t = pgEnum('processing_status_t', [
+  'pending',
+  'processing',
+  'completed',
+  'skipped',
+  'failed',
+]);
 /**
  * STORAGE BACKEND - Where assets are actually stored
  *

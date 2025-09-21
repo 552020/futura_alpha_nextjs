@@ -31,6 +31,7 @@ export interface ProcessSingleFileOptions {
 }
 
 import { uploadFileWithProgress, checkICPAuthentication, generateS3PublicUrl } from './shared-utils';
+import { uploadToS3WithProcessing } from './s3-with-processing';
 
 // Upload to ICP canister
 async function uploadToICP(
@@ -75,7 +76,7 @@ async function uploadToICP(
 }
 
 // Upload to S3 using 413 solution (presigned URLs)
-async function uploadToS3(
+export async function uploadToS3(
   file: File,
   onProgress?: (progress: number) => void
 ): Promise<{
@@ -273,15 +274,15 @@ export async function processSingleFile(options: ProcessSingleFileOptions): Prom
     } else if (userBlobHosting === 'vercel_blob') {
       data = await uploadToVercelBlob(file, isOnboarding, existingUserId, mode, userBlobHosting, onProgress);
     } else if (userBlobHosting === 's3') {
-      // S3 with 413 solution (presigned URLs)
-      console.log(`🚀 Using S3 upload (413 solution) for: ${file.name}`);
-      data = await uploadToS3(file, onProgress);
+      // S3 with parallel processing (Lane A + Lane B)
+      console.log(`🚀 Using S3 upload with parallel processing for: ${file.name}`);
+      data = await uploadToS3WithProcessing(file, onProgress);
       data.userId = existingUserId || '';
     } else {
-      // Default to S3 with 413 solution for unknown preferences
+      // Default to S3 with parallel processing for unknown preferences
       console.warn(`⚠️ Unknown storage preference: ${userBlobHosting}, falling back to S3`);
-      console.log(`🚀 Using S3 upload (413 solution) for: ${file.name}`);
-      data = await uploadToS3(file, onProgress);
+      console.log(`🚀 Using S3 upload with parallel processing for: ${file.name}`);
+      data = await uploadToS3WithProcessing(file, onProgress);
       data.userId = existingUserId || '';
     }
 
