@@ -7,6 +7,11 @@ export const defaultLocale = 'en';
 
 const allowedOrigins = ['https://www.futura.now', 'https://futura.now', 'https://peek.futura.now'];
 
+// Simple in-memory rate limiting (for production, use Redis or similar)
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
+const RATE_LIMIT_MAX_REQUESTS = 100; // 100 requests per minute
+
 function getLocale(request: NextRequest): string | undefined {
   const negotiatorHeaders: Record<string, string> = {};
   request.headers.forEach((value, key) => {
@@ -17,9 +22,81 @@ function getLocale(request: NextRequest): string | undefined {
   return locale;
 }
 
+function addSecurityHeaders(response: NextResponse) {
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-XSS-Protection', '1; mode=block');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+}
+
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const origin = request.headers.get('origin');
+  const clientIP = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+
+  // Rate limiting
+  const now = Date.now();
+  const rateLimitKey = `${clientIP}-${pathname}`;
+  const rateLimitData = rateLimitMap.get(rateLimitKey);
+
+  if (rateLimitData) {
+    if (now < rateLimitData.resetTime) {
+      if (rateLimitData.count >= RATE_LIMIT_MAX_REQUESTS) {
+        console.log(`🚫 Rate limit exceeded: ${clientIP} for ${pathname}`);
+        return new NextResponse('Too Many Requests', { status: 429 });
+      }
+      rateLimitData.count++;
+    } else {
+      rateLimitMap.set(rateLimitKey, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+    }
+  } else {
+    rateLimitMap.set(rateLimitKey, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+  }
+
+  // Block WordPress attack attempts and common vulnerability scanners
+  const isWordPressAttack = 
+    pathname.includes('/wp-admin') ||
+    pathname.includes('/wp-content') ||
+    pathname.includes('/wp-includes') ||
+    pathname.includes('/wp-login') ||
+    pathname.includes('/wp-config') ||
+    pathname.includes('/xmlrpc.php') ||
+    pathname.includes('/wp-json') ||
+    pathname.includes('/.env') ||
+    pathname.includes('/admin') ||
+    pathname.includes('/administrator') ||
+    pathname.includes('/phpmyadmin') ||
+    pathname.includes('/.git') ||
+    pathname.includes('/.svn') ||
+    pathname.includes('/backup') ||
+    pathname.includes('/config') ||
+    pathname.includes('/database') ||
+    pathname.includes('/db') ||
+    pathname.includes('/sql') ||
+    pathname.includes('/mysql') ||
+    pathname.includes('/phpinfo') ||
+    pathname.includes('/info.php') ||
+    pathname.includes('/test.php') ||
+    pathname.includes('/shell') ||
+    pathname.includes('/cgi-bin') ||
+    pathname.includes('/.htaccess') ||
+    pathname.includes('/.htpasswd') ||
+    pathname.includes('/robots.txt') && !pathname.endsWith('/robots.txt');
+
+  if (isWordPressAttack) {
+    console.log(`🚫 Blocked attack attempt: ${pathname} from ${clientIP}`);
+    return new NextResponse('Not Found', { 
+      status: 404,
+      headers: {
+        'X-Content-Type-Options': 'nosniff',
+        'X-Frame-Options': 'DENY',
+        'X-XSS-Protection': '1; mode=block',
+        'Referrer-Policy': 'strict-origin-when-cross-origin',
+      }
+    });
+  }
 
   // Log for /decide paths
   if (pathname.includes('decide')) {
@@ -105,10 +182,14 @@ export function middleware(request: NextRequest) {
 
   if (missingLocale) {
     const locale = getLocale(request);
-    return NextResponse.redirect(new URL(`/${locale}${pathname.startsWith('/') ? '' : '/'}${pathname}`, request.url));
+    const response = NextResponse.redirect(new URL(`/${locale}${pathname.startsWith('/') ? '' : '/'}${pathname}`, request.url));
+    addSecurityHeaders(response);
+    return response;
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+  addSecurityHeaders(response);
+  return response;
 }
 
 export const matcher = [
