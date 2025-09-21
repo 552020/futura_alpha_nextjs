@@ -10,7 +10,7 @@
  */
 
 import { type StorageBackend } from '@/lib/storage';
-import { icpUploadService } from '@/services/icp-upload';
+import { icpUploadService } from './icp-upload';
 import { upload as blobUpload } from '@vercel/blob/client';
 // import type { UploadStorage } from "@/hooks/use-upload-storage"; // Unused
 
@@ -94,7 +94,10 @@ async function uploadToICPBackend(file: File): Promise<UploadResponse> {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        storagePreference: { preferred: 'icp-canister' },
+        hostingPreferences: {
+          blobHosting: 'icp',
+          databaseHosting: 'icp',
+        },
       }),
     });
 
@@ -104,7 +107,7 @@ async function uploadToICPBackend(file: File): Promise<UploadResponse> {
 
     const { uploadStorage } = await uploadStorageResponse.json();
 
-    if (uploadStorage.chosen_storage !== 'icp-canister') {
+    if (uploadStorage.blob_storage !== 'icp') {
       throw new Error('Expected ICP canister storage but got different backend');
     }
 
@@ -177,7 +180,7 @@ export const uploadFile = async (
   existingUserId?: string,
   mode: UploadMode = 'multiple-files',
   storageBackend: StorageBackend | StorageBackend[] = 'vercel_blob',
-  userStoragePreference?: 'neon' | 'icp' | 'dual' | 's3'
+  userBlobHosting?: 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs'
 ): Promise<UploadResponse> => {
   console.log(`🚀 Starting upload for ${file.name}...`);
   console.log(`🔍 Upload parameters:`, {
@@ -188,12 +191,12 @@ export const uploadFile = async (
     existingUserId,
     mode,
     storageBackend,
-    userStoragePreference,
+    userBlobHosting,
   });
 
   try {
     // Check if user prefers ICP-only backend
-    if (userStoragePreference === 'icp') {
+    if (userBlobHosting === 'icp') {
       console.log(`🔗 User prefers ICP backend, routing to ICP canister...`);
       // NOTE: For ICP users, isOnboarding is ignored because ICP always requires Internet Identity auth
       // Even "onboarding" users must authenticate with II to interact with ICP canister
@@ -214,7 +217,7 @@ export const uploadFile = async (
     });
 
     // Check if S3 should be used
-    if (userStoragePreference === 's3' || storageBackend === 's3') {
+    if (userBlobHosting === 's3' || storageBackend === 's3') {
       console.log(`☁️ Using AWS S3 upload for ${file.name}...`);
       return await uploadFileToS3(file, isOnboarding, existingUserId);
     }
@@ -463,13 +466,13 @@ export const uploadFiles = async (
   existingUserId?: string,
   mode: UploadMode = 'directory',
   storageBackend: StorageBackend | StorageBackend[] = 'vercel_blob',
-  userStoragePreference?: 'neon' | 'icp' | 'dual' | 's3'
+  userBlobHosting?: 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs'
 ): Promise<UploadResponse[]> => {
   console.log(`🚀 Starting folder upload for ${files.length} files...`);
 
   const uploadPromises = files.map((file, index) => {
     console.log(`📤 Uploading file ${index + 1}/${files.length}: ${file.name}`);
-    return uploadFile(file, isOnboarding, existingUserId, mode, storageBackend, userStoragePreference);
+    return uploadFile(file, isOnboarding, existingUserId, mode, storageBackend, userBlobHosting);
   });
 
   try {

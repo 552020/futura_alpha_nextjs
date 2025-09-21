@@ -5,7 +5,8 @@ import type { MemoryData, MemoryMeta, _SERVICE } from '@/ic/declarations/backend
 
 // Types for ICP upload - compatible with existing UploadStorage
 export interface UploadStorage {
-  chosen_storage: 'icp-canister' | 'neon-db' | 'vercel-blob';
+  database: 'neon' | 'icp';
+  blob_storage: 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs';
   idem: string;
   expires_at: string;
   ttl_seconds: number;
@@ -90,7 +91,7 @@ export class ICPUploadService {
     uploadStorage: UploadStorage,
     onProgress?: (progress: UploadProgress) => void
   ): Promise<UploadResult> {
-    if (uploadStorage.chosen_storage !== 'icp-canister') {
+    if (uploadStorage.blob_storage !== 'icp') {
       throw new Error('Upload storage is not ICP canister');
     }
 

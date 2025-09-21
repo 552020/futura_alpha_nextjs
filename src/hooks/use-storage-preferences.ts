@@ -1,30 +1,32 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { parseApiError, normalizeError, type NormalizedError } from '@/lib/error-handling';
 
-export type Pref = 'neon' | 'icp' | 'dual' | 's3';
-export type Primary = 'neon-db' | 'icp-canister' | 'vercel-blob';
+// Hosting preference types matching the database schema
+export type FrontendHosting = 'vercel' | 'icp';
+export type BackendHosting = 'vercel' | 'icp';
+export type DatabaseHosting = 'neon' | 'icp';
+export type BlobHosting = 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs';
 
-export interface StoragePreferences {
-  preference: Pref;
-  primary: Primary;
+export interface HostingPreferences {
+  frontendHosting: FrontendHosting;
+  backendHosting: BackendHosting;
+  databaseHosting: DatabaseHosting;
+  blobHosting: BlobHosting;
   updatedAt?: string;
 }
 
-// ---- enum ↔ toggle helpers ----
-export function prefToToggles(pref: Pref) {
+// ---- hosting preference helpers ----
+export function getDefaultHostingPreferences(): HostingPreferences {
   return {
-    neon: pref === 'neon' || pref === 'dual',
-    icp: pref === 'icp' || pref === 'dual',
-    s3: pref === 's3',
+    frontendHosting: 'vercel',
+    backendHosting: 'vercel',
+    databaseHosting: 'neon',
+    blobHosting: 's3',
   };
 }
 
-export function togglesToPref(neon: boolean, icp: boolean, s3 = false): Pref {
-  if (s3) return 's3';
-  if (neon && icp) return 'dual';
-  if (neon) return 'neon';
-  if (icp) return 'icp';
-  return 'neon'; // Default fallback
+export function isHostingPreferenceValid(prefs: Partial<HostingPreferences>): prefs is HostingPreferences {
+  return !!(prefs.frontendHosting && prefs.backendHosting && prefs.databaseHosting && prefs.blobHosting);
 }
 
 // ---- API helpers ----
@@ -41,11 +43,11 @@ function idempotencyKey() {
 }
 
 // ---- Queries ----
-export function useStoragePreferences() {
-  return useQuery<StoragePreferences, NormalizedError>({
-    queryKey: ['me', 'storage'],
+export function useHostingPreferences() {
+  return useQuery<HostingPreferences, NormalizedError>({
+    queryKey: ['me', 'hosting-preferences'],
     queryFn: async () => {
-      const res = await fetch('/api/me/storage', {
+      const res = await fetch('/api/me/hosting-preferences', {
         cache: 'no-store',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -59,15 +61,15 @@ export function useStoragePreferences() {
 }
 
 // ---- Mutation ----
-type UpdateBody = { preference: Pref; primary: Primary };
-type Ctx = { previousData?: StoragePreferences };
+type UpdateBody = Partial<HostingPreferences>;
+type Ctx = { previousData?: HostingPreferences };
 
-export function useUpdateStoragePreferences() {
+export function useUpdateHostingPreferences() {
   const qc = useQueryClient();
 
-  return useMutation<StoragePreferences, NormalizedError, UpdateBody, Ctx>({
+  return useMutation<HostingPreferences, NormalizedError, UpdateBody, Ctx>({
     mutationFn: async body => {
-      const res = await fetch('/api/me/storage', {
+      const res = await fetch('/api/me/hosting-preferences', {
         method: 'PATCH',
         credentials: 'include',
         headers: {
@@ -82,13 +84,13 @@ export function useUpdateStoragePreferences() {
 
     // optimistic update
     onMutate: async newData => {
-      await qc.cancelQueries({ queryKey: ['me', 'storage'] });
-      const previousData = qc.getQueryData<StoragePreferences>(['me', 'storage']);
+      await qc.cancelQueries({ queryKey: ['me', 'hosting-preferences'] });
+      const previousData = qc.getQueryData<HostingPreferences>(['me', 'hosting-preferences']);
 
       if (previousData) {
-        qc.setQueryData<StoragePreferences>(['me', 'storage'], {
+        qc.setQueryData<HostingPreferences>(['me', 'hosting-preferences'], {
           ...previousData,
-          ...newData, // only overrides preference/primary
+          ...newData, // only overrides changed hosting preferences
           updatedAt: new Date().toISOString(),
         });
       }
@@ -96,17 +98,17 @@ export function useUpdateStoragePreferences() {
     },
 
     onError: (_err, _vars, ctx) => {
-      if (ctx?.previousData) qc.setQueryData(['me', 'storage'], ctx.previousData);
+      if (ctx?.previousData) qc.setQueryData(['me', 'hosting-preferences'], ctx.previousData);
     },
 
     onSuccess: data => {
       // Push authoritative server state; avoids a double flicker
-      qc.setQueryData<StoragePreferences>(['me', 'storage'], data);
+      qc.setQueryData<HostingPreferences>(['me', 'hosting-preferences'], data);
     },
 
     onSettled: () => {
-      // Still refetch to reconcile policy/allowed flags if they changed
-      qc.invalidateQueries({ queryKey: ['me', 'storage'] });
+      // Still refetch to reconcile any server-side changes
+      qc.invalidateQueries({ queryKey: ['me', 'hosting-preferences'] });
     },
   });
 }

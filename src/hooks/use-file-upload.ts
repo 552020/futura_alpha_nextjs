@@ -2,13 +2,15 @@ import { useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useOnboarding } from '@/contexts/onboarding-context';
 import { useSession } from 'next-auth/react';
-import { uploadFile } from '@/services/upload';
+import { uploadFile } from '@/services/upload/upload';
 // Lazy import to avoid eager loading of ICP declarations
-// import { icpUploadService } from '@/services/icp-upload';
+// import { icpUploadService } from '@/services/upload/icp-upload';
 // We'll need to create this context for post-onboarding state
 // import { useVault } from '@/contexts/vault-context';
-import { useUploadStorage, isUploadStorageExpired } from '@/hooks/use-upload-storage';
-import { useStoragePreferences } from '@/hooks/use-storage-preferences';
+// import { isUploadStorageExpired } from '@/hooks/use-upload-storage'; // Not used anymore
+import { useHostingPreferences } from '@/hooks/use-storage-preferences';
+import { verifyIntent } from '@/services/upload/intent';
+import { verifyUpload } from '@/services/upload/verification';
 import { UPLOAD_LIMITS } from '@/config/upload-limits';
 import type { UseFileUploadProps } from '@/types/upload';
 
@@ -22,51 +24,54 @@ export function useFileUpload({ isOnboarding = false, mode = 'directory', onSucc
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: preferences } = useStoragePreferences();
-  const uploadStorageMutation = useUploadStorage();
+  const { data: preferences } = useHostingPreferences();
 
-  function mapPrefToBackend(pref?: 'neon' | 'icp' | 'dual' | 's3'): 'neon-db' | 'icp-canister' {
-    if (pref === 'icp') return 'icp-canister';
-    return 'neon-db'; // default for neon, dual, s3, undefined
-  }
+  // REMOVED: mapBlobHostingToBackend - now handled in verifyIntent service
 
-  async function requestUploadStorage(preferred?: 'neon-db' | 'icp-canister') {
-    const chosenPreferred = preferred ?? mapPrefToBackend(preferences?.preference);
-    const resp = await uploadStorageMutation.mutateAsync({ preferred: chosenPreferred });
-    const storage = resp.uploadStorage;
+  // OLD FUNCTION - COMMENTED OUT
+  // async function requestUploadStorage(preferred?: 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs') {
+  //   const chosenPreferred = preferred ?? mapBlobHostingToBackend(preferences?.blobHosting);
+  //   const resp = await uploadStorageMutation.mutateAsync({
+  //     preferred: chosenPreferred,
+  //     databaseHosting: preferences?.databaseHosting,
+  //   });
+  //   const storage = resp.uploadStorage;
 
-    if (isUploadStorageExpired(storage.expires_at)) {
-      throw new Error('Upload storage selection expired. Please try again.');
-    }
-    return storage;
-  }
+  //   if (isUploadStorageExpired(storage.expires_at)) {
+  //     throw new Error('Upload storage selection expired. Please try again.');
+  //   }
+  //   return storage;
+  // }
 
-  async function verifyUpload(args: {
-    appMemoryId: string;
-    backend: 'neon-db' | 'icp-canister' | 'vercel-blob';
-    idem: string;
-    size?: number | null;
-    checksum_sha256?: string | null;
-    remote_id?: string | null;
-  }) {
-    try {
-      await fetch('/api/upload/verify', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          app_memory_id: args.appMemoryId,
-          backend: args.backend,
-          idem: args.idem,
-          checksum_sha256: args.checksum_sha256 ?? null,
-          size: args.size ?? null,
-          remote_id: args.remote_id ?? null,
-        }),
-      });
-    } catch {
-      // best-effort in MVP; do not block UI
-    }
-  }
+  // OLD FUNCTION - COMMENTED OUT
+  // async function verifyUpload(args: {
+  //   appMemoryId: string;
+  //   database: 'neon' | 'icp';
+  //   blob_storage: 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs';
+  //   idem: string;
+  //   size?: number | null;
+  //   checksum_sha256?: string | null;
+  //   remote_id?: string | null;
+  // }) {
+  //   try {
+  //     await fetch('/api/upload/verify', {
+  //       method: 'POST',
+  //       credentials: 'include',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body: JSON.stringify({
+  //         app_memory_id: args.appMemoryId,
+  //         database: args.database,
+  //         blob_storage: args.blob_storage,
+  //         idem: args.idem,
+  //         checksum_sha256: args.checksum_sha256 ?? null,
+  //         size: args.size ?? null,
+  //         remote_id: args.remote_id ?? null,
+  //       }),
+  //     });
+  //   } catch {
+  //     // best-effort in MVP; do not block UI
+  //   }
+  // }
 
   //   const handleUploadClick = () => {
   //     fileInputRef.current?.click();
@@ -168,13 +173,13 @@ export function useFileUpload({ isOnboarding = false, mode = 'directory', onSucc
       const url = URL.createObjectURL(file);
 
       // Use unified upload service with storage preference
-      const userStoragePreference = preferences?.preference; // "neon" | "icp" | "dual" | "s3"
-      console.log(`🔍 User storage preference: ${userStoragePreference}`);
+      const userBlobHosting = preferences?.blobHosting; // "s3" | "vercel_blob" | "icp" | "arweave" | "ipfs" | "neon"
+      console.log(`🔍 User blob hosting: ${userBlobHosting}`);
 
       // For ICP preference, check authentication first
-      if (userStoragePreference === 'icp') {
+      if (userBlobHosting === 'icp') {
         console.log(`🔐 Checking ICP authentication...`);
-        const { icpUploadService } = await import('@/services/icp-upload');
+        const { icpUploadService } = await import('@/services/upload/icp-upload');
         const isAuthenticated = await icpUploadService.isAuthenticated();
         if (!isAuthenticated) {
           throw new Error('Please connect your Internet Identity to upload to ICP');
@@ -198,17 +203,10 @@ export function useFileUpload({ isOnboarding = false, mode = 'directory', onSucc
         existingUserId,
         mode,
         storageBackend,
-        userStoragePreference,
+        userBlobHosting,
       });
 
-      const uploadResult = await uploadFile(
-        file,
-        isOnboarding,
-        existingUserId,
-        mode,
-        storageBackend,
-        userStoragePreference
-      );
+      const uploadResult = await uploadFile(file, isOnboarding, existingUserId, mode, storageBackend, userBlobHosting);
 
       // Convert to expected format for compatibility
       // Note: uploadResult.data is an array of memories from the backend
@@ -235,12 +233,18 @@ export function useFileUpload({ isOnboarding = false, mode = 'directory', onSucc
       // 3) Verify after upload (best-effort) - only for non-ICP flows
       // ICP flows handle verification internally
       const appMemoryId = data?.data?.id;
-      if (appMemoryId && userStoragePreference !== 'icp') {
+      if (appMemoryId && userBlobHosting !== 'icp') {
         // For non-ICP flows, we still need to get storage info for verification
-        const storage = await requestUploadStorage();
+        const storageResponse = await verifyIntent({
+          preferred: preferences?.blobHosting,
+          databaseHosting: preferences?.databaseHosting,
+          backendHosting: preferences?.backendHosting,
+        });
+        const storage = storageResponse.uploadStorage;
         await verifyUpload({
           appMemoryId,
-          backend: storage.chosen_storage,
+          database: storage.database,
+          blob_storage: storage.blob_storage,
           idem: storage.idem,
           size: file.size,
           checksum_sha256: data?.results?.[0]?.checksum_sha256 ?? null,
@@ -311,7 +315,12 @@ export function useFileUpload({ isOnboarding = false, mode = 'directory', onSucc
 
       try {
         // 1) Request upload storage (MVP mock)
-        const storage = await requestUploadStorage();
+        const storageResponse = await verifyIntent({
+          preferred: preferences?.blobHosting,
+          databaseHosting: preferences?.databaseHosting,
+          backendHosting: preferences?.backendHosting,
+        });
+        const storage = storageResponse.uploadStorage;
 
         let data:
           | {
@@ -328,9 +337,9 @@ export function useFileUpload({ isOnboarding = false, mode = 'directory', onSucc
           | undefined;
 
         // 2) Route to appropriate upload service based on chosen storage
-        if (storage.chosen_storage === 'icp-canister') {
+        if (storage.blob_storage === 'icp') {
           // Pre-check Internet Identity authentication before attempting ICP upload
-          const { icpUploadService } = await import('@/services/icp-upload');
+          const { icpUploadService } = await import('@/services/upload/icp-upload');
           const isAuthenticated = await icpUploadService.isAuthenticated();
           if (!isAuthenticated) {
             throw new Error('Please connect your Internet Identity to upload to ICP');
@@ -383,7 +392,8 @@ export function useFileUpload({ isOnboarding = false, mode = 'directory', onSucc
         if (appMemoryId) {
           await verifyUpload({
             appMemoryId,
-            backend: storage.chosen_storage,
+            database: storage.database,
+            blob_storage: storage.blob_storage,
             idem: storage.idem,
             size: data?.results?.[0]?.size || null,
             checksum_sha256: data?.results?.[0]?.checksum_sha256 || null,
@@ -480,7 +490,12 @@ export function useFileUpload({ isOnboarding = false, mode = 'directory', onSucc
 
         try {
           // 1) Request upload storage (MVP mock)
-          const storage = await requestUploadStorage();
+          const storageResponse = await verifyIntent({
+            preferred: preferences?.blobHosting,
+            databaseHosting: preferences?.databaseHosting,
+            backendHosting: preferences?.backendHosting,
+          });
+          const storage = storageResponse.uploadStorage;
 
           let data:
             | {
@@ -497,9 +512,9 @@ export function useFileUpload({ isOnboarding = false, mode = 'directory', onSucc
             | undefined;
 
           // 2) Route to appropriate upload service based on chosen storage
-          if (storage.chosen_storage === 'icp-canister') {
+          if (storage.blob_storage === 'icp') {
             // Pre-check Internet Identity authentication before attempting ICP upload
-            const { icpUploadService } = await import('@/services/icp-upload');
+            const { icpUploadService } = await import('@/services/upload/icp-upload');
             const isAuthenticated = await icpUploadService.isAuthenticated();
             if (!isAuthenticated) {
               throw new Error('Please connect your Internet Identity to upload to ICP');
@@ -548,7 +563,8 @@ export function useFileUpload({ isOnboarding = false, mode = 'directory', onSucc
           if (appMemoryId) {
             await verifyUpload({
               appMemoryId,
-              backend: storage.chosen_storage,
+              database: storage.database,
+              blob_storage: storage.blob_storage,
               idem: storage.idem,
               size: data?.results?.[0]?.size || null,
               checksum_sha256: data?.results?.[0]?.checksum_sha256 || null,

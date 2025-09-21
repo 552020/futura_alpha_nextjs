@@ -9,17 +9,27 @@ function idem() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
-    const preferred = body?.storagePreference?.preferred as 'icp-canister' | 'neon-db' | undefined;
+    const blobHosting = body?.hostingPreferences?.blobHosting as
+      | 's3'
+      | 'vercel_blob'
+      | 'icp'
+      | 'arweave'
+      | 'ipfs'
+      | undefined;
+    // const databaseHosting = body?.hostingPreferences?.databaseHosting as 'neon' | 'icp' | undefined; // Not used yet
 
-    // Minimal decision: honor preferred if present, default to neon-db
-    const chosen_storage = preferred ?? 'neon-db';
+    // The intent route should return both database and blob storage info
+    // Since this is a Vercel route, database is always Neon
+    const database = 'neon'; // Always Neon for Vercel backend
+    const blob_storage = blobHosting || 's3'; // User's blob preference or default to S3
 
     const ttl_seconds = 600; // 10 minutes
     const expires_at = new Date(Date.now() + ttl_seconds * 1000).toISOString();
 
     const payload: {
       uploadStorage: {
-        chosen_storage: 'icp-canister' | 'neon-db' | 'vercel-blob';
+        database: 'neon' | 'icp';
+        blob_storage: 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs';
         idem: string;
         expires_at: string;
         ttl_seconds: number;
@@ -28,7 +38,8 @@ export async function POST(request: NextRequest) {
       };
     } = {
       uploadStorage: {
-        chosen_storage,
+        database,
+        blob_storage,
         idem: idem(),
         expires_at,
         ttl_seconds,
@@ -36,7 +47,7 @@ export async function POST(request: NextRequest) {
       },
     };
 
-    if (chosen_storage === 'icp-canister') {
+    if (blob_storage === 'icp') {
       payload.uploadStorage.icp = {
         canister_id: process.env.NEXT_PUBLIC_ICP_CANISTER_ID ?? 'ryjl3-tyaaa-aaaaa-aaaba-cai',
         network: process.env.NEXT_PUBLIC_ICP_NETWORK ?? 'ic',

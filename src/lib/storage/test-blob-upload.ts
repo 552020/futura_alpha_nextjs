@@ -5,7 +5,7 @@
  * It can be run in the browser console or as a simple test script.
  */
 
-import { uploadFile } from '@/services/upload';
+import { uploadFile } from '@/services/upload/upload';
 
 /**
  * Test the blob-first upload flow with a sample file

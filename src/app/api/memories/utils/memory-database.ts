@@ -421,10 +421,9 @@ export async function cleanupStorageEdgesForMemory(params: {
       return backend === 's3' || backend === 'aws-s3' || backend.includes('s3');
     });
 
-    // Add S3 edges - handle potential type mismatch with the backend enum
+    // Add S3 edges - using new storage edges structure
     const s3Edges = edges.filter(edge => {
-      const backend = String(edge.backend).toLowerCase();
-      return backend === 'aws-s3' || backend === 's3' || backend.includes('s3');
+      return edge.locationAsset === 's3';
     });
 
     // Combine all S3 assets
@@ -441,7 +440,7 @@ export async function cleanupStorageEdgesForMemory(params: {
       ...s3Edges.map(edge => ({
         id: `edge-${edge.id}`,
         memoryId,
-        storageKey: extractS3KeyFromUrl(edge.location || ''),
+        storageKey: extractS3KeyFromUrl(edge.locationUrl || ''),
         storageBackend: 's3',
         bytes: edge.sizeBytes,
         mimeType: null,

@@ -77,10 +77,10 @@ export async function PUT(request: NextRequest) {
       .insert(storageEdges)
       .values(edgeData)
       .onConflictDoUpdate({
-        target: [storageEdges.memoryId, storageEdges.memoryType, storageEdges.artifact, storageEdges.backend],
+        target: [storageEdges.memoryId, storageEdges.memoryType, storageEdges.artifact, storageEdges.locationMetadata, storageEdges.locationAsset],
         set: {
           present: present ?? false,
-          location,
+          locationUrl: location,
           contentHash,
           sizeBytes: sizeBytes ? Number(sizeBytes) : undefined,
           syncState: (syncState as 'idle' | 'migrating' | 'failed') ?? 'idle',
@@ -119,7 +119,14 @@ export async function GET(request: NextRequest) {
       conditions.push(eq(storageEdges.memoryType, memoryType as 'image' | 'video' | 'note' | 'document' | 'audio'));
     }
     if (backend) {
-      conditions.push(eq(storageEdges.backend, backend as 'neon-db' | 'vercel-blob' | 'icp-canister'));
+      // Map old backend values to new structure
+      if (backend === 'neon-db') {
+        conditions.push(eq(storageEdges.locationMetadata, 'neon'));
+      } else if (backend === 'vercel-blob') {
+        conditions.push(eq(storageEdges.locationAsset, 'vercel_blob'));
+      } else if (backend === 'icp-canister') {
+        conditions.push(eq(storageEdges.locationAsset, 'icp'));
+      }
     }
     if (artifact) {
       conditions.push(eq(storageEdges.artifact, artifact as 'metadata' | 'asset'));

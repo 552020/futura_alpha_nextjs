@@ -1,42 +1,41 @@
 'use client';
 
 import {
-  useStoragePreferences,
-  useUpdateStoragePreferences,
-  prefToToggles,
-  togglesToPref,
+  useHostingPreferences,
+  useUpdateHostingPreferences,
+  getDefaultHostingPreferences,
 } from '@/hooks/use-storage-preferences';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export function StorageSettings() {
-  const { data: preferences, isLoading, error } = useStoragePreferences();
-  const updatePreferences = useUpdateStoragePreferences();
+  const { data: preferences, isLoading, error } = useHostingPreferences();
+  const updatePreferences = useUpdateHostingPreferences();
 
-  const handleNeonToggle = (checked: boolean) => {
-    // Use centralized mapping functions
-    const currentToggles = preferences ? prefToToggles(preferences.preference) : { neon: true, icp: false };
-    const newToggles = { ...currentToggles, neon: checked };
-    const newPreference = togglesToPref(newToggles.neon, newToggles.icp);
-
+  const handleFrontendHostingChange = (hosting: 'vercel' | 'icp') => {
     updatePreferences.mutate({
-      preference: newPreference,
-      primary: preferences?.primary || 'neon-db',
+      frontendHosting: hosting,
     });
   };
 
-  const handleIcpToggle = (checked: boolean) => {
-    // Use centralized mapping functions
-    const currentToggles = preferences ? prefToToggles(preferences.preference) : { neon: true, icp: false };
-    const newToggles = { ...currentToggles, icp: checked };
-    const newPreference = togglesToPref(newToggles.neon, newToggles.icp);
-
+  const handleBackendHostingChange = (hosting: 'vercel' | 'icp') => {
     updatePreferences.mutate({
-      preference: newPreference,
-      primary: preferences?.primary || 'neon-db',
+      backendHosting: hosting,
+    });
+  };
+
+  const handleDatabaseHostingChange = (hosting: 'neon' | 'icp') => {
+    updatePreferences.mutate({
+      databaseHosting: hosting,
+    });
+  };
+
+  const handleBlobHostingChange = (hosting: 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs') => {
+    updatePreferences.mutate({
+      blobHosting: hosting,
     });
   };
 
@@ -44,93 +43,132 @@ export function StorageSettings() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Storage Preferences</CardTitle>
+          <CardTitle>Hosting Preferences</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-4 w-20" />
               <Skeleton className="h-3 w-32" />
             </div>
-            <Skeleton className="h-6 w-12" />
+            <Skeleton className="h-10 w-32" />
           </div>
           <Separator />
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Skeleton className="h-4 w-12" />
+              <Skeleton className="h-4 w-20" />
               <Skeleton className="h-3 w-28" />
             </div>
-            <Skeleton className="h-6 w-12" />
+            <Skeleton className="h-10 w-32" />
+          </div>
+          <Separator />
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-3 w-28" />
+            </div>
+            <Skeleton className="h-10 w-32" />
+          </div>
+          <Separator />
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-3 w-28" />
+            </div>
+            <Skeleton className="h-10 w-32" />
           </div>
         </CardContent>
       </Card>
     );
   }
 
-  // Always show toggles, even if there's an error
-  const hasInitialError = error || !preferences;
-
-  // Use centralized mapping (with fallback for errors)
-  const toggles = preferences ? prefToToggles(preferences.preference) : { neon: true, icp: false };
-  const { neon: neonEnabled, icp: icpEnabled } = toggles;
+  // Use default preferences if there's an error or no data
+  const currentPreferences = preferences || getDefaultHostingPreferences();
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Storage Preferences</CardTitle>
+        <CardTitle>Hosting Preferences</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Initial error display (if any) */}
-        {hasInitialError && (
-          <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-3 text-yellow-800 dark:border-yellow-800 dark:bg-yellow-950/20 dark:text-yellow-200">
-            <p className="text-sm font-medium">Warning</p>
-            <p className="text-sm">{error ? error.userMessage : 'No preferences found'}</p>
-            {error?.isRetryable && (
-              <p className="text-xs text-yellow-600 dark:text-yellow-300 mt-1">
-                This error may be temporary. Please try again.
-              </p>
-            )}
-          </div>
-        )}
-
+        {/* Frontend Hosting */}
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
-            <Label htmlFor="web2-storage">Web2</Label>
-            <p className="text-sm text-muted-foreground">Vercel + Neon</p>
+            <Label htmlFor="frontend-hosting">Frontend Hosting</Label>
+            <p className="text-sm text-muted-foreground">Where your frontend is hosted</p>
           </div>
-          <Switch
-            id="web2-storage"
-            checked={neonEnabled}
-            onCheckedChange={handleNeonToggle}
-            disabled={updatePreferences.isPending || (!icpEnabled && neonEnabled)}
-          />
+          <Select value={currentPreferences.frontendHosting} onValueChange={handleFrontendHostingChange}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="vercel">Vercel</SelectItem>
+              <SelectItem value="icp">ICP</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
+
         <Separator />
+
+        {/* Backend Hosting */}
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
-            <Label htmlFor="web3-storage">Web3</Label>
-            <p className="text-sm text-muted-foreground">ICP</p>
+            <Label htmlFor="backend-hosting">Backend Hosting</Label>
+            <p className="text-sm text-muted-foreground">Where your backend API is hosted</p>
           </div>
-          <Switch
-            id="web3-storage"
-            checked={icpEnabled}
-            onCheckedChange={handleIcpToggle}
-            disabled={updatePreferences.isPending || (!neonEnabled && icpEnabled)}
-          />
+          <Select value={currentPreferences.backendHosting} onValueChange={handleBackendHostingChange}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="vercel">Vercel</SelectItem>
+              <SelectItem value="icp">ICP</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
-        {/* Error Display for mutations */}
-        {updatePreferences.error && (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-red-800 dark:border-red-800 dark:bg-red-950/20 dark:text-red-200">
-            <p className="text-sm font-medium">Error updating preferences</p>
-            <p className="text-sm">{updatePreferences.error.userMessage}</p>
-            {updatePreferences.error.isRetryable && (
-              <p className="text-xs text-red-600 dark:text-red-300 mt-1">
-                This error may be temporary. Please try again.
-              </p>
-            )}
+        <Separator />
+
+        {/* Database Hosting */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label htmlFor="database-hosting">Database Hosting</Label>
+            <p className="text-sm text-muted-foreground">Where your database is hosted</p>
           </div>
-        )}
+          <Select value={currentPreferences.databaseHosting} onValueChange={handleDatabaseHostingChange}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="neon">Neon</SelectItem>
+              <SelectItem value="icp">ICP</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Separator />
+
+        {/* Blob Storage Hosting */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label htmlFor="blob-hosting">Blob Storage</Label>
+            <p className="text-sm text-muted-foreground">Where your files are stored</p>
+          </div>
+          <Select value={currentPreferences.blobHosting} onValueChange={handleBlobHostingChange}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="s3">S3</SelectItem>
+              <SelectItem value="vercel_blob">Vercel Blob</SelectItem>
+              <SelectItem value="icp">ICP</SelectItem>
+              <SelectItem value="arweave">Arweave</SelectItem>
+              <SelectItem value="ipfs">IPFS</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {error && <div className="text-sm text-red-600">Error loading preferences: {error.message}</div>}
       </CardContent>
     </Card>
   );
