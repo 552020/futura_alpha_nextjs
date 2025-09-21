@@ -7,9 +7,9 @@
  *
  * - 'directory': Sets webkitdirectory, directory, and multiple attributes (folder selection)
  * - 'multiple-files': Sets multiple attribute only (multiple file selection)
- * - 'single-file': No special attributes (default single file selection)
+ * - 'single': No special attributes (default single file selection)
  */
-export type FileInputAttributeMode = 'directory' | 'multiple-files' | 'single-file';
+export type FileInputAttributeMode = 'directory' | 'multiple-files' | 'single';
 
 /**
  * Props for the useFileUpload hook

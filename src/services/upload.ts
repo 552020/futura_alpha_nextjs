@@ -10,7 +10,7 @@
  */
 
 import { type StorageBackend } from '@/lib/storage';
-import { icpUploadService } from './icp-upload';
+import { icpUploadService } from '@/services/icp-upload';
 import { upload as blobUpload } from '@vercel/blob/client';
 // import type { UploadStorage } from "@/hooks/use-upload-storage"; // Unused
 
@@ -54,7 +54,7 @@ interface UploadResponse {
   };
 }
 
-type UploadMode = 'multiple-files' | 'single' | 'directory';
+type UploadMode = 'multiple-files' | 'single-file' | 'directory';
 
 /**
  * Get memory type from file extension

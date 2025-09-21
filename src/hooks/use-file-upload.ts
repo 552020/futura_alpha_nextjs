@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useOnboarding } from '@/contexts/onboarding-context';
@@ -88,29 +90,8 @@ export function useFileUpload({ isOnboarding = false, mode = 'directory', onSucc
   //     el.click();
   //   };
 
-  const handleUploadClick = () => {
-    const el = fileInputRef.current;
-    if (!el) return;
-
-    // reset to single file mode first
-    el.removeAttribute('webkitdirectory');
-    el.removeAttribute('directory');
-    el.multiple = false;
-
-    if (mode === 'directory') {
-      el.setAttribute('webkitdirectory', '');
-      el.setAttribute('directory', '');
-      el.multiple = true;
-    } else if (mode === 'multiple-files') {
-      // Enable multiple file selection
-      el.multiple = true;
-    } else if (mode === 'single-file') {
-      // Single file selection (already set by reset above)
-      // No additional attributes needed
-    }
-
-    el.click();
-  };
+  // DOM manipulation logic moved to src/lib/file-picker.ts
+  // Components should call triggerFileInput(fileInputRef.current, mode) directly
 
   const checkFileSize = (file: File) => {
     if (!UPLOAD_LIMITS.isFileSizeValid(file.size)) {
@@ -286,6 +267,9 @@ export function useFileUpload({ isOnboarding = false, mode = 'directory', onSucc
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    // Reset input value to allow selecting the same files again
+    event.target.value = '';
+
     if (mode === 'directory') {
       const files = event.target.files;
       if (!files) return;
@@ -430,11 +414,11 @@ export function useFileUpload({ isOnboarding = false, mode = 'directory', onSucc
       }
     }
 
-    if (mode === 'multiple-files' || mode === 'single-file') {
+    if (mode === 'multiple-files' || mode === 'single') {
       const files = event.target.files;
       if (!files || files.length === 0) return;
 
-      if (files.length === 1 || mode === 'single-file') {
+      if (files.length === 1 || mode === 'single') {
         // Single file: use existing single file logic
         const file = files[0];
         console.log(`🎯 DASHBOARD SINGLE FILE UPLOAD TRIGGERED:`, {
@@ -603,5 +587,5 @@ export function useFileUpload({ isOnboarding = false, mode = 'directory', onSucc
     }
   };
 
-  return { isLoading, fileInputRef, handleUploadClick, handleFileUpload };
+  return { isLoading, fileInputRef, handleFileUpload };
 }

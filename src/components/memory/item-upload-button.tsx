@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, Loader2, Upload } from 'lucide-react';
 import { useFileUpload } from '@/hooks/use-file-upload';
+import { triggerFileInput } from '@/services/upload/file-picker';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { FileInputAttributeMode } from '@/types/upload';
@@ -213,7 +214,7 @@ export function ItemUploadButton({
 }: ItemUploadButtonProps) {
   const [showUploadDialog, setShowUploadDialog] = useState(false);
 
-  const { isLoading, fileInputRef, handleUploadClick, handleFileUpload } = useFileUpload({
+  const { isLoading, fileInputRef, handleFileUpload } = useFileUpload({
     isOnboarding,
     mode,
     onSuccess: () => {
@@ -224,6 +225,12 @@ export function ItemUploadButton({
       onError?.(error);
     },
   });
+
+  const handleUploadClick = () => {
+    if (fileInputRef.current) {
+      triggerFileInput(fileInputRef.current, mode);
+    }
+  };
 
   const renderUploadButton = () => {
     if (variant === 'native') {
