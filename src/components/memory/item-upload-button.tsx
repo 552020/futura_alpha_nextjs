@@ -17,9 +17,6 @@ interface FileInputProps {
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-interface FileWithRelativePath extends File {
-  readonly webkitRelativePath: string;
-}
 
 // Individual button components
 
@@ -236,12 +233,16 @@ export function ItemUploadButton({
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleFileUpload(e);
+  };
+
   const renderUploadButton = () => {
     if (variant === 'native') {
       return <NativeFileInput onChange={handleFileChange} />;
     }
 
-    const commonProps = { onClick: handleUploadClick, isLoading: isUploading, buttonText };
+    const commonProps = { onClick: handleUploadClick, isLoading, buttonText };
 
     switch (variant) {
       case 'large-icon':
@@ -270,8 +271,6 @@ export function ItemUploadButton({
           ref={fileInputRef}
           onChange={handleFileChange}
           className="hidden"
-          multiple={mode === 'files' || mode === 'folder'}
-          {...(mode === 'folder' ? { webkitdirectory: 'true', mozdirectory: 'true', directory: 'true' } : {})}
           accept="image/*,video/*,audio/*"
         />
       )}

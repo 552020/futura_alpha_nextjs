@@ -4,19 +4,36 @@ This document outlines all API endpoints for the family file sharing application
 
 ## Overview
 
-### File Management
+### Memory Management (Primary System)
 
-- `POST /api/files/upload` - Upload a new file, text, or photo
-- `GET /api/files` - List all files owned by the authenticated user
-- `GET /api/files/[id]` - Download or view a specific file
-- `PATCH /api/files/[id]` - Update file metadata
-- `DELETE /api/files/[id]` - Delete a file
+- `GET /api/memories` - List all memories owned by the authenticated user
+- `POST /api/memories` - Create a new memory (legacy FormData upload)
+- `GET /api/memories/[id]` - Get a specific memory
+- `PATCH /api/memories/[id]` - Update memory metadata
+- `DELETE /api/memories/[id]` - Delete a memory
+- `GET /api/memories/shared` - Get memories shared with the current user
+- `POST /api/memories/[id]/share` - Share a memory
+- `GET /api/memories/[id]/share-link` - Get share link for a memory
+- `GET /api/memories/[id]/share-link/code` - Get share code for a memory
+- `GET /api/memories/[id]/assets` - Get memory assets
+- `GET /api/memories/[id]/download` - Download memory content
 
-### File Sharing
+### Upload System (413 Solution)
 
-- `POST /api/files/[id]/share` - Share a file with other users
-- `DELETE /api/files/[id]/share/[userId]` - Remove sharing for a specific user
-- `GET /api/shared` - Get files shared with the current user
+- `POST /api/upload/presign` - Get presigned URL for single file upload
+- `POST /api/upload/batch-presign` - Get presigned URLs for multiple files
+- `POST /api/upload/commit` - Commit single file to database after S3 upload
+- `POST /api/upload/batch-commit` - Commit multiple files to database after S3 upload
+- `POST /api/upload/intent` - Request upload storage configuration
+- `POST /api/upload/verify` - Verify upload completion
+- `POST /api/upload/complete` - Mark upload as complete
+- `POST /api/upload/grant` - Grant upload permissions
+- `POST /api/upload/request` - Request upload access
+
+### Folder Management
+
+- `POST /api/folders` - Create a new folder
+- `GET /api/galleries/folders` - List folders (via galleries API)
 
 ### Gallery Management
 
@@ -29,21 +46,30 @@ This document outlines all API endpoints for the family file sharing application
 - `POST /api/galleries/[id]/share` - Share a gallery
 - `DELETE /api/galleries/[id]/share` - Unshare a gallery
 
-### Memory Management
-
-- `GET /api/memories` - List all memories owned by the authenticated user
-- `POST /api/memories` - Create a new memory
-- `GET /api/memories/[id]` - Get a specific memory
-- `PATCH /api/memories/[id]` - Update memory metadata
-- `DELETE /api/memories/[id]` - Delete a memory
-- `POST /api/memories/upload/file` - Upload a single file memory
-- `POST /api/memories/upload/folder` - Upload multiple files as folder
-- `POST /api/memories/upload/onboarding` - Upload onboarding memories
-
 ### Storage & Sync Management
 
 - `PUT /api/storage/edges` - Upsert storage edge records
+- `GET /api/storage/edges` - Query storage edge records
 - `GET /api/storage/sync-status` - Get sync status and monitoring data
+
+### Authentication & User Management
+
+- `GET /api/auth/[...nextauth]` - NextAuth.js authentication endpoints
+- `POST /api/auth/link-ii` - Link Internet Identity
+- `GET /api/users` - List users
+- `GET /api/users/[id]` - Get specific user
+- `GET /api/ii/challenge` - Internet Identity challenge
+- `POST /api/ii/verify-nonce` - Verify Internet Identity nonce
+
+### S3 Integration
+
+- `POST /api/s3/presigned-url` - Generate S3 presigned URLs
+
+### Testing & Development
+
+- `GET /api/test/auth` - Test authentication
+- `GET /api/test/hello` - Test endpoint
+- `POST /api/tests/mailgun` - Test Mailgun integration
 
 ---
 
@@ -51,95 +77,106 @@ This document outlines all API endpoints for the family file sharing application
 
 All API routes require authentication unless specified otherwise. Authentication is handled via Next.js Auth.js session cookies.
 
-## File Management
+## Memory Management
 
-### Upload File
+### List Memories
 
-- **URL**: `POST /api/files/upload`
-- **Description**: Upload a new file, text, or photo
+- **URL**: `GET /api/memories`
+- **Description**: List all memories owned by the authenticated user
+- **Query Parameters**:
+  - `page`: (optional) Page number for pagination
+  - `limit`: (optional) Number of items per page
+  - `type`: (optional) Filter by memory type (image, video, document, note, audio)
+- **Response**:
+  ```json
+  {
+    "memories": [
+      {
+        "id": "uuid",
+        "type": "image",
+        "title": "Memory title",
+        "description": "Memory description",
+        "url": "https://storage-url",
+        "createdAt": "2023-03-15T12:34:56Z",
+        "parentFolderId": "folder-uuid",
+        "storageBackend": "s3"
+      }
+    ],
+    "hasMore": true
+  }
+  ```
+
+### Create Memory (Legacy)
+
+- **URL**: `POST /api/memories`
+- **Description**: Create a new memory with file upload (legacy FormData approach)
 - **Request Body**: `multipart/form-data`
   ```
   file: File
+  type: "image" | "video" | "document" | "note" | "audio"
+  caption: string (optional)
   ```
 - **Response**:
   ```json
   {
-    "type": "photo|file|text",
+    "success": true,
     "data": {
-      "id": "uuid",
-      "userId": "user-uuid",
+      "id": "memory-uuid",
+      "type": "image",
       "url": "https://storage-url",
-      "createdAt": "2023-03-15T12:34:56Z",
-      "isPublic": true,
-      "metadata": { ... }
+      "caption": "Memory caption"
     }
   }
   ```
 
-### Get File List
+### Get Memory
 
-- **URL**: `GET /api/files`
-- **Description**: List all files owned by the authenticated user
-- **Query Parameters**:
-  - `type`: (optional) Filter by file type (photo, text, file)
-  - `sort`: (optional) Sort order (recent, name, size)
-  - `limit`: (optional) Number of items to return
+- **URL**: `GET /api/memories/[id]`
+- **Description**: Get a specific memory
+- **URL Parameters**:
+  - `id`: Memory UUID
 - **Response**:
   ```json
   {
-    "photos": [
-      {
-        "id": "uuid",
-        "url": "https://storage-url",
-        "createdAt": "2023-03-15T12:34:56Z",
-        "isPublic": true,
-        "metadata": { ... }
-      }
-    ],
-    "files": [ ... ],
-    "texts": [ ... ]
+    "id": "uuid",
+    "type": "image",
+    "title": "Memory title",
+    "description": "Memory description",
+    "url": "https://storage-url",
+    "createdAt": "2023-03-15T12:34:56Z",
+    "parentFolderId": "folder-uuid",
+    "storageBackend": "s3"
   }
   ```
 
-### Download File
+### Update Memory
 
-- **URL**: `GET /api/files/[id]`
-- **Description**: Download or view a specific file
+- **URL**: `PATCH /api/memories/[id]`
+- **Description**: Update memory metadata
 - **URL Parameters**:
-  - `id`: File UUID
-- **Response**: Redirects to the file's storage URL
-
-### Update File
-
-- **URL**: `PATCH /api/files/[id]`
-- **Description**: Update file metadata
-- **URL Parameters**:
-  - `id`: File UUID
+  - `id`: Memory UUID
 - **Request Body**:
   ```json
   {
-    "caption": "New caption",
-    "isPublic": false,
-    "metadata": { ... }
+    "title": "New title",
+    "description": "New description"
   }
   ```
 - **Response**:
   ```json
   {
     "id": "uuid",
-    "url": "https://storage-url",
-    "caption": "New caption",
-    "isPublic": false,
-    "metadata": { ... }
+    "title": "New title",
+    "description": "New description"
   }
   ```
 
-### Delete File
+### Delete Memory
 
-- **URL**: `DELETE /api/files/[id]`
-- **Description**: Delete a file
+- **URL**: `DELETE /api/memories/[id]`
+- **Description**: Delete a memory
 - **URL Parameters**:
-  - `id`: File UUID
+  - `id`: Memory UUID
 - **Response**:
   ```json
   {
@@ -147,65 +184,156 @@ All API routes require authentication unless specified otherwise. Authentication
   }
   ```
 
-## File Sharing
+### Get Shared Memories
 
-### Share File
+- **URL**: `GET /api/memories/shared`
+- **Description**: Get memories shared with the current user
+- **Query Parameters**:
+  - `page`: (optional) Page number for pagination
+  - `limit`: (optional) Number of items per page
+  - `orderBy`: (optional) Order by "sharedAt" or "createdAt"
+- **Response**:
+  ```json
+  {
+    "images": [ ... ],
+    "documents": [ ... ],
+    "notes": [ ... ],
+    "videos": [ ... ],
+    "audio": [ ... ],
+    "hasMore": true,
+    "data": [ ... ],
+    "total": 10
+  }
+  ```
 
-- **URL**: `POST /api/files/[id]/share`
-- **Description**: Share a file with other users
-- **URL Parameters**:
-  - `id`: File UUID
+## Upload System (413 Solution)
+
+### Get Presigned URL (Single File)
+
+- **URL**: `POST /api/upload/presign`
+- **Description**: Get presigned URL for single file upload to S3
 - **Request Body**:
   ```json
   {
-    "userIds": ["user-uuid-1", "user-uuid-2"],
-    "accessLevel": "read"
+    "fileName": "example.jpg",
+    "fileType": "image/jpeg",
+    "fileSize": 1024000
   }
   ```
 - **Response**:
   ```json
   {
-    "success": true,
-    "shares": [
+    "signedUrl": "https://s3.amazonaws.com/...",
+    "s3Key": "user-id/example.jpg"
+  }
+  ```
+
+### Get Presigned URLs (Multiple Files)
+
+- **URL**: `POST /api/upload/batch-presign`
+- **Description**: Get presigned URLs for multiple files upload to S3
+- **Request Body**:
+  ```json
+  {
+    "files": [
       {
-        "id": "share-uuid",
-        "fileId": "file-uuid",
-        "userId": "user-uuid-1",
-        "sharedByUserId": "your-user-id",
-        "accessLevel": "read",
-        "createdAt": "2023-03-15T12:34:56Z"
+        "fileName": "example1.jpg",
+        "fileType": "image/jpeg",
+        "fileSize": 1024000
       },
-      { ... }
+      {
+        "fileName": "example2.jpg",
+        "fileType": "image/jpeg",
+        "fileSize": 2048000
+      }
+    ]
+  }
+  ```
+- **Response**:
+  ```json
+  {
+    "presignedUrls": [
+      {
+        "signedUrl": "https://s3.amazonaws.com/...",
+        "s3Key": "user-id/example1.jpg"
+      },
+      {
+        "signedUrl": "https://s3.amazonaws.com/...",
+        "s3Key": "user-id/example2.jpg"
+      }
     ]
   }
   ```
 
-### Remove File Share
+### Commit Single File
 
-- **URL**: `DELETE /api/files/[id]/share/[userId]`
-- **Description**: Remove sharing for a specific user
-- **URL Parameters**:
-  - `id`: File UUID
-  - `userId`: User UUID to remove sharing for
+- **URL**: `POST /api/upload/commit`
+- **Description**: Commit single file to database after S3 upload
+- **Request Body**:
+  ```json
+  {
+    "fileName": "example.jpg",
+    "fileType": "image/jpeg",
+    "fileSize": 1024000,
+    "s3Url": "https://bucket.s3.region.amazonaws.com/key",
+    "parentFolderId": "folder-uuid"
+  }
+  ```
 - **Response**:
   ```json
   {
-    "success": true
+    "data": {
+      "id": "memory-uuid"
+    },
+    "results": [
+      {
+        "memoryId": "memory-uuid",
+        "size": 1024000,
+        "checksum_sha256": null
+      }
+    ],
+    "userId": "user-uuid"
   }
   ```
 
-### List Shared Files
+### Commit Multiple Files
 
-- **URL**: `GET /api/shared`
-- **Description**: Get files shared with the current user
-- **Query Parameters**:
-  - `type`: (optional) Filter by file type
+- **URL**: `POST /api/upload/batch-commit`
+- **Description**: Commit multiple files to database after S3 upload
+- **Request Body**:
+  ```json
+  {
+    "files": [
+      {
+        "fileName": "example1.jpg",
+        "fileType": "image/jpeg",
+        "fileSize": 1024000,
+        "s3Url": "https://bucket.s3.region.amazonaws.com/key1"
+      },
+      {
+        "fileName": "example2.jpg",
+        "fileType": "image/jpeg",
+        "fileSize": 2048000,
+        "s3Url": "https://bucket.s3.region.amazonaws.com/key2"
+      }
+    ],
+    "parentFolderId": "folder-uuid"
+  }
+  ```
 - **Response**:
   ```json
   {
-    "photos": [ ... ],
-    "files": [ ... ],
-    "texts": [ ... ]
+    "results": [
+      {
+        "memoryId": "memory-uuid-1",
+        "size": 1024000,
+        "name": "example1.jpg",
+        "type": "image/jpeg",
+        "checksum_sha256": null
+      }
+    ],
+    "userId": "user-uuid",
+    "successfulUploads": 2
   }
   ```
 
@@ -341,53 +469,28 @@ All API routes require authentication unless specified otherwise. Authentication
   }
   ```
 
-## Memory Management
+## Folder Management
 
-### Upload File Memory
+### Create Folder
 
-- **URL**: `POST /api/memories/upload/file`
-- **Description**: Upload a single file memory
-- **Request Body**: `multipart/form-data`
-  ```
-  file: File
-  type: "image" | "video" | "document" | "audio"
-  caption: string (optional)
-  ```
-- **Response**:
+- **URL**: `POST /api/folders`
+- **Description**: Create a new folder
+- **Request Body**:
   ```json
   {
-    "success": true,
-    "data": {
-      "id": "memory-uuid",
-      "type": "image",
-      "url": "https://storage-url",
-      "caption": "Memory caption"
-    }
+    "folderName": "vacation_photos",
+    "parentFolderId": "parent-folder-uuid"
   }
   ```
-
-### Upload Folder
-
-- **URL**: `POST /api/memories/upload/folder`
-- **Description**: Upload multiple files as a folder
-- **Request Body**: `multipart/form-data`
-  ```
-  files: File[]
-  folderName: string
-  ```
 - **Response**:
   ```json
   {
-    "success": true,
-    "data": {
-      "folderName": "vacation_photos",
-      "memories": [
-        {
-          "id": "memory-uuid-1",
-          "type": "image",
-          "url": "https://storage-url-1"
-        }
-      ]
+    "folder": {
+      "id": "folder-uuid",
+      "ownerId": "user-uuid",
+      "name": "vacation_photos",
+      "parentFolderId": "parent-folder-uuid",
+      "createdAt": "2023-03-15T12:34:56Z"
     }
   }
   ```
@@ -512,3 +615,121 @@ Common HTTP status codes:
 - `idle` - No sync operation in progress
 - `migrating` - Currently syncing to ICP
 - `failed` - Sync operation failed
+
+---
+
+## API Route Status Summary
+
+### ✅ **IMPLEMENTED & ACTIVE**
+
+#### Memory Management
+
+- ✅ `GET /api/memories` - List memories with pagination
+- ✅ `POST /api/memories` - Create memory (legacy FormData)
+- ✅ `GET /api/memories/[id]` - Get specific memory
+- ✅ `PATCH /api/memories/[id]` - Update memory metadata
+- ✅ `DELETE /api/memories/[id]` - Delete memory
+- ✅ `GET /api/memories/shared` - Get shared memories
+- ✅ `POST /api/memories/[id]/share` - Share memory
+- ✅ `GET /api/memories/[id]/share-link` - Get share link
+- ✅ `GET /api/memories/[id]/share-link/code` - Get share code
+- ✅ `GET /api/memories/[id]/assets` - Get memory assets
+- ✅ `GET /api/memories/[id]/download` - Download memory
+
+#### Upload System (413 Solution)
+
+- ✅ `POST /api/upload/presign` - Single file presigned URL
+- ✅ `POST /api/upload/batch-presign` - Multiple files presigned URLs
+- ✅ `POST /api/upload/commit` - Single file commit
+- ✅ `POST /api/upload/batch-commit` - Multiple files commit
+- ✅ `POST /api/upload/intent` - Upload storage configuration
+- ✅ `POST /api/upload/verify` - Upload verification
+- ✅ `POST /api/upload/complete` - Upload completion
+- ✅ `POST /api/upload/grant` - Upload permissions
+- ✅ `POST /api/upload/request` - Upload access request
+
+#### Folder Management
+
+- ✅ `POST /api/folders` - Create folder
+
+#### Gallery Management
+
+- ✅ `GET /api/galleries` - List galleries
+- ✅ `POST /api/galleries` - Create gallery
+- ✅ `GET /api/galleries/[id]` - Get specific gallery
+- ✅ `PATCH /api/galleries/[id]` - Update gallery
+- ✅ `DELETE /api/galleries/[id]` - Delete gallery
+- ✅ `GET /api/galleries/shared` - Get shared galleries
+- ✅ `POST /api/galleries/[id]/share` - Share gallery
+- ✅ `DELETE /api/galleries/[id]/share` - Unshare gallery
+
+#### Storage & Sync Management
+
+- ✅ `PUT /api/storage/edges` - Upsert storage edge
+- ✅ `GET /api/storage/edges` - Query storage edges
+- ✅ `GET /api/storage/sync-status` - Get sync status
+
+#### Authentication & User Management
+
+- ✅ `GET /api/auth/[...nextauth]` - NextAuth.js endpoints
+- ✅ `POST /api/auth/link-ii` - Link Internet Identity
+- ✅ `GET /api/users` - List users
+- ✅ `GET /api/users/[id]` - Get specific user
+- ✅ `GET /api/ii/challenge` - Internet Identity challenge
+- ✅ `POST /api/ii/verify-nonce` - Verify Internet Identity
+
+#### S3 Integration
+
+- ✅ `POST /api/s3/presigned-url` - Generate S3 presigned URLs
+
+#### Testing & Development
+
+- ✅ `GET /api/test/auth` - Test authentication
+- ✅ `GET /api/test/hello` - Test endpoint
+- ✅ `POST /api/tests/mailgun` - Test Mailgun
+
+### ❌ **NOT IMPLEMENTED (Legacy Documentation)**
+
+#### File Management (Deprecated)
+
+- ❌ `POST /api/files/upload` - **DEPRECATED** - Use `/api/upload/presign` + `/api/upload/commit`
+- ❌ `GET /api/files` - **DEPRECATED** - Use `/api/memories`
+- ❌ `GET /api/files/[id]` - **DEPRECATED** - Use `/api/memories/[id]`
+- ❌ `PATCH /api/files/[id]` - **DEPRECATED** - Use `/api/memories/[id]`
+- ❌ `DELETE /api/files/[id]` - **DEPRECATED** - Use `/api/memories/[id]`
+
+#### File Sharing (Deprecated)
+
+- ❌ `POST /api/files/[id]/share` - **DEPRECATED** - Use `/api/memories/[id]/share`
+- ❌ `DELETE /api/files/[id]/share/[userId]` - **DEPRECATED** - Use memory sharing
+- ❌ `GET /api/shared` - **DEPRECATED** - Use `/api/memories/shared`
+
+#### Memory Upload (Deprecated)
+
+- ❌ `POST /api/memories/upload/file` - **DEPRECATED** - Use 413 solution
+- ❌ `POST /api/memories/upload/folder` - **DEPRECATED** - Use 413 solution
+- ❌ `POST /api/memories/upload/onboarding` - **DEPRECATED** - Use 413 solution
+
+### 🎯 **KEY ARCHITECTURAL CHANGES**
+
+1. **413 Solution Implementation**: All file uploads now use the 3-step process (presign → upload → commit) to avoid Vercel's request body limits.
+
+2. **Memory-Centric Architecture**: The system has moved from a generic "files" concept to a "memories" concept with rich metadata and relationships.
+
+3. **Multi-Backend Support**: The system supports multiple storage backends (S3, Vercel Blob, ICP) with automatic routing based on user preferences.
+
+4. **Folder Integration**: Folders are now integrated with the memory system, allowing hierarchical organization.
+
+5. **Gallery System**: A separate gallery system allows users to create curated collections of memories.
+
+6. **Storage Edge Tracking**: Comprehensive tracking of where data is stored across different backends for sync and monitoring purposes.
+
+### 📊 **USAGE RECOMMENDATIONS**
+
+- **For new uploads**: Use the 413 solution endpoints (`/api/upload/presign`, `/api/upload/commit`)
+- **For file management**: Use memory endpoints (`/api/memories/*`)
+- **For sharing**: Use memory sharing endpoints (`/api/memories/[id]/share`)
+- **For organization**: Use folders (`/api/folders`) and galleries (`/api/galleries`)
+- **For monitoring**: Use storage endpoints (`/api/storage/*`)
+
+The API has evolved significantly to solve the 413 problem while providing a more robust and scalable architecture for file management and sharing.
