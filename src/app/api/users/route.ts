@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
-import { db } from "@/db/db";
-import { temporaryUsers, relationship, familyRelationship } from "@/db/schema";
-import { createTemporaryUserBase } from "../utils";
-import { eq } from "drizzle-orm";
+import { NextResponse } from 'next/server';
+import { db } from '@/db/db';
+import { temporaryUsers, relationship, familyRelationship } from '@/db/schema';
+import { createTemporaryUserBase } from '../utils';
+import { eq } from 'drizzle-orm';
 
 // POST /api/users
 // We use this endpoint to create only temporary users, normal users will be created by the sign-in success callback
@@ -19,11 +19,11 @@ export async function POST(request: Request) {
     } = body;
 
     if (!name || !email) {
-      return NextResponse.json({ error: "Name and email are required" }, { status: 400 });
+      return NextResponse.json({ error: 'Name and email are required' }, { status: 400 });
     }
 
     // Create temporary user and allUsers entry using the utility function
-    const { temporaryUser, allUser } = await createTemporaryUserBase("invitee");
+    const { temporaryUser, allUser } = await createTemporaryUserBase('invitee');
 
     // Update the temporary user with additional information
     await db
@@ -47,17 +47,17 @@ export async function POST(request: Request) {
           userId: invitedByAllUserId,
           relatedUserId: allUser.id,
           type: relationshipData.type,
-          status: "pending",
+          status: 'pending',
           note: relationshipData.note,
         })
         .returning();
 
       // If it's a family relationship, create the family relationship entry
-      if (relationshipData.type === "family" && relationshipData.familyRole) {
+      if (relationshipData.type === 'family' && relationshipData.familyRole) {
         await db.insert(familyRelationship).values({
           relationshipId: newRelationship.id,
           familyRole: relationshipData.familyRole,
-          relationshipClarity: "fuzzy", // Default to fuzzy as we don't have this info yet
+          relationshipClarity: 'fuzzy', // Default to fuzzy as we don't have this info yet
         });
       }
     }
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
       allUser,
     });
   } catch (error) {
-    console.error("Error creating user:", error);
-    return NextResponse.json({ error: "Failed to create user" }, { status: 500 });
+    console.error('Error creating user:', error);
+    return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
   }
 }

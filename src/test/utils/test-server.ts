@@ -1,4 +1,4 @@
-import { createServer, IncomingMessage, ServerResponse } from "http";
+import { createServer, IncomingMessage, ServerResponse } from 'http';
 
 // ============================================================================
 // REUSABLE TEST SERVER UTILITY
@@ -60,22 +60,22 @@ export class TestServerBuilder {
       if (url && this.endpoints.has(url)) {
         const endpoint = this.endpoints.get(url)!;
 
-        if (method === "GET" && endpoint.GET) {
+        if (method === 'GET' && endpoint.GET) {
           const result = endpoint.GET();
-          const headers = { "Content-Type": "application/json", ...result.headers };
+          const headers = { 'Content-Type': 'application/json', ...result.headers };
           res.writeHead(result.status, headers);
           res.end(JSON.stringify(result.body));
           return;
         }
 
-        if (method === "POST" && endpoint.POST) {
+        if (method === 'POST' && endpoint.POST) {
           // Parse request body
-          let body = "";
-          req.on("data", (chunk: Buffer) => {
+          let body = '';
+          req.on('data', (chunk: Buffer) => {
             body += chunk.toString();
           });
 
-          req.on("end", () => {
+          req.on('end', () => {
             let parsedBody: Record<string, unknown> = {};
             try {
               if (body) {
@@ -87,21 +87,21 @@ export class TestServerBuilder {
 
             console.log(`🔍 Request body:`, parsedBody);
             const result = endpoint.POST!(parsedBody);
-            const headers = { "Content-Type": "application/json", ...result.headers };
+            const headers = { 'Content-Type': 'application/json', ...result.headers };
             res.writeHead(result.status, headers);
             res.end(JSON.stringify(result.body));
           });
           return;
         }
 
-        if (method === "PUT" && endpoint.PUT) {
+        if (method === 'PUT' && endpoint.PUT) {
           // Parse request body (similar to POST)
-          let body = "";
-          req.on("data", (chunk: Buffer) => {
+          let body = '';
+          req.on('data', (chunk: Buffer) => {
             body += chunk.toString();
           });
 
-          req.on("end", () => {
+          req.on('end', () => {
             let parsedBody: Record<string, unknown> = {};
             try {
               if (body) {
@@ -112,16 +112,16 @@ export class TestServerBuilder {
             }
 
             const result = endpoint.PUT!(parsedBody);
-            const headers = { "Content-Type": "application/json", ...result.headers };
+            const headers = { 'Content-Type': 'application/json', ...result.headers };
             res.writeHead(result.status, headers);
             res.end(JSON.stringify(result.body));
           });
           return;
         }
 
-        if (method === "DELETE" && endpoint.DELETE) {
+        if (method === 'DELETE' && endpoint.DELETE) {
           const result = endpoint.DELETE();
-          const headers = { "Content-Type": "application/json", ...result.headers };
+          const headers = { 'Content-Type': 'application/json', ...result.headers };
           res.writeHead(result.status, headers);
           res.end(JSON.stringify(result.body));
           return;
@@ -129,12 +129,12 @@ export class TestServerBuilder {
       }
 
       // Default 404
-      res.writeHead(404, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "Not found" }));
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Not found' }));
     };
 
     this.server = createServer(app);
-    await new Promise<void>((resolve) => {
+    await new Promise<void>(resolve => {
       this.server!.listen(0, () => resolve());
     });
 
@@ -151,7 +151,7 @@ export class TestServerBuilder {
       },
       close: async () => {
         if (this.server) {
-          await new Promise<void>((resolve) => {
+          await new Promise<void>(resolve => {
             this.server!.close(() => resolve());
           });
         }
@@ -179,7 +179,7 @@ export const endpointTemplates = {
     POST: (body: Record<string, unknown>) => ({
       status: 200,
       body: {
-        message: "Echo response",
+        message: 'Echo response',
         received: body,
         timestamp: new Date().toISOString(),
       },
@@ -187,10 +187,10 @@ export const endpointTemplates = {
   }),
 
   // Health check endpoint
-  healthCheck: (status = "healthy") => ({
+  healthCheck: (status = 'healthy') => ({
     GET: () => ({
       status: 200,
-      body: { status, uptime: "2h 15m" },
+      body: { status, uptime: '2h 15m' },
     }),
   }),
 
@@ -198,7 +198,7 @@ export const endpointTemplates = {
   errorSimulator: (statusCode: number, errorMessage: string) => ({
     GET: () => ({
       status: statusCode,
-      body: { error: errorMessage, code: "DEMO_ERROR" },
+      body: { error: errorMessage, code: 'DEMO_ERROR' },
     }),
   }),
 
@@ -212,7 +212,7 @@ export const endpointTemplates = {
       if (!validation.isValid) {
         return {
           status: 400,
-          body: { error: validation.error || "Validation failed" },
+          body: { error: validation.error || 'Validation failed' },
         };
       }
       return successResponse(body);
@@ -230,10 +230,10 @@ export async function createCommonTestServer() {
 
   // Add some common endpoints
   builder
-    .addEndpoint("/api/hello", endpointTemplates.simpleGet("Hello, World!"))
-    .addEndpoint("/api/echo", endpointTemplates.echo())
-    .addEndpoint("/api/status", endpointTemplates.healthCheck())
-    .addEndpoint("/api/error-demo", endpointTemplates.errorSimulator(500, "Internal server error"));
+    .addEndpoint('/api/hello', endpointTemplates.simpleGet('Hello, World!'))
+    .addEndpoint('/api/echo', endpointTemplates.echo())
+    .addEndpoint('/api/status', endpointTemplates.healthCheck())
+    .addEndpoint('/api/error-demo', endpointTemplates.errorSimulator(500, 'Internal server error'));
 
   return builder.build();
 }
@@ -243,28 +243,26 @@ export async function createICPServer() {
   const builder = new TestServerBuilder();
 
   // Add ICP-specific endpoints
-  builder.addEndpoint("/api/auth/link-ii", {
+  builder.addEndpoint('/api/auth/link-ii', {
     POST: (body: Record<string, unknown>) => {
       const nonce = body.nonce;
-      if (!nonce || typeof nonce !== "string" || nonce.length < 10) {
-        return { status: 400, body: { error: "Invalid nonce" } };
+      if (!nonce || typeof nonce !== 'string' || nonce.length < 10) {
+        return { status: 400, body: { error: 'Invalid nonce' } };
       }
 
-      if (nonce === "valid-nonce-123") {
+      if (nonce === 'valid-nonce-123') {
         return {
           status: 200,
           body: {
             success: true,
-            principal: "ffso4-hbyyy-se2mz-l7nlp-fpqbb-yn4rf-ilnen-yb3ng-izeoj-rxexn-6qe",
+            principal: 'ffso4-hbyyy-se2mz-l7nlp-fpqbb-yn4rf-ilnen-yb3ng-izeoj-rxexn-6qe',
           },
         };
       }
 
-      return { status: 400, body: { error: "Nonce verification failed" } };
+      return { status: 400, body: { error: 'Nonce verification failed' } };
     },
   });
 
   return builder.build();
 }
-
-

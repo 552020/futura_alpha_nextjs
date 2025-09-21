@@ -14,13 +14,13 @@
  *   1 - One or more constraints missing
  */
 
-import { drizzle } from "drizzle-orm/neon-http";
-import { neon } from "@neondatabase/serverless";
-import { sql } from "drizzle-orm";
-import { config } from "dotenv";
+import { drizzle } from 'drizzle-orm/neon-http';
+import { neon } from '@neondatabase/serverless';
+import { sql } from 'drizzle-orm';
+import { config } from 'dotenv';
 
 // Load environment variables
-config({ path: ".env.local" });
+config({ path: '.env.local' });
 
 interface ConstraintCheck {
   name: string;
@@ -30,9 +30,9 @@ interface ConstraintCheck {
 
 const REQUIRED_CONSTRAINTS: ConstraintCheck[] = [
   {
-    name: "check_storage_backends",
-    table: "user",
-    description: "Ensures at least one storage backend is enabled for each user",
+    name: 'check_storage_backends',
+    table: 'user',
+    description: 'Ensures at least one storage backend is enabled for each user',
   },
 ];
 
@@ -40,8 +40,8 @@ async function verifyConstraints() {
   const sqlClient = neon(process.env.DATABASE_URL_UNPOOLED!);
   const db = drizzle(sqlClient);
 
-  console.log("🔍 Verifying database constraints...");
-  console.log("=====================================");
+  console.log('🔍 Verifying database constraints...');
+  console.log('=====================================');
 
   let allConstraintsPresent = true;
 
@@ -69,15 +69,15 @@ async function verifyConstraints() {
     }
   }
 
-  console.log("\n" + "=".repeat(40));
+  console.log('\n' + '='.repeat(40));
 
   if (allConstraintsPresent) {
-    console.log("✅ All required constraints are present!");
-    console.log("Database integrity verified.");
+    console.log('✅ All required constraints are present!');
+    console.log('Database integrity verified.');
     return 0;
   } else {
-    console.log("❌ One or more required constraints are missing!");
-    console.log("Run the appropriate migration scripts to add missing constraints.");
+    console.log('❌ One or more required constraints are missing!');
+    console.log('Run the appropriate migration scripts to add missing constraints.');
     return 1;
   }
 }
@@ -85,16 +85,13 @@ async function verifyConstraints() {
 // Run the verification
 if (require.main === module) {
   verifyConstraints()
-    .then((exitCode) => {
+    .then(exitCode => {
       process.exit(exitCode);
     })
-    .catch((error) => {
-      console.error("❌ Constraint verification failed:", error);
+    .catch(error => {
+      console.error('❌ Constraint verification failed:', error);
       process.exit(1);
     });
 }
 
 export { verifyConstraints, REQUIRED_CONSTRAINTS };
-
-
-

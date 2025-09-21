@@ -1,15 +1,41 @@
-"use client";
+'use client';
 
-import { useEffect, useState, useCallback, use } from "react";
-import { MemoryGrid } from "@/components/memory/memory-grid";
-import { Loader2 } from "lucide-react";
-import { useInView } from "react-intersection-observer";
-import { useAuthGuard } from "@/utils/authentication";
-import { normalizeMemories } from "@/utils/normalizeMemories";
-import { Memory } from "@/types/memory";
-import { useRouter } from "next/navigation";
-import { useToast } from "@/hooks/use-toast";
-import RequireAuth from "@/components/auth/require-auth";
+/**
+ * SHARED MEMORIES PAGE - STUB IMPLEMENTATION
+ *
+ * PURPOSE:
+ * This page shows memories that have been shared WITH the current user.
+ * It's organized by SHARER (who shared with you) for easy browsing.
+ *
+ * STRUCTURE:
+ * - Groups memories by the person who shared them
+ * - Shows sharer's name and avatar
+ * - Displays count of memories shared by each person
+ * - Memories within each group are sorted by creation date (newest first)
+ *
+ * NOTE: This is a stub implementation. The actual functionality needs to be
+ * properly tested and refined. The API integration is in place but may need
+ * adjustments based on real usage patterns.
+ */
+
+import { useEffect, useState, useCallback, use, useMemo } from 'react';
+import { MemoryGrid } from '@/components/memory/memory-grid';
+import { Loader2 } from 'lucide-react';
+import { useInView } from 'react-intersection-observer';
+import { useAuthGuard } from '@/utils/authentication';
+// Removed normalizeMemories import - no longer needed with unified API
+import { Memory } from '@/types/memory';
+import { type DashboardItem } from '@/services/memories';
+
+// Extended type for shared memories that includes additional properties from the API
+type SharedMemory = Memory & {
+  sharedWithCount?: number;
+  sharedBy?: { id: string; name: string };
+  status: 'private' | 'shared' | 'public';
+};
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
+import RequireAuth from '@/components/auth/require-auth';
 
 export default function SharedMemoriesPage({ params }: { params: Promise<{ lang: string }> }) {
   // Unwrap params using React.use()
@@ -18,13 +44,40 @@ export default function SharedMemoriesPage({ params }: { params: Promise<{ lang:
   const { isAuthorized, isTemporaryUser, userId, isLoading } = useAuthGuard();
   const router = useRouter();
   const { toast } = useToast();
-  const [memories, setMemories] = useState<
-    (Memory & { status: "private" | "shared" | "public"; sharedWithCount?: number; sharedBy?: string })[]
-  >([]);
+  const [memories, setMemories] = useState<SharedMemory[]>([]);
   const [isLoadingMemories, setIsLoadingMemories] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const { ref } = useInView();
+
+  // Group memories by sharer for better organization
+  const memoriesBySharer = useMemo(() => {
+    const grouped = memories.reduce(
+      (acc, memory) => {
+        const sharerId = memory.sharedBy?.id || 'unknown';
+        const sharerName = memory.sharedBy?.name || 'Unknown';
+
+        if (!acc[sharerId]) {
+          acc[sharerId] = {
+            id: sharerId,
+            name: sharerName,
+            memories: [],
+          };
+        }
+        acc[sharerId].memories.push(memory);
+        return acc;
+      },
+      {} as Record<string, { id: string; name: string; memories: typeof memories }>
+    );
+
+    // Sort sharers by name, then sort memories within each group by creation date
+    return Object.values(grouped)
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map(sharer => ({
+        ...sharer,
+        memories: sharer.memories.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+      }));
+  }, [memories]);
 
   // Log route parameters for debugging
   // console.log("Rendering SharedMemoriesPage", { lang, isAuthorized, userId });
@@ -40,46 +93,40 @@ export default function SharedMemoriesPage({ params }: { params: Promise<{ lang:
 
       const response = await fetch(`/api/memories/shared?page=${currentPage}`);
       if (!response.ok) {
-        throw new Error("Failed to fetch shared memories");
+        throw new Error('Failed to fetch shared memories');
       }
 
       const data = await response.json();
       // console.log("✅ FETCH SHARED MEMORIES - Success:", {
-      //   imagesCount: data.images.length,
-      //   documentsCount: data.documents.length,
-      //   notesCount: data.notes.length,
+      //   memoriesCount: data.data.length,
       //   hasMore: data.hasMore,
       //   timestamp,
       // });
 
-      const normalizedMemories = normalizeMemories({
-        images: data.images,
-        documents: data.documents,
-        notes: data.notes,
-        videos: data.videos || [],
-      }).map((memory) => ({
+      // Use new unified format - memories already have status and sharedWithCount from API
+      const sharedMemories: SharedMemory[] = data.data.map((memory: SharedMemory) => ({
         ...memory,
-        status: "shared" as const,
-        sharedWithCount: 1, // Since this is the shared memories page, each memory is shared with the current user
-        sharedBy: memory.ownerName || "Unknown", // Add the sharer's name
+        status: 'shared' as const, // Override to "shared" since these are shared memories
+        sharedWithCount: memory.sharedWithCount || 1,
+        sharedBy: memory.sharedBy || { id: 'unknown', name: 'Unknown' }, // Add the sharer's info
       }));
 
-      setMemories((prev) => {
-        if (currentPage === 1) return normalizedMemories;
-        return [...prev, ...normalizedMemories];
+      setMemories(prev => {
+        if (currentPage === 1) return sharedMemories;
+        return [...prev, ...sharedMemories];
       });
       setHasMore(data.hasMore);
     } catch (error) {
-      console.error("❌ FETCH SHARED MEMORIES ERROR:", {
+      console.error('❌ FETCH SHARED MEMORIES ERROR:', {
         error,
-        message: error instanceof Error ? error.message : "Unknown error",
+        message: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
         timestamp,
       });
       toast({
-        title: "Error",
-        description: "Failed to load shared memories. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to load shared memories. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setIsLoadingMemories(false);
@@ -98,51 +145,51 @@ export default function SharedMemoriesPage({ params }: { params: Promise<{ lang:
     const handleScroll = () => {
       if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 100) {
         if (!isLoadingMemories && hasMore) {
-          setCurrentPage((prev) => prev + 1);
+          setCurrentPage(prev => prev + 1);
         }
       }
     };
 
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, [isLoadingMemories, hasMore]);
 
   const handleDelete = async (id: string) => {
     try {
       // Check if this is a folder item
-      if (id.startsWith("folder-")) {
-        const folderName = id.replace("folder-", "");
+      if (id.startsWith('folder-')) {
+        const folderName = id.replace('folder-', '');
         const response = await fetch(`/api/memories?folder=${encodeURIComponent(folderName)}`, {
-          method: "DELETE",
+          method: 'DELETE',
         });
 
-        if (!response.ok) throw new Error("Failed to delete folder");
+        if (!response.ok) throw new Error('Failed to delete folder');
 
-        setMemories((prev) => prev.filter((memory) => memory.id !== id));
+        setMemories(prev => prev.filter(memory => memory.id !== id));
         toast({
-          title: "Success",
+          title: 'Success',
           description: `Folder "${folderName}" and all its contents deleted successfully.`,
         });
       } else {
         // Handle individual memory deletion
         const response = await fetch(`/api/memories/${id}`, {
-          method: "DELETE",
+          method: 'DELETE',
         });
 
-        if (!response.ok) throw new Error("Failed to delete memory");
+        if (!response.ok) throw new Error('Failed to delete memory');
 
-        setMemories((prev) => prev.filter((memory) => memory.id !== id));
+        setMemories(prev => prev.filter(memory => memory.id !== id));
         toast({
-          title: "Success",
-          description: "Memory deleted successfully.",
+          title: 'Success',
+          description: 'Memory deleted successfully.',
         });
       }
     } catch (error) {
-      console.error("Error deleting memory:", error);
+      console.error('Error deleting memory:', error);
       toast({
-        title: "Error",
-        description: "Failed to delete memory. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to delete memory. Please try again.',
+        variant: 'destructive',
       });
     }
   };
@@ -152,7 +199,7 @@ export default function SharedMemoriesPage({ params }: { params: Promise<{ lang:
     fetchMemories();
   };
 
-  const handleMemoryClick = (memory: Memory) => {
+  const handleMemoryClick = (memory: Memory | DashboardItem) => {
     router.push(`/${lang}/shared/${memory.id}`);
   };
 
@@ -208,7 +255,29 @@ export default function SharedMemoriesPage({ params }: { params: Promise<{ lang:
           </p>
         </div>
       ) : (
-        <MemoryGrid memories={memories} onDelete={handleDelete} onShare={handleShare} onClick={handleMemoryClick} />
+        <div className="space-y-8">
+          {memoriesBySharer.map(sharer => (
+            <div key={sharer.id} className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium">
+                  {sharer.name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold">{sharer.name}</h2>
+                  <p className="text-sm text-muted-foreground">
+                    {sharer.memories.length} {sharer.memories.length === 1 ? 'memory' : 'memories'} shared
+                  </p>
+                </div>
+              </div>
+              <MemoryGrid
+                memories={sharer.memories}
+                onDelete={handleDelete}
+                onShare={handleShare}
+                onClick={handleMemoryClick}
+              />
+            </div>
+          ))}
+        </div>
       )}
 
       {/* Loading indicator */}

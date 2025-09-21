@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { StorageStatusBadge, mockStorageStatuses } from "@/components/common/storage-status-badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StorageStatusBadge, mockStorageStatuses } from '@/components/common/storage-status-badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function StorageBadgesDemoPage() {
   return (

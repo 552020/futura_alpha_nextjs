@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useEffect } from "react";
+import { useEffect } from 'react';
 
 interface TawkChatProps {
   enabled?: boolean;
@@ -19,7 +19,7 @@ export function TawkChat({ enabled = true }: TawkChatProps) {
     if (!enabled) return;
 
     // Check if Tawk.to is already loaded
-    if (typeof window !== "undefined" && window.Tawk_API) {
+    if (typeof window !== 'undefined' && window.Tawk_API) {
       return;
     }
 
@@ -27,14 +27,14 @@ export function TawkChat({ enabled = true }: TawkChatProps) {
     const Tawk_API = window.Tawk_API || {};
     const Tawk_LoadStart = new Date();
 
-    const script = document.createElement("script");
+    const script = document.createElement('script');
     script.async = true;
-    script.src = "https://embed.tawk.to/68aa517a34f81b192743e669/1j3ckshvj";
-    script.charset = "UTF-8";
-    script.setAttribute("crossorigin", "*");
+    script.src = 'https://embed.tawk.to/68aa517a34f81b192743e669/1j3ckshvj';
+    script.charset = 'UTF-8';
+    script.setAttribute('crossorigin', '*');
 
     // Insert the script
-    const firstScript = document.getElementsByTagName("script")[0];
+    const firstScript = document.getElementsByTagName('script')[0];
     firstScript.parentNode?.insertBefore(script, firstScript);
 
     // Set up Tawk_API

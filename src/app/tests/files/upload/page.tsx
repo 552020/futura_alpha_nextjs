@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { useSession, signIn } from "next-auth/react";
-import { Button } from "@/components/ui/button";
-import Image from "next/image";
+import { useState, useEffect } from 'react';
+import { useSession, signIn } from 'next-auth/react';
+import { Button } from '@/components/ui/button';
+import Image from 'next/image';
 
 interface UploadResponse {
   id: string;
@@ -25,23 +25,23 @@ export default function TestUpload() {
   // Log the response when it changes
   useEffect(() => {
     if (uploadedFile) {
-      console.log("Upload response:", uploadedFile);
+      console.log('Upload response:', uploadedFile);
 
       try {
         // Check if we need to force image display based on URL or filename
-        const url = uploadedFile.url?.toLowerCase() || "";
-        const filename = uploadedFile.filename?.toLowerCase() || "";
+        const url = uploadedFile.url?.toLowerCase() || '';
+        const filename = uploadedFile.filename?.toLowerCase() || '';
 
         // Force image display if URL or filename has image extensions
         if (url.match(/\.(jpg|jpeg|png|gif|webp)($|\?)/) || filename.match(/\.(jpg|jpeg|png|gif|webp)$/)) {
-          console.log("Forcing image display based on URL or filename pattern");
+          console.log('Forcing image display based on URL or filename pattern');
           setForceShowAsImage(true);
 
           // Also set a detected type for display purposes
-          let extension = "jpg";
-          if (filename.endsWith(".png")) extension = "png";
-          else if (filename.endsWith(".gif")) extension = "gif";
-          else if (filename.endsWith(".webp")) extension = "webp";
+          let extension = 'jpg';
+          if (filename.endsWith('.png')) extension = 'png';
+          else if (filename.endsWith('.gif')) extension = 'gif';
+          else if (filename.endsWith('.webp')) extension = 'webp';
 
           setDetectedType(`image/${extension}`);
         } else {
@@ -49,28 +49,28 @@ export default function TestUpload() {
         }
 
         // Still perform standard detection for display purposes
-        if (!uploadedFile.mimeType || uploadedFile.mimeType === "unknown type") {
+        if (!uploadedFile.mimeType || uploadedFile.mimeType === 'unknown type') {
           let extension = null;
 
           if (uploadedFile.filename) {
-            const parts = uploadedFile.filename.split(".");
+            const parts = uploadedFile.filename.split('.');
             if (parts.length > 1) {
               extension = parts[parts.length - 1].toLowerCase();
             }
           }
 
-          let detectedMimeType = "application/octet-stream";
+          let detectedMimeType = 'application/octet-stream';
 
-          if (extension === "jpg" || extension === "jpeg") detectedMimeType = "image/jpeg";
-          else if (extension === "png") detectedMimeType = "image/png";
-          else if (extension === "gif") detectedMimeType = "image/gif";
-          else if (extension === "pdf") detectedMimeType = "application/pdf";
+          if (extension === 'jpg' || extension === 'jpeg') detectedMimeType = 'image/jpeg';
+          else if (extension === 'png') detectedMimeType = 'image/png';
+          else if (extension === 'gif') detectedMimeType = 'image/gif';
+          else if (extension === 'pdf') detectedMimeType = 'application/pdf';
 
-          console.log("Auto-detected mime type:", detectedMimeType, "from extension:", extension);
+          console.log('Auto-detected mime type:', detectedMimeType, 'from extension:', extension);
           setDetectedType(detectedMimeType);
         }
       } catch (err) {
-        console.error("Error detecting mime type:", err);
+        console.error('Error detecting mime type:', err);
       }
     }
   }, [uploadedFile]);
@@ -79,7 +79,7 @@ export default function TestUpload() {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
       setFile(selectedFile);
-      console.log("Selected file:", selectedFile.type, selectedFile.name);
+      console.log('Selected file:', selectedFile.type, selectedFile.name);
       setError(null);
     }
   };
@@ -88,7 +88,7 @@ export default function TestUpload() {
     e.preventDefault();
 
     if (!file) {
-      setError("Please select a file to upload");
+      setError('Please select a file to upload');
       return;
     }
 
@@ -99,10 +99,10 @@ export default function TestUpload() {
 
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append('file', file);
 
-      const response = await fetch("/api/files/upload", {
-        method: "POST",
+      const response = await fetch('/api/files/upload', {
+        method: 'POST',
         body: formData,
       });
 
@@ -113,15 +113,15 @@ export default function TestUpload() {
       const data = await response.json();
       setUploadedFile(data);
     } catch (err) {
-      console.error("Error uploading file:", err);
-      setError(err instanceof Error ? err.message : "Failed to upload file");
+      console.error('Error uploading file:', err);
+      setError(err instanceof Error ? err.message : 'Failed to upload file');
     } finally {
       setUploading(false);
     }
   };
 
   // If not authenticated, show login button
-  if (status === "unauthenticated") {
+  if (status === 'unauthenticated') {
     return (
       <div className="p-8 max-w-xl mx-auto text-center">
         <h1 className="text-2xl font-bold mb-6">Test File Upload</h1>
@@ -150,7 +150,7 @@ export default function TestUpload() {
         </div>
 
         <Button type="submit" disabled={uploading || !file}>
-          {uploading ? "Uploading..." : "Upload File"}
+          {uploading ? 'Uploading...' : 'Upload File'}
         </Button>
       </form>
 
@@ -161,8 +161,8 @@ export default function TestUpload() {
           <h2 className="text-lg font-semibold mb-4">File Uploaded!</h2>
 
           <div className="mb-4">
-            {uploadedFile.mimeType?.startsWith("image/") ||
-            detectedType?.startsWith("image/") ||
+            {uploadedFile.mimeType?.startsWith('image/') ||
+            detectedType?.startsWith('image/') ||
             forceShowAsImage ||
             uploadedFile.filename?.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
               <div className="w-full h-48 flex items-center justify-center bg-slate-100 rounded overflow-hidden mb-2">
@@ -195,7 +195,7 @@ export default function TestUpload() {
 
             <p className="font-medium">{uploadedFile.filename}</p>
             <p className="text-sm text-gray-500">
-              {uploadedFile.size} • {uploadedFile.mimeType || detectedType || "unknown type"}
+              {uploadedFile.size} • {uploadedFile.mimeType || detectedType || 'unknown type'}
               {!uploadedFile.mimeType && detectedType && (
                 <span className="text-xs text-orange-600"> (auto-detected)</span>
               )}

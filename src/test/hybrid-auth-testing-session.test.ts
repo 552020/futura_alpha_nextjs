@@ -1,21 +1,21 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import request from "supertest";
-import { testDb } from "@/db/test-db";
-import { users, allUsers } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import request from 'supertest';
+import { testDb } from '@/db/test-db';
+import { users, allUsers } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import {
   generateGoogleSessionCookie,
   generateIISessionCookie,
   generateActiveIISessionCookie,
   type TestUserSession,
-} from "./utils/session-generator";
+} from './utils/session-generator';
 
 // 🎯 HYBRID AUTHENTICATION TESTING WITH SESSION COOKIES
 // This uses proper NextAuth session cookies that the auth() function will accept
 
-describe("Hybrid Authentication Testing - Session Cookies", () => {
+describe('Hybrid Authentication Testing - Session Cookies', () => {
   // Point Supertest directly at your running dev server
-  const baseURL = "http://localhost:3000";
+  const baseURL = 'http://localhost:3000';
 
   // Store test user IDs for cleanup
   let testUser1Id: string;
@@ -39,48 +39,48 @@ This approach works WITH NextAuth's session system!
       const [testUser1] = await testDb
         .insert(users)
         .values({
-          email: "test-session-1@example.com",
-          name: "Test Session User 1",
-          username: "testsession1",
-          role: "user",
-          plan: "free",
+          email: 'test-session-1@example.com',
+          name: 'Test Session User 1',
+          username: 'testsession1',
+          role: 'user',
+          plan: 'free',
         })
         .returning();
 
       const [testUser2] = await testDb
         .insert(users)
         .values({
-          email: "test-session-2@example.com",
-          name: "Test Session User 2",
-          username: "testsession2",
-          role: "user",
-          plan: "free",
+          email: 'test-session-2@example.com',
+          name: 'Test Session User 2',
+          username: 'testsession2',
+          role: 'user',
+          plan: 'free',
         })
         .returning();
 
       const [testUser3] = await testDb
         .insert(users)
         .values({
-          email: "test-session-3@example.com",
-          name: "Test Session User 3",
-          username: "testsession3",
-          role: "admin",
-          plan: "premium",
+          email: 'test-session-3@example.com',
+          name: 'Test Session User 3',
+          username: 'testsession3',
+          role: 'admin',
+          plan: 'premium',
         })
         .returning();
 
       // Create allUsers records
       await Promise.all([
         testDb.insert(allUsers).values({
-          type: "user",
+          type: 'user',
           userId: testUser1.id,
         }),
         testDb.insert(allUsers).values({
-          type: "user",
+          type: 'user',
           userId: testUser2.id,
         }),
         testDb.insert(allUsers).values({
-          type: "user",
+          type: 'user',
           userId: testUser3.id,
         }),
       ]);
@@ -99,7 +99,7 @@ This approach works WITH NextAuth's session system!
 Now let's test authentication with session cookies!
       `);
     } catch (error) {
-      console.error("❌ Error creating test users:", error);
+      console.error('❌ Error creating test users:', error);
       throw error;
     }
   });
@@ -110,20 +110,20 @@ Now let's test authentication with session cookies!
       await testDb.delete(users).where(eq(users.id, testUser1Id));
       await testDb.delete(users).where(eq(users.id, testUser2Id));
       await testDb.delete(users).where(eq(users.id, testUser3Id));
-      console.log("🧹 Test users cleaned up successfully");
+      console.log('🧹 Test users cleaned up successfully');
     } catch (error) {
-      console.error("❌ Error cleaning up test users:", error);
+      console.error('❌ Error cleaning up test users:', error);
     }
   });
 
-  describe("Testing Authentication with Session Cookies", () => {
-    it("should test basic Google authentication with session cookie", async () => {
+  describe('Testing Authentication with Session Cookies', () => {
+    it('should test basic Google authentication with session cookie', async () => {
       // Create a test user object
       const testUser: TestUserSession = {
         id: testUser1Id,
-        email: "test-session-1@example.com",
-        name: "Test Session User 1",
-        role: "user",
+        email: 'test-session-1@example.com',
+        name: 'Test Session User 1',
+        role: 'user',
       };
 
       // Generate a valid session cookie for this user
@@ -140,16 +140,16 @@ Now testing authenticated endpoint with session cookie...
       `);
 
       // Test the authenticated endpoint with session cookie
-      const response = await request(baseURL).get("/api/test/auth").set("Cookie", sessionCookie).expect(200);
+      const response = await request(baseURL).get('/api/test/auth').set('Cookie', sessionCookie).expect(200);
 
       expect(response.body).toMatchObject({
-        message: "Hello from authenticated GET test endpoint!",
+        message: 'Hello from authenticated GET test endpoint!',
         user: {
           id: testUser.id,
           email: testUser.email,
           name: testUser.name,
         },
-        status: "success",
+        status: 'success',
       });
 
       console.log(`
@@ -160,16 +160,16 @@ Now testing authenticated endpoint with session cookie...
       `);
     });
 
-    it("should test Internet Identity user with linked Principal", async () => {
+    it('should test Internet Identity user with linked Principal', async () => {
       // Create a test user with linked II Principal
       const testUser: TestUserSession = {
         id: testUser2Id,
-        email: "test-session-2@example.com",
-        name: "Test Session User 2",
-        role: "user",
+        email: 'test-session-2@example.com',
+        name: 'Test Session User 2',
+        role: 'user',
       };
 
-      const linkedPrincipal = "2vxsx-fae"; // Example II Principal
+      const linkedPrincipal = '2vxsx-fae'; // Example II Principal
 
       // Generate session cookie for user with linked II Principal
       const sessionCookie = generateIISessionCookie(testUser, linkedPrincipal);
@@ -184,16 +184,16 @@ Testing authenticated endpoint with II user session...
       `);
 
       // Test the authenticated endpoint
-      const response = await request(baseURL).get("/api/test/auth").set("Cookie", sessionCookie).expect(200);
+      const response = await request(baseURL).get('/api/test/auth').set('Cookie', sessionCookie).expect(200);
 
       expect(response.body).toMatchObject({
-        message: "Hello from authenticated GET test endpoint!",
+        message: 'Hello from authenticated GET test endpoint!',
         user: {
           id: testUser.id,
           email: testUser.email,
           name: testUser.name,
         },
-        status: "success",
+        status: 'success',
       });
 
       console.log(`
@@ -204,13 +204,13 @@ Testing authenticated endpoint with II user session...
       `);
     });
 
-    it("should test admin user with different role", async () => {
+    it('should test admin user with different role', async () => {
       // Test user with admin role
       const testUser: TestUserSession = {
         id: testUser3Id,
-        email: "test-session-3@example.com",
-        name: "Test Session User 3",
-        role: "admin",
+        email: 'test-session-3@example.com',
+        name: 'Test Session User 3',
+        role: 'admin',
       };
 
       const sessionCookie = generateGoogleSessionCookie(testUser);
@@ -225,16 +225,16 @@ Testing authenticated endpoint with admin user session...
       `);
 
       // Test the authenticated endpoint
-      const response = await request(baseURL).get("/api/test/auth").set("Cookie", sessionCookie).expect(200);
+      const response = await request(baseURL).get('/api/test/auth').set('Cookie', sessionCookie).expect(200);
 
       expect(response.body).toMatchObject({
-        message: "Hello from authenticated GET test endpoint!",
+        message: 'Hello from authenticated GET test endpoint!',
         user: {
           id: testUser.id,
           email: testUser.email,
           name: testUser.name,
         },
-        status: "success",
+        status: 'success',
       });
 
       console.log(`
@@ -246,16 +246,16 @@ Testing authenticated endpoint with admin user session...
     });
   });
 
-  describe("Testing Different Authentication Scenarios", () => {
-    it("should test user with active II co-authentication", async () => {
+  describe('Testing Different Authentication Scenarios', () => {
+    it('should test user with active II co-authentication', async () => {
       const testUser: TestUserSession = {
         id: testUser2Id,
-        email: "test-session-2@example.com",
-        name: "Test Session User 2",
-        role: "user",
+        email: 'test-session-2@example.com',
+        name: 'Test Session User 2',
+        role: 'user',
       };
 
-      const activePrincipal = "2vxsx-fae";
+      const activePrincipal = '2vxsx-fae';
 
       // Generate session cookie for user with active II co-auth
       const sessionCookie = generateActiveIISessionCookie(testUser, activePrincipal);
@@ -271,16 +271,16 @@ Testing authenticated endpoint with active co-auth session...
       `);
 
       // Test the authenticated endpoint
-      const response = await request(baseURL).get("/api/test/auth").set("Cookie", sessionCookie).expect(200);
+      const response = await request(baseURL).get('/api/test/auth').set('Cookie', sessionCookie).expect(200);
 
       expect(response.body).toMatchObject({
-        message: "Hello from authenticated GET test endpoint!",
+        message: 'Hello from authenticated GET test endpoint!',
         user: {
           id: testUser.id,
           email: testUser.email,
           name: testUser.name,
         },
-        status: "success",
+        status: 'success',
       });
 
       console.log(`
@@ -292,8 +292,8 @@ Testing authenticated endpoint with active co-auth session...
     });
   });
 
-  describe("Next Steps: Testing Real ICP Endpoints", () => {
-    it("should outline how to test your real ICP endpoints", () => {
+  describe('Next Steps: Testing Real ICP Endpoints', () => {
+    it('should outline how to test your real ICP endpoints', () => {
       console.log(`
 🎯 NEXT STEPS: TESTING REAL ICP ENDPOINTS WITH SESSION COOKIES
 
@@ -326,5 +326,3 @@ Now that we have session cookie authentication working, we can test:
     });
   });
 });
-
-

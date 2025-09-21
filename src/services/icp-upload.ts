@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { HttpAgent } from "@dfinity/agent";
-import type { MemoryData, MemoryMeta, _SERVICE } from "@/ic/declarations/backend/backend.did";
+import { HttpAgent } from '@dfinity/agent';
+import type { MemoryData, MemoryMeta, _SERVICE } from '@/ic/declarations/backend/backend.did';
 
 // Types for ICP upload - compatible with existing UploadStorage
 export interface UploadStorage {
-  chosen_storage: "icp-canister" | "neon-db" | "vercel-blob";
+  chosen_storage: 'icp-canister' | 'neon-db' | 'vercel-blob';
   idem: string;
   expires_at: string;
   ttl_seconds: number;
@@ -49,17 +49,17 @@ export class ICPUploadService {
   }
 
   private async initializeAuth() {
-    if (typeof window === "undefined") {
-      throw new Error("ICP authentication not available in server environment");
+    if (typeof window === 'undefined') {
+      throw new Error('ICP authentication not available in server environment');
     }
 
     try {
       // Dynamic import to avoid SSR issues
-      const { AuthClient } = await import("@dfinity/auth-client");
+      const { AuthClient } = await import('@dfinity/auth-client');
       this.authClient = await AuthClient.create();
     } catch (error) {
-      console.error("Failed to initialize ICP auth client:", error);
-      throw new Error("ICP authentication not available");
+      console.error('Failed to initialize ICP auth client:', error);
+      throw new Error('ICP authentication not available');
     }
   }
 
@@ -69,12 +69,12 @@ export class ICPUploadService {
     }
 
     if (!(await this.authClient?.isAuthenticated())) {
-      throw new Error("User not authenticated with Internet Identity");
+      throw new Error('User not authenticated with Internet Identity');
     }
 
     if (!this.agent) {
       // Dynamic import to avoid SSR issues
-      const { createAgent } = await import("@/ic/agent");
+      const { createAgent } = await import('@/ic/agent');
       const identity = this.authClient!.getIdentity();
       this.agent = await createAgent(identity);
     }
@@ -90,19 +90,19 @@ export class ICPUploadService {
     uploadStorage: UploadStorage,
     onProgress?: (progress: UploadProgress) => void
   ): Promise<UploadResult> {
-    if (uploadStorage.chosen_storage !== "icp-canister") {
-      throw new Error("Upload storage is not ICP canister");
+    if (uploadStorage.chosen_storage !== 'icp-canister') {
+      throw new Error('Upload storage is not ICP canister');
     }
 
     if (!uploadStorage.icp?.canister_id) {
-      throw new Error("ICP canister ID not provided in upload storage");
+      throw new Error('ICP canister ID not provided in upload storage');
     }
 
     const agent = await this.ensureAuthenticated();
 
     // Dynamic import to avoid SSR issues
-    const { makeActor } = await import("@/ic/actor-factory");
-    const { idlFactory } = await import("@/ic/declarations/backend");
+    const { makeActor } = await import('@/ic/actor-factory');
+    const { idlFactory } = await import('@/ic/declarations/backend');
 
     const actor = makeActor(idlFactory, uploadStorage.icp.canister_id, agent) as CanisterActor;
 
@@ -111,7 +111,7 @@ export class ICPUploadService {
     const isInline = fileSize <= limits.inline_max;
 
     // For now, we'll use a mock capsule ID - this should come from user context
-    const capsuleId = "mock-capsule-id";
+    const capsuleId = 'mock-capsule-id';
 
     if (isInline) {
       return this.uploadInline(file, actor, capsuleId, uploadStorage, onProgress);
@@ -145,7 +145,7 @@ export class ICPUploadService {
       });
 
       try {
-        const result = await this.uploadFile(file, uploadStorage, (fileProgress) => {
+        const result = await this.uploadFile(file, uploadStorage, fileProgress => {
           // Calculate overall progress including current file
           const overallPercentage = (i / totalFiles) * 100 + fileProgress.percentage / totalFiles;
           onProgress?.({
@@ -162,7 +162,7 @@ export class ICPUploadService {
       } catch (error) {
         console.error(`Failed to upload file ${file.name}:`, error);
         // Continue with other files, but log the error
-        throw new Error(`Failed to upload ${file.name}: ${error instanceof Error ? error.message : "Unknown error"}`);
+        throw new Error(`Failed to upload ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
 
@@ -198,14 +198,14 @@ export class ICPUploadService {
           meta: {
             name: file.name,
             description: [`Uploaded file: ${file.name}`], // Optional string in array format
-            tags: [file.type.split("/")[0] || "file"], // Extract main type (image, video, etc.)
+            tags: [file.type.split('/')[0] || 'file'], // Extract main type (image, video, etc.)
           },
         },
       };
 
       const createResult = await actor.memories_create(capsuleId, memoryData, uploadStorage.idem);
 
-      if ("Err" in createResult) {
+      if ('Err' in createResult) {
         throw new Error(`Failed to create memory: ${JSON.stringify(createResult.Err)}`);
       }
       const memoryId = createResult.Ok;
@@ -217,8 +217,8 @@ export class ICPUploadService {
         remote_id: memoryId,
       };
     } catch (error) {
-      console.error("Inline upload failed:", error);
-      throw new Error(`Inline upload failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+      console.error('Inline upload failed:', error);
+      throw new Error(`Inline upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -243,12 +243,12 @@ export class ICPUploadService {
       const memoryMeta: MemoryMeta = {
         name: file.name,
         description: [`Uploaded file: ${file.name}`],
-        tags: [file.type.split("/")[0] || "file"],
+        tags: [file.type.split('/')[0] || 'file'],
       };
 
       const sessionResult = await actor.uploads_begin(capsuleId, memoryMeta, expectedChunks, uploadStorage.idem);
 
-      if ("Err" in sessionResult) {
+      if ('Err' in sessionResult) {
         throw new Error(`Failed to begin upload: ${JSON.stringify(sessionResult.Err)}`);
       }
       const sessionId = sessionResult.Ok;
@@ -282,7 +282,7 @@ export class ICPUploadService {
       // Finish upload
       const finishResult = await actor.uploads_finish(sessionId, Array.from(expectedHash), BigInt(fileSize));
 
-      if ("Err" in finishResult) {
+      if ('Err' in finishResult) {
         throw new Error(`Failed to finish upload: ${JSON.stringify(finishResult.Err)}`);
       }
       const memoryId = finishResult.Ok;
@@ -291,13 +291,13 @@ export class ICPUploadService {
         memoryId: memoryId,
         size: file.size,
         checksum_sha256: Array.from(expectedHash)
-          .map((b) => b.toString(16).padStart(2, "0"))
-          .join(""),
+          .map(b => b.toString(16).padStart(2, '0'))
+          .join(''),
         remote_id: memoryId,
       };
     } catch (error) {
-      console.error("Chunked upload failed:", error);
-      throw new Error(`Chunked upload failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+      console.error('Chunked upload failed:', error);
+      throw new Error(`Chunked upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 

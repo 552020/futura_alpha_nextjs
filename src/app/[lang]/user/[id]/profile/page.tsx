@@ -1,10 +1,10 @@
-import React from "react";
-import { auth } from "@/auth";
-import { redirect } from "next/navigation";
-import { LiveChatWrapper } from "@/components/chat/livechat-wrapper";
-import { ICPCard } from "@/components/user/icp-card";
-import { ProfileHeader } from "@/components/user/profile-header";
-import { ProfileInfo } from "@/components/user/profile-info";
+import React from 'react';
+import { auth } from '@/auth';
+import { redirect } from 'next/navigation';
+import { LiveChatWrapper } from '@/components/chat/livechat-wrapper';
+import { ICPCard } from '@/components/user/icp-card';
+import { ProfileHeader } from '@/components/user/profile-header';
+import { ProfileInfo } from '@/components/user/profile-info';
 // import { ProfileStats } from "@/components/user/profile-stats";
 
 interface Props {
@@ -16,11 +16,11 @@ const ProfilePage = async (props: Props) => {
   const session = await auth();
 
   if (!session) {
-    redirect("/en/signin");
+    redirect('/en/signin');
   }
 
   if (session.user.id !== resolvedParams.id) {
-    redirect("/unauthorized");
+    redirect('/unauthorized');
   }
 
   return (

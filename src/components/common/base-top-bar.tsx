@@ -1,17 +1,17 @@
-"use client";
+'use client';
 
-import { useState, useMemo, useEffect, useRef } from "react";
-import { Search, Filter, Calendar, Grid3X3, List } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { Search, Filter, Calendar, Grid3X3, List } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 
 interface BaseTopBarProps<T> {
   items: T[];
   onFilteredItemsChange: (filteredItems: T[]) => void;
   showViewToggle?: boolean;
-  onViewModeChange?: (mode: "grid" | "list") => void;
-  viewMode?: "grid" | "list";
+  onViewModeChange?: (mode: 'grid' | 'list') => void;
+  viewMode?: 'grid' | 'list';
   className?: string;
 
   // Search configuration
@@ -36,30 +36,30 @@ export function BaseTopBar<T>({
   onFilteredItemsChange,
   showViewToggle = true,
   onViewModeChange,
-  viewMode = "grid",
-  className = "",
+  viewMode = 'grid',
+  className = '',
 
   // Search
-  searchPlaceholder = "Search...",
+  searchPlaceholder = 'Search...',
   searchFields = () => [],
 
   // Filters
-  filterOptions = [{ value: "all", label: "All Items" }],
+  filterOptions = [{ value: 'all', label: 'All Items' }],
   filterLogic = () => true,
 
   // Sort
   sortOptions = [
-    { value: "newest", label: "Newest First" },
-    { value: "oldest", label: "Oldest First" },
+    { value: 'newest', label: 'Newest First' },
+    { value: 'oldest', label: 'Oldest First' },
   ],
   sortLogic = (a: T, b: T, sortBy: string) => {
     switch (sortBy) {
-      case "newest":
+      case 'newest':
         return (
           new Date((b as { createdAt?: string | Date }).createdAt || 0).getTime() -
           new Date((a as { createdAt?: string | Date }).createdAt || 0).getTime()
         );
-      case "oldest":
+      case 'oldest':
         return (
           new Date((a as { createdAt?: string | Date }).createdAt || 0).getTime() -
           new Date((b as { createdAt?: string | Date }).createdAt || 0).getTime()
@@ -73,9 +73,9 @@ export function BaseTopBar<T>({
   leftActions,
   rightActions,
 }: BaseTopBarProps<T>) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterType, setFilterType] = useState<string>("all");
-  const [sortBy, setSortBy] = useState<string>("newest");
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<string>('newest');
   const isInitialRender = useRef(true);
 
   // Filtering and sorting logic
@@ -85,15 +85,15 @@ export function BaseTopBar<T>({
     // Filter by search query
     if (searchQuery) {
       const searchLower = searchQuery.toLowerCase();
-      filtered = filtered.filter((item) => {
-        const searchableText = searchFields(item).join(" ").toLowerCase();
+      filtered = filtered.filter(item => {
+        const searchableText = searchFields(item).join(' ').toLowerCase();
         return searchableText.includes(searchLower);
       });
     }
 
     // Filter by type
-    if (filterType !== "all") {
-      filtered = filtered.filter((item) => filterLogic(item, filterType));
+    if (filterType !== 'all') {
+      filtered = filtered.filter(item => filterLogic(item, filterType));
     }
 
     // Sort results
@@ -111,7 +111,7 @@ export function BaseTopBar<T>({
     }
 
     // Only call when user actually changes search/filter/sort inputs
-    if (searchQuery || filterType !== "all" || sortBy !== "newest") {
+    if (searchQuery || filterType !== 'all' || sortBy !== 'newest') {
       onFilteredItemsChange(filteredItems);
     }
   }, [searchQuery, filterType, sortBy, onFilteredItemsChange, filteredItems]);
@@ -128,17 +128,17 @@ export function BaseTopBar<T>({
           {showViewToggle && onViewModeChange && (
             <div className="flex border rounded-md">
               <Button
-                variant={viewMode === "grid" ? "default" : "ghost"}
+                variant={viewMode === 'grid' ? 'default' : 'ghost'}
                 size="sm"
-                onClick={() => onViewModeChange("grid")}
+                onClick={() => onViewModeChange('grid')}
                 className="rounded-r-none"
               >
                 <Grid3X3 className="h-4 w-4" />
               </Button>
               <Button
-                variant={viewMode === "list" ? "default" : "ghost"}
+                variant={viewMode === 'list' ? 'default' : 'ghost'}
                 size="sm"
-                onClick={() => onViewModeChange("list")}
+                onClick={() => onViewModeChange('list')}
                 className="rounded-l-none"
               >
                 <List className="h-4 w-4" />
@@ -157,7 +157,7 @@ export function BaseTopBar<T>({
           <Input
             placeholder={searchPlaceholder}
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={e => setSearchQuery(e.target.value)}
             className="pl-10"
           />
         </div>
@@ -170,7 +170,7 @@ export function BaseTopBar<T>({
               <SelectValue placeholder="Filter by type" />
             </SelectTrigger>
             <SelectContent>
-              {filterOptions.map((option) => (
+              {filterOptions.map(option => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>
@@ -187,7 +187,7 @@ export function BaseTopBar<T>({
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
-              {sortOptions.map((option) => (
+              {sortOptions.map(option => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>

@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { Badge } from "@/components/ui/badge";
-import { Image, Lock, Globe } from "lucide-react";
-import { GalleryWithItems } from "@/types/gallery";
-import { StorageStatusBadge, getGalleryStorageStatus } from "@/components/common/storage-status-badge";
-import { BaseCard } from "@/components/common/base-card";
+import { Badge } from '@/components/ui/badge';
+import { Image, Lock, Globe } from 'lucide-react';
+import { GalleryWithItems } from '@/types/gallery';
+import { StorageStatusBadge, getGalleryStorageStatus } from '@/components/common/storage-status-badge';
+import { BaseCard } from '@/components/common/base-card';
 
 interface GalleryCardProps {
   gallery: GalleryWithItems;
@@ -28,10 +28,10 @@ export function GalleryCard({ gallery, onClick, onEdit, onShare, onDelete }: Gal
           <span className="text-sm">Gallery</span>
         </div>
       )}
-      renderTitle={(gallery) => gallery.title}
-      renderDescription={(gallery) => gallery.description}
-      renderStorageBadge={(gallery) => <StorageStatusBadge status={getGalleryStorageStatus(gallery)} size="xs" />}
-      renderLeftStatus={(gallery) => (
+      renderTitle={gallery => gallery.title}
+      renderDescription={gallery => gallery.description}
+      renderStorageBadge={gallery => <StorageStatusBadge status={getGalleryStorageStatus(gallery)} size="xs" />}
+      renderLeftStatus={gallery => (
         <>
           {/* Image count icon */}
           <div className="flex-shrink-0">
@@ -39,7 +39,7 @@ export function GalleryCard({ gallery, onClick, onEdit, onShare, onDelete }: Gal
           </div>
 
           {/* Privacy status */}
-          <Badge variant={gallery.isPublic ? "default" : "secondary"} className="text-xs">
+          <Badge variant={gallery.isPublic ? 'default' : 'secondary'} className="text-xs">
             {gallery.isPublic ? (
               <>
                 <Globe className="h-3 w-3 mr-1" />

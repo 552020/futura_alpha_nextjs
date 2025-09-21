@@ -142,7 +142,7 @@ pnpm test:coverage
 ### Database Mocking
 
 ```typescript
-vi.mock("@/db/db", () => ({
+vi.mock('@/db/db', () => ({
   db: {
     query: {
       galleries: { findMany: vi.fn(), findFirst: vi.fn() },
@@ -150,7 +150,7 @@ vi.mock("@/db/db", () => ({
     },
     insert: vi.fn(() => ({
       values: vi.fn(() => ({
-        returning: vi.fn(() => [{ id: "test-gallery-id" }]),
+        returning: vi.fn(() => [{ id: 'test-gallery-id' }]),
       })),
     })),
   },
@@ -160,9 +160,9 @@ vi.mock("@/db/db", () => ({
 ### Authentication Mocking
 
 ```typescript
-vi.mock("@/auth", () => ({
+vi.mock('@/auth', () => ({
   auth: vi.fn(() => ({
-    user: { id: "test-user-id" },
+    user: { id: 'test-user-id' },
   })),
 }));
 ```
@@ -206,13 +206,13 @@ vi.mock("@/auth", () => ({
 ## Example Test Structure
 
 ```typescript
-describe("Feature Name", () => {
+describe('Feature Name', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  describe("Sub-feature", () => {
-    it("should handle valid input", () => {
+  describe('Sub-feature', () => {
+    it('should handle valid input', () => {
       // Arrange
       const input = {
         /* test data */
@@ -225,7 +225,7 @@ describe("Feature Name", () => {
       expect(result).toEqual(expectedOutput);
     });
 
-    it("should handle invalid input", () => {
+    it('should handle invalid input', () => {
       // Test error conditions
     });
   });

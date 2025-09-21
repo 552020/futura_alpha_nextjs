@@ -1,5 +1,5 @@
-import { db } from "./db";
-import { sql } from "drizzle-orm";
+import { db } from './db';
+import { sql } from 'drizzle-orm';
 
 /**
  * Finds the lowest common ancestor (LCA) of two users.
@@ -30,8 +30,8 @@ export async function findCommonAncestor(userAId: string, userBId: string) {
 
     return result.rows.length > 0 ? result.rows[0] : null;
   } catch (error) {
-    console.error("Error finding common ancestor:", error);
-    throw new Error("Database error.");
+    console.error('Error finding common ancestor:', error);
+    throw new Error('Database error.');
   }
 }
 
@@ -46,7 +46,7 @@ export async function resolveFuzzyRelationship(userAId: string, userBId: string)
   }
 
   const { commonAncestor, totalDepth } = ancestorData;
-  const newFamilyRole = totalDepth === 1 ? "sibling" : totalDepth === 2 ? "uncle_aunt" : "cousin";
+  const newFamilyRole = totalDepth === 1 ? 'sibling' : totalDepth === 2 ? 'uncle_aunt' : 'cousin';
 
   await db.execute(sql`
     UPDATE family_relationship

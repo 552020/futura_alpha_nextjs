@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 /**
  * ICP Card Component
@@ -10,20 +10,20 @@
  * - Session management
  */
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Shield, Clock, RefreshCw, LogOut, Copy, Link as LinkIcon } from "lucide-react";
-import { useIICoAuth } from "@/hooks/use-ii-coauth";
-import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Shield, Clock, RefreshCw, LogOut, Copy, Link as LinkIcon } from 'lucide-react';
+import { useIICoAuth } from '@/hooks/use-ii-coauth';
+import { useToast } from '@/hooks/use-toast';
+import { useState } from 'react';
 
 interface ICPCardProps {
   className?: string;
 }
 
-export function ICPCard({ className = "" }: ICPCardProps) {
+export function ICPCard({ className = '' }: ICPCardProps) {
   const {
     hasLinkedII,
     linkedIcPrincipal,
@@ -52,15 +52,15 @@ export function ICPCard({ className = "" }: ICPCardProps) {
     try {
       await navigator.clipboard.writeText(linkedIcPrincipal);
       toast({
-        title: "Copied!",
-        description: "Principal ID copied to clipboard",
+        title: 'Copied!',
+        description: 'Principal ID copied to clipboard',
       });
     } catch (error) {
-      console.error("Failed to copy:", error);
+      console.error('Failed to copy:', error);
       toast({
-        title: "Copy Failed",
-        description: "Failed to copy principal ID to clipboard",
-        variant: "destructive",
+        title: 'Copy Failed',
+        description: 'Failed to copy principal ID to clipboard',
+        variant: 'destructive',
       });
     } finally {
       setIsCopying(false);
@@ -74,11 +74,11 @@ export function ICPCard({ className = "" }: ICPCardProps) {
       const signinUrl = `/en/sign-ii-only?callbackUrl=${encodeURIComponent(currentUrl)}`;
       window.location.href = signinUrl;
     } catch (error) {
-      console.error("Failed to redirect to II signin page:", error);
+      console.error('Failed to redirect to II signin page:', error);
       toast({
-        title: "Redirect Failed",
-        description: "Failed to redirect to Internet Identity linking page",
-        variant: "destructive",
+        title: 'Redirect Failed',
+        description: 'Failed to redirect to Internet Identity linking page',
+        variant: 'destructive',
       });
     }
   };
@@ -91,11 +91,11 @@ export function ICPCard({ className = "" }: ICPCardProps) {
       const signinUrl = `/en/sign-ii-only?callbackUrl=${encodeURIComponent(currentUrl)}`;
       window.location.href = signinUrl;
     } catch (error) {
-      console.error("Failed to redirect to II signin page:", error);
+      console.error('Failed to redirect to II signin page:', error);
       toast({
-        title: "Redirect Failed",
-        description: "Failed to redirect to Internet Identity sign-in page",
-        variant: "destructive",
+        title: 'Redirect Failed',
+        description: 'Failed to redirect to Internet Identity sign-in page',
+        variant: 'destructive',
       });
     }
   };
@@ -106,15 +106,15 @@ export function ICPCard({ className = "" }: ICPCardProps) {
     try {
       await disconnectII();
       toast({
-        title: "II Co-Auth Disconnected",
-        description: "Your Internet Identity is no longer active for this session",
+        title: 'II Co-Auth Disconnected',
+        description: 'Your Internet Identity is no longer active for this session',
       });
     } catch (error) {
-      console.error("Failed to disconnect II:", error);
+      console.error('Failed to disconnect II:', error);
       toast({
-        title: "Disconnect Failed",
-        description: "Failed to disconnect Internet Identity. Please try again.",
-        variant: "destructive",
+        title: 'Disconnect Failed',
+        description: 'Failed to disconnect Internet Identity. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setIsDisconnecting(false);
@@ -127,15 +127,15 @@ export function ICPCard({ className = "" }: ICPCardProps) {
     try {
       await refreshTTL();
       toast({
-        title: "II Co-Auth Refreshed",
-        description: "Your Internet Identity session has been extended",
+        title: 'II Co-Auth Refreshed',
+        description: 'Your Internet Identity session has been extended',
       });
     } catch (error) {
-      console.error("Failed to refresh II TTL:", error);
+      console.error('Failed to refresh II TTL:', error);
       toast({
-        title: "Refresh Failed",
-        description: "Failed to refresh Internet Identity session. Please try again.",
-        variant: "destructive",
+        title: 'Refresh Failed',
+        description: 'Failed to refresh Internet Identity session. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setIsRefreshing(false);
