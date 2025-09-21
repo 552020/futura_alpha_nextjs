@@ -77,7 +77,13 @@ export async function PUT(request: NextRequest) {
       .insert(storageEdges)
       .values(edgeData)
       .onConflictDoUpdate({
-        target: [storageEdges.memoryId, storageEdges.memoryType, storageEdges.artifact, storageEdges.locationMetadata, storageEdges.locationAsset],
+        target: [
+          storageEdges.memoryId,
+          storageEdges.memoryType,
+          storageEdges.artifact,
+          storageEdges.locationMetadata,
+          storageEdges.locationAsset,
+        ],
         set: {
           present: present ?? false,
           locationUrl: location,
