@@ -56,15 +56,20 @@ export default function ItemsUploadClient({ lang, dict }: ItemsUploadClientProps
       {/* Component buttons - only shown when DOUBLE_BUTTON is true */}
       {DOUBLE_BUTTON && (
         <div className="flex justify-center gap-4 mb-8">
-          <ItemUploadButton isOnboarding variant="album-button" mode="folder" onSuccess={handleUploadSuccess} />
-          <ItemUploadButton isOnboarding variant="one-shot-button" mode="files" onSuccess={handleUploadSuccess} />
+          <ItemUploadButton isOnboarding variant="album-button" mode="directory" onSuccess={handleUploadSuccess} />
+          <ItemUploadButton
+            isOnboarding
+            variant="one-shot-button"
+            mode="multiple-files"
+            onSuccess={handleUploadSuccess}
+          />
         </div>
       )}
 
       {/* Upload button container - only shown when DOUBLE_BUTTON is false */}
       {!DOUBLE_BUTTON && (
         <div className="flex justify-center">
-          <ItemUploadButton isOnboarding variant="large-icon" mode="folder" onSuccess={handleUploadSuccess} />
+          <ItemUploadButton isOnboarding variant="large-icon" mode="directory" onSuccess={handleUploadSuccess} />
         </div>
       )}
 

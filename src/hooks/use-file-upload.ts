@@ -10,17 +10,9 @@ import { uploadFile } from '@/services/upload';
 import { useUploadStorage, isUploadStorageExpired } from '@/hooks/use-upload-storage';
 import { useStoragePreferences } from '@/hooks/use-storage-preferences';
 import { UPLOAD_LIMITS } from '@/config/upload-limits';
+import type { UseFileUploadProps } from '@/types/upload';
 
-type UploadMode = 'folder' | 'files';
-
-interface UseFileUploadProps {
-  mode?: UploadMode;
-  isOnboarding?: boolean;
-  onSuccess?: () => void;
-  onError?: (error: Error) => void;
-}
-
-export function useFileUpload({ isOnboarding = false, mode = 'folder', onSuccess, onError }: UseFileUploadProps) {
+export function useFileUpload({ isOnboarding = false, mode = 'directory', onSuccess, onError }: UseFileUploadProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { addFile: addOnboardingFile, updateUserData, setCurrentStep } = useOnboarding();
@@ -95,18 +87,21 @@ export function useFileUpload({ isOnboarding = false, mode = 'folder', onSuccess
     const el = fileInputRef.current;
     if (!el) return;
 
-    // reset to file mode first
+    // reset to single file mode first
     el.removeAttribute('webkitdirectory');
     el.removeAttribute('directory');
     el.multiple = false;
 
-    if (mode === 'folder') {
+    if (mode === 'directory') {
       el.setAttribute('webkitdirectory', '');
       el.setAttribute('directory', '');
       el.multiple = true;
-    } else if (mode === 'files') {
-      // Enable multiple file selection for Files mode
+    } else if (mode === 'multiple-files') {
+      // Enable multiple file selection
       el.multiple = true;
+    } else if (mode === 'single-file') {
+      // Single file selection (already set by reset above)
+      // No additional attributes needed
     }
 
     el.click();
@@ -287,7 +282,7 @@ export function useFileUpload({ isOnboarding = false, mode = 'folder', onSuccess
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (mode == 'folder') {
+    if (mode === 'directory') {
       const files = event.target.files;
       if (!files) return;
 
@@ -362,7 +357,7 @@ export function useFileUpload({ isOnboarding = false, mode = 'folder', onSuccess
 
           // Add storage backend information to ensure consistent behavior with single file uploads
           formData.append('storageBackend', 's3');
-          
+
           // Note: The unified POST /api/memories endpoint handles user authentication internally
           // No need to pass userId as it will be determined from the session or onboarding context
 
@@ -425,12 +420,12 @@ export function useFileUpload({ isOnboarding = false, mode = 'folder', onSuccess
       }
     }
 
-    if (mode == 'files') {
+    if (mode === 'multiple-files' || mode === 'single-file') {
       const files = event.target.files;
       if (!files || files.length === 0) return;
 
-      if (files.length === 1) {
-        // Single file: use existing single file logic (backward compatibility)
+      if (files.length === 1 || mode === 'single-file') {
+        // Single file: use existing single file logic
         const file = files[0];
         console.log(`🎯 DASHBOARD SINGLE FILE UPLOAD TRIGGERED:`, {
           fileName: file.name,
@@ -446,8 +441,8 @@ export function useFileUpload({ isOnboarding = false, mode = 'folder', onSuccess
         const userId = session?.user?.id;
         await processSingleFile(file, false, userId);
         setIsLoading(false);
-      } else {
-        // Multiple files: reuse folder upload logic
+      } else if (mode === 'multiple-files') {
+        // Multiple files: use folder upload logic
         console.log(`🎯 DASHBOARD MULTIPLE FILES UPLOAD TRIGGERED:`, {
           fileCount: files.length,
           files: Array.from(files).map(f => ({

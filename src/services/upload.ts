@@ -54,7 +54,7 @@ interface UploadResponse {
   };
 }
 
-type UploadMode = 'files' | 'folder';
+type UploadMode = 'multiple-files' | 'single-file' | 'directory';
 
 /**
  * Get memory type from file extension
@@ -175,7 +175,7 @@ export const uploadFile = async (
   file: File,
   isOnboarding: boolean,
   existingUserId?: string,
-  mode: UploadMode = 'files',
+  mode: UploadMode = 'multiple-files',
   storageBackend: StorageBackend | StorageBackend[] = 'vercel_blob',
   userStoragePreference?: 'neon' | 'icp' | 'dual' | 's3'
 ): Promise<UploadResponse> => {
@@ -236,7 +236,7 @@ async function uploadFileToBlob(
   file: File,
   isOnboarding: boolean,
   existingUserId?: string,
-  mode: UploadMode = 'files'
+  mode: UploadMode = 'multiple-files'
 ): Promise<UploadResponse> {
   console.log(`☁️ Using client-side upload flow for: ${file.name}`);
 
@@ -340,11 +340,7 @@ async function uploadFileToBlob(
 /**
  * Upload file to AWS S3 using the secure upload flow with presigned URLs
  */
-async function uploadFileToS3(
-  file: File,
-  isOnboarding: boolean,
-  existingUserId?: string
-): Promise<UploadResponse> {
+async function uploadFileToS3(file: File, isOnboarding: boolean, existingUserId?: string): Promise<UploadResponse> {
   console.log(`☁️ Starting S3 upload for: ${file.name}`);
 
   try {
@@ -421,7 +417,7 @@ async function uploadFileToS3(
     const memoryType = getMemoryTypeFromFile(file);
     const memoryId = responseData?.memoryId || `mem-${Date.now()}`;
     const publicUrl = responseData?.url || '';
-    
+
     const result: UploadResponse = {
       success: true,
       data: {
@@ -450,7 +446,7 @@ async function uploadFileToS3(
         ],
       },
     };
-    
+
     return result;
   } catch (error) {
     console.error('❌ S3 upload failed:', error);
@@ -465,7 +461,7 @@ export const uploadFiles = async (
   files: File[],
   isOnboarding: boolean,
   existingUserId?: string,
-  mode: UploadMode = 'folder',
+  mode: UploadMode = 'directory',
   storageBackend: StorageBackend | StorageBackend[] = 'vercel_blob',
   userStoragePreference?: 'neon' | 'icp' | 'dual' | 's3'
 ): Promise<UploadResponse[]> => {

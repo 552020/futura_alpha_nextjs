@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Plus, Loader2, Upload } from 'lucide-react';
-import { useFileUpload } from '@/hooks/user-file-upload';
+import { useFileUpload } from '@/hooks/use-file-upload';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import type { FileInputAttributeMode } from '@/types/upload';
 
 // Button variant interfaces
 interface BaseButtonProps {
@@ -167,10 +168,8 @@ const NativeFileInput = ({ onChange }: FileInputProps) => (
 //   onError?: (error: Error) => void;
 // }
 
-type UploadMode = 'folder' | 'files';
-
 interface ItemUploadButtonProps {
-  mode?: UploadMode; // NEW
+  mode?: FileInputAttributeMode;
   isOnboarding?: boolean;
   variant?:
     | 'button'
@@ -205,7 +204,7 @@ interface ItemUploadButtonProps {
  * - This is just TypeScript being overly strict about experimental attributes
  */
 export function ItemUploadButton({
-  mode = 'folder',
+  mode = 'directory',
   isOnboarding = false,
   variant = 'button',
   buttonText,

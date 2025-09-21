@@ -25,7 +25,7 @@ export async function testBlobFirstUpload() {
       testFile,
       false, // isOnboarding
       undefined, // existingUserId
-      'files', // mode
+      'multiple-files', // mode
       'vercel_blob' // storageBackend
     );
 
@@ -71,7 +71,7 @@ export async function testImageUpload() {
       testImage,
       false, // isOnboarding
       undefined, // existingUserId
-      'files', // mode
+      'multiple-files', // mode
       'vercel_blob' // storageBackend
     );
 
@@ -106,7 +106,7 @@ export async function testMultipleStorageBackends() {
       testFile,
       false,
       undefined,
-      'files',
+      'multiple-files',
       ['vercel_blob', 's3'] // Multiple backends
     );
 
@@ -134,7 +134,7 @@ export async function testOnboardingUpload() {
       testFile,
       true, // isOnboarding
       undefined,
-      'files',
+      'multiple-files',
       'vercel_blob'
     );
 

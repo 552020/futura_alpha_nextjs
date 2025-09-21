@@ -5,7 +5,7 @@ import { getBlurPlaceholder, IMAGE_SIZES } from '@/utils/image-utils';
 import Image from 'next/image';
 import { Plus, Share2, FileText, Music, Video, Archive, File, Loader2 } from 'lucide-react';
 import { useOnboarding } from '@/contexts/onboarding-context';
-import { useFileUpload } from '@/hooks/user-file-upload';
+import { useFileUpload } from '@/hooks/use-file-upload';
 
 interface ProfileProps {
   isOnboarding?: boolean;

@@ -21,7 +21,7 @@ export default function ItemsUploadClientExperiment({ lang, dict }: ItemsUploadC
   const router = useRouter();
   const { setMode } = useInterface();
   const [showOnboardModal, setShowOnboardModal] = useState(false);
-  const [uploadMode, setUploadMode] = useState<'folder' | 'files'>('folder');
+  const [uploadMode, setUploadMode] = useState<'directory' | 'multiple-files'>('directory');
 
   const handleUploadSuccess = () => {
     setShowOnboardModal(true);
@@ -50,9 +50,9 @@ export default function ItemsUploadClientExperiment({ lang, dict }: ItemsUploadC
         <h1 className="text-6xl sm:text-7xl lg:text-8xl font-bold mb-8 tracking-tight">
           Upload your{' '}
           <button
-            onClick={() => setUploadMode('folder')}
+            onClick={() => setUploadMode('directory')}
             className={`px-3 py-1 rounded-lg font-medium transition-all ${
-              uploadMode === 'folder'
+              uploadMode === 'directory'
                 ? 'bg-black text-white dark:bg-white dark:text-black'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
             }`}
@@ -61,9 +61,9 @@ export default function ItemsUploadClientExperiment({ lang, dict }: ItemsUploadC
           </button>{' '}
           or pick the{' '}
           <button
-            onClick={() => setUploadMode('files')}
+            onClick={() => setUploadMode('multiple-files')}
             className={`px-3 py-1 rounded-lg font-medium transition-all ${
-              uploadMode === 'files'
+              uploadMode === 'multiple-files'
                 ? 'bg-black text-white dark:bg-white dark:text-black'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
             }`}

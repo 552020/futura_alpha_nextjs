@@ -36,13 +36,13 @@ export function DashboardTopBar({
       {showUploadButtons && (
         <>
           <ItemUploadButton
-            mode="folder"
+            mode="directory"
             variant="dashboard-add-folder"
             onSuccess={onUploadSuccess}
             onError={onUploadError}
           />
           <ItemUploadButton
-            mode="files"
+            mode="multiple-files"
             variant="dashboard-add-file"
             onSuccess={onUploadSuccess}
             onError={onUploadError}
