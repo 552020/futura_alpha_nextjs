@@ -21,6 +21,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:migrate:full": "tsx scripts/migrate.ts",
     "db:verify": "tsx scripts/verify-constraints.ts",
+    "db:validate": "tsx scripts/validate-schema.ts",
     "seed": "tsx src/db/seed.ts",
     "create-test-users": "tsx src/db/create-test-users.ts",
     "manage-user-roles": "tsx scripts/manage-user-roles.ts"

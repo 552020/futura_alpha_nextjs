@@ -6,6 +6,11 @@
  * This script checks that required database constraints are present.
  * It's designed to be run in CI/CD pipelines to ensure database integrity.
  *
+ * IMPORTANT: These constraints are defined in our schema.ts file, but Drizzle
+ * cannot automatically verify them because it doesn't have built-in constraint
+ * verification capabilities. This script manually verifies that the constraints
+ * defined in our schema are actually present in the database.
+ *
  * Usage:
  *   npx tsx scripts/verify-constraints.ts
  *
@@ -30,9 +35,15 @@ interface ConstraintCheck {
 
 const REQUIRED_CONSTRAINTS: ConstraintCheck[] = [
   {
-    name: 'check_storage_backends',
-    table: 'user',
-    description: 'Ensures at least one storage backend is enabled for each user',
+    name: 'memory_assets_bytes_positive',
+    table: 'memory_assets',
+    description: 'Ensures memory asset bytes are positive (> 0) - defined in schema.ts but Drizzle cannot verify',
+  },
+  {
+    name: 'memory_assets_dimensions_positive',
+    table: 'memory_assets',
+    description:
+      'Ensures memory asset dimensions are positive when not null - defined in schema.ts but Drizzle cannot verify',
   },
 ];
 

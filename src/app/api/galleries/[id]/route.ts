@@ -195,21 +195,46 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         });
 
         if (memory) {
-          // console.log(`Found memory for item ${item.memoryId}`);
+          console.log(`🔍 Found memory for item ${item.memoryId}:`, {
+            memoryId: memory.id,
+            title: memory.title,
+            type: memory.type,
+            assetsCount: memory.assets?.length || 0,
+            assets: memory.assets?.map(asset => ({
+              id: asset.id,
+              assetType: asset.assetType,
+              url: asset.url,
+              mimeType: asset.mimeType,
+              processingStatus: asset.processingStatus,
+            })),
+          });
 
           // Extract URL from assets (similar to dashboard logic)
           const getAssetUrl = (
             assets: GalleryAsset[] | undefined,
             preferredType: 'display' | 'original' = 'display'
           ): string | undefined => {
-            if (!assets || assets.length === 0) return undefined;
+            if (!assets || assets.length === 0) {
+              console.log(`❌ No assets found for memory ${item.memoryId}`);
+              return undefined;
+            }
 
             const preferredAsset = assets.find(asset => asset.assetType === preferredType);
-            if (preferredAsset) return preferredAsset.url;
+            if (preferredAsset) {
+              console.log(`✅ Found ${preferredType} asset for memory ${item.memoryId}:`, preferredAsset.url);
+              return preferredAsset.url;
+            }
 
             const originalAsset = assets.find(asset => asset.assetType === 'original');
-            if (originalAsset) return originalAsset.url;
+            if (originalAsset) {
+              console.log(`✅ Found original asset for memory ${item.memoryId}:`, originalAsset.url);
+              return originalAsset.url;
+            }
 
+            console.log(
+              `⚠️ No display/original asset found for memory ${item.memoryId}, using first asset:`,
+              assets[0]?.url
+            );
             return assets[0]?.url;
           };
           // Define asset type
@@ -234,11 +259,55 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           };
 
           // Transform memory to include url and mimeType from assets
+          const assetUrl = getAssetUrl(memory.assets);
+          let finalUrl = assetUrl;
+
+          // If it's an S3 URL, generate a presigned URL for viewing
+          if (assetUrl && assetUrl.includes('s3.amazonaws.com')) {
+            try {
+              // Extract S3 key from URL
+              const urlParts = assetUrl.split('.amazonaws.com/');
+              if (urlParts.length === 2) {
+                const s3Key = urlParts[1];
+                console.log(`🔑 Generating presigned URL for S3 key: ${s3Key}`);
+
+                // Use the existing presigned URL endpoint
+                const presignResponse = await fetch(
+                  `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/s3/presigned-url`,
+                  {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key: s3Key }),
+                  }
+                );
+
+                if (presignResponse.ok) {
+                  const { url: presignedUrl } = await presignResponse.json();
+                  finalUrl = presignedUrl;
+                  console.log(`✅ Generated presigned URL for memory ${item.memoryId}`);
+                } else {
+                  console.warn(
+                    `⚠️ Failed to generate presigned URL for memory ${item.memoryId}: ${presignResponse.status}`
+                  );
+                }
+              }
+            } catch (error) {
+              console.error(`❌ Error generating presigned URL for memory ${item.memoryId}:`, error);
+            }
+          }
+
           const memoryWithUrl = {
             ...memory,
-            url: getAssetUrl(memory.assets),
+            url: finalUrl,
             mimeType: getAssetMimeType(memory.assets),
           };
+
+          console.log(`🔗 Generated URL for memory ${item.memoryId}:`, {
+            originalUrl: assetUrl,
+            finalUrl: finalUrl,
+            hasUrl: !!finalUrl,
+            urlLength: finalUrl?.length || 0,
+          });
 
           itemsWithMemories.push({
             ...item,

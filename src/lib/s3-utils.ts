@@ -83,8 +83,7 @@ export async function deleteS3Object(key: string): Promise<boolean> {
       httpStatusCode: result.$metadata.httpStatusCode,
     });
 
-    // Verify deletion
-    console.log('🔍 Verifying deletion...');
+    // Verify deletion (silent for NotFound errors)
     try {
       const stillExists = await objectExists(key);
       if (stillExists) {
@@ -106,14 +105,8 @@ export async function deleteS3Object(key: string): Promise<boolean> {
       });
     } catch (error: unknown) {
       const verifyError = error as Error & { name?: string };
-      // A NotFound here is expected → means deletion succeeded
+      // A NotFound here is expected → means deletion succeeded (silent)
       if (verifyError.name === 'NotFound') {
-        console.log('✅ Deletion confirmed by S3 (object not found).', {
-          key,
-          bucket,
-          region: process.env.AWS_S3_REGION || 'eu-central-1',
-          timestamp: new Date().toISOString(),
-        });
         return true;
       }
       throw verifyError;
