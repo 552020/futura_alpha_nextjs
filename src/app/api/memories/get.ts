@@ -91,11 +91,31 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
 
     // Fetch memories with optional assets and folder information
     console.log('🔍 API: Fetching memories with whereCondition:', whereCondition);
+    console.log('🔍 API: Pagination params - limit:', limit, 'offset:', offset, 'page:', page);
+
+    // First, let's check total count without pagination
+    const totalCount = await db.query.memories.findMany({
+      where: whereCondition,
+    });
+    console.log('🔍 API: Total memories count (no pagination):', totalCount.length);
+    console.log(
+      '🔍 API: Total memories by folder:',
+      totalCount.reduce(
+        (acc, m) => {
+          const folderId = m.parentFolderId || 'no-folder';
+          acc[folderId] = (acc[folderId] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>
+      )
+    );
+
+    // For dashboard, we need ALL memories to properly group into folders
+    // The limit should be applied to the final dashboard items, not raw memories
     const userMemories = await db.query.memories.findMany({
       where: whereCondition,
       orderBy: desc(memories.createdAt),
-      limit: limit,
-      offset: offset,
+      // Remove limit and offset - we need all memories to group properly
       with: includeAssets
         ? {
             assets: true,
@@ -106,6 +126,15 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
           },
     });
     console.log('🔍 API: Found memories:', userMemories.length);
+    console.log(
+      '🔍 API: All memories with folder info:',
+      userMemories.map(m => ({
+        id: m.id,
+        title: m.title,
+        parentFolderId: m.parentFolderId,
+        folderName: m.folder?.name,
+      }))
+    );
     console.log('🔍 API: Sample memory:', userMemories[0]);
 
     // Calculate share counts for each memory (like the old implementation)
@@ -147,7 +176,7 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
       return NextResponse.json({
         success: true,
         data: memoriesWithThumbs,
-        hasMore: memoriesWithThumbs.length === limit,
+        hasMore: false, // No pagination for now - dashboard needs all memories to group properly
         total: memoriesWithShareInfo.length,
       });
     }
@@ -158,7 +187,7 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
     return NextResponse.json({
       success: true,
       data: memoriesWithShareInfo,
-      hasMore: memoriesWithShareInfo.length === limit,
+      hasMore: false, // No pagination for now - dashboard needs all memories to group properly
       total: memoriesWithShareInfo.length,
     });
   } catch (error) {

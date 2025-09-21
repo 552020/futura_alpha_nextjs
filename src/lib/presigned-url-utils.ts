@@ -1,6 +1,6 @@
 /**
  * PRESIGNED URL UTILITIES
- * 
+ *
  * Shared utilities for generating presigned URLs for S3 objects.
  * Used by both gallery API and single image view to avoid code duplication.
  */
@@ -59,7 +59,7 @@ export async function generatePresignedUrlFromS3Url(s3Url: string): Promise<stri
     if (urlParts.length === 2) {
       const s3Key = urlParts[1];
       console.log(`🔑 Generating presigned URL for S3 key: ${s3Key}`);
-      
+
       const presignedUrl = await generatePresignedUrl(s3Key);
       console.log(`✅ Generated presigned URL from S3 URL`);
       return presignedUrl;
