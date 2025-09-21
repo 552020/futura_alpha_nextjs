@@ -51,39 +51,7 @@ interface Memory {
 // Allow all possible asset types
 type AssetType = MemoryAsset['assetType'];
 
-// Helper function to generate presigned URL for private S3 objects
-async function generatePresignedUrl(key: string): Promise<string> {
-  console.log('🔑 Requesting presigned URL for key:', key);
-  try {
-    const response = await fetch('/api/s3/presigned-url', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ key }),
-    });
-
-    console.log('📡 Presigned URL response status:', response.status);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Failed to generate presigned URL:', errorText);
-      throw new Error(`Failed to generate presigned URL: ${errorText}`);
-    }
-
-    const data = await response.json();
-    console.log('✅ Received presigned URL:', data.url ? 'URL received' : 'No URL in response');
-
-    if (!data.url) {
-      throw new Error('No URL returned from presigned URL endpoint');
-    }
-
-    return data.url;
-  } catch (error) {
-    console.error('❌ Error in generatePresignedUrl:', error);
-    throw error;
-  }
-}
+import { generatePresignedUrlFromStorageKey } from '@/lib/presigned-url-utils';
 
 const getAssetUrl = async (
   assets: MemoryAsset[] | undefined,
@@ -106,26 +74,7 @@ const getAssetUrl = async (
       return asset.url || '';
     }
 
-    try {
-      console.log('🔑 Attempting to get presigned URL for:', asset.storageKey);
-      const presignedUrl = await generatePresignedUrl(asset.storageKey);
-      console.log('✅ Using presigned URL for asset:', asset.id);
-      return presignedUrl;
-    } catch (error) {
-      console.warn('⚠️ Falling back to direct URL for asset:', {
-        id: asset.id,
-        error: error instanceof Error ? error.message : String(error),
-      });
-
-      // Fallback to direct URL if presigned URL generation fails
-      const bucket =
-        process.env.NEXT_PUBLIC_AWS_S3_BUCKET || process.env.AWS_S3_BUCKET || asset.bucket || 'default-bucket';
-      const region = process.env.NEXT_PUBLIC_AWS_S3_REGION || 'eu-central-1';
-      const directUrl = `https://${bucket}.s3.${region}.amazonaws.com/${asset.storageKey}`;
-
-      console.log('🔄 Using direct URL as fallback:', directUrl);
-      return directUrl;
-    }
+    return generatePresignedUrlFromStorageKey(asset.storageKey, asset.bucket);
   };
 
   // Try to find the preferred asset type first
