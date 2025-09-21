@@ -36,7 +36,8 @@ export type UploadResponse = {
 export function buildNewMemoryAndAsset(
   file: File,
   url: string,
-  ownerId: string
+  ownerId: string,
+  storageBackend: 's3' | 'vercel_blob' = 's3'
 ): { memory: NewDBMemory; asset: NewDBMemoryAsset } {
   const name = file.name || 'Untitled';
 
@@ -49,6 +50,8 @@ export function buildNewMemoryAndAsset(
     isPublic: false,
     parentFolderId: null,
     ownerSecureCode: randomUUID(),
+    storageLocations: ['neon-db', storageBackend === 's3' ? 'aws-s3' : 'vercel-blob'],
+    storageCount: 2,
   };
 
   const asset: NewDBMemoryAsset = {
@@ -56,8 +59,14 @@ export function buildNewMemoryAndAsset(
     assetType: 'original',
     variant: 'default',
     url,
-    storageBackend: 'vercel_blob',
-    storageKey: url.split('/').pop() || '',
+    storageBackend,
+    storageKey:
+      storageBackend === 's3'
+        ? url.replace(
+            `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_S3_REGION || 'eu-central-1'}.amazonaws.com/`,
+            ''
+          )
+        : url.split('/').pop() || '',
     bytes: file.size,
     width: null,
     height: null,
@@ -74,13 +83,13 @@ export function buildNewMemoryAndAsset(
  * Process multiple files and create memories/assets in batch
  * This function handles the batch processing logic for folder uploads
  */
-export async function processMultipleFilesBatch(params: { files: File[]; urls: string[]; ownerId: string }): Promise<{
+export async function processMultipleFilesBatch(params: { files: File[]; urls: string[]; ownerId: string; parentFolderId?: string; storageBackend?: 's3' | 'vercel_blob' }): Promise<{
   success: boolean;
   memories: DBMemory[];
   assets: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
   error?: string;
 }> {
-  const { files, urls, ownerId } = params;
+  const { files, urls, ownerId, parentFolderId, storageBackend = 's3' } = params;
 
   try {
     // Build memory and asset data for all files
@@ -88,7 +97,10 @@ export async function processMultipleFilesBatch(params: { files: File[]; urls: s
     const assetRows: NewDBMemoryAsset[] = [];
 
     files.forEach((file, index) => {
-      const { memory, asset } = buildNewMemoryAndAsset(file, urls[index], ownerId);
+      const { memory, asset } = buildNewMemoryAndAsset(file, urls[index], ownerId, storageBackend);
+      if (parentFolderId) {
+        memory.parentFolderId = parentFolderId;
+      }
       memoryRows.push(memory);
       assetRows.push(asset);
     });
