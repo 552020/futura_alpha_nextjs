@@ -17,7 +17,7 @@ import { uploadToS3 } from '@/lib/s3';
 export async function uploadFileToStorage(
   file: File,
   existingBuffer?: Buffer,
-  storageBackend: string = 'vercel_blob',
+  storageBackend: string = 's3',
   userId?: string
 ): Promise<string> {
   if (storageBackend === 's3') {
@@ -65,7 +65,7 @@ export async function uploadFileToStorageWithErrorHandling(
   file: File,
   buffer: Buffer,
   uploadFn: typeof uploadFileToStorage,
-  storageBackend: string = 'vercel_blob',
+  storageBackend: string = 's3',
   userId?: string
 ): Promise<{ url: string; error: null } | { url: null; error: string }> {
   try {

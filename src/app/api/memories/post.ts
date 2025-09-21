@@ -532,7 +532,7 @@ async function handleBlobUrlRequest(body: {
     isOnboarding,
     mode,
     userId,
-    storageBackend = 'vercel_blob',
+    storageBackend = 's3',
     storageKey,
   } = body;
 

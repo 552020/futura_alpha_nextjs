@@ -33,9 +33,9 @@ export function useFileUpload({ isOnboarding = false, mode = 'folder', onSuccess
   const { data: preferences } = useStoragePreferences();
   const uploadStorageMutation = useUploadStorage();
 
-  function mapPrefToBackend(pref?: 'neon' | 'icp' | 'dual' | 's3'): 'neon-db' | 'icp-canister' {
+  function mapPrefToBackend(pref?: 'neon' | 'icp' | 's3' | 'vercel_blob'): 'neon-db' | 'icp-canister' {
     if (pref === 'icp') return 'icp-canister';
-    return 'neon-db'; // default for neon, dual, s3, undefined
+    return 'neon-db'; // default for neon, s3, vercel_blob, undefined
   }
 
   async function requestUploadStorage(preferred?: 'neon-db' | 'icp-canister') {
@@ -187,14 +187,11 @@ export function useFileUpload({ isOnboarding = false, mode = 'folder', onSuccess
         console.log(`✅ ICP authentication confirmed`);
       }
 
-      // Temporary override for testing - force S3 uploads
-      const storageBackend = 's3' as const;
-      console.log('🔧 TEMPORARY OVERRIDE: Forcing S3 uploads for testing');
-      // Original code (commented out for reference):
-      // let storageBackend: 'vercel_blob' | 's3' = 'vercel_blob';
-      // if (userStoragePreference === 's3') {
-      //   storageBackend = 's3';
-      // }
+      // Use default storage backend (now S3)
+      let storageBackend: 'vercel_blob' | 's3' = 's3';
+      if (userStoragePreference === 'vercel_blob') {
+        storageBackend = 'vercel_blob';
+      }
 
       // Use the unified uploadFile function
       console.log(`🚀 Calling uploadFile with parameters:`, {
@@ -362,7 +359,7 @@ export function useFileUpload({ isOnboarding = false, mode = 'folder', onSuccess
 
           // Add storage backend information to ensure consistent behavior with single file uploads
           formData.append('storageBackend', 's3');
-          
+
           // Note: The unified POST /api/memories endpoint handles user authentication internally
           // No need to pass userId as it will be determined from the session or onboarding context
 

@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
               assetType: asset.assetType as 'original' | 'display' | 'thumb' | 'placeholder' | 'poster' | 'waveform',
               variant: asset.variant || null,
               url: asset.url,
-              storageBackend: asset.storageBackend || 'vercel_blob',
+              storageBackend: asset.storageBackend || 's3',
               storageKey: asset.storageKey || asset.url.split('/').pop() || '',
               bytes: asset.bytes,
               width: asset.width || null,

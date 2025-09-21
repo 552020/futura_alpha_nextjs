@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "src/app/api/memories/route.ts": {
+      "maxDuration": 300
+    }
+  },
   "rewrites": [
     {
       "source": "/ingest/:path*",

@@ -176,8 +176,8 @@ export const uploadFile = async (
   isOnboarding: boolean,
   existingUserId?: string,
   mode: UploadMode = 'files',
-  storageBackend: StorageBackend | StorageBackend[] = 'vercel_blob',
-  userStoragePreference?: 'neon' | 'icp' | 'dual' | 's3'
+  storageBackend: StorageBackend | StorageBackend[] = 's3',
+  userStoragePreference?: 'neon' | 'icp' | 's3' | 'vercel_blob'
 ): Promise<UploadResponse> => {
   console.log(`🚀 Starting upload for ${file.name}...`);
   console.log(`🔍 Upload parameters:`, {
@@ -340,11 +340,7 @@ async function uploadFileToBlob(
 /**
  * Upload file to AWS S3 using the secure upload flow with presigned URLs
  */
-async function uploadFileToS3(
-  file: File,
-  isOnboarding: boolean,
-  existingUserId?: string
-): Promise<UploadResponse> {
+async function uploadFileToS3(file: File, isOnboarding: boolean, existingUserId?: string): Promise<UploadResponse> {
   console.log(`☁️ Starting S3 upload for: ${file.name}`);
 
   try {
@@ -421,7 +417,7 @@ async function uploadFileToS3(
     const memoryType = getMemoryTypeFromFile(file);
     const memoryId = responseData?.memoryId || `mem-${Date.now()}`;
     const publicUrl = responseData?.url || '';
-    
+
     const result: UploadResponse = {
       success: true,
       data: {
@@ -450,7 +446,7 @@ async function uploadFileToS3(
         ],
       },
     };
-    
+
     return result;
   } catch (error) {
     console.error('❌ S3 upload failed:', error);
@@ -466,8 +462,8 @@ export const uploadFiles = async (
   isOnboarding: boolean,
   existingUserId?: string,
   mode: UploadMode = 'folder',
-  storageBackend: StorageBackend | StorageBackend[] = 'vercel_blob',
-  userStoragePreference?: 'neon' | 'icp' | 'dual' | 's3'
+  storageBackend: StorageBackend | StorageBackend[] = 's3',
+  userStoragePreference?: 'neon' | 'icp' | 's3' | 'vercel_blob'
 ): Promise<UploadResponse[]> => {
   console.log(`🚀 Starting folder upload for ${files.length} files...`);
 

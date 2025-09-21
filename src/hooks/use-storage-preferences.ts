@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { parseApiError, normalizeError, type NormalizedError } from '@/lib/error-handling';
 
-export type Pref = 'neon' | 'icp' | 'dual' | 's3';
+export type Pref = 'neon' | 'icp' | 's3' | 'vercel_blob';
 export type Primary = 'neon-db' | 'icp-canister' | 'vercel-blob';
 
 export interface StoragePreferences {
@@ -13,15 +13,16 @@ export interface StoragePreferences {
 // ---- enum ↔ toggle helpers ----
 export function prefToToggles(pref: Pref) {
   return {
-    neon: pref === 'neon' || pref === 'dual',
-    icp: pref === 'icp' || pref === 'dual',
+    neon: pref === 'neon',
+    icp: pref === 'icp',
     s3: pref === 's3',
+    vercel_blob: pref === 'vercel_blob',
   };
 }
 
-export function togglesToPref(neon: boolean, icp: boolean, s3 = false): Pref {
+export function togglesToPref(neon: boolean, icp: boolean, s3 = false, vercel_blob = false): Pref {
   if (s3) return 's3';
-  if (neon && icp) return 'dual';
+  if (vercel_blob) return 'vercel_blob';
   if (neon) return 'neon';
   if (icp) return 'icp';
   return 'neon'; // Default fallback

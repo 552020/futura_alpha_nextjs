@@ -198,8 +198,7 @@ export async function createMemoryFromJson(
           (a.assetType as 'original' | 'display' | 'thumb' | 'placeholder' | 'poster' | 'waveform') || 'original',
         variant: (a.variant as string) || null,
         url: (a.url as string) || '',
-        storageBackend:
-          (a.storageBackend as 'neon' | 'icp' | 's3' | 'vercel_blob' | 'arweave' | 'ipfs') || 'vercel_blob',
+        storageBackend: (a.storageBackend as 'neon' | 'icp' | 's3' | 'vercel_blob' | 'arweave' | 'ipfs') || 's3',
         storageKey: (a.storageKey as string) || (a.url as string)?.split('/').pop() || '',
         bytes: (a.bytes as number) || 0,
         width: (a.width as number) || null,

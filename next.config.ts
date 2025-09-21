@@ -47,6 +47,8 @@ const nextConfig: NextConfig = {
       env.NEXT_PUBLIC_CANISTER_ID_INTERNET_IDENTITY &&
       (isLocal ? `http://${env.NEXT_PUBLIC_CANISTER_ID_INTERNET_IDENTITY}.localhost:4943/` : 'https://id.ai'),
   },
+  // Configure server to handle large request bodies
+  serverExternalPackages: ['@vercel/blob'],
   webpack: (config, { isServer }) => {
     config.resolve.alias = {
       ...config.resolve.alias,
