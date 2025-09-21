@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Pencil, Share2, Trash2 } from "lucide-react";
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Pencil, Share2, Trash2 } from 'lucide-react';
 
 interface BaseCardProps<T> {
   item: T;
@@ -33,7 +33,7 @@ export function BaseCard<T>({
   renderDescription,
   renderStorageBadge,
   renderLeftStatus,
-  className = "",
+  className = '',
 }: BaseCardProps<T>) {
   return (
     <Card
@@ -77,7 +77,7 @@ export function BaseCard<T>({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={(e) => {
+                onClick={e => {
                   e.stopPropagation();
                   onEdit(item);
                 }}
@@ -89,7 +89,7 @@ export function BaseCard<T>({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={(e) => {
+                onClick={e => {
                   e.stopPropagation();
                   onShare(item);
                 }}
@@ -101,7 +101,7 @@ export function BaseCard<T>({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={(e) => {
+                onClick={e => {
                   e.stopPropagation();
                   onDelete(item);
                 }}

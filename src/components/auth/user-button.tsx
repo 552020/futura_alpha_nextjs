@@ -1,14 +1,14 @@
-import { Avatar, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { auth } from "@/auth";
+import { Avatar, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { auth } from '@/auth';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { SignIn, SignOut } from "./auth-components";
+} from '@/components/ui/dropdown-menu';
+import { SignIn, SignOut } from './auth-components';
 
 export default async function UserButton() {
   const session = await auth();
@@ -27,7 +27,7 @@ export default async function UserButton() {
                     Math.floor(Math.random() * 100000) + 1
                   }&randomizeIds=true`
                 }
-                alt={session.user.name ?? ""}
+                alt={session.user.name ?? ''}
               />
             </Avatar>
           </Button>

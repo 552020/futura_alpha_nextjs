@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Image, Folder, Share2, TrendingUp, Calendar, Trophy, Zap } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Image, Folder, Share2, TrendingUp, Calendar, Trophy, Zap } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 // This component displays user activity statistics and achievements
 
@@ -24,7 +24,7 @@ export function ProfileStats() {
   useEffect(() => {
     const loadStats = async () => {
       // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       // Mock data - replace with real API calls
       setStats({
@@ -58,7 +58,7 @@ export function ProfileStats() {
     const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
     const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
 
-    if (diffInMinutes < 1) return "Just now";
+    if (diffInMinutes < 1) return 'Just now';
     if (diffInMinutes < 60) return `${diffInMinutes} minutes ago`;
     if (diffInHours < 24) return `${diffInHours} hours ago`;
     if (diffInDays < 7) return `${diffInDays} days ago`;
@@ -118,8 +118,8 @@ export function ProfileStats() {
           <div className="flex items-center justify-between">
             <h4 className="font-semibold text-slate-700 dark:text-slate-300">Storage Usage</h4>
             <Badge
-              variant={isStorageCritical ? "destructive" : isStorageWarning ? "secondary" : "default"}
-              className={isStorageCritical ? "bg-red-500" : isStorageWarning ? "bg-yellow-500" : "bg-green-500"}
+              variant={isStorageCritical ? 'destructive' : isStorageWarning ? 'secondary' : 'default'}
+              className={isStorageCritical ? 'bg-red-500' : isStorageWarning ? 'bg-yellow-500' : 'bg-green-500'}
             >
               {storagePercentage.toFixed(1)}%
             </Badge>
@@ -133,10 +133,10 @@ export function ProfileStats() {
             <Progress value={storagePercentage} className="h-2" />
             <div className="text-xs text-slate-500 dark:text-slate-500">
               {isStorageCritical
-                ? "Storage almost full! Consider upgrading your plan."
+                ? 'Storage almost full! Consider upgrading your plan.'
                 : isStorageWarning
-                ? "Storage usage is getting high."
-                : "Plenty of storage space available."}
+                  ? 'Storage usage is getting high.'
+                  : 'Plenty of storage space available.'}
             </div>
           </div>
         </div>

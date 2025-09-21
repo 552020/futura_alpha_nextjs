@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useInterface } from "@/contexts/interface-context";
-import { useRouter } from "next/navigation";
-import { OnboardModal } from "@/components/onboarding/onboard-modal";
+import { useState } from 'react';
+import { useInterface } from '@/contexts/interface-context';
+import { useRouter } from 'next/navigation';
+import { OnboardModal } from '@/components/onboarding/onboard-modal';
 // import { ItemUploadButton } from "@/components/memory/item-upload-button";
-import { ItemUploadButton } from "@/components/memory/item-upload-button";
-import { Dictionary } from "@/utils/dictionaries";
+import { ItemUploadButton } from '@/components/memory/item-upload-button';
+import { Dictionary } from '@/utils/dictionaries';
 
 // Hardcoded constants for this component
-const COMPONENT_PATH = "items-upload";
-const VARIATION = "wedding-memory";
+const COMPONENT_PATH = 'items-upload';
+const VARIATION = 'wedding-memory';
 
 interface ItemsUploadClientProps {
   lang: string;
@@ -21,7 +21,7 @@ export default function ItemsUploadClientExperiment({ lang, dict }: ItemsUploadC
   const router = useRouter();
   const { setMode } = useInterface();
   const [showOnboardModal, setShowOnboardModal] = useState(false);
-  const [uploadMode, setUploadMode] = useState<"folder" | "files">("folder");
+  const [uploadMode, setUploadMode] = useState<'folder' | 'files'>('folder');
 
   const handleUploadSuccess = () => {
     setShowOnboardModal(true);
@@ -33,7 +33,7 @@ export default function ItemsUploadClientExperiment({ lang, dict }: ItemsUploadC
 
   const handleOnboardingComplete = () => {
     setShowOnboardModal(false);
-    setMode("app");
+    setMode('app');
     router.push(`/${lang}/onboarding/profile`);
   };
 
@@ -48,28 +48,28 @@ export default function ItemsUploadClientExperiment({ lang, dict }: ItemsUploadC
       {/* Title with embedded toggle buttons */}
       <div className="max-w-4xl">
         <h1 className="text-6xl sm:text-7xl lg:text-8xl font-bold mb-8 tracking-tight">
-          Upload your{" "}
+          Upload your{' '}
           <button
-            onClick={() => setUploadMode("folder")}
+            onClick={() => setUploadMode('folder')}
             className={`px-3 py-1 rounded-lg font-medium transition-all ${
-              uploadMode === "folder"
-                ? "bg-black text-white dark:bg-white dark:text-black"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+              uploadMode === 'folder'
+                ? 'bg-black text-white dark:bg-white dark:text-black'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
             }`}
           >
             album
-          </button>{" "}
-          or pick the{" "}
+          </button>{' '}
+          or pick the{' '}
           <button
-            onClick={() => setUploadMode("files")}
+            onClick={() => setUploadMode('files')}
             className={`px-3 py-1 rounded-lg font-medium transition-all ${
-              uploadMode === "files"
-                ? "bg-black text-white dark:bg-white dark:text-black"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+              uploadMode === 'files'
+                ? 'bg-black text-white dark:bg-white dark:text-black'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
             }`}
           >
             one shot
-          </button>{" "}
+          </button>{' '}
           you love the most
         </h1>
       </div>

@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import { Settings } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
-import { useParams } from "next/navigation";
+import { Settings } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 
 export function SettingsButton() {
   const router = useRouter();
   const params = useParams();
-  const lang = (params.lang as string) || "en";
+  const lang = (params.lang as string) || 'en';
 
   const handleSettingsClick = () => {
     // Navigate to settings page

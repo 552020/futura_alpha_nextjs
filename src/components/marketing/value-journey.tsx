@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import Image from "next/image";
-import { Dictionary } from "@/utils/dictionaries";
-import Link from "next/link";
-import { useRef, useEffect, useState } from "react";
+import Image from 'next/image';
+import { Dictionary } from '@/utils/dictionaries';
+import Link from 'next/link';
+import { useRef, useEffect, useState } from 'react';
 
 // Define valid journey types
-type JourneyType = "family" | "black-mirror" | "creatives" | "wedding";
+type JourneyType = 'family' | 'black-mirror' | 'creatives' | 'wedding';
 
 type Scene = {
   image?: string;
@@ -21,12 +21,12 @@ interface ValueJourneyProps {
   segment?: string; // Make segment optional with a default
 }
 
-const ValueJourney: React.FC<ValueJourneyProps> = ({ dict, lang, segment = "family" }) => {
+const ValueJourney: React.FC<ValueJourneyProps> = ({ dict, lang, segment = 'family' }) => {
   // Validate that segment is a valid journey type, default to "family" if not
-  const journeyType = (segment as JourneyType) || "family";
+  const journeyType = (segment as JourneyType) || 'family';
 
   // Use the passed lang prop if available, otherwise default to "en"
-  const currentLang = lang || "en";
+  const currentLang = lang || 'en';
 
   // Get the scenes for the selected journey type
   const getScenes = () => {
@@ -48,12 +48,12 @@ const ValueJourney: React.FC<ValueJourneyProps> = ({ dict, lang, segment = "fami
       if (!scene) break; // Exit the loop if the scene doesn't exist
 
       // Type guard to ensure scene is an object with the expected properties
-      if (typeof scene === "object" && scene !== null && isScene(scene)) {
+      if (typeof scene === 'object' && scene !== null && isScene(scene)) {
         // Make sure image paths are absolute from the root, not relative to the current route
         let imagePath = scene.image || `/images/segments/${journeyType}/scene_${sceneIndex}.webp`;
 
         // Ensure the path starts with a slash and doesn't have the locale prefix
-        if (!imagePath.startsWith("/")) {
+        if (!imagePath.startsWith('/')) {
           imagePath = `/${imagePath}`;
         }
 
@@ -72,7 +72,7 @@ const ValueJourney: React.FC<ValueJourneyProps> = ({ dict, lang, segment = "fami
   };
 
   const scenes = getScenes();
-  const conclusion = dict?.valueJourney?.conclusion || "";
+  const conclusion = dict?.valueJourney?.conclusion || '';
 
   return (
     <section id="learn-more" className="py-20 bg-white dark:bg-[#0A0A0B]">
@@ -95,9 +95,9 @@ const ValueJourney: React.FC<ValueJourneyProps> = ({ dict, lang, segment = "fami
                       <Link
                         href={`/${currentLang}/onboarding/items-upload`}
                         className="relative w-48 md:w-96 2xl:w-[480px] h-48 md:h-96 2xl:h-[480px] rounded-full bg-neutral-900 hover:bg-white dark:bg-white dark:hover:bg-neutral-900 flex items-center justify-center cursor-pointer text-white hover:text-neutral-900 dark:text-neutral-900 dark:hover:text-white border-2 border-transparent hover:border-neutral-900 dark:hover:border-white transition-all text-7xl md:text-9xl font-bold"
-                        aria-label={dict?.hero?.startNow || "Start Now"}
+                        aria-label={dict?.hero?.startNow || 'Start Now'}
                       >
-                        {dict?.hero?.arrowSymbol || "→"}
+                        {dict?.hero?.arrowSymbol || '→'}
                       </Link>
                     </div>
                   </div>
@@ -154,10 +154,10 @@ function SceneItem({
       ref={ref}
       className={`
         flex flex-col md:flex-row items-center 
-        ${!isLast ? "mb-24" : "mb-8"} 
-        ${isEven ? "" : "md:flex-row-reverse"}
+        ${!isLast ? 'mb-24' : 'mb-8'} 
+        ${isEven ? '' : 'md:flex-row-reverse'}
         transition-opacity duration-700 ease-in-out
-        ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}
+        ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}
         w-full
       `}
     >
@@ -174,7 +174,7 @@ function SceneItem({
         </div>
       </div>
 
-      <div className={`w-full md:flex-1 ${isEven ? "md:pl-12 lg:pl-24" : "md:pr-12 lg:pr-24"}`}>
+      <div className={`w-full md:flex-1 ${isEven ? 'md:pl-12 lg:pl-24' : 'md:pr-12 lg:pr-24'}`}>
         <h3 className="text-3xl md:text-4xl 2xl:text-6xl font-bold mb-4">{scene.title}</h3>
         {scene.subtitle && (
           <h4 className="text-xl md:text-2xl 2xl:text-4xl text-gray-600 dark:text-gray-400">{scene.subtitle}</h4>
@@ -186,5 +186,5 @@ function SceneItem({
 
 // Add type guard function at the end of file
 function isScene(obj: unknown): obj is Scene {
-  return typeof obj === "object" && obj !== null;
+  return typeof obj === 'object' && obj !== null;
 }

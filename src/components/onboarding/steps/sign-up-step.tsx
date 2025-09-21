@@ -1,13 +1,13 @@
-import { Button } from "@/components/ui/button";
-import { signIn } from "next-auth/react";
-import { Github } from "lucide-react";
-import { useOnboarding } from "@/contexts/onboarding-context";
-import { StepContainer } from "../common/step-container";
-import { StepNavigation } from "../common/step-navigation";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useState } from "react";
-import { useParams } from "next/navigation";
+import { Button } from '@/components/ui/button';
+import { signIn } from 'next-auth/react';
+import { Github } from 'lucide-react';
+import { useOnboarding } from '@/contexts/onboarding-context';
+import { StepContainer } from '../common/step-container';
+import { StepNavigation } from '../common/step-navigation';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useState } from 'react';
+import { useParams } from 'next/navigation';
 
 interface SignUpStepProps {
   onBack?: () => void;
@@ -16,19 +16,19 @@ interface SignUpStepProps {
 export function SignUpStep({ onBack }: SignUpStepProps) {
   const { currentStep, userData } = useOnboarding();
   const params = useParams();
-  const lang = params.lang || "en";
-  const [email, setEmail] = useState(userData.email || "");
-  const [password, setPassword] = useState("");
+  const lang = params.lang || 'en';
+  const [email, setEmail] = useState(userData.email || '');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const handleGithubSignIn = () => {
-    signIn("github", {
+    signIn('github', {
       callbackUrl: `/${lang}/vault`,
     });
   };
 
   const handleGoogleSignIn = () => {
-    signIn("google", {
+    signIn('google', {
       callbackUrl: `/${lang}/vault`,
     });
   };
@@ -38,21 +38,21 @@ export function SignUpStep({ onBack }: SignUpStepProps) {
     setError(null);
 
     try {
-      const response = await signIn("credentials", {
+      const response = await signIn('credentials', {
         email,
         password,
         redirect: false,
       });
 
       if (response?.error) {
-        setError("Invalid email or password");
+        setError('Invalid email or password');
         return;
       }
 
       // If successful, redirect to vault
       window.location.href = `/${lang}/vault`;
     } catch {
-      setError("An error occurred. Please try again.");
+      setError('An error occurred. Please try again.');
     }
   };
 
@@ -109,7 +109,7 @@ export function SignUpStep({ onBack }: SignUpStepProps) {
             id="email"
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={e => setEmail(e.target.value)}
             placeholder="Enter your email"
             required
           />
@@ -120,7 +120,7 @@ export function SignUpStep({ onBack }: SignUpStepProps) {
             id="password"
             type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={e => setPassword(e.target.value)}
             placeholder="Create a password"
             required
           />

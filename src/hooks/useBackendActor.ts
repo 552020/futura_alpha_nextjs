@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useCallback } from "react";
-import type { BackendActor } from "@/ic/backend";
-import type { Identity } from "@dfinity/agent";
+import { useCallback } from 'react';
+import type { BackendActor } from '@/ic/backend';
+import type { Identity } from '@dfinity/agent';
 
 /**
  * Client-only hook for creating backend actors
@@ -10,7 +10,7 @@ import type { Identity } from "@dfinity/agent";
  */
 export function useBackendActor() {
   const createActor = useCallback(async (identity?: Identity): Promise<BackendActor> => {
-    const { backendActor } = await import("@/ic/backend");
+    const { backendActor } = await import('@/ic/backend');
     return backendActor(identity);
   }, []);
 

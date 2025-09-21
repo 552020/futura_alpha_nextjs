@@ -1,18 +1,18 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import request from "supertest";
-import { testDb } from "@/db/test-db";
-import { users, allUsers } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import request from 'supertest';
+import { testDb } from '@/db/test-db';
+import { users, allUsers } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import {
   generateGoogleUserJWT,
   generateIIUserJWT,
   generateActiveIIUserJWT,
   generateExpiredJWT,
   type TestUserJWT,
-} from "./utils/jwt-generator";
+} from './utils/jwt-generator';
 
-describe("Hybrid Authentication Testing - Database + JWT", () => {
-  const baseURL = "http://localhost:3000";
+describe('Hybrid Authentication Testing - Database + JWT', () => {
+  const baseURL = 'http://localhost:3000';
   let testUser1Id: string;
   let testUser2Id: string;
   let testUser3Id: string;
@@ -34,48 +34,48 @@ This should give us realistic authentication testing!
       const [testUser1] = await testDb
         .insert(users)
         .values({
-          email: "test-hybrid-1@example.com",
-          name: "Test Hybrid User 1",
-          username: "testhybrid1",
-          role: "user",
-          plan: "free",
+          email: 'test-hybrid-1@example.com',
+          name: 'Test Hybrid User 1',
+          username: 'testhybrid1',
+          role: 'user',
+          plan: 'free',
         })
         .returning();
 
       const [testUser2] = await testDb
         .insert(users)
         .values({
-          email: "test-hybrid-2@example.com",
-          name: "Test Hybrid User 2",
-          username: "testhybrid2",
-          role: "admin",
-          plan: "premium",
+          email: 'test-hybrid-2@example.com',
+          name: 'Test Hybrid User 2',
+          username: 'testhybrid2',
+          role: 'admin',
+          plan: 'premium',
         })
         .returning();
 
       const [testUser3] = await testDb
         .insert(users)
         .values({
-          email: "test-hybrid-3@example.com",
-          name: "Test Hybrid User 3",
-          username: "testhybrid3",
-          role: "user",
-          plan: "free",
+          email: 'test-hybrid-3@example.com',
+          name: 'Test Hybrid User 3',
+          username: 'testhybrid3',
+          role: 'user',
+          plan: 'free',
         })
         .returning();
 
       // Create allUsers records
       await Promise.all([
         testDb.insert(allUsers).values({
-          type: "user",
+          type: 'user',
           userId: testUser1.id,
         }),
         testDb.insert(allUsers).values({
-          type: "user",
+          type: 'user',
           userId: testUser2.id,
         }),
         testDb.insert(allUsers).values({
-          type: "user",
+          type: 'user',
           userId: testUser3.id,
         }),
       ]);
@@ -94,7 +94,7 @@ This should give us realistic authentication testing!
 Now let's test authentication with JWT tokens!
       `);
     } catch (error) {
-      console.error("❌ Error creating test users:", error);
+      console.error('❌ Error creating test users:', error);
       throw error;
     }
   });
@@ -105,168 +105,168 @@ Now let's test authentication with JWT tokens!
       await testDb.delete(users).where(eq(users.id, testUser1Id));
       await testDb.delete(users).where(eq(users.id, testUser2Id));
       await testDb.delete(users).where(eq(users.id, testUser3Id));
-      console.log("🧹 Test users cleaned up successfully");
+      console.log('🧹 Test users cleaned up successfully');
     } catch (error) {
-      console.error("❌ Error cleaning up test users:", error);
+      console.error('❌ Error cleaning up test users:', error);
     }
   });
 
-  describe("Testing Authentication with Real Database Users", () => {
-    it("should test basic Google authentication", async () => {
+  describe('Testing Authentication with Real Database Users', () => {
+    it('should test basic Google authentication', async () => {
       const testUser: TestUserJWT = {
         id: testUser1Id,
-        email: "test-hybrid-1@example.com",
-        name: "Test Hybrid User 1",
-        role: "user",
+        email: 'test-hybrid-1@example.com',
+        name: 'Test Hybrid User 1',
+        role: 'user',
       };
 
       const validToken = generateGoogleUserJWT(testUser);
 
       const response = await request(baseURL)
-        .get("/api/test/auth")
-        .set("Authorization", `Bearer ${validToken}`)
+        .get('/api/test/auth')
+        .set('Authorization', `Bearer ${validToken}`)
         .expect(200);
 
       expect(response.body).toMatchObject({
-        message: "Hello from authenticated GET test endpoint!",
+        message: 'Hello from authenticated GET test endpoint!',
         user: {
           id: testUser.id,
           email: testUser.email,
           name: testUser.name,
         },
-        status: "success",
+        status: 'success',
       });
     });
 
-    it("should test admin user authentication", async () => {
+    it('should test admin user authentication', async () => {
       const testUser: TestUserJWT = {
         id: testUser2Id,
-        email: "test-hybrid-2@example.com",
-        name: "Test Hybrid User 2",
-        role: "admin",
+        email: 'test-hybrid-2@example.com',
+        name: 'Test Hybrid User 2',
+        role: 'admin',
       };
 
       const validToken = generateGoogleUserJWT(testUser);
 
       const response = await request(baseURL)
-        .get("/api/test/auth")
-        .set("Authorization", `Bearer ${validToken}`)
+        .get('/api/test/auth')
+        .set('Authorization', `Bearer ${validToken}`)
         .expect(200);
 
       expect(response.body).toMatchObject({
-        message: "Hello from authenticated GET test endpoint!",
+        message: 'Hello from authenticated GET test endpoint!',
         user: {
           id: testUser.id,
           email: testUser.email,
           name: testUser.name,
-          role: "admin",
+          role: 'admin',
         },
-        status: "success",
+        status: 'success',
       });
     });
 
-    it("should test user with linked Internet Identity Principal", async () => {
+    it('should test user with linked Internet Identity Principal', async () => {
       const testUser: TestUserJWT = {
         id: testUser3Id,
-        email: "test-hybrid-3@example.com",
-        name: "Test Hybrid User 3",
-        role: "user",
-        linkedIcPrincipal: "2vxsx-fae",
+        email: 'test-hybrid-3@example.com',
+        name: 'Test Hybrid User 3',
+        role: 'user',
+        linkedIcPrincipal: '2vxsx-fae',
       };
 
-      const validToken = generateIIUserJWT(testUser, "2vxsx-fae");
+      const validToken = generateIIUserJWT(testUser, '2vxsx-fae');
 
       const response = await request(baseURL)
-        .get("/api/test/auth")
-        .set("Authorization", `Bearer ${validToken}`)
+        .get('/api/test/auth')
+        .set('Authorization', `Bearer ${validToken}`)
         .expect(200);
 
       expect(response.body).toMatchObject({
-        message: "Hello from authenticated GET test endpoint!",
+        message: 'Hello from authenticated GET test endpoint!',
         user: {
           id: testUser.id,
           email: testUser.email,
           name: testUser.name,
         },
-        status: "success",
+        status: 'success',
       });
     });
 
-    it("should test user with active II co-authentication", async () => {
+    it('should test user with active II co-authentication', async () => {
       const testUser: TestUserJWT = {
         id: testUser3Id,
-        email: "test-hybrid-3@example.com",
-        name: "Test Hybrid User 3",
-        role: "user",
-        linkedIcPrincipal: "2vxsx-fae",
-        activeIcPrincipal: "2vxsx-fae",
+        email: 'test-hybrid-3@example.com',
+        name: 'Test Hybrid User 3',
+        role: 'user',
+        linkedIcPrincipal: '2vxsx-fae',
+        activeIcPrincipal: '2vxsx-fae',
       };
 
-      const validToken = generateActiveIIUserJWT(testUser, "2vxsx-fae");
+      const validToken = generateActiveIIUserJWT(testUser, '2vxsx-fae');
 
       const response = await request(baseURL)
-        .get("/api/test/auth")
-        .set("Authorization", `Bearer ${validToken}`)
+        .get('/api/test/auth')
+        .set('Authorization', `Bearer ${validToken}`)
         .expect(200);
 
       expect(response.body).toMatchObject({
-        message: "Hello from authenticated GET test endpoint!",
+        message: 'Hello from authenticated GET test endpoint!',
         user: {
           id: testUser.id,
           email: testUser.email,
           name: testUser.name,
         },
-        status: "success",
+        status: 'success',
       });
     });
 
-    it("should test expired JWT token", async () => {
+    it('should test expired JWT token', async () => {
       const testUser: TestUserJWT = {
         id: testUser1Id,
-        email: "test-hybrid-1@example.com",
-        name: "Test Hybrid User 1",
-        role: "user",
+        email: 'test-hybrid-1@example.com',
+        name: 'Test Hybrid User 1',
+        role: 'user',
       };
 
       const expiredToken = generateExpiredJWT(testUser);
 
       const response = await request(baseURL)
-        .get("/api/test/auth")
-        .set("Authorization", `Bearer ${expiredToken}`)
+        .get('/api/test/auth')
+        .set('Authorization', `Bearer ${expiredToken}`)
         .expect(401);
 
       expect(response.body).toMatchObject({
-        message: "Authentication required",
-        error: "No valid session found",
-        status: "unauthorized",
+        message: 'Authentication required',
+        error: 'No valid session found',
+        status: 'unauthorized',
       });
     });
   });
 
-  describe("Testing Different Authentication States", () => {
-    it("should test unauthenticated request", async () => {
-      const response = await request(baseURL).get("/api/test/auth").expect(401);
+  describe('Testing Different Authentication States', () => {
+    it('should test unauthenticated request', async () => {
+      const response = await request(baseURL).get('/api/test/auth').expect(401);
 
       expect(response.body).toMatchObject({
-        message: "Authentication required",
-        error: "No valid session found",
-        status: "unauthorized",
+        message: 'Authentication required',
+        error: 'No valid session found',
+        status: 'unauthorized',
       });
     });
 
-    it("should test malformed authorization header", async () => {
-      const response = await request(baseURL).get("/api/test/auth").set("Authorization", "InvalidToken").expect(401);
+    it('should test malformed authorization header', async () => {
+      const response = await request(baseURL).get('/api/test/auth').set('Authorization', 'InvalidToken').expect(401);
 
       expect(response.body).toMatchObject({
-        message: "Authentication required",
-        error: "No valid session found",
-        status: "unauthorized",
+        message: 'Authentication required',
+        error: 'No valid session found',
+        status: 'unauthorized',
       });
     });
   });
 
-  describe("Next Steps: Testing Real ICP Endpoints", () => {
-    it("should outline how to test ICP endpoints", () => {
+  describe('Next Steps: Testing Real ICP Endpoints', () => {
+    it('should outline how to test ICP endpoints', () => {
       console.log(`
 🎯 NEXT STEPS: TESTING REAL ICP ENDPOINTS WITH HYBRID AUTH
 

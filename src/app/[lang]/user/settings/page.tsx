@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
-import { useAuthGuard } from "@/utils/authentication";
-import { Loader2 } from "lucide-react";
-import RequireAuth from "@/components/auth/require-auth";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { useInterface } from "@/contexts/interface-context";
-import { StorageSettings } from "@/components/user/storage-settings";
-import { StorageCard } from "@/components/user/storage-card";
+import { useAuthGuard } from '@/utils/authentication';
+import { Loader2 } from 'lucide-react';
+import RequireAuth from '@/components/auth/require-auth';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { useInterface } from '@/contexts/interface-context';
+import { StorageSettings } from '@/components/user/storage-settings';
+import { StorageCard } from '@/components/user/storage-card';
 
 export default function SettingsPage() {
   const { isAuthorized, isTemporaryUser, userId, isLoading } = useAuthGuard();
@@ -146,7 +146,7 @@ export default function SettingsPage() {
               <div className="space-y-0.5">
                 <Label>Account Type</Label>
                 <p className="text-sm text-muted-foreground">
-                  {isTemporaryUser ? "Temporary Account" : "Permanent Account"}
+                  {isTemporaryUser ? 'Temporary Account' : 'Permanent Account'}
                 </p>
               </div>
             </div>
@@ -206,7 +206,7 @@ export default function SettingsPage() {
                   Enable administrative features and system-wide controls.
                 </p>
               </div>
-              <div className="text-sm text-muted-foreground">{isAdmin ? "Enabled (Admin Role)" : "Disabled"}</div>
+              <div className="text-sm text-muted-foreground">{isAdmin ? 'Enabled (Admin Role)' : 'Disabled'}</div>
             </div>
             {(devMode || isAdmin) && (
               <>
@@ -229,7 +229,7 @@ export default function SettingsPage() {
                           {devMode &&
                             "Developer mode is now enabled. You'll see additional testing tools in the dashboard."}
                           {isAtLeastDeveloper &&
-                            "Admin features are now enabled. You have access to system-wide controls."}
+                            'Admin features are now enabled. You have access to system-wide controls.'}
                         </p>
                       </div>
                     </div>

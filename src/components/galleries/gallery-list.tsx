@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useCallback } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { useState, useEffect, useCallback } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
-import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { GalleryCard } from "./gallery-card";
-import { GalleryWithItems } from "@/types/gallery";
-import { galleryService } from "@/services/gallery";
-import { AlertCircle, RefreshCw, Plus } from "lucide-react";
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { GalleryCard } from './gallery-card';
+import { GalleryWithItems } from '@/types/gallery';
+import { galleryService } from '@/services/gallery';
+import { AlertCircle, RefreshCw, Plus } from 'lucide-react';
 
 interface GalleryListProps {
   page?: number;
@@ -29,7 +29,7 @@ export function GalleryList({
   showCreateButton = false,
   onGalleryClick,
   onCreateGallery,
-  className = "",
+  className = '',
 }: GalleryListProps) {
   const [galleries, setGalleries] = useState<GalleryWithItems[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -46,7 +46,7 @@ export function GalleryList({
         const result = await galleryService.listGalleries(pageNum, limit, useMockData);
 
         if (append) {
-          setGalleries((prev) => [...prev, ...result.galleries]);
+          setGalleries(prev => [...prev, ...result.galleries]);
         } else {
           setGalleries(result.galleries);
         }
@@ -54,8 +54,8 @@ export function GalleryList({
         setHasMore(result.galleries.length === limit);
         setCurrentPage(pageNum);
       } catch (err) {
-        console.error("Error loading galleries:", err);
-        setError(err instanceof Error ? err.message : "Failed to load galleries");
+        console.error('Error loading galleries:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load galleries');
       } finally {
         setIsLoading(false);
       }
@@ -167,7 +167,7 @@ export function GalleryList({
 
       {/* Gallery Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {galleries.map((gallery) => (
+        {galleries.map(gallery => (
           <GalleryCard key={gallery.id} gallery={gallery} onClick={() => onGalleryClick?.(gallery)} />
         ))}
       </div>
@@ -182,7 +182,7 @@ export function GalleryList({
                 Loading...
               </>
             ) : (
-              "Load More Galleries"
+              'Load More Galleries'
             )}
           </Button>
         </div>

@@ -44,8 +44,6 @@ This document outlines all API endpoints for the family file sharing application
 
 - `PUT /api/storage/edges` - Upsert storage edge records
 - `GET /api/storage/sync-status` - Get sync status and monitoring data
-- `GET /api/galleries/[id]/presence` - Get gallery storage presence status
-- `GET /api/memories/presence` - Get memory storage presence status
 
 ---
 
@@ -465,53 +463,6 @@ All API routes require authentication unless specified otherwise. Authentication
         "vercel-blob": 3,
         "icp-canister": 2
       }
-    }
-  }
-  ```
-
-### Get Gallery Presence
-
-- **URL**: `GET /api/galleries/[id]/presence`
-- **Description**: Get gallery storage presence status
-- **URL Parameters**:
-  - `id`: Gallery UUID
-- **Response**:
-  ```json
-  {
-    "success": true,
-    "data": {
-      "galleryId": "gallery-uuid",
-      "totalMemories": 5,
-      "icpCompleteMemories": 3,
-      "icpComplete": false,
-      "icpAny": true,
-      "icpCompletePercentage": 60,
-      "storageStatus": "partially_stored"
-    }
-  }
-  ```
-
-### Get Memory Presence
-
-- **URL**: `GET /api/memories/presence`
-- **Description**: Get memory storage presence status
-- **Query Parameters**:
-  - `id`: Memory UUID
-  - `type`: Memory type ("image", "video", "note", "document", "audio")
-- **Response**:
-  ```json
-  {
-    "success": true,
-    "data": {
-      "memoryId": "memory-uuid",
-      "memoryType": "image",
-      "storageStatus": {
-        "neon": true,
-        "blob": true,
-        "icp": false,
-        "icpPartial": true
-      },
-      "overallStatus": "partially_stored"
     }
   }
   ```

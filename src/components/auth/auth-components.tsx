@@ -1,8 +1,8 @@
-"use client"; // Ensure this runs on the client
+'use client'; // Ensure this runs on the client
 
-import { signIn, signOut } from "next-auth/react";
-import { Button } from "@/components/ui/button";
-import { clearIiSession } from "@/ic/ii";
+import { signIn, signOut } from 'next-auth/react';
+import { Button } from '@/components/ui/button';
+import { clearIiSession } from '@/ic/ii';
 
 // Custom signOut function that ensures complete cleanup
 async function handleCompleteSignOut() {
@@ -11,13 +11,13 @@ async function handleCompleteSignOut() {
     await clearIiSession();
   } catch (error) {
     // Ignore II cleanup errors - proceed with NextAuth signOut
-    console.warn("II cleanup failed:", error);
+    console.warn('II cleanup failed:', error);
   }
 
   // Clear NextAuth session completely
   // The JWT callback will handle Principal cleanup automatically
   await signOut({
-    callbackUrl: "/",
+    callbackUrl: '/',
     redirect: true,
   });
 }

@@ -1,5 +1,5 @@
-import { Button } from "@/components/ui/button";
-import { OnboardingStep } from "@/contexts/onboarding-context";
+import { Button } from '@/components/ui/button';
+import { OnboardingStep } from '@/contexts/onboarding-context';
 
 interface StepNavigationProps {
   currentStep: OnboardingStep;
@@ -18,8 +18,8 @@ export function StepNavigation({
   onBack,
   isNextDisabled = false,
   isBackDisabled = false,
-  nextLabel = "Next",
-  backLabel = "Back",
+  nextLabel = 'Next',
+  backLabel = 'Back',
   showBackButton = true,
 }: StepNavigationProps) {
   return (
@@ -30,7 +30,7 @@ export function StepNavigation({
         </Button>
       )}
       <div className="flex-1" />
-      {currentStep !== "sign-up" && (
+      {currentStep !== 'sign-up' && (
         <Button onClick={onNext} disabled={isNextDisabled}>
           {nextLabel}
         </Button>

@@ -1,10 +1,10 @@
 #!/usr/bin/env tsx
 
-import { db } from "@/db/db";
-import { users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { db } from '@/db/db';
+import { users } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 
-type UserRole = "user" | "moderator" | "admin" | "developer" | "superadmin";
+type UserRole = 'user' | 'moderator' | 'admin' | 'developer' | 'superadmin';
 
 interface UserInfo {
   id: string;
@@ -40,7 +40,7 @@ async function findUserByEmail(email: string): Promise<UserInfo | null> {
       createdAt: user.createdAt,
     };
   } catch (error) {
-    console.error("❌ Error finding user:", error);
+    console.error('❌ Error finding user:', error);
     return null;
   }
 }
@@ -51,7 +51,7 @@ async function updateUserRole(userId: string, newRole: UserRole): Promise<boolea
 
     return true;
   } catch (error) {
-    console.error("❌ Error updating user role:", error);
+    console.error('❌ Error updating user role:', error);
     return false;
   }
 }
@@ -72,7 +72,7 @@ async function listAllUsers(): Promise<UserInfo[]> {
     // Filter out users without email and map to UserInfo
     return allUsers
       .filter((user): user is typeof user & { email: string } => user.email !== null)
-      .map((user) => ({
+      .map(user => ({
         id: user.id,
         email: user.email,
         name: user.name,
@@ -80,14 +80,14 @@ async function listAllUsers(): Promise<UserInfo[]> {
         createdAt: user.createdAt,
       }));
   } catch (error) {
-    console.error("❌ Error listing users:", error);
+    console.error('❌ Error listing users:', error);
     return [];
   }
 }
 
-function printUserInfo(user: UserInfo, prefix: string = "") {
+function printUserInfo(user: UserInfo, prefix: string = '') {
   console.log(`${prefix}📧 Email: ${user.email}`);
-  console.log(`${prefix}👤 Name: ${user.name || "N/A"}`);
+  console.log(`${prefix}👤 Name: ${user.name || 'N/A'}`);
   console.log(`${prefix}🆔 ID: ${user.id}`);
   console.log(`${prefix}🎭 Role: ${user.role}`);
   console.log(`${prefix}📅 Created: ${user.createdAt.toISOString()}`);
@@ -97,13 +97,13 @@ async function main() {
   const args = process.argv.slice(2);
   const command = args[0];
 
-  console.log("🔧 User Role Management Script");
-  console.log("==============================\n");
+  console.log('🔧 User Role Management Script');
+  console.log('==============================\n');
 
   switch (command) {
-    case "find":
+    case 'find':
       if (!args[1]) {
-        console.log("❌ Usage: npm run manage-user-roles find <email>");
+        console.log('❌ Usage: npm run manage-user-roles find <email>');
         process.exit(1);
       }
       const email = args[1];
@@ -111,24 +111,24 @@ async function main() {
 
       const user = await findUserByEmail(email);
       if (user) {
-        console.log("✅ User found:");
-        printUserInfo(user, "  ");
+        console.log('✅ User found:');
+        printUserInfo(user, '  ');
       } else {
-        console.log("❌ User not found");
+        console.log('❌ User not found');
       }
       break;
 
-    case "update":
+    case 'update':
       if (!args[1] || !args[2]) {
-        console.log("❌ Usage: npm run manage-user-roles update <email> <role>");
-        console.log("   Available roles: user, moderator, admin, developer, superadmin");
+        console.log('❌ Usage: npm run manage-user-roles update <email> <role>');
+        console.log('   Available roles: user, moderator, admin, developer, superadmin');
         process.exit(1);
       }
       const updateEmail = args[1];
       const newRole = args[2] as UserRole;
 
-      if (!["user", "moderator", "admin", "developer", "superadmin"].includes(newRole)) {
-        console.log("❌ Invalid role. Available roles: user, moderator, admin, developer, superadmin");
+      if (!['user', 'moderator', 'admin', 'developer', 'superadmin'].includes(newRole)) {
+        console.log('❌ Invalid role. Available roles: user, moderator, admin, developer, superadmin');
         process.exit(1);
       }
 
@@ -136,35 +136,35 @@ async function main() {
 
       const userToUpdate = await findUserByEmail(updateEmail);
       if (!userToUpdate) {
-        console.log("❌ User not found");
+        console.log('❌ User not found');
         process.exit(1);
       }
 
-      console.log("📋 Current user info:");
-      printUserInfo(userToUpdate, "  ");
+      console.log('📋 Current user info:');
+      printUserInfo(userToUpdate, '  ');
       console.log();
 
       const success = await updateUserRole(userToUpdate.id, newRole);
       if (success) {
-        console.log("✅ Role updated successfully!");
+        console.log('✅ Role updated successfully!');
 
         // Show updated user info
         const updatedUser = await findUserByEmail(updateEmail);
         if (updatedUser) {
-          console.log("\n📋 Updated user info:");
-          printUserInfo(updatedUser, "  ");
+          console.log('\n📋 Updated user info:');
+          printUserInfo(updatedUser, '  ');
         }
       } else {
-        console.log("❌ Failed to update role");
+        console.log('❌ Failed to update role');
       }
       break;
 
-    case "list":
-      console.log("📋 Listing all users:\n");
+    case 'list':
+      console.log('📋 Listing all users:\n');
       const allUsers = await listAllUsers();
 
       if (allUsers.length === 0) {
-        console.log("❌ No users found");
+        console.log('❌ No users found');
       } else {
         allUsers.forEach((user, index) => {
           console.log(`${index + 1}. ${user.email} (${user.role})`);
@@ -173,25 +173,25 @@ async function main() {
       }
       break;
 
-    case "help":
+    case 'help':
     default:
-      console.log("📖 Available commands:");
-      console.log("  find <email>     - Find user by email");
-      console.log("  update <email> <role> - Update user role");
-      console.log("  list             - List all users");
-      console.log("  help             - Show this help");
-      console.log("\n🎭 Available roles: user, moderator, admin, developer, superadmin");
-      console.log("\n💡 Examples:");
-      console.log("  npm run manage-user-roles find user@example.com");
-      console.log("  npm run manage-user-roles update user@example.com developer");
-      console.log("  npm run manage-user-roles list");
+      console.log('📖 Available commands:');
+      console.log('  find <email>     - Find user by email');
+      console.log('  update <email> <role> - Update user role');
+      console.log('  list             - List all users');
+      console.log('  help             - Show this help');
+      console.log('\n🎭 Available roles: user, moderator, admin, developer, superadmin');
+      console.log('\n💡 Examples:');
+      console.log('  npm run manage-user-roles find user@example.com');
+      console.log('  npm run manage-user-roles update user@example.com developer');
+      console.log('  npm run manage-user-roles list');
       break;
   }
 
   process.exit(0);
 }
 
-main().catch((error) => {
-  console.error("❌ Script error:", error);
+main().catch(error => {
+  console.error('❌ Script error:', error);
   process.exit(1);
 });

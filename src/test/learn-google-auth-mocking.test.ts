@@ -1,16 +1,16 @@
-import { describe, it, expect } from "vitest";
-import request from "supertest";
+import { describe, it, expect } from 'vitest';
+import request from 'supertest';
 
 // 🎯 LEARNING GOOGLE AUTHENTICATION MOCKING
 // This file is specifically for learning how to fake Google authentication in tests
 // We'll test different approaches to simulate authenticated users
 
-describe("Learning Google Authentication Mocking with Supertest", () => {
+describe('Learning Google Authentication Mocking with Supertest', () => {
   // Point Supertest directly at your running dev server
-  const baseURL = "http://localhost:3000";
+  const baseURL = 'http://localhost:3000';
 
-  describe("Understanding the Challenge", () => {
-    it("should explain why we need to fake authentication", () => {
+  describe('Understanding the Challenge', () => {
+    it('should explain why we need to fake authentication', () => {
       console.log(`
 🔍 WHY WE NEED TO FAKE GOOGLE AUTHENTICATION:
 
@@ -26,20 +26,20 @@ describe("Learning Google Authentication Mocking with Supertest", () => {
     });
   });
 
-  describe("Testing Protected Endpoint Without Authentication", () => {
-    it("should confirm that /api/test/auth requires authentication", async () => {
-      const response = await request(baseURL).get("/api/test/auth").expect(401);
+  describe('Testing Protected Endpoint Without Authentication', () => {
+    it('should confirm that /api/test/auth requires authentication', async () => {
+      const response = await request(baseURL).get('/api/test/auth').expect(401);
 
       expect(response.body).toMatchObject({
-        message: "Authentication required",
-        error: "No valid session found",
-        status: "unauthorized",
+        message: 'Authentication required',
+        error: 'No valid session found',
+        status: 'unauthorized',
       });
     });
   });
 
-  describe("Approaches to Fake Google Authentication", () => {
-    it("should document different methods we can try", () => {
+  describe('Approaches to Fake Google Authentication', () => {
+    it('should document different methods we can try', () => {
       console.log(`
 🎯 DIFFERENT APPROACHES TO FAKE GOOGLE AUTH:
 
@@ -56,14 +56,14 @@ describe("Learning Google Authentication Mocking with Supertest", () => {
     });
   });
 
-  describe("Method 1: Try Setting Authorization Header", () => {
-    it("should attempt to use fake Bearer token", async () => {
+  describe('Method 1: Try Setting Authorization Header', () => {
+    it('should attempt to use fake Bearer token', async () => {
       // This will likely fail, but it's good to understand why
-      const fakeToken = "fake-google-jwt-token-12345";
+      const fakeToken = 'fake-google-jwt-token-12345';
 
       const response = await request(baseURL)
-        .get("/api/test/auth")
-        .set("Authorization", `Bearer ${fakeToken}`)
+        .get('/api/test/auth')
+        .set('Authorization', `Bearer ${fakeToken}`)
         .expect(401); // Expected to fail
 
       console.log(`
@@ -73,18 +73,18 @@ describe("Learning Google Authentication Mocking with Supertest", () => {
    - We need a different approach
       `);
 
-      expect(response.body.status).toBe("unauthorized");
+      expect(response.body.status).toBe('unauthorized');
     });
   });
 
-  describe("Method 2: Try Setting Session Cookie", () => {
-    it("should attempt to use fake session cookie", async () => {
+  describe('Method 2: Try Setting Session Cookie', () => {
+    it('should attempt to use fake session cookie', async () => {
       // This will also likely fail, but let's see what happens
-      const fakeSessionCookie = "fake-nextauth-session-cookie";
+      const fakeSessionCookie = 'fake-nextauth-session-cookie';
 
       const response = await request(baseURL)
-        .get("/api/test/auth")
-        .set("Cookie", `next-auth.session-token=${fakeSessionCookie}`)
+        .get('/api/test/auth')
+        .set('Cookie', `next-auth.session-token=${fakeSessionCookie}`)
         .expect(401); // Expected to fail
 
       console.log(`
@@ -94,12 +94,12 @@ describe("Learning Google Authentication Mocking with Supertest", () => {
    - We need to understand NextAuth session structure
       `);
 
-      expect(response.body.status).toBe("unauthorized");
+      expect(response.body.status).toBe('unauthorized');
     });
   });
 
-  describe("Next Steps for Authentication Mocking", () => {
-    it("should outline what we need to learn next", () => {
+  describe('Next Steps for Authentication Mocking', () => {
+    it('should outline what we need to learn next', () => {
       console.log(`
 🎯 NEXT LEARNING STEPS FOR AUTHENTICATION MOCKING:
 

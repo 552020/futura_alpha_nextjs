@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -13,21 +13,21 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { FolderSelector } from "./folder-selector";
-import { galleryService } from "@/services/gallery";
-import { FolderInfo } from "@/types/gallery";
-import { Plus, AlertCircle } from "lucide-react";
+} from '@/components/ui/dialog';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { FolderSelector } from './folder-selector';
+import { galleryService } from '@/services/gallery';
+import { FolderInfo } from '@/types/gallery';
+import { Plus, AlertCircle } from 'lucide-react';
 
 // Form validation schema
 const createGallerySchema = z.object({
-  title: z.string().min(1, "Title is required").max(100, "Title must be less than 100 characters"),
-  description: z.string().max(500, "Description must be less than 500 characters").optional(),
-  folderName: z.string().min(1, "Please select a folder"),
+  title: z.string().min(1, 'Title is required').max(100, 'Title must be less than 100 characters'),
+  description: z.string().max(500, 'Description must be less than 500 characters').optional(),
+  folderName: z.string().min(1, 'Please select a folder'),
   isPublic: z.boolean(),
 });
 
@@ -65,9 +65,9 @@ export function CreateGalleryModal({
   const form = useForm<CreateGalleryFormData>({
     resolver: zodResolver(createGallerySchema),
     defaultValues: {
-      title: prefillFolderName ? `Gallery from ${prefillFolderName}` : "",
-      description: "",
-      folderName: prefillFolderName || "",
+      title: prefillFolderName ? `Gallery from ${prefillFolderName}` : '',
+      description: '',
+      folderName: prefillFolderName || '',
       isPublic: false,
     },
   });
@@ -88,10 +88,10 @@ export function CreateGalleryModal({
   // Set form values when modal opens with pre-filled folder
   useEffect(() => {
     if (open && hideFolderSelection && prefillFolderName) {
-      form.setValue("folderName", prefillFolderName);
+      form.setValue('folderName', prefillFolderName);
       // Auto-generate title if not provided
-      if (!form.getValues("title")) {
-        form.setValue("title", `Gallery from ${prefillFolderName}`);
+      if (!form.getValues('title')) {
+        form.setValue('title', `Gallery from ${prefillFolderName}`);
       }
     }
   }, [open, hideFolderSelection, prefillFolderName, form]);
@@ -102,8 +102,8 @@ export function CreateGalleryModal({
       const folderList = await galleryService.getFoldersWithImages(false); // Use real data
       setFolders(folderList);
     } catch (error) {
-      console.error("Error loading folders:", error);
-      setError("Failed to load folders. Please try again.");
+      console.error('Error loading folders:', error);
+      setError('Failed to load folders. Please try again.');
     } finally {
       setIsLoadingFolders(false);
     }
@@ -114,7 +114,7 @@ export function CreateGalleryModal({
       setIsLoading(true);
       setError(null);
 
-      console.log("Creating gallery with data:", data);
+      console.log('Creating gallery with data:', data);
 
       const gallery = await galleryService.createGalleryFromFolder(
         data.folderName,
@@ -124,25 +124,25 @@ export function CreateGalleryModal({
         false // Use real data
       );
 
-      console.log("Gallery created successfully:", gallery);
+      console.log('Gallery created successfully:', gallery);
 
       // Success - close modal and notify parent
       setOpen(false);
       form.reset();
       onGalleryCreated?.(gallery.id);
     } catch (error) {
-      console.error("Error creating gallery:", error);
-      setError(error instanceof Error ? error.message : "Failed to create gallery");
+      console.error('Error creating gallery:', error);
+      setError(error instanceof Error ? error.message : 'Failed to create gallery');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleFolderSelect = (folderName: string) => {
-    form.setValue("folderName", folderName);
+    form.setValue('folderName', folderName);
     // Auto-generate title if not provided
-    if (!form.getValues("title")) {
-      form.setValue("title", `Gallery from ${folderName}`);
+    if (!form.getValues('title')) {
+      form.setValue('title', `Gallery from ${folderName}`);
     }
   };
 
@@ -276,7 +276,7 @@ export function CreateGalleryModal({
                 Cancel
               </Button>
               <Button type="submit" disabled={isLoading || isLoadingFolders}>
-                {isLoading ? "Creating..." : "Create Gallery"}
+                {isLoading ? 'Creating...' : 'Create Gallery'}
               </Button>
             </DialogFooter>
           </form>

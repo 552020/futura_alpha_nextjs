@@ -1,7 +1,7 @@
-import { Image } from "lucide-react";
-import { GalleryWithItems } from "@/types/gallery";
-import { BaseGrid } from "@/components/common/base-grid";
-import { GalleryCard } from "./gallery-card";
+import { Image } from 'lucide-react';
+import { GalleryWithItems } from '@/types/gallery';
+import { BaseGrid } from '@/components/common/base-grid';
+import { GalleryCard } from './gallery-card';
 
 interface GalleryGridProps {
   galleries: GalleryWithItems[];
@@ -9,7 +9,7 @@ interface GalleryGridProps {
   onGalleryEdit?: (gallery: GalleryWithItems) => void;
   onGalleryShare?: (gallery: GalleryWithItems) => void;
   onGalleryDelete?: (gallery: GalleryWithItems) => void;
-  viewMode?: "grid" | "list";
+  viewMode?: 'grid' | 'list';
 }
 
 export function GalleryGrid({
@@ -18,27 +18,27 @@ export function GalleryGrid({
   onGalleryEdit,
   onGalleryShare,
   onGalleryDelete,
-  viewMode = "grid",
+  viewMode = 'grid',
 }: GalleryGridProps) {
   // Placeholder action handlers if not provided
   const handleEdit =
     onGalleryEdit ||
     ((gallery: GalleryWithItems) => {
-      console.log("Edit gallery:", gallery.id);
+      console.log('Edit gallery:', gallery.id);
       // TODO: Implement gallery editing
     });
 
   const handleShare =
     onGalleryShare ||
     ((gallery: GalleryWithItems) => {
-      console.log("Share gallery:", gallery.id);
+      console.log('Share gallery:', gallery.id);
       // TODO: Implement gallery sharing
     });
 
   const handleDelete =
     onGalleryDelete ||
     ((gallery: GalleryWithItems) => {
-      console.log("Delete gallery:", gallery.id);
+      console.log('Delete gallery:', gallery.id);
       // TODO: Implement gallery deletion
     });
   // Create empty state component
@@ -55,7 +55,7 @@ export function GalleryGrid({
   return (
     <BaseGrid
       items={galleries}
-      renderItem={(gallery) => (
+      renderItem={gallery => (
         <GalleryCard
           gallery={gallery}
           onClick={onGalleryClick}
