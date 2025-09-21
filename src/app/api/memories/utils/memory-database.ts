@@ -36,7 +36,8 @@ export type UploadResponse = {
 export function buildNewMemoryAndAsset(
   file: File,
   url: string,
-  ownerId: string
+  ownerId: string,
+  parentFolderId?: string | null
 ): { memory: NewDBMemory; asset: NewDBMemoryAsset } {
   const name = file.name || 'Untitled';
 
@@ -47,7 +48,7 @@ export function buildNewMemoryAndAsset(
     description: '',
     fileCreatedAt: new Date(),
     isPublic: false,
-    parentFolderId: null,
+    parentFolderId: parentFolderId || null,
     ownerSecureCode: randomUUID(),
   };
 
@@ -74,13 +75,18 @@ export function buildNewMemoryAndAsset(
  * Process multiple files and create memories/assets in batch
  * This function handles the batch processing logic for folder uploads
  */
-export async function processMultipleFilesBatch(params: { files: File[]; urls: string[]; ownerId: string }): Promise<{
+export async function processMultipleFilesBatch(params: {
+  files: File[];
+  urls: string[];
+  ownerId: string;
+  parentFolderId?: string | null;
+}): Promise<{
   success: boolean;
   memories: DBMemory[];
   assets: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
   error?: string;
 }> {
-  const { files, urls, ownerId } = params;
+  const { files, urls, ownerId, parentFolderId } = params;
 
   try {
     // Build memory and asset data for all files
@@ -88,7 +94,7 @@ export async function processMultipleFilesBatch(params: { files: File[]; urls: s
     const assetRows: NewDBMemoryAsset[] = [];
 
     files.forEach((file, index) => {
-      const { memory, asset } = buildNewMemoryAndAsset(file, urls[index], ownerId);
+      const { memory, asset } = buildNewMemoryAndAsset(file, urls[index], ownerId, parentFolderId);
       memoryRows.push(memory);
       assetRows.push(asset);
     });

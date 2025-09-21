@@ -4,18 +4,18 @@
  * Handles the complete flow of processing a single file upload:
  * - File validation
  * - Authentication checks
- * - Upload orchestration
+ * - 413 solution (presigned URLs)
  * - Response processing
  * - Verification
  * - Context updates
  */
 
-import { uploadFile } from './upload';
 import { verifyIntent } from './intent';
 import { verifyUpload } from './verification';
 import { UPLOAD_LIMITS } from '@/config/upload-limits';
 import type { FileInputAttributeMode } from '@/types/upload';
 import type { HostingPreferences } from '@/hooks/use-storage-preferences';
+import { getDefaultHostingPreferences } from '@/hooks/use-storage-preferences';
 
 export interface ProcessSingleFileOptions {
   file: File;
@@ -27,6 +27,196 @@ export interface ProcessSingleFileOptions {
   onError?: (error: Error) => void;
   updateOnboardingContext?: (data: { data: { ownerId: string; id: string } }, file: File, url: string) => void;
   showToast: (toast: { variant: 'destructive'; title: string; description: string }) => void;
+  onProgress?: (progress: number) => void;
+}
+
+import { uploadFileWithProgress, checkICPAuthentication, generateS3PublicUrl } from './shared-utils';
+
+// Upload to ICP canister
+async function uploadToICP(
+  file: File,
+  preferences: HostingPreferences,
+  onProgress?: (progress: number) => void
+): Promise<{
+  data: { id: string };
+  results: Array<{ memoryId: string; size: number; checksum_sha256: string | null }>;
+  userId: string;
+}> {
+  console.log(`🔐 Checking ICP authentication...`);
+  await checkICPAuthentication();
+  console.log(`✅ ICP authentication confirmed`);
+
+  // Get storage configuration for ICP
+  const storageResponse = await verifyIntent({
+    preferred: 'icp',
+    databaseHosting: preferences?.databaseHosting,
+    backendHosting: preferences?.backendHosting,
+  });
+  const storage = storageResponse.uploadStorage;
+
+  // Upload to ICP canister
+  const { icpUploadService } = await import('./icp-upload');
+  const icpResult = await icpUploadService.uploadFile(file, storage, progress => {
+    // Standardize progress format to match S3 (0-100 number)
+    onProgress?.(progress.percentage);
+  });
+
+  return {
+    data: { id: icpResult.memoryId },
+    results: [
+      {
+        memoryId: icpResult.memoryId,
+        size: file.size,
+        checksum_sha256: icpResult.checksum_sha256,
+      },
+    ],
+    userId: '', // Will be set by caller
+  };
+}
+
+// Upload to S3 using 413 solution (presigned URLs)
+async function uploadToS3(
+  file: File,
+  onProgress?: (progress: number) => void
+): Promise<{
+  data: { id: string };
+  results: Array<{ memoryId: string; size: number; checksum_sha256: string | null }>;
+  userId: string;
+}> {
+  console.log(`🚀 Getting presigned URL for: ${file.name}`);
+  const presignResponse = await fetch('/api/upload/presign', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      fileName: file.name,
+      fileType: file.type,
+      fileSize: file.size,
+    }),
+  });
+
+  if (!presignResponse.ok) {
+    const error = await presignResponse.json();
+    throw new Error(error.error || 'Failed to get presigned URL');
+  }
+
+  const { signedUrl, s3Key } = await presignResponse.json();
+
+  // Upload file to S3 with progress
+  console.log(`📤 Uploading to S3: ${file.name}`);
+  await uploadFileWithProgress(file, signedUrl, progress => {
+    onProgress?.(progress);
+  });
+
+  // Commit to database
+  console.log(`💾 Committing to database: ${file.name}`);
+  const commitResponse = await fetch('/api/upload/commit', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      fileName: file.name,
+      fileType: file.type,
+      fileSize: file.size,
+      s3Url: generateS3PublicUrl(s3Key),
+    }),
+  });
+
+  if (!commitResponse.ok) {
+    const error = await commitResponse.json();
+    throw new Error(error.error || 'Failed to commit upload');
+  }
+
+  const commitResult = await commitResponse.json();
+  console.log(`✅ Upload completed: ${file.name}`);
+
+  return {
+    data: { id: commitResult.data.id },
+    results: [
+      {
+        memoryId: commitResult.data.id,
+        size: file.size,
+        checksum_sha256: null,
+      },
+    ],
+    userId: '', // Will be set by caller
+  };
+}
+
+// Upload to Vercel Blob (legacy fallback)
+async function uploadToVercelBlob(
+  file: File,
+  isOnboarding: boolean,
+  existingUserId: string | undefined,
+  mode: FileInputAttributeMode,
+  userBlobHosting: string,
+  onProgress?: (progress: number) => void
+): Promise<{
+  data: { id: string };
+  results: Array<{ memoryId: string; size: number; checksum_sha256: string | null }>;
+  userId: string;
+}> {
+  console.log(`☁️ Using Vercel Blob upload for: ${file.name}`);
+
+  // Use the original uploadFile function for Vercel Blob
+  const { uploadFile } = await import('./upload');
+
+  // Create a progress wrapper for Vercel Blob
+  let progressInterval: NodeJS.Timeout | null = null;
+
+  try {
+    // Start progress simulation (Vercel Blob doesn't provide real-time progress)
+    if (onProgress) {
+      let simulatedProgress = 0;
+      progressInterval = setInterval(() => {
+        if (simulatedProgress < 90) {
+          simulatedProgress += Math.random() * 10;
+          onProgress(Math.min(simulatedProgress, 90));
+        }
+      }, 200);
+    }
+
+    const uploadResult = await uploadFile(
+      file,
+      isOnboarding,
+      existingUserId,
+      mode,
+      'vercel_blob',
+      userBlobHosting as 'vercel_blob'
+    );
+
+    // Complete progress
+    if (onProgress) {
+      onProgress(100);
+    }
+
+    // Convert to expected format
+    const memory = Array.isArray(uploadResult.data) ? uploadResult.data[0] : uploadResult.data;
+
+    if (!memory || !memory.id) {
+      console.error('❌ Invalid upload response:', uploadResult);
+      throw new Error('Upload failed: Invalid response from server');
+    }
+
+    return {
+      data: { id: memory.id },
+      results: [
+        {
+          memoryId: memory.id,
+          size: file.size,
+          checksum_sha256: null,
+        },
+      ],
+      userId: existingUserId || '',
+    };
+  } finally {
+    // Clean up progress interval
+    if (progressInterval) {
+      clearInterval(progressInterval);
+    }
+  }
 }
 
 export async function processSingleFile(options: ProcessSingleFileOptions): Promise<void> {
@@ -40,6 +230,7 @@ export async function processSingleFile(options: ProcessSingleFileOptions): Prom
     onError,
     updateOnboardingContext,
     showToast,
+    onProgress,
   } = options;
 
   console.log(`📁 Processing single file: ${file.name} (${file.size} bytes)`);
@@ -65,63 +256,43 @@ export async function processSingleFile(options: ProcessSingleFileOptions): Prom
     // Create a temporary URL for preview
     const url = URL.createObjectURL(file);
 
-    // Use unified upload service with storage preference
-    const userBlobHosting = preferences?.blobHosting; // "s3" | "vercel_blob" | "icp" | "arweave" | "ipfs" | "neon"
+    // Route to appropriate upload service based on user preferences
+    const userBlobHosting = preferences?.blobHosting || 's3'; // Default to S3 (413 solution)
     console.log(`🔍 User blob hosting: ${userBlobHosting}`);
 
-    // For ICP preference, check authentication first
-    if (userBlobHosting === 'icp') {
-      console.log(`🔐 Checking ICP authentication...`);
-      const { icpUploadService } = await import('./icp-upload');
-      const isAuthenticated = await icpUploadService.isAuthenticated();
-      if (!isAuthenticated) {
-        throw new Error('Please connect your Internet Identity to upload to ICP');
-      }
-      console.log(`✅ ICP authentication confirmed`);
-    }
-
-    // Temporary override for testing - force S3 uploads
-    const storageBackend = 's3' as const;
-    console.log('🔧 TEMPORARY OVERRIDE: Forcing S3 uploads for testing');
-    // Original code (commented out for reference):
-    // let storageBackend: 'vercel_blob' | 's3' = 'vercel_blob';
-    // if (userStoragePreference === 's3') {
-    //   storageBackend = 's3';
-    // }
-
-    // Use the unified uploadFile function
-    console.log(`🚀 Calling uploadFile with parameters:`, {
-      fileName: file.name,
-      isOnboarding,
-      existingUserId,
-      mode,
-      storageBackend,
-      userBlobHosting,
-    });
-
-    const uploadResult = await uploadFile(file, isOnboarding, existingUserId, mode, storageBackend, userBlobHosting);
-
-    // Convert to expected format for compatibility
-    // Note: uploadResult.data is an array of memories from the backend
-    const memory = Array.isArray(uploadResult.data) ? uploadResult.data[0] : uploadResult.data;
-
-    // Check if we have a valid memory response
-    if (!memory || !memory.id) {
-      console.error('❌ Invalid upload response:', uploadResult);
-      throw new Error('Upload failed: Invalid response from server');
-    }
-
-    const data = {
-      data: { id: memory.id },
-      results: [
-        {
-          memoryId: memory.id,
-          size: file.size, // Use original file size since assets array might not be available
-          checksum_sha256: null, // Will be filled by verification if available
-        },
-      ],
-      userId: existingUserId || '', // Add userId for compatibility
+    let data: {
+      data: { id: string };
+      results: Array<{ memoryId: string; size: number; checksum_sha256: string | null }>;
+      userId: string;
     };
+
+    // Upload routing based on storage preference
+    if (userBlobHosting === 'icp') {
+      data = await uploadToICP(file, preferences || getDefaultHostingPreferences(), onProgress);
+      data.userId = existingUserId || '';
+    } else if (userBlobHosting === 'vercel_blob') {
+      data = await uploadToVercelBlob(file, isOnboarding, existingUserId, mode, userBlobHosting, onProgress);
+    } else if (userBlobHosting === 's3') {
+      // S3 with 413 solution (presigned URLs)
+      console.log(`🚀 Using S3 upload (413 solution) for: ${file.name}`);
+      data = await uploadToS3(file, onProgress);
+      data.userId = existingUserId || '';
+    } else {
+      // Default to S3 with 413 solution for unknown preferences
+      console.warn(`⚠️ Unknown storage preference: ${userBlobHosting}, falling back to S3`);
+      console.log(`🚀 Using S3 upload (413 solution) for: ${file.name}`);
+      data = await uploadToS3(file, onProgress);
+      data.userId = existingUserId || '';
+    }
+
+    // Future storage options can be added here:
+    // else if (userBlobHosting === 'arweave') {
+    //   data = await uploadToArweave(file, onProgress);
+    //   data.userId = existingUserId || '';
+    // } else if (userBlobHosting === 'ipfs') {
+    //   data = await uploadToIPFS(file, onProgress);
+    //   data.userId = existingUserId || '';
+    // }
 
     // 3) Verify after upload (best-effort) - only for non-ICP flows
     // ICP flows handle verification internally
