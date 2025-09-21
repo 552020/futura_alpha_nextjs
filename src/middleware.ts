@@ -56,7 +56,7 @@ export function middleware(request: NextRequest) {
   }
 
   // Block WordPress attack attempts and common vulnerability scanners
-  const isWordPressAttack = 
+  const isWordPressAttack =
     pathname.includes('/wp-admin') ||
     pathname.includes('/wp-content') ||
     pathname.includes('/wp-includes') ||
@@ -83,18 +83,18 @@ export function middleware(request: NextRequest) {
     pathname.includes('/cgi-bin') ||
     pathname.includes('/.htaccess') ||
     pathname.includes('/.htpasswd') ||
-    pathname.includes('/robots.txt') && !pathname.endsWith('/robots.txt');
+    (pathname.includes('/robots.txt') && !pathname.endsWith('/robots.txt'));
 
   if (isWordPressAttack) {
     console.log(`🚫 Blocked attack attempt: ${pathname} from ${clientIP}`);
-    return new NextResponse('Not Found', { 
+    return new NextResponse('Not Found', {
       status: 404,
       headers: {
         'X-Content-Type-Options': 'nosniff',
         'X-Frame-Options': 'DENY',
         'X-XSS-Protection': '1; mode=block',
         'Referrer-Policy': 'strict-origin-when-cross-origin',
-      }
+      },
     });
   }
 
@@ -182,7 +182,9 @@ export function middleware(request: NextRequest) {
 
   if (missingLocale) {
     const locale = getLocale(request);
-    const response = NextResponse.redirect(new URL(`/${locale}${pathname.startsWith('/') ? '' : '/'}${pathname}`, request.url));
+    const response = NextResponse.redirect(
+      new URL(`/${locale}${pathname.startsWith('/') ? '' : '/'}${pathname}`, request.url)
+    );
     addSecurityHeaders(response);
     return response;
   }
