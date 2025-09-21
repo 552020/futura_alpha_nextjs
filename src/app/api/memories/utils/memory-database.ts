@@ -37,7 +37,8 @@ export function buildNewMemoryAndAsset(
   file: File,
   url: string,
   ownerId: string,
-  parentFolderId?: string | null
+  parentFolderId?: string | null,
+  storageBackend: 's3' | 'vercel_blob' = 's3'
 ): { memory: NewDBMemory; asset: NewDBMemoryAsset } {
   const name = file.name || 'Untitled';
 
@@ -50,6 +51,8 @@ export function buildNewMemoryAndAsset(
     isPublic: false,
     parentFolderId: parentFolderId || null,
     ownerSecureCode: randomUUID(),
+    storageLocations: ['neon-db', storageBackend === 's3' ? 'aws-s3' : 'vercel-blob'],
+    storageCount: 2,
   };
 
   const asset: NewDBMemoryAsset = {
@@ -57,8 +60,14 @@ export function buildNewMemoryAndAsset(
     assetType: 'original',
     variant: 'default',
     url,
-    storageBackend: 'vercel_blob',
-    storageKey: url.split('/').pop() || '',
+    storageBackend,
+    storageKey:
+      storageBackend === 's3'
+        ? url.replace(
+            `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_S3_REGION || 'eu-central-1'}.amazonaws.com/`,
+            ''
+          )
+        : url.split('/').pop() || '',
     bytes: file.size,
     width: null,
     height: null,
@@ -80,13 +89,14 @@ export async function processMultipleFilesBatch(params: {
   urls: string[];
   ownerId: string;
   parentFolderId?: string | null;
+  storageBackend?: 's3' | 'vercel_blob';
 }): Promise<{
   success: boolean;
   memories: DBMemory[];
   assets: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
   error?: string;
 }> {
-  const { files, urls, ownerId, parentFolderId } = params;
+  const { files, urls, ownerId, parentFolderId, storageBackend = 's3' } = params;
 
   try {
     // Build memory and asset data for all files
@@ -94,7 +104,7 @@ export async function processMultipleFilesBatch(params: {
     const assetRows: NewDBMemoryAsset[] = [];
 
     files.forEach((file, index) => {
-      const { memory, asset } = buildNewMemoryAndAsset(file, urls[index], ownerId, parentFolderId);
+      const { memory, asset } = buildNewMemoryAndAsset(file, urls[index], ownerId, parentFolderId, storageBackend);
       memoryRows.push(memory);
       assetRows.push(asset);
     });

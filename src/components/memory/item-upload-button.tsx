@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Plus, Loader2, Upload } from 'lucide-react';
 import { useFileUpload } from '@/hooks/use-file-upload';
 import { triggerFileInput } from '@/services/upload/file-picker';
@@ -15,6 +15,10 @@ interface BaseButtonProps {
 
 interface FileInputProps {
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}
+
+interface FileWithRelativePath extends File {
+  readonly webkitRelativePath: string;
 }
 
 // Individual button components
@@ -234,10 +238,10 @@ export function ItemUploadButton({
 
   const renderUploadButton = () => {
     if (variant === 'native') {
-      return <NativeFileInput onChange={handleFileUpload} />;
+      return <NativeFileInput onChange={handleFileChange} />;
     }
 
-    const commonProps = { onClick: handleUploadClick, isLoading, buttonText };
+    const commonProps = { onClick: handleUploadClick, isLoading: isUploading, buttonText };
 
     switch (variant) {
       case 'large-icon':
@@ -264,9 +268,10 @@ export function ItemUploadButton({
         <input
           type="file"
           ref={fileInputRef}
-          onChange={handleFileUpload}
+          onChange={handleFileChange}
           className="hidden"
-          multiple={false}
+          multiple={mode === 'files' || mode === 'folder'}
+          {...(mode === 'folder' ? { webkitdirectory: 'true', mozdirectory: 'true', directory: 'true' } : {})}
           accept="image/*,video/*,audio/*"
         />
       )}
