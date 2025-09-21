@@ -17,7 +17,6 @@ interface FileInputProps {
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-
 // Individual button components
 
 /**
