@@ -423,7 +423,23 @@ export async function cleanupStorageEdgesForMemory(params: {
     }>;
 
     const edges = await db
-      .select()
+      .select({
+        id: storageEdges.id,
+        memoryId: storageEdges.memoryId,
+        memoryType: storageEdges.memoryType,
+        artifact: storageEdges.artifact,
+        locationMetadata: storageEdges.locationMetadata,
+        locationAsset: storageEdges.locationAsset,
+        present: storageEdges.present,
+        locationUrl: storageEdges.locationUrl,
+        contentHash: storageEdges.contentHash,
+        sizeBytes: storageEdges.sizeBytes,
+        syncState: storageEdges.syncState,
+        lastSyncedAt: storageEdges.lastSyncedAt,
+        syncError: storageEdges.syncError,
+        createdAt: storageEdges.createdAt,
+        updatedAt: storageEdges.updatedAt,
+      })
       .from(storageEdges)
       .where(and(eq(storageEdges.memoryId, memoryId), eq(storageEdges.memoryType, memoryType)));
 
