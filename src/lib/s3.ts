@@ -34,7 +34,7 @@ export function isS3Configured(): boolean {
 
 // Generate a safe file name with user ID in the path
 // NOTE: This function is deprecated - use generateS3Key from s3-service.ts instead
-function generateSafeFileName(originalName: string, userId: string = 'anonymous'): string {
+function _generateSafeFileName(originalName: string, userId: string = 'anonymous'): string {
   const timestamp = Date.now();
   const safeFileName = originalName.replace(/[^a-zA-Z0-9-_\.]/g, '_');
   // Include user ID in the path: uploads/{userId}/{timestamp}-{filename}
