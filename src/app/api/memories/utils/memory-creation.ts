@@ -175,10 +175,8 @@ export async function createMemoryFromJson(
     recipients: recipients || [],
     unlockDate: unlockDate ? new Date(unlockDate) : null,
     metadata: metadata || {},
-    // Storage status fields - default to S3 storage for new memories
-    storageLocations: ['neon-db', 'aws-s3'] as ('neon-db' | 'vercel-blob' | 'icp-canister' | 'aws-s3')[],
+    // Storage status fields - default to permanent storage for new memories
     storageDuration: null, // null means permanent storage
-    storageCount: 2, // neon-db + aws-s3
   };
 
   const [createdMemory] = await db.insert(memories).values(newMemory).returning();
@@ -198,7 +196,7 @@ export async function createMemoryFromJson(
           (a.assetType as 'original' | 'display' | 'thumb' | 'placeholder' | 'poster' | 'waveform') || 'original',
         variant: (a.variant as string) || null,
         url: (a.url as string) || '',
-        storageBackend:
+        assetLocation:
           (a.storageBackend as 'neon' | 'icp' | 's3' | 'vercel_blob' | 'arweave' | 'ipfs') || 'vercel_blob',
         storageKey: (a.storageKey as string) || (a.url as string)?.split('/').pop() || '',
         bytes: (a.bytes as number) || 0,
@@ -278,7 +276,7 @@ export async function createMemoryFromBlob(
     pathname: string;
     size: number;
     contentType: string;
-    storageBackend?: 'vercel_blob' | 's3';
+    assetLocation?: 'vercel_blob' | 's3';
     storageKey?: string;
   },
   meta: {
@@ -330,7 +328,7 @@ export async function createMemoryFromBlob(
 
     // Create asset record
     const { memoryAssets } = await import('@/db/schema');
-    const storageBackend = blob.storageBackend || 's3';
+    const assetLocation = blob.assetLocation || 's3';
     const storageKey = blob.storageKey || blob.pathname;
 
     const assetData = {
@@ -338,7 +336,7 @@ export async function createMemoryFromBlob(
       assetType: 'original' as const,
       variant: null,
       url: blob.url,
-      storageBackend,
+      assetLocation,
       storageKey,
       bytes: blob.size,
       width: null,
@@ -349,7 +347,7 @@ export async function createMemoryFromBlob(
       processingError: null,
     };
 
-    console.log('📦 Creating asset with storage:', { storageBackend, storageKey });
+    console.log('📦 Creating asset with storage:', { assetLocation, storageKey });
 
     const [createdAsset] = await db.insert(memoryAssets).values(assetData).returning();
     console.log('✅ Asset created from blob:', { id: createdAsset.id, url: blob.url });

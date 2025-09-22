@@ -5,7 +5,8 @@ import { getBlurPlaceholder, IMAGE_SIZES } from '@/utils/image-utils';
 import Image from 'next/image';
 import { Plus, Share2, FileText, Music, Video, Archive, File, Loader2 } from 'lucide-react';
 import { useOnboarding } from '@/contexts/onboarding-context';
-import { useFileUpload } from '@/hooks/user-file-upload';
+import { useFileUpload } from '@/hooks/use-file-upload';
+import { triggerFileInput } from '@/services/upload/file-picker';
 
 interface ProfileProps {
   isOnboarding?: boolean;
@@ -17,9 +18,15 @@ interface ProfileProps {
 
 export function Profile({ isOnboarding = false }: ProfileProps) {
   const { files, currentStep } = useOnboarding();
-  const { isLoading, fileInputRef, handleUploadClick, handleFileUpload } = useFileUpload({
+  const { isLoading, fileInputRef, handleFileUpload } = useFileUpload({
     isOnboarding,
   });
+
+  const handleUploadClick = () => {
+    if (fileInputRef.current) {
+      triggerFileInput(fileInputRef.current, 'single');
+    }
+  };
 
   const getFileIcon = (type: string) => {
     if (type.startsWith('text/') || type.includes('pdf')) return <FileText size={48} />;
@@ -63,7 +70,7 @@ export function Profile({ isOnboarding = false }: ProfileProps) {
                       {Math.round(file.file.size / 1024)}KB
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      Added {new Date(file.uploadedAt).toLocaleDateString()}
+                      Added {new Date(file.uploadedAt).toLocaleDateString('en-US')}
                     </p>
                   </div>
                 </div>

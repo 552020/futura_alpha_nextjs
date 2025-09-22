@@ -21,6 +21,15 @@ const eslintConfig = [
     rules: {
       // Disable jsx-a11y/alt-text for Lucide icon components (they're SVGs, not img elements)
       'jsx-a11y/alt-text': 'off',
+      // Allow unused variables that start with underscore
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
     },
   },
 ];

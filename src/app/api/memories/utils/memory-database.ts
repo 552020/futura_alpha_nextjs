@@ -37,7 +37,8 @@ export function buildNewMemoryAndAsset(
   file: File,
   url: string,
   ownerId: string,
-  storageBackend: 's3' | 'vercel_blob' = 's3'
+  parentFolderId?: string | null,
+  assetLocation: 's3' | 'vercel_blob' = 's3'
 ): { memory: NewDBMemory; asset: NewDBMemoryAsset } {
   const name = file.name || 'Untitled';
 
@@ -48,10 +49,8 @@ export function buildNewMemoryAndAsset(
     description: '',
     fileCreatedAt: new Date(),
     isPublic: false,
-    parentFolderId: null,
+    parentFolderId: parentFolderId || null,
     ownerSecureCode: randomUUID(),
-    storageLocations: ['neon-db', storageBackend === 's3' ? 'aws-s3' : 'vercel-blob'],
-    storageCount: 2,
   };
 
   const asset: NewDBMemoryAsset = {
@@ -59,9 +58,9 @@ export function buildNewMemoryAndAsset(
     assetType: 'original',
     variant: 'default',
     url,
-    storageBackend,
+    assetLocation: assetLocation,
     storageKey:
-      storageBackend === 's3'
+      assetLocation === 's3'
         ? url.replace(
             `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_S3_REGION || 'eu-central-1'}.amazonaws.com/`,
             ''
@@ -83,13 +82,19 @@ export function buildNewMemoryAndAsset(
  * Process multiple files and create memories/assets in batch
  * This function handles the batch processing logic for folder uploads
  */
-export async function processMultipleFilesBatch(params: { files: File[]; urls: string[]; ownerId: string; parentFolderId?: string; storageBackend?: 's3' | 'vercel_blob' }): Promise<{
+export async function processMultipleFilesBatch(params: {
+  files: File[];
+  urls: string[];
+  ownerId: string;
+  parentFolderId?: string | null;
+  assetLocation?: 's3' | 'vercel_blob';
+}): Promise<{
   success: boolean;
   memories: DBMemory[];
   assets: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
   error?: string;
 }> {
-  const { files, urls, ownerId, parentFolderId, storageBackend = 's3' } = params;
+  const { files, urls, ownerId, parentFolderId, assetLocation = 's3' } = params;
 
   try {
     // Build memory and asset data for all files
@@ -97,10 +102,7 @@ export async function processMultipleFilesBatch(params: { files: File[]; urls: s
     const assetRows: NewDBMemoryAsset[] = [];
 
     files.forEach((file, index) => {
-      const { memory, asset } = buildNewMemoryAndAsset(file, urls[index], ownerId, storageBackend);
-      if (parentFolderId) {
-        memory.parentFolderId = parentFolderId;
-      }
+      const { memory, asset } = buildNewMemoryAndAsset(file, urls[index], ownerId, parentFolderId, assetLocation);
       memoryRows.push(memory);
       assetRows.push(asset);
     });
@@ -147,9 +149,9 @@ export async function storeInNewDatabase(params: {
     mimeType: AcceptedMimeType;
   };
   parentFolderId?: string | null;
-  storageBackend?: string;
+  assetLocation?: string;
 }) {
-  const { type, ownerId, url, file, metadata, parentFolderId, storageBackend = 's3' } = params;
+  const { type, ownerId, url, file, metadata, parentFolderId, assetLocation = 's3' } = params;
 
   // Create memory in the new unified table
   const newMemory: NewDBMemory = {
@@ -162,13 +164,8 @@ export async function storeInNewDatabase(params: {
     parentFolderId: parentFolderId || null,
     ownerSecureCode: crypto.randomUUID(),
     metadata: {},
-    // Storage status fields - use actual storage backend
-    storageLocations:
-      storageBackend === 's3'
-        ? (['neon-db', 'aws-s3'] as ('neon-db' | 'vercel-blob' | 'icp-canister' | 'aws-s3')[])
-        : (['neon-db', 'vercel-blob'] as ('neon-db' | 'vercel-blob' | 'icp-canister' | 'aws-s3')[]),
+    // Storage status fields
     storageDuration: null, // null means permanent storage
-    storageCount: 2, // neon-db + storage backend
   };
 
   const [createdMemory] = await db.insert(memories).values(newMemory).returning();
@@ -179,9 +176,9 @@ export async function storeInNewDatabase(params: {
     assetType: 'original',
     variant: 'default',
     url,
-    storageBackend: storageBackend as 'vercel_blob' | 's3' | 'icp' | 'arweave' | 'ipfs',
+    assetLocation: assetLocation as 'vercel_blob' | 's3' | 'icp' | 'arweave' | 'ipfs' | 'neon',
     storageKey:
-      storageBackend === 's3'
+      assetLocation === 's3'
         ? url.replace(
             `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_S3_REGION || 'eu-central-1'}.amazonaws.com/`,
             ''
@@ -323,7 +320,7 @@ export async function cleanupStorageEdgesForMemory(params: {
     } | null;
     storageLocations?: string[] | null;
     assets?: Array<{
-      storageBackend: string;
+      assetLocation: string;
       storageKey: string;
       url?: string;
       [key: string]: unknown;
@@ -413,13 +410,29 @@ export async function cleanupStorageEdgesForMemory(params: {
     const typedDbAssets = dbAssets as Array<{
       id: string;
       memoryId: string;
-      storageBackend: string;
+      assetLocation: string;
       storageKey: string;
       [key: string]: unknown;
     }>;
 
     const edges = await db
-      .select()
+      .select({
+        id: storageEdges.id,
+        memoryId: storageEdges.memoryId,
+        memoryType: storageEdges.memoryType,
+        artifact: storageEdges.artifact,
+        locationMetadata: storageEdges.locationMetadata,
+        locationAsset: storageEdges.locationAsset,
+        present: storageEdges.present,
+        locationUrl: storageEdges.locationUrl,
+        contentHash: storageEdges.contentHash,
+        sizeBytes: storageEdges.sizeBytes,
+        syncState: storageEdges.syncState,
+        lastSyncedAt: storageEdges.lastSyncedAt,
+        syncError: storageEdges.syncError,
+        createdAt: storageEdges.createdAt,
+        updatedAt: storageEdges.updatedAt,
+      })
       .from(storageEdges)
       .where(and(eq(storageEdges.memoryId, memoryId), eq(storageEdges.memoryType, memoryType)));
 
@@ -427,16 +440,15 @@ export async function cleanupStorageEdgesForMemory(params: {
 
     // Filter and add S3 assets from database
     const s3DbAssets = typedDbAssets.filter(asset => {
-      const backend = String(asset.storageBackend || '')
+      const backend = String(asset.assetLocation || '')
         .toLowerCase()
         .trim();
       return backend === 's3' || backend === 'aws-s3' || backend.includes('s3');
     });
 
-    // Add S3 edges - handle potential type mismatch with the backend enum
+    // Add S3 edges - using new storage edges structure
     const s3Edges = edges.filter(edge => {
-      const backend = String(edge.backend).toLowerCase();
-      return backend === 'aws-s3' || backend === 's3' || backend.includes('s3');
+      return edge.locationAsset === 's3';
     });
 
     // Combine all S3 assets
@@ -446,14 +458,14 @@ export async function cleanupStorageEdgesForMemory(params: {
         id: asset.id,
         memoryId: asset.memoryId,
         storageKey: asset.storageKey,
-        storageBackend: asset.storageBackend,
+        storageBackend: asset.assetLocation,
         bytes: asset.bytes,
         mimeType: asset.mimeType,
       })),
       ...s3Edges.map(edge => ({
         id: `edge-${edge.id}`,
         memoryId,
-        storageKey: extractS3KeyFromUrl(edge.location || ''),
+        storageKey: extractS3KeyFromUrl(edge.locationUrl || ''),
         storageBackend: 's3',
         bytes: edge.sizeBytes,
         mimeType: null,
@@ -575,7 +587,6 @@ export async function getMemoryDataForCleanup(memoryId: string) {
       hasCustomMetadata: !!(memory.metadata as { custom?: Record<string, unknown> })?.custom,
       storageBackend: (memory.metadata as { custom?: { storageBackend?: string } })?.custom?.storageBackend,
       storageKey: (memory.metadata as { custom?: { storageKey?: string } })?.custom?.storageKey,
-      storageLocations: memory.storageLocations,
       assetsCount: memory.assets?.length || 0,
     });
 

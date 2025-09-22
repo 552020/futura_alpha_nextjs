@@ -176,7 +176,6 @@ export async function POST(request: NextRequest) {
         isPublic,
         // Storage status fields - will be calculated from memories
         totalMemories: galleryMemories.length,
-        storageLocations: [], // Will be calculated from memories
         averageStorageDuration: null, // Will be calculated from memories
         storageDistribution: {}, // Will be calculated from memories
       })
@@ -206,15 +205,12 @@ export async function POST(request: NextRequest) {
 
     // Calculate storage distribution
     const storageDistribution: Record<string, number> = {};
-    const allStorageLocations = new Set<'neon-db' | 'vercel-blob' | 'icp-canister' | 'aws-s3'>();
     let totalDuration = 0;
     let permanentCount = 0;
 
     memoriesWithStorage.forEach(memory => {
-      memory.storageLocations?.forEach(location => {
-        allStorageLocations.add(location);
-        storageDistribution[location] = (storageDistribution[location] || 0) + 1;
-      });
+      // Note: storageLocations field has been removed from schema
+      // Storage distribution calculation is simplified
 
       if (memory.storageDuration === null) {
         permanentCount++;
@@ -232,7 +228,6 @@ export async function POST(request: NextRequest) {
     await db
       .update(galleries)
       .set({
-        storageLocations: Array.from(allStorageLocations),
         averageStorageDuration,
         storageDistribution,
       })

@@ -54,7 +54,7 @@ interface UploadResponse {
   };
 }
 
-type UploadMode = 'files' | 'folder';
+type UploadMode = 'multiple-files' | 'single-file' | 'directory';
 
 /**
  * Get memory type from file extension
@@ -94,7 +94,10 @@ async function uploadToICPBackend(file: File): Promise<UploadResponse> {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        storagePreference: { preferred: 'icp-canister' },
+        hostingPreferences: {
+          blobHosting: 'icp',
+          databaseHosting: 'icp',
+        },
       }),
     });
 
@@ -104,7 +107,7 @@ async function uploadToICPBackend(file: File): Promise<UploadResponse> {
 
     const { uploadStorage } = await uploadStorageResponse.json();
 
-    if (uploadStorage.chosen_storage !== 'icp-canister') {
+    if (uploadStorage.blob_storage !== 'icp') {
       throw new Error('Expected ICP canister storage but got different backend');
     }
 
@@ -175,9 +178,9 @@ export const uploadFile = async (
   file: File,
   isOnboarding: boolean,
   existingUserId?: string,
-  mode: UploadMode = 'files',
+  mode: UploadMode = 'multiple-files',
   storageBackend: StorageBackend | StorageBackend[] = 'vercel_blob',
-  userStoragePreference?: 'neon' | 'icp' | 'dual' | 's3'
+  userBlobHosting?: 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs'
 ): Promise<UploadResponse> => {
   console.log(`🚀 Starting upload for ${file.name}...`);
   console.log(`🔍 Upload parameters:`, {
@@ -188,12 +191,12 @@ export const uploadFile = async (
     existingUserId,
     mode,
     storageBackend,
-    userStoragePreference,
+    userBlobHosting,
   });
 
   try {
     // Check if user prefers ICP-only backend
-    if (userStoragePreference === 'icp') {
+    if (userBlobHosting === 'icp') {
       console.log(`🔗 User prefers ICP backend, routing to ICP canister...`);
       // NOTE: For ICP users, isOnboarding is ignored because ICP always requires Internet Identity auth
       // Even "onboarding" users must authenticate with II to interact with ICP canister
@@ -214,7 +217,7 @@ export const uploadFile = async (
     });
 
     // Check if S3 should be used
-    if (userStoragePreference === 's3' || storageBackend === 's3') {
+    if (userBlobHosting === 's3' || storageBackend === 's3') {
       console.log(`☁️ Using AWS S3 upload for ${file.name}...`);
       return await uploadFileToS3(file, isOnboarding, existingUserId);
     }
@@ -236,7 +239,7 @@ async function uploadFileToBlob(
   file: File,
   isOnboarding: boolean,
   existingUserId?: string,
-  mode: UploadMode = 'files'
+  mode: UploadMode = 'multiple-files'
 ): Promise<UploadResponse> {
   console.log(`☁️ Using client-side upload flow for: ${file.name}`);
 
@@ -340,11 +343,7 @@ async function uploadFileToBlob(
 /**
  * Upload file to AWS S3 using the secure upload flow with presigned URLs
  */
-async function uploadFileToS3(
-  file: File,
-  isOnboarding: boolean,
-  existingUserId?: string
-): Promise<UploadResponse> {
+async function uploadFileToS3(file: File, isOnboarding: boolean, existingUserId?: string): Promise<UploadResponse> {
   console.log(`☁️ Starting S3 upload for: ${file.name}`);
 
   try {
@@ -421,7 +420,7 @@ async function uploadFileToS3(
     const memoryType = getMemoryTypeFromFile(file);
     const memoryId = responseData?.memoryId || `mem-${Date.now()}`;
     const publicUrl = responseData?.url || '';
-    
+
     const result: UploadResponse = {
       success: true,
       data: {
@@ -450,7 +449,7 @@ async function uploadFileToS3(
         ],
       },
     };
-    
+
     return result;
   } catch (error) {
     console.error('❌ S3 upload failed:', error);
@@ -465,15 +464,15 @@ export const uploadFiles = async (
   files: File[],
   isOnboarding: boolean,
   existingUserId?: string,
-  mode: UploadMode = 'folder',
+  mode: UploadMode = 'directory',
   storageBackend: StorageBackend | StorageBackend[] = 'vercel_blob',
-  userStoragePreference?: 'neon' | 'icp' | 'dual' | 's3'
+  userBlobHosting?: 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs'
 ): Promise<UploadResponse[]> => {
   console.log(`🚀 Starting folder upload for ${files.length} files...`);
 
   const uploadPromises = files.map((file, index) => {
     console.log(`📤 Uploading file ${index + 1}/${files.length}: ${file.name}`);
-    return uploadFile(file, isOnboarding, existingUserId, mode, storageBackend, userStoragePreference);
+    return uploadFile(file, isOnboarding, existingUserId, mode, storageBackend, userBlobHosting);
   });
 
   try {

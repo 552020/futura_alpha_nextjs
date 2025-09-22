@@ -7,16 +7,17 @@ import { allUsers, memories } from '@/db/schema';
 // Helper function to add storage status to memory (similar to gallery utils)
 function addStorageStatusToMemory(memory: typeof memories.$inferSelect) {
   // Calculate storage status from the memory's own fields
-  const hasNeonStorage = memory.storageLocations?.includes('neon-db') || false;
-  const hasBlobStorage = memory.storageLocations?.includes('vercel-blob') || false;
-  const hasIcpStorage = memory.storageLocations?.includes('icp-canister') || false;
+  // For now, assume all memories are stored in web2 (neon/vercel) by default
+  // ICP storage status would need to be determined from storageEdges table
+  const hasIcpStorage = false; // TODO: Query storageEdges table for actual ICP status
+  const hasWeb2Storage = true; // Assume all memories have web2 storage
 
   // Determine overall status
   let overallStatus: 'stored_forever' | 'partially_stored' | 'web2_only';
   if (hasIcpStorage) {
     overallStatus = 'stored_forever';
-  } else if (hasNeonStorage || hasBlobStorage) {
-    overallStatus = 'partially_stored';
+  } else if (hasWeb2Storage) {
+    overallStatus = 'web2_only';
   } else {
     overallStatus = 'web2_only';
   }
@@ -24,8 +25,8 @@ function addStorageStatusToMemory(memory: typeof memories.$inferSelect) {
   return {
     ...memory,
     storageStatus: {
-      metaNeon: hasNeonStorage,
-      assetBlob: hasBlobStorage,
+      metaNeon: hasWeb2Storage,
+      assetBlob: hasWeb2Storage,
       metaIcp: hasIcpStorage,
       assetIcp: hasIcpStorage,
       overallStatus,
@@ -173,7 +174,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const typedMetadata = memoryData?.metadata as
       | {
           custom?: {
-            storageBackend?: string;
+            assetLocation?: string;
             storageKey?: string;
             [key: string]: unknown;
           };
@@ -189,7 +190,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       hasMetadata: !!memoryData?.metadata,
       metadataKeys: memoryData?.metadata ? Object.keys(memoryData.metadata) : 'none',
       storageKey: typedMetadata?.custom?.storageKey,
-      storageBackend: typedMetadata?.custom?.storageBackend,
+      assetLocation: typedMetadata?.custom?.assetLocation,
     });
 
     if (!memoryData) {
@@ -202,7 +203,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       type: memoryData.type,
       hasMetadata: !!typedMetadata,
       hasCustomMetadata: !!typedMetadata?.custom,
-      storageBackend: typedMetadata?.custom?.storageBackend,
+      assetLocation: typedMetadata?.custom?.assetLocation,
       storageKey: typedMetadata?.custom?.storageKey,
       memoryDataExists: !!memoryData,
     });

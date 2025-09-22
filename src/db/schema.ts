@@ -23,20 +23,14 @@ import type { AdapterAccount } from 'next-auth/adapters';
 
 // Storage Edge Enums
 export const artifact_t = pgEnum('artifact_t', ['metadata', 'asset']);
-export const backend_t = pgEnum('backend_t', ['neon-db', 'vercel-blob', 'icp-canister']);
 export const memory_type_t = pgEnum('memory_type_t', ['image', 'video', 'note', 'document', 'audio']);
 export const sync_t = pgEnum('sync_t', ['idle', 'migrating', 'failed']);
-
-// Storage location enum (for storage status fields)
-export const storage_location_t = pgEnum('storage_location_t', ['neon-db', 'vercel-blob', 'icp-canister', 'aws-s3']);
 
 // Hosting preference enums
 export const frontend_hosting_t = pgEnum('frontend_hosting_t', ['vercel', 'icp']);
 export const backend_hosting_t = pgEnum('backend_hosting_t', ['vercel', 'icp']);
 export const database_hosting_t = pgEnum('database_hosting_t', ['neon', 'icp']);
-export const blob_hosting_t = pgEnum('blob_hosting_t', [
-  's3', 'vercel_blob', 'icp', 'arweave', 'ipfs', 'neon'
-]);
+export const blob_hosting_t = pgEnum('blob_hosting_t', ['s3', 'vercel_blob', 'icp', 'arweave', 'ipfs', 'neon']);
 
 /**
  * STORAGE PREFERENCE - User's preferred storage strategy
@@ -69,7 +63,13 @@ export const asset_type_t = pgEnum('asset_type_t', [
   'poster',
   'waveform',
 ]);
-export const processing_status_t = pgEnum('processing_status_t', ['pending', 'processing', 'completed', 'failed']);
+export const processing_status_t = pgEnum('processing_status_t', [
+  'pending',
+  'processing',
+  'completed',
+  'skipped',
+  'failed',
+]);
 /**
  * STORAGE BACKEND - Where assets are actually stored
  *
@@ -144,10 +144,7 @@ export const users = pgTable(
 
     premiumExpiresAt: timestamp('premium_expires_at', { mode: 'date' }),
 
-    // Storage preferences
-    // Using enum instead of booleans to avoid CHECK constraints and keep everything in Drizzle
-    storagePreference: storage_pref_t('storage_preference').default('neon').notNull(),
-    storagePrimaryStorage: backend_t('storage_primary_storage').default('neon-db').notNull(),
+    // Storage preferences moved to userHostingPreferences table
 
     // Timestamp fields
     createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -430,9 +427,7 @@ export const memories = pgTable(
       }>()
       .default({}),
     // Storage status fields
-    storageLocations: storage_location_t('storage_locations').array().default([]), // Array of storage backends: ['neon-db', 'vercel-blob', 'icp-canister', 'aws-s3']
     storageDuration: integer('storage_duration'), // Duration in days, null for permanent
-    storageCount: integer('storage_count').default(0), // Number of storage locations for verification
   },
   table => [
     // Performance indexes for common queries
@@ -442,7 +437,6 @@ export const memories = pgTable(
     // Performance indexes for tags and people
     index('memories_tags_idx').on(table.tags),
     // Storage status indexes
-    index('memories_storage_locations_idx').on(table.storageLocations),
     index('memories_storage_duration_idx').on(table.storageDuration),
   ]
 );
@@ -496,7 +490,7 @@ export const memoryAssets = pgTable(
     assetType: asset_type_t('asset_type').notNull(),
     variant: text('variant'), // Optional for future variants (2k, mobile, etc.)
     url: text('url').notNull(), // Derived/public URL
-    storageBackend: storage_backend_t('storage_backend').notNull(),
+    assetLocation: blob_hosting_t('asset_location').notNull(),
     bucket: text('bucket'), // Storage bucket/container
     storageKey: text('storage_key').notNull(), // Bucket/key or blob ID
     bytes: bigint('bytes', { mode: 'number' }).notNull(), // Use bigint for >2GB files
@@ -517,7 +511,7 @@ export const memoryAssets = pgTable(
     index('memory_assets_memory_idx').on(table.memoryId),
     index('memory_assets_type_idx').on(table.assetType),
     index('memory_assets_url_idx').on(table.url),
-    index('memory_assets_storage_idx').on(table.storageBackend, table.storageKey),
+    index('memory_assets_storage_idx').on(table.assetLocation, table.storageKey),
     // Data integrity constraints
     check('memory_assets_bytes_positive', sql`${table.bytes} > 0`),
     check(
@@ -1078,13 +1072,11 @@ export const galleries = pgTable(
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
     // Storage status fields
     totalMemories: integer('total_memories').default(0), // Total number of memories in this gallery
-    storageLocations: storage_location_t('storage_locations').array().default([]), // All storage backends used by memories in this gallery
     averageStorageDuration: integer('average_storage_duration'), // Average duration in days, null if all permanent
     storageDistribution: json('storage_distribution').$type<Record<string, number>>().default({}), // Count of memories per storage backend
   },
   table => [
     // Storage status indexes
-    index('galleries_storage_locations_idx').on(table.storageLocations),
     index('galleries_storage_duration_idx').on(table.averageStorageDuration),
   ]
 );
@@ -1223,7 +1215,7 @@ export const iiNonces = pgTable(
 export type DBIINonce = typeof iiNonces.$inferSelect;
 export type NewDBIINonce = typeof iiNonces.$inferInsert;
 
-// Storage Edges Table - Track storage presence per memory artifact and backend
+// Storage Edges Table - Track storage presence per memory artifact and location
 export const storageEdges = pgTable(
   'storage_edges',
   {
@@ -1231,9 +1223,10 @@ export const storageEdges = pgTable(
     memoryId: uuid('memory_id').notNull(), // References memories.id
     memoryType: memory_type_t('memory_type').notNull(), // 'image' | 'video' | 'note' | 'document' | 'audio'
     artifact: artifact_t('artifact').notNull(), // 'metadata' | 'asset'
-    backend: backend_t('backend').notNull(), // 'neon-db' | 'vercel-blob' | 'icp-canister'
+    locationMetadata: database_hosting_t('location_metadata'), // 'neon' | 'icp' (for metadata artifacts)
+    locationAsset: blob_hosting_t('location_asset'), // 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs' (for asset artifacts)
     present: boolean('present').notNull().default(false),
-    location: text('location'), // blob key / icp path / etc.
+    locationUrl: text('location_url'), // blob key / icp path / etc.
     contentHash: text('content_hash'), // SHA-256 for assets
     sizeBytes: bigint('size_bytes', { mode: 'number' }),
     syncState: sync_t('sync_state').notNull().default('idle'), // 'idle' | 'migrating' | 'failed'
@@ -1243,9 +1236,9 @@ export const storageEdges = pgTable(
     updatedAt: timestamp('updated_at', { mode: 'date' }).defaultNow(),
   },
   t => [
-    uniqueIndex('uq_edge').on(t.memoryId, t.memoryType, t.artifact, t.backend),
+    uniqueIndex('uq_edge').on(t.memoryId, t.memoryType, t.artifact, t.locationMetadata, t.locationAsset),
     index('ix_edges_memory').on(t.memoryId, t.memoryType),
-    index('ix_edges_backend_present').on(t.backend, t.artifact, t.present),
+    index('ix_edges_location_present').on(t.locationMetadata, t.locationAsset, t.artifact, t.present),
     index('ix_edges_sync_state').on(t.syncState),
   ]
 );
@@ -1524,58 +1517,65 @@ export type DBMemoryWithDetails = DBMemory & {
 
 /**
  * USER HOSTING PREFERENCES - User's preferred hosting providers for different services
- * 
+ *
  * This table stores the user's preferred hosting providers for different parts of the application.
  * Each user must have preferences set for all four service categories.
  */
-export const userHostingPreferences = pgTable('user_hosting_preferences', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: text('user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  frontendHosting: frontend_hosting_t('frontend_hosting').default('vercel').notNull(),
-  backendHosting: backend_hosting_t('backend_hosting').default('vercel').notNull(),
-  databaseHosting: database_hosting_t('database_hosting').default('neon').notNull(),
-  blobHosting: blob_hosting_t('blob_hosting').default('vercel_blob').notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-}, (table) => ({
-  // Ensure one preference set per user
-  userIdIdx: uniqueIndex('user_hosting_preferences_user_id_idx').on(table.userId),
-}));
+export const userHostingPreferences = pgTable(
+  'user_hosting_preferences',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    frontendHosting: frontend_hosting_t('frontend_hosting').default('vercel').notNull(),
+    backendHosting: backend_hosting_t('backend_hosting').default('vercel').notNull(),
+    databaseHosting: database_hosting_t('database_hosting').default('neon').notNull(),
+    blobHosting: blob_hosting_t('blob_hosting').default('s3').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  table => ({
+    // Ensure one preference set per user
+    userIdIdx: uniqueIndex('user_hosting_preferences_user_id_idx').on(table.userId),
+  })
+);
 
 /**
  * SERVICE DEPLOYMENTS - Tracks where user's services are actually deployed
- * 
+ *
  * This table tracks the actual deployment locations of a user's services.
  * It can have multiple entries per user to track deployment history.
  */
-export const serviceDeployments = pgTable('service_deployments', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: text('user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  frontendLocation: frontend_hosting_t('frontend_location').notNull(),
-  backendLocation: backend_hosting_t('backend_location').notNull(),
-  databaseLocation: database_hosting_t('database_location').notNull(),
-  blobLocation: blob_hosting_t('blob_location').notNull(),
-  isActive: boolean('is_active').default(false).notNull(),
-  deployedAt: timestamp('deployed_at').defaultNow().notNull(),
-  lastCheckedAt: timestamp('last_checked_at'),
-  deploymentMetadata: json('deployment_metadata')
-    .$type<{
-      version?: string;
-      region?: string;
-      url?: string;
-      status?: 'deploying' | 'active' | 'failed' | 'deleting';
-      error?: string;
-    }>()
-    .default({}),
-}, (table) => ({
-  // Index for looking up active deployments
-  activeDeploymentIdx: index('service_deployments_user_active_idx')
-    .on(table.userId, table.isActive),
-}));
+export const serviceDeployments = pgTable(
+  'service_deployments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    frontendLocation: frontend_hosting_t('frontend_location').notNull(),
+    backendLocation: backend_hosting_t('backend_location').notNull(),
+    databaseLocation: database_hosting_t('database_location').notNull(),
+    blobLocation: blob_hosting_t('blob_location').notNull(),
+    isActive: boolean('is_active').default(false).notNull(),
+    deployedAt: timestamp('deployed_at').defaultNow().notNull(),
+    lastCheckedAt: timestamp('last_checked_at'),
+    deploymentMetadata: json('deployment_metadata')
+      .$type<{
+        version?: string;
+        region?: string;
+        url?: string;
+        status?: 'deploying' | 'active' | 'failed' | 'deleting';
+        error?: string;
+      }>()
+      .default({}),
+  },
+  table => ({
+    // Index for looking up active deployments
+    activeDeploymentIdx: index('service_deployments_user_active_idx').on(table.userId, table.isActive),
+  })
+);
 
 // Temporary exports for backward compatibility during migration
 // TODO: Remove these once all files are updated to use the new unified schema

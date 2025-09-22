@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Plus, Loader2, Upload } from 'lucide-react';
-import { useMemoryUpload } from '@/hooks/useMemoryUpload';
+import { useFileUpload } from '@/hooks/use-file-upload';
+import { triggerFileInput } from '@/services/upload/file-picker';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import type { FileInputAttributeMode } from '@/types/upload';
 
 // Button variant interfaces
 interface BaseButtonProps {
@@ -13,10 +15,6 @@ interface BaseButtonProps {
 
 interface FileInputProps {
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}
-
-interface FileWithRelativePath extends File {
-  readonly webkitRelativePath: string;
 }
 
 // Individual button components
@@ -171,10 +169,8 @@ const NativeFileInput = ({ onChange }: FileInputProps) => (
 //   onError?: (error: Error) => void;
 // }
 
-type UploadMode = 'folder' | 'files';
-
 interface ItemUploadButtonProps {
-  mode?: UploadMode; // NEW
+  mode?: FileInputAttributeMode;
   isOnboarding?: boolean;
   variant?:
     | 'button'
@@ -209,7 +205,7 @@ interface ItemUploadButtonProps {
  * - This is just TypeScript being overly strict about experimental attributes
  */
 export function ItemUploadButton({
-  mode = 'folder',
+  mode = 'directory',
   isOnboarding = false,
   variant = 'button',
   buttonText,
@@ -218,34 +214,26 @@ export function ItemUploadButton({
 }: ItemUploadButtonProps) {
   const [showUploadDialog, setShowUploadDialog] = useState(false);
 
-  const { isUploading, uploads, uploadFiles, resetUploads } = useMemoryUpload();
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const { isLoading, fileInputRef, handleFileUpload } = useFileUpload({
+    isOnboarding,
+    mode,
+    onSuccess: () => {
+      setShowUploadDialog(false);
+      onSuccess?.();
+    },
+    onError: error => {
+      onError?.(error);
+    },
+  });
 
   const handleUploadClick = () => {
-    fileInputRef.current?.click();
+    if (fileInputRef.current) {
+      triggerFileInput(fileInputRef.current, mode);
+    }
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setShowUploadDialog(true);
-      try {
-        let folderName: string | undefined = undefined;
-        if (mode === 'folder' && e.target.files.length > 0) {
-          const firstFile = e.target.files[0] as FileWithRelativePath;
-          const pathParts = firstFile.webkitRelativePath.split('/');
-          if (pathParts.length > 1) {
-            folderName = pathParts[0];
-          }
-        }
-        await uploadFiles(e.target.files, folderName);
-        onSuccess?.();
-      } catch (error) {
-        onError?.(error as Error);
-      } finally {
-        setShowUploadDialog(false);
-        resetUploads();
-      }
-    }
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleFileUpload(e);
   };
 
   const renderUploadButton = () => {
@@ -253,7 +241,7 @@ export function ItemUploadButton({
       return <NativeFileInput onChange={handleFileChange} />;
     }
 
-    const commonProps = { onClick: handleUploadClick, isLoading: isUploading, buttonText };
+    const commonProps = { onClick: handleUploadClick, isLoading, buttonText };
 
     switch (variant) {
       case 'large-icon':
@@ -282,8 +270,6 @@ export function ItemUploadButton({
           ref={fileInputRef}
           onChange={handleFileChange}
           className="hidden"
-          multiple={mode === 'files' || mode === 'folder'}
-          {...(mode === 'folder' ? { webkitdirectory: 'true', mozdirectory: 'true', directory: 'true' } : {})}
           accept="image/*,video/*,audio/*"
         />
       )}

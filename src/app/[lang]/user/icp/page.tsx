@@ -607,13 +607,13 @@ export default function ICPPage() {
                 <div>
                   <Label className="text-sm font-medium">Created At</Label>
                   <p className="text-sm text-muted-foreground">
-                    {new Date(Number(capsuleInfo.created_at) / 1000000).toLocaleString()}
+                    {new Date(Number(capsuleInfo.created_at) / 1000000).toLocaleString('en-US')}
                   </p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium">Updated At</Label>
                   <p className="text-sm text-muted-foreground">
-                    {new Date(Number(capsuleInfo.updated_at) / 1000000).toLocaleString()}
+                    {new Date(Number(capsuleInfo.updated_at) / 1000000).toLocaleString('en-US')}
                   </p>
                 </div>
               </div>
@@ -654,13 +654,13 @@ export default function ICPPage() {
                 <div>
                   <Label className="text-sm font-medium">Created At</Label>
                   <p className="text-sm text-muted-foreground">
-                    {new Date(Number(capsuleReadResult.created_at) / 1000000).toLocaleString()}
+                    {new Date(Number(capsuleReadResult.created_at) / 1000000).toLocaleString('en-US')}
                   </p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium">Updated At</Label>
                   <p className="text-sm text-muted-foreground">
-                    {new Date(Number(capsuleReadResult.updated_at) / 1000000).toLocaleString()}
+                    {new Date(Number(capsuleReadResult.updated_at) / 1000000).toLocaleString('en-US')}
                   </p>
                 </div>
               </div>

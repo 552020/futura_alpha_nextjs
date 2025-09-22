@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
         mimeType: toAcceptedMimeType(fileType),
       },
       parentFolderId,
-      storageBackend: 's3',
+      assetLocation: 's3',
     });
 
     return NextResponse.json(result);

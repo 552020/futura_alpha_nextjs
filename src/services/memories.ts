@@ -136,24 +136,39 @@ export const deleteAllMemories = async (options?: {
 export const processDashboardItems = (memories: MemoryWithFolder[]): DashboardItem[] => {
   console.log('🚀 LINE 129: ENTERING processDashboardItems');
   console.log('🔍 processDashboardItems - Received memories:', memories.length);
-  console.log('🔍 Sample memory with folder info:', memories[0]);
+  console.log('🔍 All memories with folder info:', memories.map(m => ({
+    id: m.id,
+    title: m.title,
+    parentFolderId: m.parentFolderId,
+    folderName: m.folder?.name
+  })));
 
   // Step 1: Group memories by parentFolderId
   const folderGroups = memories.reduce(
     (groups, memory) => {
       const parentFolderId = memory.parentFolderId;
+      console.log(`🔍 Processing memory "${memory.title}" with parentFolderId: ${parentFolderId}`);
       if (parentFolderId) {
         if (!groups[parentFolderId]) {
           groups[parentFolderId] = [];
+          console.log(`📁 Created new folder group for: ${parentFolderId}`);
         }
         groups[parentFolderId].push(memory);
+        console.log(`📁 Added "${memory.title}" to folder ${parentFolderId}. Group now has ${groups[parentFolderId].length} items`);
+      } else {
+        console.log(`🔍 Memory "${memory.title}" has no parentFolderId - will be individual`);
       }
       return groups;
     },
     {} as Record<string, MemoryWithFolder[]>
   );
 
-  console.log('🔍 Folder groups:', folderGroups);
+  console.log('🔍 Final folder groups:', Object.entries(folderGroups).map(([folderId, memories]) => ({
+    folderId,
+    folderName: memories[0]?.folder?.name || 'Unknown',
+    count: memories.length,
+    memories: memories.map(m => m.title)
+  })));
 
   // Step 2: Create FolderItems for each group
   const folderItems: FolderItem[] = Object.entries(folderGroups).map(([folderId, folderMemories]) => ({
