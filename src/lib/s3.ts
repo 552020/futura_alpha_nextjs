@@ -1,5 +1,6 @@
 import { S3Client, PutObjectCommand, PutObjectCommandInput } from '@aws-sdk/client-s3';
 // import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { generateS3Key } from './s3-service';
 
 // S3 Configuration
 const s3Config = {
@@ -32,6 +33,7 @@ export function isS3Configured(): boolean {
 }
 
 // Generate a safe file name with user ID in the path
+// NOTE: This function is deprecated - use generateS3Key from s3-service.ts instead
 function generateSafeFileName(originalName: string, userId: string = 'anonymous'): string {
   const timestamp = Date.now();
   const safeFileName = originalName.replace(/[^a-zA-Z0-9-_\.]/g, '_');
@@ -49,7 +51,8 @@ export async function uploadToS3(file: File, buffer?: Buffer, userId?: string): 
 
   const fileBuffer = buffer || Buffer.from(await file.arrayBuffer());
   const cleanFileName = file.name.split('/').pop() || file.name; // Remove any path from the file name
-  const fileName = generateSafeFileName(cleanFileName, userId);
+  // Use unified S3 key generation for consistent folder structure
+  const fileName = generateS3Key(cleanFileName, userId || 'anonymous');
 
   const uploadParams: PutObjectCommandInput = {
     Bucket: S3_BUCKET,
