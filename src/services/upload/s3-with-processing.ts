@@ -7,8 +7,7 @@
  * Both lanes run simultaneously for optimal performance.
  */
 
-import { getSingleGrant } from './grant';
-import { uploadToS3 } from './single-file-processor';
+import { getSingleGrant, type GrantResponse } from './grant';
 import { processImageDerivatives } from './image-derivatives';
 import { finalizeAllAssets, type ProcessedAssets } from './finalize';
 import { uploadFileWithProgress, extractFolderName, generateS3PublicUrl } from './shared-utils';
@@ -24,6 +23,58 @@ interface BatchCommitResponse {
     success: boolean;
   }>;
   userId: string;
+}
+
+/**
+ * Upload original file to S3 using grant (Lane A)
+ */
+async function uploadToS3WithGrant(
+  file: File,
+  grant: GrantResponse,
+  onProgress?: (progress: number) => void
+): Promise<{
+  data: { id: string };
+  results: Array<{ memoryId: string; size: number; checksum_sha256: string | null }>;
+  userId: string;
+}> {
+  console.log(`🚀 Getting presigned URL for: ${file.name}`);
+
+  // Upload original file using grant
+  await uploadFileWithProgress(file, grant.original.uploadUrl, onProgress || (() => {}));
+
+  console.log(`💾 Committing to database: ${file.name}`);
+
+  // Commit to database
+  const commitResponse = await fetch('/api/upload/complete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      fileKey: grant.original.fileKey,
+      originalName: file.name,
+      size: file.size,
+      type: file.type,
+    }),
+  });
+
+  if (!commitResponse.ok) {
+    const error = await commitResponse.json();
+    throw new Error(error.error || 'Failed to commit upload');
+  }
+
+  const commitData = await commitResponse.json();
+  console.log(`✅ Upload completed: ${file.name}`);
+
+  return {
+    data: { id: commitData.memoryId },
+    results: [
+      {
+        memoryId: commitData.memoryId,
+        size: file.size,
+        checksum_sha256: null,
+      },
+    ],
+    userId: commitData.userId || '',
+  };
 }
 
 export async function uploadToS3WithProcessing(
@@ -42,7 +93,7 @@ export async function uploadToS3WithProcessing(
     const grant = await getSingleGrant(file);
 
     // 2. Start both lanes simultaneously
-    const laneAPromise = uploadToS3(file, onProgress);
+    const laneAPromise = uploadToS3WithGrant(file, grant, onProgress);
 
     let laneBPromise: Promise<ProcessedAssets> | null = null;
     if (file.type.startsWith('image/')) {
