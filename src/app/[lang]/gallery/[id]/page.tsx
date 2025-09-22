@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useAuthGuard } from '@/utils/authentication';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Share2, Edit, Globe, Lock, ImageIcon, Trash2, Eye, EyeOff, Maximize2, HardDrive } from 'lucide-react';
+import { Share2, Edit, Globe, Lock, ImageIcon, Trash2, Eye, EyeOff, Maximize2, HardDrive, CheckSquare } from 'lucide-react';
 import { galleryService } from '@/services/gallery';
 import { GalleryWithItems } from '@/types/gallery';
 import { ForeverStorageProgressModal } from '@/components/galleries/forever-storage-progress-modal';
@@ -285,6 +285,10 @@ function GalleryViewContent() {
               <Button variant="outline" size="sm" onClick={handleEditGallery}>
                 <Edit className="h-4 w-4 mr-2" />
                 Edit
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => router.push(`/${lang}/gallery/${id}/selection`)}>
+                <CheckSquare className="h-4 w-4 mr-2" />
+                Select Photos
               </Button>
               {(() => {
                 const buttonState = getStoreForeverButtonState();
