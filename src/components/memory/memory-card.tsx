@@ -98,16 +98,27 @@ export function MemoryCard({ memory, onClick, onDelete, onShare, onEdit, viewMod
       onShare={onShare ? () => onShare(memory.id) : undefined}
       onDelete={onDelete ? () => onDelete(memory.id) : undefined}
       renderPreview={memory => {
-        if (memory.type === 'image' && memory.thumbnail) {
+        // Prefer provided thumbnail; otherwise derive from minimal assets array if present
+        const memoryWithAssets = memory as typeof memory & { assets?: Array<{ assetType: string; url: string }> };
+        const derivedThumb =
+          memoryWithAssets?.assets?.find?.(a => a.assetType === 'thumb')?.url ||
+          memoryWithAssets?.assets?.find?.(a => a.assetType === 'display')?.url ||
+          memoryWithAssets?.assets?.find?.(a => a.assetType === 'original')?.url;
+
+        // Look for placeholder asset for better blur effect
+        const placeholderAsset = memoryWithAssets?.assets?.find?.(a => a.assetType === 'placeholder');
+        const blurDataURL = placeholderAsset?.url || getBlurPlaceholder();
+
+        if (memory.type === 'image' && (memory.thumbnail || derivedThumb)) {
           return (
             <Image
-              src={memory.thumbnail}
+              src={memory.thumbnail || derivedThumb || ''}
               alt={memory.title || 'Memory image'}
               fill={true}
               className="object-cover"
               sizes={IMAGE_SIZES.grid}
               placeholder="blur"
-              blurDataURL={getBlurPlaceholder()}
+              blurDataURL={blurDataURL}
             />
           );
         }
