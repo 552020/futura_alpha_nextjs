@@ -43,6 +43,12 @@ export async function uploadToS3WithProcessing(
     const laneAResult = await Promise.allSettled([laneAPromise]).then(results => results[0]);
     const laneBResult = laneBPromise ? await Promise.allSettled([laneBPromise]).then(results => results[0]) : null;
 
+    // Log lane results
+    console.log(`📊 Lane A result: ${laneAResult.status === 'fulfilled' ? '✅ success' : '❌ failed'}`);
+    console.log(
+      `📊 Lane B result: ${laneBResult?.status === 'fulfilled' ? '✅ success' : laneBResult?.status === 'rejected' ? '❌ failed' : '⏭️ skipped'}`
+    );
+
     // 4. Single finalize with all assets and precise statuses
     await finalizeAllAssets(laneAResult, laneBResult);
 

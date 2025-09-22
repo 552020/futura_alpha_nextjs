@@ -16,14 +16,14 @@ interface FileMetadata {
 // New parallel processing format
 interface FinalizeAsset {
   assetType: AssetType;
-  storageBackend?: 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs' | 'neon';
+  assetLocation?: 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs' | 'neon';
   storageKey?: string;
   bytes?: number;
   width?: number;
   height?: number;
   mimeType?: string;
   processingStatus: ProcessingStatus;
-  placeholderDataUrl?: string; // For placeholder assets only
+  url?: string; // URL for the asset (data URL for placeholders, S3 URL for others)
 }
 
 interface FinalizeRequest {
@@ -98,7 +98,6 @@ export async function POST(request: Request) {
 
     // Handle legacy formats (Format 1 & 2)
     return await handleLegacyComplete(requestData, allUserId);
-
   } catch (error) {
     console.error('Error completing upload:', error);
     return NextResponse.json({ error: 'Failed to complete upload' }, { status: 500 });
@@ -126,16 +125,13 @@ async function handleParallelProcessingFinalize(request: FinalizeRequest, allUse
 
   // Process each asset with idempotent upserts
   const processedAssets = [];
-  
+
   for (const asset of assets) {
     try {
       // Check if asset already exists
       const existingAsset = await db.query.memoryAssets.findFirst({
         where: (memoryAssets, { eq, and: andFn }) => {
-          return andFn(
-            eq(memoryAssets.memoryId, memoryId),
-            eq(memoryAssets.assetType, asset.assetType)
-          );
+          return andFn(eq(memoryAssets.memoryId, memoryId), eq(memoryAssets.assetType, asset.assetType));
         },
       });
 
@@ -146,34 +142,29 @@ async function handleParallelProcessingFinalize(request: FinalizeRequest, allUse
           .set({
             processingStatus: asset.processingStatus,
             processingError: asset.processingStatus === 'failed' ? 'Processing failed' : null,
-            storageBackend: asset.storageBackend || existingAsset.storageBackend,
+            assetLocation: asset.assetLocation || existingAsset.assetLocation,
             storageKey: asset.storageKey || existingAsset.storageKey,
             bytes: asset.bytes || existingAsset.bytes,
             width: asset.width || existingAsset.width,
             height: asset.height || existingAsset.height,
             mimeType: asset.mimeType || existingAsset.mimeType,
-            url: asset.placeholderDataUrl || existingAsset.url, // Use placeholderDataUrl for placeholder assets
+            url: asset.url || existingAsset.url, // Use url field for all assets
             updatedAt: new Date(),
           })
-          .where(
-            and(
-              eq(memoryAssets.memoryId, memoryId),
-              eq(memoryAssets.assetType, asset.assetType)
-            )
-          );
+          .where(and(eq(memoryAssets.memoryId, memoryId), eq(memoryAssets.assetType, asset.assetType)));
 
         console.log(`✅ Updated existing asset: ${asset.assetType} -> ${asset.processingStatus}`);
       } else {
         // Create new asset
         const assetId = randomUUID();
-        
+
         await db.insert(memoryAssets).values({
           id: assetId,
           memoryId: memoryId,
           assetType: asset.assetType,
           variant: null,
-          url: asset.placeholderDataUrl || '', // Use placeholderDataUrl for placeholder assets
-          storageBackend: asset.storageBackend || 's3',
+          url: asset.url || '', // Use url field for all assets
+          assetLocation: asset.assetLocation || 's3',
           storageKey: asset.storageKey || '',
           bucket: process.env.S3_BUCKET_NAME || 'default-bucket',
           bytes: asset.bytes || 0,
@@ -192,9 +183,8 @@ async function handleParallelProcessingFinalize(request: FinalizeRequest, allUse
       processedAssets.push({
         assetType: asset.assetType,
         processingStatus: asset.processingStatus,
-        placeholderDataUrl: asset.placeholderDataUrl,
+        url: asset.url,
       });
-
     } catch (error) {
       console.error(`❌ Failed to process asset ${asset.assetType}:`, error);
       // Continue processing other assets even if one fails
@@ -306,9 +296,7 @@ async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserI
           return acc;
         }, {}),
       },
-      storageLocations: ['aws-s3'],
       storageDuration: null,
-      storageCount: 1,
       createdAt: new Date(),
       updatedAt: new Date(),
       deletedAt: null,
@@ -321,7 +309,7 @@ async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserI
     assetType: 'original',
     variant: null,
     url: fileUrl,
-    storageBackend: 's3',
+    assetLocation: 's3',
     storageKey: fileKey,
     bucket: process.env.S3_BUCKET_NAME || 'default-bucket',
     bytes: size,
@@ -345,7 +333,7 @@ async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserI
           url: fileUrl,
           bytes: size,
           mimeType: mimeType,
-          storageBackend: 's3',
+          assetLocation: 's3',
           storageKey: fileKey,
         },
       ],

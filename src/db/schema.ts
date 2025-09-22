@@ -26,14 +26,12 @@ export const artifact_t = pgEnum('artifact_t', ['metadata', 'asset']);
 export const memory_type_t = pgEnum('memory_type_t', ['image', 'video', 'note', 'document', 'audio']);
 export const sync_t = pgEnum('sync_t', ['idle', 'migrating', 'failed']);
 
-// Storage location enum (for storage status fields)
-export const storage_location_t = pgEnum('storage_location_t', ['neon-db', 'vercel-blob', 'icp-canister', 'aws-s3']);
 
 // Hosting preference enums
 export const frontend_hosting_t = pgEnum('frontend_hosting_t', ['vercel', 'icp']);
 export const backend_hosting_t = pgEnum('backend_hosting_t', ['vercel', 'icp']);
 export const database_hosting_t = pgEnum('database_hosting_t', ['neon', 'icp']);
-export const blob_hosting_t = pgEnum('blob_hosting_t', ['s3', 'vercel_blob', 'icp', 'arweave', 'ipfs']);
+export const blob_hosting_t = pgEnum('blob_hosting_t', ['s3', 'vercel_blob', 'icp', 'arweave', 'ipfs', 'neon']);
 
 /**
  * STORAGE PREFERENCE - User's preferred storage strategy
@@ -430,9 +428,7 @@ export const memories = pgTable(
       }>()
       .default({}),
     // Storage status fields
-    storageLocations: storage_location_t('storage_locations').array().default([]), // Array of storage backends: ['neon-db', 'vercel-blob', 'icp-canister', 'aws-s3']
     storageDuration: integer('storage_duration'), // Duration in days, null for permanent
-    storageCount: integer('storage_count').default(0), // Number of storage locations for verification
   },
   table => [
     // Performance indexes for common queries
@@ -442,7 +438,6 @@ export const memories = pgTable(
     // Performance indexes for tags and people
     index('memories_tags_idx').on(table.tags),
     // Storage status indexes
-    index('memories_storage_locations_idx').on(table.storageLocations),
     index('memories_storage_duration_idx').on(table.storageDuration),
   ]
 );
@@ -496,7 +491,7 @@ export const memoryAssets = pgTable(
     assetType: asset_type_t('asset_type').notNull(),
     variant: text('variant'), // Optional for future variants (2k, mobile, etc.)
     url: text('url').notNull(), // Derived/public URL
-    storageBackend: storage_backend_t('storage_backend').notNull(),
+    assetLocation: blob_hosting_t('asset_location').notNull(),
     bucket: text('bucket'), // Storage bucket/container
     storageKey: text('storage_key').notNull(), // Bucket/key or blob ID
     bytes: bigint('bytes', { mode: 'number' }).notNull(), // Use bigint for >2GB files
@@ -517,7 +512,7 @@ export const memoryAssets = pgTable(
     index('memory_assets_memory_idx').on(table.memoryId),
     index('memory_assets_type_idx').on(table.assetType),
     index('memory_assets_url_idx').on(table.url),
-    index('memory_assets_storage_idx').on(table.storageBackend, table.storageKey),
+    index('memory_assets_storage_idx').on(table.assetLocation, table.storageKey),
     // Data integrity constraints
     check('memory_assets_bytes_positive', sql`${table.bytes} > 0`),
     check(
@@ -1078,13 +1073,11 @@ export const galleries = pgTable(
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
     // Storage status fields
     totalMemories: integer('total_memories').default(0), // Total number of memories in this gallery
-    storageLocations: storage_location_t('storage_locations').array().default([]), // All storage backends used by memories in this gallery
     averageStorageDuration: integer('average_storage_duration'), // Average duration in days, null if all permanent
     storageDistribution: json('storage_distribution').$type<Record<string, number>>().default({}), // Count of memories per storage backend
   },
   table => [
     // Storage status indexes
-    index('galleries_storage_locations_idx').on(table.storageLocations),
     index('galleries_storage_duration_idx').on(table.averageStorageDuration),
   ]
 );

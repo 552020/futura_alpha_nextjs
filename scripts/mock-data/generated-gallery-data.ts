@@ -13,7 +13,6 @@ export const generatedGalleries: GalleryWithItems[] = [
     updatedAt: new Date('2025-06-03T17:13:04.316Z'),
     ownerId: 'mock-user-1',
     totalMemories: 15,
-    storageLocations: [],
     averageStorageDuration: null,
     storageDistribution: {},
     items: [
@@ -345,7 +344,6 @@ export const generatedGalleries: GalleryWithItems[] = [
     updatedAt: new Date('2025-07-26T06:28:20.069Z'),
     ownerId: 'mock-user-1',
     totalMemories: 15,
-    storageLocations: [],
     averageStorageDuration: null,
     storageDistribution: {},
     items: [
@@ -677,7 +675,6 @@ export const generatedGalleries: GalleryWithItems[] = [
     updatedAt: new Date('2025-07-31T10:09:15.152Z'),
     ownerId: 'mock-user-1',
     totalMemories: 20,
-    storageLocations: [],
     averageStorageDuration: null,
     storageDistribution: {},
     items: [
@@ -1114,7 +1111,6 @@ export const generatedGalleries: GalleryWithItems[] = [
     updatedAt: new Date('2025-04-15T16:27:16.274Z'),
     ownerId: 'mock-user-1',
     totalMemories: 25,
-    storageLocations: [],
     averageStorageDuration: null,
     storageDistribution: {},
     items: [
@@ -1656,7 +1652,6 @@ export const generatedGalleries: GalleryWithItems[] = [
     updatedAt: new Date('2025-08-02T06:48:54.055Z'),
     ownerId: 'mock-user-1',
     totalMemories: 5,
-    storageLocations: [],
     averageStorageDuration: null,
     storageDistribution: {},
     items: [
@@ -1778,7 +1773,6 @@ export const generatedGalleries: GalleryWithItems[] = [
     updatedAt: new Date('2025-08-21T16:22:17.316Z'),
     ownerId: 'mock-user-1',
     totalMemories: 50,
-    storageLocations: [],
     averageStorageDuration: null,
     storageDistribution: {},
     items: [
@@ -2845,7 +2839,6 @@ export const generatedGalleries: GalleryWithItems[] = [
     updatedAt: new Date('2025-08-30T06:15:23.931Z'),
     ownerId: 'mock-user-1',
     totalMemories: 5,
-    storageLocations: [],
     averageStorageDuration: null,
     storageDistribution: {},
     items: [

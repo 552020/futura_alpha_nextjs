@@ -132,7 +132,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
         assetType: asset.assetType as 'original' | 'display' | 'thumb' | 'placeholder' | 'poster' | 'waveform',
         variant: asset.variant || null,
         url: asset.url,
-        storageBackend: asset.storageBackend || 'vercel_blob',
+        assetLocation: asset.assetLocation || 'vercel_blob',
         storageKey: asset.storageKey || asset.url.split('/').pop() || '',
         bytes: asset.bytes,
         width: asset.width || null,
@@ -151,7 +151,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
           target: [memoryAssets.memoryId, memoryAssets.assetType, memoryAssets.variant],
           set: {
             url: assetData.url,
-            storageBackend: assetData.storageBackend,
+            assetLocation: assetData.assetLocation,
             storageKey: assetData.storageKey,
             bytes: assetData.bytes,
             width: assetData.width,
