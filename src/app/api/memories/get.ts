@@ -165,16 +165,23 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
           console.log(`🔍 Processing memory ${memory.id} for thumbnail`);
 
           // Get thumb asset and placeholder asset for better UX
-          const [thumbOrFallback, placeholderAsset] = await Promise.all([
+          const [thumbAsset, displayAsset, originalAsset, placeholderAsset] = await Promise.all([
             db.query.memoryAssets.findFirst({
-              where: eq(memoryAssets.memoryId, memory.id),
-              // Prefer thumb if present, otherwise pick the first available (e.g., original/display)
-              orderBy: sql`CASE WHEN ${memoryAssets.assetType} = 'thumb' THEN 1 ELSE 2 END`,
+              where: and(eq(memoryAssets.memoryId, memory.id), eq(memoryAssets.assetType, 'thumb')),
+            }),
+            db.query.memoryAssets.findFirst({
+              where: and(eq(memoryAssets.memoryId, memory.id), eq(memoryAssets.assetType, 'display')),
+            }),
+            db.query.memoryAssets.findFirst({
+              where: and(eq(memoryAssets.memoryId, memory.id), eq(memoryAssets.assetType, 'original')),
             }),
             db.query.memoryAssets.findFirst({
               where: and(eq(memoryAssets.memoryId, memory.id), eq(memoryAssets.assetType, 'placeholder')),
             }),
           ]);
+
+          // Use thumb if available, otherwise fallback to display, then original
+          const thumbOrFallback = thumbAsset || displayAsset || originalAsset;
 
           console.log(`📸 Found asset for memory ${memory.id}:`, {
             assetType: thumbOrFallback?.assetType,

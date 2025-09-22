@@ -183,7 +183,7 @@ async function handleParallelProcessingFinalize(request: FinalizeRequest, allUse
           url: asset.url || '', // Use url field for all assets
           assetLocation: asset.assetLocation || 's3',
           storageKey: asset.storageKey || '',
-          bucket: process.env.S3_BUCKET_NAME || 'default-bucket',
+          bucket: process.env.AWS_S3_BUCKET || 'futura0',
           bytes: asset.bytes || 0,
           width: asset.width || null,
           height: asset.height || null,
@@ -282,7 +282,7 @@ async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserI
   // Construct the file URL based on storage backend
   let fileUrl: string;
   if (metadata.storageBackend === 's3' && metadata.storageKey) {
-    fileUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_S3_REGION}.amazonaws.com/${metadata.storageKey}`;
+    fileUrl = `https://${process.env.AWS_S3_BUCKET || 'futura0'}.s3.${process.env.AWS_S3_REGION}.amazonaws.com/${metadata.storageKey}`;
   } else {
     fileUrl = requestData.url || `/${fileKey}`;
   }
@@ -328,7 +328,7 @@ async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserI
     url: fileUrl,
     assetLocation: 's3',
     storageKey: fileKey,
-    bucket: process.env.S3_BUCKET_NAME || 'default-bucket',
+    bucket: process.env.AWS_S3_BUCKET || 'futura0',
     bytes: size,
     width: metadata.width ? Number(metadata.width) : null,
     height: metadata.height ? Number(metadata.height) : null,
