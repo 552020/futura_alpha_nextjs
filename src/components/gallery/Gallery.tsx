@@ -5,16 +5,20 @@ import { useParams } from 'next/navigation';
 import { galleryService } from '@/services/gallery';
 import { GalleryWithItems } from '@/types/gallery';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import Image from 'next/image';
-import { CheckCircle } from 'lucide-react';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { useSelection } from '@/contexts/SelectionContext';
 import Rating from './Rating';
-import HideButton from './HideButton';
+
+const ResizeHandle = () => (
+  <PanelResizeHandle className="w-2 bg-gray-100 hover:bg-gray-200 transition-colors" />
+);
 
 const Gallery = () => {
   const { id } = useParams();
   const [gallery, setGallery] = useState<GalleryWithItems | null>(null);
-  const { selectedImages, toggleSelection, rateImage, hideImage, hiddenImages, resetHiddenImages } = useSelection();
+  const { selectedImages, toggleSelection, rateImage } = useSelection();
 
   useEffect(() => {
     const loadGallery = async () => {
@@ -30,6 +34,14 @@ const Gallery = () => {
       loadGallery();
     }
   }, [id]);
+
+  const unselectedImages = gallery?.items.filter(
+    item => !selectedImages.includes(item.memory.id)
+  ) || [];
+  
+  const selectedItems = gallery?.items.filter(
+    item => selectedImages.includes(item.memory.id)
+  ) || [];
 
   const handleSendSelection = async () => {
     try {
@@ -52,39 +64,109 @@ const Gallery = () => {
     }
   };
 
-  const visibleImages = gallery?.items.filter(item => !hiddenImages.includes(item.memory.id)) || [];
-
   return (
-    <div>
-      <div style={{ marginBottom: '20px' }}>
-        <h2>Select Your Favorite Pictures</h2>
-        <p>Click on the images to select them. You can also rate them or hide them temporarily to help you decide.</p>
-        <Button onClick={handleSendSelection} disabled={selectedImages.length === 0}>
-          Send Selection
-        </Button>
-        {hiddenImages.length > 0 && (
-          <Button onClick={resetHiddenImages} variant="secondary" style={{ marginLeft: '10px' }}>
-            Show Hidden Images
+    <div className="h-[calc(100vh-4rem)]">
+      <div className="p-4 border-b">
+        <h1 className="text-2xl font-bold mb-2">Photo Selection</h1>
+        <p className="text-muted-foreground">
+          Select your favorite pictures by checking the boxes below.
+        </p>
+        <div className="mt-4">
+          <Button 
+            onClick={handleSendSelection} 
+            disabled={selectedImages.length === 0}
+            className="w-full sm:w-auto"
+          >
+            Send {selectedImages.length} Selected Photos
           </Button>
-        )}
+        </div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '16px' }}>
-        {visibleImages.map((item) => (
-          <div key={item.id} style={{ position: 'relative', cursor: 'pointer' }} onClick={() => toggleSelection(item.memory.id)}>
-            {selectedImages.includes(item.memory.id) && (
-              <div style={{ position: 'absolute', top: '8px', right: '8px', zIndex: 1 }}>
-                <CheckCircle color="white" fill="blue" size={24} />
+
+      <PanelGroup direction="horizontal" className="flex-1 w-full">
+        <Panel defaultSize={70} minSize={30} className="p-4 overflow-auto">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {unselectedImages.map((item) => (
+              <div 
+                key={item.id} 
+                className="relative group rounded-lg overflow-hidden border hover:shadow-md transition-shadow"
+              >
+                <div className="absolute top-2 left-2 z-10">
+                  <Checkbox 
+                    id={`select-${item.id}`}
+                    checked={selectedImages.includes(item.memory.id)}
+                    onCheckedChange={() => toggleSelection(item.memory.id)}
+                    className="h-5 w-5 rounded-full bg-white/80"
+                  />
+                </div>
+                <Image 
+                  src={item.memory.url!} 
+                  alt={item.memory.title || 'Gallery Image'} 
+                  width={300} 
+                  height={300} 
+                  className="w-full h-48 object-cover"
+                />
+                <div className="p-3">
+                  <p className="font-medium truncate">{item.memory.title || 'Untitled'}</p>
+                  <Rating 
+                    imageId={item.memory.id} 
+                    onRate={(rating) => rateImage(item.memory.id, rating)} 
+                  />
+                </div>
               </div>
-            )}
-            <Image src={item.memory.url!} alt={item.memory.title || 'Gallery Image'} width={300} height={300} style={{ width: '100%', height: 'auto', display: 'block' }} />
-            <div style={{ padding: '8px' }}>
-              <p>{item.memory.title || 'Gallery Image'}</p>
-              <Rating imageId={item.memory.id} onRate={(rating) => rateImage(item.memory.id, rating)} />
-              <HideButton imageId={item.memory.id} onHide={() => hideImage(item.memory.id)} />
-            </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </Panel>
+
+        {selectedItems.length > 0 && (
+          <>
+            <ResizeHandle />
+            <Panel 
+              defaultSize={30} 
+              minSize={20}
+              className="bg-gray-50 p-4 overflow-auto border-l"
+            >
+              <h2 className="text-lg font-semibold mb-4">
+                Selected ({selectedItems.length})
+              </h2>
+              <div className="space-y-4">
+                {selectedItems.map((item) => (
+                  <div 
+                    key={item.id}
+                    className="flex gap-3 p-2 bg-white rounded-lg border"
+                  >
+                    <div className="relative h-16 w-16 flex-shrink-0">
+                      <Image
+                        src={item.memory.url!}
+                        alt={item.memory.title || 'Selected Image'}
+                        fill
+                        className="object-cover rounded"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">
+                        {item.memory.title || 'Untitled'}
+                      </p>
+                      <Rating 
+                        imageId={item.memory.id} 
+                        onRate={(rating) => rateImage(item.memory.id, rating)} 
+                        className="mt-1"
+                      />
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => toggleSelection(item.memory.id)}
+                      className="flex-shrink-0"
+                    >
+                      ×
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </Panel>
+          </>
+        )}
+      </PanelGroup>
     </div>
   );
 };
