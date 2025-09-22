@@ -15,21 +15,23 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     console.log('📦 Request body:', body);
-    
+
     const { key } = body;
 
     if (!key) {
       console.error('❌ Key is required');
-      return NextResponse.json(
-        { error: 'Key is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Key is required' }, { status: 400 });
     }
 
     const bucket = process.env.AWS_S3_BUCKET;
     console.log('🪣 Using S3 bucket:', bucket);
     console.log('🔑 Using S3 key:', key);
     console.log('🌍 S3 region:', process.env.AWS_S3_REGION || 'eu-central-1');
+    console.log('🔐 AWS credentials available:', {
+      hasAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
+      hasSecretKey: !!process.env.AWS_SECRET_ACCESS_KEY,
+      hasBucket: !!process.env.AWS_S3_BUCKET,
+    });
 
     const command = new GetObjectCommand({
       Bucket: bucket,
@@ -44,9 +46,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ url });
   } catch (error) {
     console.error('Error generating presigned URL:', error);
-    return NextResponse.json(
-      { error: 'Failed to generate presigned URL' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to generate presigned URL' }, { status: 500 });
   }
 }
