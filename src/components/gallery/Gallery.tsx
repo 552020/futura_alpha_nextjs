@@ -15,12 +15,9 @@ import { Eye, EyeOff } from 'lucide-react';
 
 const ResizeHandle = () => <PanelResizeHandle className="w-2 bg-gray-100 hover:bg-gray-200 transition-colors" />;
 
-interface GalleryProps {
-  // Add any props if needed
-}
-
-const Gallery: React.FC<GalleryProps> = () => {
-  const { id } = useParams();
+const Gallery = () => {
+  const params = useParams();
+  const { id, lang: _lang } = params as { id: string; lang: string };
   const [gallery, setGallery] = useState<GalleryWithItems | null>(null);
 
   // Get selection context values
@@ -110,8 +107,7 @@ const Gallery: React.FC<GalleryProps> = () => {
     }
   };
 
-  const handleHideImage = (e: React.MouseEvent | undefined, imageId: string) => {
-    e?.stopPropagation?.();
+  const handleHideImage = (imageId: string) => {
     hideImage(imageId);
     // Also deselect if hidden
     if (selectedImages.includes(imageId)) {
@@ -121,7 +117,14 @@ const Gallery: React.FC<GalleryProps> = () => {
 
   const handleSendClick = () => {
     if (selectedImages.length === 0) return;
-    setShowMessageModal(true);
+    
+    // Store selected images in session storage for the next page
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem(`gallery_${id}_selection`, JSON.stringify(selectedImages));
+    }
+    
+    // Navigate to the selection page
+    window.location.href = `/${params?.lang}/gallery/${id}/selection`;
   };
 
   const handleSendSelection = async (e: React.FormEvent) => {
@@ -194,7 +197,7 @@ const Gallery: React.FC<GalleryProps> = () => {
               <ul className="list-disc pl-5 space-y-1">
                 <li>💖 Click to select your favorite photos</li>
                 <li>
-                  👁️ Use the <span className="font-medium">eye icon</span> to hide any photos you'd like to exclude
+                  👁️ Use the <span className="font-medium">eye icon</span> to hide any photos you&apos;d like to exclude
                 </li>
                 <li>⭐ Rate your top picks to help with your final selection</li>
               </ul>
@@ -301,7 +304,7 @@ const Gallery: React.FC<GalleryProps> = () => {
                     />
                     <HideButton
                       imageId={item.memory.id}
-                      onHide={e => handleHideImage(e, item.memory.id)}
+                      onHide={() => handleHideImage(item.memory.id)}
                       className="bg-white/80 hover:bg-white"
                     />
                   </div>

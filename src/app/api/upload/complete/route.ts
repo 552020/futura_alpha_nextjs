@@ -29,6 +29,7 @@ interface FinalizeAsset {
 interface FinalizeRequest {
   memoryId: string;
   assets: FinalizeAsset[];
+  parentFolderId?: string;
 }
 
 interface CompleteUploadRequest {
@@ -108,9 +109,12 @@ export async function POST(request: Request) {
  * Handle new parallel processing finalize format
  */
 async function handleParallelProcessingFinalize(request: FinalizeRequest, allUserId: string) {
-  const { memoryId, assets } = request;
+  const { memoryId, assets, parentFolderId } = request;
 
   console.log(`🔄 Processing parallel finalize for memory: ${memoryId} with ${assets.length} assets`);
+  if (parentFolderId) {
+    console.log(`📁 Linking memory to folder: ${parentFolderId}`);
+  }
 
   // Verify the memory exists and belongs to the user
   const existingMemory = await db.query.memories.findFirst({
@@ -121,6 +125,19 @@ async function handleParallelProcessingFinalize(request: FinalizeRequest, allUse
 
   if (!existingMemory) {
     return NextResponse.json({ error: 'Memory not found or access denied' }, { status: 404 });
+  }
+
+  // Update memory with parentFolderId if provided
+  if (parentFolderId) {
+    await db
+      .update(memories)
+      .set({
+        parentFolderId: parentFolderId,
+        updatedAt: new Date(),
+      })
+      .where(eq(memories.id, memoryId));
+
+    console.log(`✅ Updated memory ${memoryId} with parentFolderId: ${parentFolderId}`);
   }
 
   // Process each asset with idempotent upserts

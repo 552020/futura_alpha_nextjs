@@ -718,7 +718,7 @@ Common HTTP status codes:
 
 3. **Multi-Backend Support**: The system supports multiple storage backends (S3, Vercel Blob, ICP) with automatic routing based on user preferences.
 
-4. **Folder Integration**: Folders are now integrated with the memory system, allowing hierarchical organization.
+4. **Folder Integration**: Folders are now integrated with the memory system, allowing hierarchical organization
 
 5. **Gallery System**: A separate gallery system allows users to create curated collections of memories.
 

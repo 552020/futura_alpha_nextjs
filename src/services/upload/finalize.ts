@@ -22,6 +22,7 @@ export interface FinalizeAsset {
 export interface FinalizeRequest {
   memoryId: string;
   assets: FinalizeAsset[];
+  parentFolderId?: string;
 }
 
 export interface ProcessedAssets {
@@ -39,7 +40,8 @@ export async function finalizeAllAssets(
     results: Array<{ memoryId: string; size: number; checksum_sha256: string | null }>;
     userId: string;
   }>,
-  laneBResult: PromiseSettledResult<ProcessedAssets> | null
+  laneBResult: PromiseSettledResult<ProcessedAssets> | null,
+  parentFolderId?: string
 ): Promise<void> {
   // Extract memoryId from Lane A result
   const memoryId = laneAResult.status === 'fulfilled' ? laneAResult.value.data.id : null;
@@ -76,7 +78,8 @@ export async function finalizeAllAssets(
   }
 
   // Single finalize call
-  await finalizeAssets({ memoryId, assets });
+  console.log(`🔍 DEBUG: Finalizing assets for memory ${memoryId} with parentFolderId:`, parentFolderId);
+  await finalizeAssets({ memoryId, assets, parentFolderId });
 }
 
 /**

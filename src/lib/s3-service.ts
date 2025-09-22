@@ -1,4 +1,10 @@
-import { S3Client, PutObjectCommand, CreateMultipartUploadCommand, UploadPartCommand, CompleteMultipartUploadCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  CreateMultipartUploadCommand,
+  UploadPartCommand,
+  CompleteMultipartUploadCommand,
+} from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { v4 as uuidv4 } from 'uuid';
 import { NextRequest } from 'next/server';
@@ -18,6 +24,13 @@ export function generateS3Key(filename: string, userId: string): string {
   const timestamp = Date.now();
   const fileExtension = filename.split('.').pop() || '';
   return `uploads/${userId}/${timestamp}-${uuidv4()}.${fileExtension}`;
+}
+
+// Generate derivative-specific S3 keys
+export function generateDerivativeS3Key(baseKey: string, derivativeType: 'display' | 'thumb'): string {
+  // Remove the original extension and add derivative suffix
+  const keyWithoutExt = baseKey.replace(/\.[^.]+$/, '');
+  return `${keyWithoutExt}-${derivativeType}.webp`;
 }
 
 // Generate a presigned URL for direct S3 upload
@@ -44,11 +57,7 @@ export async function createMultipartUpload(key: string, contentType: string) {
 }
 
 // Generate presigned URL for a part of a multipart upload
-export async function generatePresignedPartUrl(
-  key: string,
-  uploadId: string,
-  partNumber: number
-): Promise<string> {
+export async function generatePresignedPartUrl(key: string, uploadId: string, partNumber: number): Promise<string> {
   // If it's a simple upload (no uploadId or partNumber)
   if (uploadId === 'simple-upload' && partNumber === 1) {
     const command = new PutObjectCommand({
@@ -67,7 +76,7 @@ export async function generatePresignedPartUrl(
     PartNumber: partNumber,
   });
 
-  return getSignedUrl(s3Client, command, { 
+  return getSignedUrl(s3Client, command, {
     expiresIn: 3600,
     // Add these headers to support CORS
     signableHeaders: new Set(['content-type', 'content-length']),

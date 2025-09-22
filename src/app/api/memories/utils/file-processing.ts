@@ -200,7 +200,6 @@ export function logFileDetails(file: File): void {
  */
 export function logMultipleFileDetails(files: File[]): void {
   // console.log(`📁 Folder contains ${files.length} files:`);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   files.forEach((_file, _index) => {
     // console.log(`  ${_index + 1}. `);
   });

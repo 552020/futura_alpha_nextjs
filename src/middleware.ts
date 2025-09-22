@@ -78,7 +78,6 @@ export function middleware(request: NextRequest) {
 
       // Log the response headers
       // console.log("🧾 Response Headers being sent:");
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       response.headers.forEach((_value, _key) => {
         // console.log(`   - ${_key}: ${_value}`);
       });

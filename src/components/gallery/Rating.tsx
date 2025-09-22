@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Slider } from '@/components/ui/slider';
 
 interface RatingProps {
