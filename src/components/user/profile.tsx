@@ -70,7 +70,7 @@ export function Profile({ isOnboarding = false }: ProfileProps) {
                       {Math.round(file.file.size / 1024)}KB
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      Added {new Date(file.uploadedAt).toLocaleDateString()}
+                      Added {new Date(file.uploadedAt).toLocaleDateString('en-US')}
                     </p>
                   </div>
                 </div>

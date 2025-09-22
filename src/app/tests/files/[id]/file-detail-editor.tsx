@@ -340,13 +340,13 @@ export default function FileDetailEditor({ fileDetails }: { fileDetails: FileDet
               </div>
               <div className="grid grid-cols-3">
                 <span className="font-medium">Created:</span>
-                <span className="col-span-2">{new Date(fileDetails.data.createdAt).toLocaleString()}</span>
+                <span className="col-span-2">{new Date(fileDetails.data.createdAt).toLocaleString('en-US')}</span>
               </div>
               {fileDetails.data.metadata?.dateOfMemory && (
                 <div className="grid grid-cols-3">
                   <span className="font-medium">Date of Memory:</span>
                   <span className="col-span-2">
-                    {new Date(fileDetails.data.metadata.dateOfMemory).toLocaleString()}
+                    {new Date(fileDetails.data.metadata.dateOfMemory).toLocaleString('en-US')}
                   </span>
                 </div>
               )}

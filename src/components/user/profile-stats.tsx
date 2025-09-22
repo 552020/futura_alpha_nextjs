@@ -62,7 +62,7 @@ export function ProfileStats() {
     if (diffInMinutes < 60) return `${diffInMinutes} minutes ago`;
     if (diffInHours < 24) return `${diffInHours} hours ago`;
     if (diffInDays < 7) return `${diffInDays} days ago`;
-    return date.toLocaleDateString();
+    return date.toLocaleDateString('en-US');
   };
 
   return (
@@ -83,7 +83,7 @@ export function ProfileStats() {
               <Image className="h-6 w-6 text-blue-600" aria-hidden="true" />
             </div>
             <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
-              {stats.totalMemories.toLocaleString()}
+              {stats.totalMemories.toLocaleString('en-US')}
             </div>
             <div className="text-sm text-blue-600 dark:text-blue-400">Memories</div>
           </div>
