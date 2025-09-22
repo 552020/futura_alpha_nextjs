@@ -65,15 +65,15 @@ async function uploadToS3WithGrant(
   console.log(`✅ Upload completed: ${file.name}`);
 
   return {
-    data: { id: commitData.memoryId },
+    data: { id: commitData.data.id },
     results: [
       {
-        memoryId: commitData.memoryId,
+        memoryId: commitData.data.id,
         size: file.size,
         checksum_sha256: null,
       },
     ],
-    userId: commitData.userId || '',
+    userId: commitData.data.ownerId || '',
   };
 }
 
