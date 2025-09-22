@@ -226,7 +226,8 @@ async function uploadAssetToS3(blob: Blob, uploadUrl: string): Promise<void> {
  * Generate S3 public URL from file key
  */
 function generateS3Url(fileKey: string): string {
-  const bucket = process.env.NEXT_PUBLIC_S3_BUCKET_NAME || process.env.S3_BUCKET_NAME;
-  const region = process.env.NEXT_PUBLIC_AWS_S3_REGION || process.env.AWS_S3_REGION;
+  // Use hardcoded values for client-side since env vars aren't available
+  const bucket = 'futura0';
+  const region = 'eu-central-1';
   return `https://${bucket}.s3.${region}.amazonaws.com/${fileKey}`;
 }
