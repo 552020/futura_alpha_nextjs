@@ -19,14 +19,7 @@ const Rating: React.FC<RatingProps> = ({ imageId: _imageId, onRate }) => {
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-      <span>Rating: {rating}</span>
-      <Slider
-        defaultValue={[0]}
-        max={5}
-        step={1}
-        onValueChange={handleRating}
-        style={{ width: '150px' }}
-      />
+      <Slider defaultValue={[0]} max={5} step={1} onValueChange={handleRating} style={{ width: '150px' }} />
     </div>
   );
 };

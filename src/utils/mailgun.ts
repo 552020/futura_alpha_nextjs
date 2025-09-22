@@ -36,6 +36,8 @@ interface EmailOptions {
     filename: string;
     data: Buffer | string;
   }>;
+  headers?: Record<string, string>;
+  [key: `h:${string}`]: unknown; // Allow custom headers
 }
 
 // Define the message data interface
