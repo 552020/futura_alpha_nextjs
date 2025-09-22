@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { sendEmail } from '@/utils/mailgun';
 
-const TO_EMAIL = process.env.SALIH_EMAIL || 'l.mangallon@gmail.com';
+const TO_EMAIL = process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL;
 const LOG_PREFIX = '[Gallery Selection]';
 
 function log(level: 'info' | 'error' | 'warn', message: string, data?: Record<string, unknown>) {
@@ -54,9 +54,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Sort images by rating (highest first) and get top 35
-    const sortedImages = [...images]
-      .sort((a, b) => (b.rating || 0) - (a.rating || 0))
-      .slice(0, 35);
+    const sortedImages = [...images].sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 35);
 
     log('info', `[${requestId}] Processing selection`, {
       userId: session.user.id,
@@ -66,7 +64,7 @@ export async function POST(request: NextRequest) {
     // Prepare email content
     const userName = session.user.name || session.user.email?.split('@')[0] || 'a user';
     const subject = `🎨 New Photo Selection from ${userName} (${sortedImages.length} images)`;
-    
+
     const formatDate = (dateString: string) => {
       const date = new Date(dateString);
       return date.toLocaleString('en-US', {
@@ -85,33 +83,53 @@ export async function POST(request: NextRequest) {
     <head>
       <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
-        .header { text-align: center; margin-bottom: 30px; }
-        .message { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
-        .image-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; margin: 20px 0; }
-        .image-card { border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; }
-        .image-card img { width: 100%; height: 120px; object-fit: cover; }
+        .header { background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin-bottom: 20px; text-align: center; }
+        .subtitle { color: #6c757d; font-style: italic; margin: 10px 0 20px; }
+        .message { background-color: #e9ecef; padding: 15px; border-radius: 5px; margin: 15px 0; }
+        .image-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
+        .image-card { border: 1px solid #dee2e6; border-radius: 5px; overflow: hidden; }
+        .image-card img { width: 100%; height: 150px; object-fit: cover; }
         .image-info { padding: 10px; font-size: 14px; }
-        .rating { color: #ffc107; margin-top: 5px; }
-        .footer { margin-top: 30px; font-size: 12px; color: #777; text-align: center; }
+        .rating { color: #ffc107; font-size: 14px; margin-top: 5px; }
+        .footer { margin-top: 30px; font-size: 12px; color: #6c757d; text-align: center; }
+        h1, h2, h3 { color: #2c3e50; }
+        .file-list { margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px; }
+        .file-list h4 { margin-top: 0; }
+        .file-list ul { margin: 10px 0 0 0; padding-left: 20px; }
+        .contact-info { margin-top: 20px; padding: 15px; background-color: #e9f7ef; border-radius: 5px; text-align: center; }
       </style>
     </head>
     <body>
       <div class="header">
-        <h1>New Photo Selection</h1>
-        <p>${sortedImages.length} photos selected by ${userName}</p>
+        <h1>New Photo Selection from ${userName}</h1>
+        <p class="subtitle">Made with love in Berlin</p>
         <p>${formatDate(timestamp || new Date().toISOString())}</p>
       </div>
       
-      ${userMessage ? `
+      ${
+        userMessage
+          ? `
       <div class="message">
         <h3>Message from ${userName}:</h3>
         <p>${userMessage}</p>
       </div>
-      ` : ''}
+      `
+          : ''
+      }
       
       <h3>Selected Images (${sortedImages.length}):</h3>
+      
+      <div class="file-list">
+        <h4>File List:</h4>
+        <ul>
+          ${sortedImages.map((img, i) => `<li>${i + 1}. ${img.name}</li>`).join('')}
+        </ul>
+      </div>
+      
       <div class="image-grid">
-        ${sortedImages.map((img, i) => `
+        ${sortedImages
+          .map(
+            (img, i) => `
           <div class="image-card">
             <img src="${img.url}" alt="${img.name}" />
             <div class="image-info">
@@ -119,7 +137,13 @@ export async function POST(request: NextRequest) {
               ${img.rating ? `<div class="rating">${'★'.repeat(Math.round(img.rating))}${'☆'.repeat(5 - Math.round(img.rating))}</div>` : ''}
             </div>
           </div>
-        `).join('')}
+        `
+          )
+          .join('')}
+      </div>
+      
+      <div class="contact-info">
+        <p>If you encounter any problems or have questions, please contact us on WhatsApp.</p>
       </div>
       
       <div class="footer">
@@ -129,23 +153,30 @@ export async function POST(request: NextRequest) {
     </body>
     </html>
     `;
-    
+
     // Fallback text content
     const text = `
 New Photo Selection from ${userName}
 ${'='.repeat(50)}
 
-${userMessage ? `Message from ${userName}:
+Made with love in Berlin
+
+${
+  userMessage
+    ? `Message from ${userName}:
 ${userMessage}
 
-` : ''}Selected ${sortedImages.length} images:
+`
+    : ''
+}Selected ${sortedImages.length} images:
 
-${sortedImages.map((img, i) => {
-  const rating = img.rating ? ' '.repeat(10) + 'Rating: ' + '★'.repeat(Math.round(img.rating)) + '☆'.repeat(5 - Math.round(img.rating)) : '';
-  return `${i + 1}. ${img.name}${rating}`;
-}).join('\n')}
+${sortedImages
+  .map((img, i) => `${i + 1}. ${img.name}`)
+  .join('\n')}
 
-View the images at: ${process.env.NEXT_PUBLIC_APP_URL || 'https://futura.now'}
+${'='.repeat(50)}
+
+If you encounter any problems or have questions, please contact us on WhatsApp.
 
 ---
 This is an automated message. Please do not reply directly to this email.
@@ -156,7 +187,7 @@ Selection ID: ${requestId}
     log('info', `[${requestId}] Sending email to ${TO_EMAIL}`, { subject });
 
     const emailStartTime = Date.now();
-    
+
     try {
       const emailResponse = await sendEmail({
         to: TO_EMAIL,
@@ -171,11 +202,11 @@ Selection ID: ${requestId}
           images: sortedImages.map((img, i) => ({
             ...img,
             position: i + 1,
-            ratingStars: '★'.repeat(Math.round(img.rating || 0)) + '☆'.repeat(5 - Math.round(img.rating || 0))
+            ratingStars: '★'.repeat(Math.round(img.rating || 0)) + '☆'.repeat(5 - Math.round(img.rating || 0)),
           })),
           selectionId: requestId,
-          appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://futura.now'
-        })
+          appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://futura.now',
+        }),
       });
 
       const emailDuration = Date.now() - emailStartTime;
