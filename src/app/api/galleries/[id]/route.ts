@@ -4,7 +4,7 @@ import { db } from '@/db/db';
 import { eq, and, inArray } from 'drizzle-orm';
 import { galleries, allUsers, galleryShares, galleryItems, memories } from '@/db/schema';
 import { addStorageStatusToGallery } from '../utils';
-import { generatePresignedUrlFromS3Url } from '@/lib/presigned-url-utils';
+import { generateBestAssetUrl } from '@/lib/presigned-url-utils';
 
 // Helper function to check if user has access to a memory, considering gallery override
 async function checkMemoryAccess(
@@ -210,33 +210,26 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             })),
           });
 
-          // Extract URL from assets (similar to dashboard logic)
-          const getAssetUrl = (
-            assets: GalleryAsset[] | undefined,
-            preferredType: 'display' | 'original' = 'display'
-          ): string | undefined => {
+          // Extract best asset URL (prefer thumb for gallery grid, then display, then original)
+          const getBestAssetUrl = async (assets: GalleryAsset[] | undefined): Promise<string | undefined> => {
             if (!assets || assets.length === 0) {
               console.log(`❌ No assets found for memory ${item.memoryId}`);
               return undefined;
             }
 
-            const preferredAsset = assets.find(asset => asset.assetType === preferredType);
-            if (preferredAsset) {
-              console.log(`✅ Found ${preferredType} asset for memory ${item.memoryId}:`, preferredAsset.url);
-              return preferredAsset.url;
+            // Prefer thumb for gallery grid, then display, then original
+            const preferredOrder = ['thumb', 'display', 'original'];
+            for (const assetType of preferredOrder) {
+              const asset = assets.find(a => a.assetType === assetType);
+              if (asset) {
+                console.log(`✅ Found ${assetType} asset for memory ${item.memoryId}`);
+                return await generateBestAssetUrl(asset);
+              }
             }
 
-            const originalAsset = assets.find(asset => asset.assetType === 'original');
-            if (originalAsset) {
-              console.log(`✅ Found original asset for memory ${item.memoryId}:`, originalAsset.url);
-              return originalAsset.url;
-            }
-
-            console.log(
-              `⚠️ No display/original asset found for memory ${item.memoryId}, using first asset:`,
-              assets[0]?.url
-            );
-            return assets[0]?.url;
+            // Fallback to first available asset
+            console.log(`⚠️ No preferred asset found for memory ${item.memoryId}, using first asset`);
+            return await generateBestAssetUrl(assets[0]);
           };
           // Define asset type
           interface GalleryAsset {
@@ -260,17 +253,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           };
 
           // Transform memory to include url and mimeType from assets
-          const assetUrl = getAssetUrl(memory.assets);
-          const finalUrl = await generatePresignedUrlFromS3Url(assetUrl || '');
+          const finalUrl = await getBestAssetUrl(memory.assets);
 
           const memoryWithUrl = {
             ...memory,
-            url: finalUrl,
+            url: finalUrl || '',
             mimeType: getAssetMimeType(memory.assets),
           };
 
           console.log(`🔗 Generated URL for memory ${item.memoryId}:`, {
-            originalUrl: assetUrl,
             finalUrl: finalUrl,
             hasUrl: !!finalUrl,
             urlLength: finalUrl?.length || 0,

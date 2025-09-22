@@ -20,6 +20,7 @@ import { db } from '@/db/db';
 import { allUsers, memories, memoryAssets, memoryShares } from '@/db/schema';
 import { eq, desc, sql, and } from 'drizzle-orm';
 import { fetchMemoriesWithGalleries } from './utils/queries';
+import { generateBestAssetUrl } from '@/lib/presigned-url-utils';
 
 /**
  * Main GET handler for memory listing
@@ -161,14 +162,43 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
       // Add thumbnails for grid view
       const memoriesWithThumbs = await Promise.all(
         memoriesWithShareInfo.map(async memory => {
-          const thumbAsset = await db.query.memoryAssets.findFirst({
+          console.log(`🔍 Processing memory ${memory.id} for thumbnail`);
+
+          const thumbOrFallback = await db.query.memoryAssets.findFirst({
             where: eq(memoryAssets.memoryId, memory.id),
+            // Prefer thumb if present, otherwise pick the first available (e.g., original/display)
             orderBy: sql`CASE WHEN ${memoryAssets.assetType} = 'thumb' THEN 1 ELSE 2 END`,
           });
 
+          console.log(`📸 Found asset for memory ${memory.id}:`, {
+            assetType: thumbOrFallback?.assetType,
+            url: thumbOrFallback?.url,
+            assetLocation: thumbOrFallback?.assetLocation,
+            storageKey: thumbOrFallback?.storageKey,
+            bucket: thumbOrFallback?.bucket,
+          });
+
+          // Generate presigned URL for thumbnail if asset exists
+          let thumbnailUrl = null;
+          if (thumbOrFallback) {
+            try {
+              thumbnailUrl = await generateBestAssetUrl(thumbOrFallback);
+              console.log(`🎯 Generated thumbnail URL for memory ${memory.id}:`, thumbnailUrl);
+            } catch (error) {
+              console.warn(`Failed to generate thumbnail URL for memory ${memory.id}:`, error);
+              thumbnailUrl = thumbOrFallback.url; // Fallback to direct URL
+              console.log(`🔄 Using fallback URL for memory ${memory.id}:`, thumbnailUrl);
+            }
+          } else {
+            console.log(`❌ No asset found for memory ${memory.id}`);
+          }
+
           return {
             ...memory,
-            assets: thumbAsset ? [thumbAsset] : [],
+            // include a minimal assets array for potential client fallbacks
+            assets: thumbOrFallback ? [thumbOrFallback] : [],
+            // surface a top-level thumbnail URL for UI compatibility (presigned for S3)
+            thumbnail: thumbnailUrl,
           };
         })
       );
