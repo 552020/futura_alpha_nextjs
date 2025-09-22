@@ -154,9 +154,9 @@ export async function uploadMultipleToS3WithProcessing(
   const startTime = Date.now();
 
   try {
-    // 1. Get batch presigned URLs for all files (Lane A preparation)
-    console.log(`🎫 Getting batch presigned URLs for ${files.length} files`);
-    const presignResponse = await fetch('/api/upload/batch-presign', {
+    // 1. Get batch grants for all files (Lane A preparation)
+    console.log(`🎫 Getting batch grants for ${files.length} files`);
+    const grantResponse = await fetch('/api/upload/batch-presign', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -170,15 +170,15 @@ export async function uploadMultipleToS3WithProcessing(
       }),
     });
 
-    if (!presignResponse.ok) {
-      const error = await presignResponse.json();
-      throw new Error(error.error || 'Failed to get presigned URLs');
+    if (!grantResponse.ok) {
+      const error = await grantResponse.json();
+      throw new Error(error.error || 'Failed to get grants');
     }
 
-    const { presignedUrls } = await presignResponse.json();
+    const { grants } = await grantResponse.json();
 
     // 2. Start both lanes simultaneously
-    const laneAPromise = uploadMultipleOriginalsToS3(files, presignedUrls, onProgress);
+    const laneAPromise = uploadMultipleOriginalsToS3WithGrants(files, grants, onProgress);
 
     // Lane B: Process derivatives for image files
     const imageFiles = files.filter(file => file.type.startsWith('image/'));
@@ -186,7 +186,7 @@ export async function uploadMultipleToS3WithProcessing(
 
     if (imageFiles.length > 0) {
       console.log(`🖼️ Starting Lane B (derivatives) for ${imageFiles.length} image files`);
-      laneBPromise = processMultipleImageDerivatives(imageFiles);
+      laneBPromise = processMultipleImageDerivativesWithGrants(imageFiles, grants);
     } else {
       console.log(`⏭️ Skipping Lane B (derivatives) - no image files`);
     }
@@ -202,7 +202,7 @@ export async function uploadMultipleToS3WithProcessing(
     );
 
     // 4. Create folder if needed (for directory mode)
-    let parentFolderId: string | undefined = undefined;
+    let _parentFolderId: string | undefined = undefined;
     if (mode === 'directory') {
       const folderName = extractFolderName(files[0]);
       console.log(`📁 Creating folder: ${folderName}`);
@@ -221,25 +221,41 @@ export async function uploadMultipleToS3WithProcessing(
       }
 
       const { folder } = await folderResponse.json();
-      parentFolderId = folder.id;
+      _parentFolderId = folder.id;
     }
 
-    // 5. Commit all files to database with derivatives
-    console.log(`💾 Committing ${files.length} files to database with derivatives`);
-    const commitResult = await commitMultipleFilesWithDerivatives(
-      files,
-      presignedUrls,
-      parentFolderId,
-      laneBResult?.status === 'fulfilled' ? laneBResult.value : null
-    );
+    // 5. Finalize all assets for each file
+    console.log(`💾 Finalizing assets for ${files.length} files`);
+    if (laneAResult.status === 'fulfilled' && laneBResult?.status === 'fulfilled') {
+      // Finalize each file's assets
+      const finalizePromises = files.map(async (file, index) => {
+        const laneAResultForFile = {
+          status: 'fulfilled' as const,
+          value: {
+            data: { id: laneAResult.value.results[index]?.memoryId || '' },
+            results: [laneAResult.value.results[index] || { memoryId: '', size: 0, checksum_sha256: null }],
+            userId: laneAResult.value.userId,
+          },
+        };
+
+        const laneBResultForFile = {
+          status: 'fulfilled' as const,
+          value: laneBResult.value[index] || {},
+        };
+
+        await finalizeAllAssets(laneAResultForFile, laneBResultForFile);
+      });
+
+      await Promise.all(finalizePromises);
+    }
 
     const duration = Date.now() - startTime;
     console.log(`✅ Parallel batch upload completed for ${files.length} files (${duration}ms)`);
 
     return {
-      results: commitResult.results,
-      userId: commitResult.userId,
-      successfulUploads: commitResult.results?.length || 0,
+      results: laneAResult.status === 'fulfilled' ? laneAResult.value.results : [],
+      userId: laneAResult.status === 'fulfilled' ? laneAResult.value.userId : '',
+      successfulUploads: laneAResult.status === 'fulfilled' ? laneAResult.value.results.length : 0,
     };
   } catch (error) {
     const duration = Date.now() - startTime;
@@ -251,37 +267,83 @@ export async function uploadMultipleToS3WithProcessing(
 /**
  * Lane A: Upload all original files to S3 using batch presigned URLs
  */
-async function uploadMultipleOriginalsToS3(
-  files: File[],
-  presignedUrls: Array<{ signedUrl: string; s3Key: string }>,
-  onProgress?: (file: File, progress: number) => void
-): Promise<File[]> {
-  console.log(`📤 Uploading ${files.length} files to S3`);
 
-  const uploadPromises = presignedUrls.map((upload, index) => {
-    const file = files[index];
-    return uploadFileWithProgress(file, upload.signedUrl, progress => {
-      onProgress?.(file, progress);
+/**
+ * Upload multiple original files to S3 using grants (Lane A)
+ */
+async function uploadMultipleOriginalsToS3WithGrants(
+  files: File[],
+  grants: GrantResponse[],
+  onProgress?: (file: File, progress: number) => void
+): Promise<{
+  results: Array<{ memoryId: string; size: number; checksum_sha256: string | null }>;
+  userId: string;
+}> {
+  const uploadPromises = files.map(async (file, index) => {
+    const grant = grants[index];
+    if (!grant) {
+      throw new Error(`No grant found for file: ${file.name}`);
+    }
+
+    console.log(`📤 Uploading original to S3: ${file.name}`);
+
+    // Upload original file using grant
+    await uploadFileWithProgress(file, grant.original.uploadUrl, progress => onProgress?.(file, progress));
+
+    console.log(`💾 Committing to database: ${file.name}`);
+
+    // Commit to database
+    const commitResponse = await fetch('/api/upload/complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fileKey: grant.original.fileKey,
+        originalName: file.name,
+        size: file.size,
+        type: file.type,
+      }),
     });
+
+    if (!commitResponse.ok) {
+      const error = await commitResponse.json();
+      throw new Error(error.error || 'Failed to commit upload');
+    }
+
+    const commitData = await commitResponse.json();
+    console.log(`✅ Upload completed: ${file.name}`);
+
+    return {
+      memoryId: commitData.memoryId,
+      size: file.size,
+      checksum_sha256: null,
+    };
   });
 
-  return await Promise.all(uploadPromises);
+  const results = await Promise.all(uploadPromises);
+
+  return {
+    results,
+    userId: '', // Will be set by the calling function
+  };
 }
 
 /**
- * Lane B: Process image derivatives for multiple image files
+ * Process image derivatives for multiple files using grants
  */
-async function processMultipleImageDerivatives(imageFiles: File[]): Promise<ProcessedAssets[]> {
-  console.log(`🖼️ Processing derivatives for ${imageFiles.length} image files`);
-
-  // Process each image file's derivatives in parallel
-  const derivativePromises = imageFiles.map(async file => {
+async function processMultipleImageDerivativesWithGrants(
+  imageFiles: File[],
+  grants: GrantResponse[]
+): Promise<ProcessedAssets[]> {
+  const derivativePromises = imageFiles.map(async (file, index) => {
     try {
-      // Get grant for this specific file
-      const grant = await getSingleGrant(file);
+      const grant = grants[index];
+      if (!grant) {
+        throw new Error(`No grant found for file: ${file.name}`);
+      }
+
       return await processImageDerivatives(file, grant);
     } catch (error) {
-      console.error(`❌ Failed to process derivatives for ${file.name}:`, error);
+      console.error(`Failed to process derivatives for ${file.name}:`, error);
       return {
         display: { assetType: 'display' as const, processingStatus: 'failed' as const },
         thumb: { assetType: 'thumb' as const, processingStatus: 'failed' as const },
@@ -296,6 +358,7 @@ async function processMultipleImageDerivatives(imageFiles: File[]): Promise<Proc
 /**
  * Commit multiple files to database with their derivatives
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function commitMultipleFilesWithDerivatives(
   files: File[],
   presignedUrls: Array<{ signedUrl: string; s3Key: string }>,

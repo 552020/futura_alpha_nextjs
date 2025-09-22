@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generatePresignedUrl } from '../utils/presign-logic';
+import { generateS3Key, generateDerivativeS3Key, generatePresignedUploadUrl } from '@/lib/s3-service';
 import { getUserIdForUpload } from '../../memories/utils/user-management';
 
 interface FileInfo {
@@ -21,18 +21,73 @@ export async function POST(request: NextRequest) {
       return error;
     }
 
-    const presignPromises = files.map((file: FileInfo) =>
-      generatePresignedUrl({
-        userId: allUserId,
-        fileName: file.fileName,
-        fileType: file.fileType,
-        fileSize: file.fileSize,
-      })
-    );
+    // Generate grants for all files (same approach as single file)
+    const grantPromises = files.map(async (file: FileInfo) => {
+      // Generate a unique base key for all assets (original + derivatives)
+      const baseKey = generateS3Key(file.fileName, allUserId);
+      
+      // Generate presigned URL for original file
+      const originalUploadUrl = await generatePresignedUploadUrl(baseKey, file.fileType);
 
-    const presignedUrls = await Promise.all(presignPromises);
+      // Build response with original file
+      const response: {
+        original: {
+          uploadUrl: string;
+          fileKey: string;
+          contentType: string;
+        };
+        display?: {
+          uploadUrl: string;
+          fileKey: string;
+          contentType: string;
+        };
+        thumb?: {
+          uploadUrl: string;
+          fileKey: string;
+          contentType: string;
+        };
+        placeholderInDb: boolean;
+      } = {
+        original: {
+          uploadUrl: originalUploadUrl,
+          fileKey: baseKey,
+          contentType: file.fileType,
+        },
+        placeholderInDb: true, // Placeholder stored in database, not S3
+      };
 
-    return NextResponse.json({ presignedUrls });
+      // Add derivative presigned URLs for image files
+      if (file.fileType.startsWith('image/')) {
+        const displayKey = generateDerivativeS3Key(baseKey, 'display');
+        const displayUploadUrl = await generatePresignedUploadUrl(displayKey, 'image/webp');
+
+        const thumbKey = generateDerivativeS3Key(baseKey, 'thumb');
+        const thumbUploadUrl = await generatePresignedUploadUrl(thumbKey, 'image/webp');
+
+        response.display = {
+          uploadUrl: displayUploadUrl,
+          fileKey: displayKey,
+          contentType: 'image/webp',
+        };
+
+        response.thumb = {
+          uploadUrl: thumbUploadUrl,
+          fileKey: thumbKey,
+          contentType: 'image/webp',
+        };
+      }
+
+      return response;
+    });
+
+    const grants = await Promise.all(grantPromises);
+
+    console.log(`🎫 Generated batch grants for ${files.length} files`, {
+      files: files.map(f => f.fileName),
+      hasDerivatives: grants.some(g => g.display && g.thumb),
+    });
+
+    return NextResponse.json({ grants });
   } catch (error) {
     console.error('Error in batch presign endpoint:', error);
     return NextResponse.json({ error: 'Failed to generate batch presigned URLs' }, { status: 500 });
