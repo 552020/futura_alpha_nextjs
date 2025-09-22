@@ -5,18 +5,18 @@
  * with idempotent upserts to avoid double-writes and handle retries gracefully.
  */
 
-import type { AssetType, ProcessingStatus, StorageBackend } from '@/db/schema';
+import type { AssetType, ProcessingStatus } from '@/db/schema';
 
 export interface FinalizeAsset {
   assetType: AssetType;
-  storageBackend?: StorageBackend;
+  assetLocation?: 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs' | 'neon';
   storageKey?: string;
   bytes?: number;
   width?: number;
   height?: number;
   mimeType?: string;
   processingStatus: ProcessingStatus;
-  placeholderDataUrl?: string; // For placeholder assets only
+  url?: string; // URL for the asset (data URL for placeholders, S3 URL for others)
 }
 
 export interface FinalizeRequest {
@@ -84,6 +84,7 @@ export async function finalizeAllAssets(
  */
 async function finalizeAssets(request: FinalizeRequest): Promise<void> {
   console.log(`💾 Finalizing ${request.assets.length} assets for memory: ${request.memoryId}`);
+  console.log(`📋 Assets to finalize:`, request.assets.map(a => `${a.assetType}=${a.processingStatus}`).join(', '));
 
   const response = await fetch('/api/upload/complete', {
     method: 'POST',

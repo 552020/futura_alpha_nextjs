@@ -211,14 +211,14 @@ async function handleFolderUpload(formData: FormData, allUserId: string): Promis
           }
 
           // Get storage backend from form data (default to 's3' if not specified)
-          const storageBackend = (formData.get('storageBackend') as string) || 's3';
+          const assetLocation = (formData.get('storageBackend') as string) || 's3';
 
           // Upload file to storage
           const { url, error: uploadError } = await uploadFileToStorageWithErrorHandling(
             file,
             validationResult!.buffer!,
             uploadFileToStorage,
-            storageBackend,
+            assetLocation,
             allUserId // Pass the user ID to include in the S3 path
           );
           if (uploadError || !url) {
@@ -239,10 +239,10 @@ async function handleFolderUpload(formData: FormData, allUserId: string): Promis
               ...file,
               name: file.name.split('/').pop() || file.name, // Clean filename
               // Ensure the file object has the clean name for S3
-              ...(storageBackend === 's3' && { name: file.name.split('/').pop() || file.name }),
+              ...(assetLocation === 's3' && { name: file.name.split('/').pop() || file.name }),
             },
             parentFolderId: createdFolder.id, // ✅ Link to folder
-            storageBackend: storageBackend || 's3', // ✅ Pass the actual storage backend
+            assetLocation: assetLocation || 's3', // ✅ Pass the actual storage backend
             metadata: {
               uploadedAt: new Date().toISOString(),
               originalName: file.name,
@@ -412,14 +412,14 @@ async function handleFileUpload(formData: FormData, ownerId: string): Promise<Ne
         }
 
         // Get storage backend from form data (default to 's3' if not specified)
-        const storageBackend = (formData.get('storageBackend') as string) || 's3';
+        const assetLocation = (formData.get('storageBackend') as string) || 's3';
 
         // Upload file to storage
         const { url, error: uploadError } = await uploadFileToStorageWithErrorHandling(
           file,
           validationResult!.buffer!,
           uploadFileToStorage,
-          storageBackend
+          assetLocation
         );
         if (uploadError || !url) {
           console.error(`❌ Upload failed for ${name}:`, uploadError || 'No URL returned');
@@ -436,7 +436,7 @@ async function handleFileUpload(formData: FormData, ownerId: string): Promise<Ne
           ownerId,
           url,
           file,
-          storageBackend, // ✅ Pass the actual storage backend
+          assetLocation: assetLocation, // ✅ Pass the actual storage backend
           metadata: {
             uploadedAt: new Date().toISOString(),
             originalName: file.name,
@@ -514,7 +514,7 @@ async function handleBlobUrlRequest(body: {
   isOnboarding?: boolean;
   mode?: string;
   userId?: string;
-  storageBackend?: 'vercel_blob' | 's3';
+  assetLocation?: 'vercel_blob' | 's3';
   storageKey?: string;
 }): Promise<NextResponse> {
   console.log('🔧 Handling blob URL request...');
@@ -532,7 +532,7 @@ async function handleBlobUrlRequest(body: {
     isOnboarding,
     mode,
     userId,
-    storageBackend = 'vercel_blob',
+    assetLocation = 'vercel_blob',
     storageKey,
   } = body;
 
@@ -556,11 +556,11 @@ async function handleBlobUrlRequest(body: {
     pathname: pathname || filename || 'unknown',
     size: size || 0,
     contentType: contentType || 'application/octet-stream',
-    storageBackend,
+    assetLocation,
     storageKey: storageKey || blobUrl.split('/').pop() || filename || 'unknown',
   };
 
-  console.log(`🏗️ Creating memory from ${storageBackend}...`);
+  console.log(`🏗️ Creating memory from ${assetLocation}...`);
 
   // Use the appropriate function based on storage backend
   let result;
@@ -571,7 +571,7 @@ async function handleBlobUrlRequest(body: {
       mode: mode || 'files',
     });
   } catch (error) {
-    console.error(`❌ Failed to create memory from ${storageBackend}:`, error);
+    console.error(`❌ Failed to create memory from ${assetLocation}:`, error);
     return NextResponse.json(
       { error: `Failed to create memory: ${error instanceof Error ? error.message : 'Unknown error'}` },
       { status: 500 }
@@ -579,9 +579,9 @@ async function handleBlobUrlRequest(body: {
   }
 
   if (!result.success) {
-    console.error(`❌ Failed to create memory from ${storageBackend}:`, result.error);
+    console.error(`❌ Failed to create memory from ${assetLocation}:`, result.error);
     return NextResponse.json(
-      { error: result.error || `Failed to create memory from ${storageBackend}` },
+      { error: result.error || `Failed to create memory from ${assetLocation}` },
       { status: 500 }
     );
   }
@@ -593,7 +593,7 @@ async function handleBlobUrlRequest(body: {
     success: true,
     data: {
       id: result.memoryId,
-      storageBackend,
+      assetLocation,
       url: blobUrl,
       // Add other memory fields as needed
     },

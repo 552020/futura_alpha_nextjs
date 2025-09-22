@@ -94,7 +94,7 @@ export async function POST(request: Request) {
             memoryId,
             assetType: 'original',
             url: assetUrl,
-            storageBackend: 's3',
+            assetLocation: 's3',
             bucket: process.env.AWS_S3_BUCKET, // Add the bucket field
             storageKey: asset.key,
             bytes: asset.size,

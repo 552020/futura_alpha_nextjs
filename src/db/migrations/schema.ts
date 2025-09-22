@@ -30,7 +30,7 @@ export const frontendHostingT = pgEnum('frontend_hosting_t', ['vercel', 'icp']);
 export const memoryTypeT = pgEnum('memory_type_t', ['image', 'video', 'note', 'document', 'audio']);
 export const processingStatusT = pgEnum('processing_status_t', ['pending', 'processing', 'completed', 'failed']);
 export const storageBackendT = pgEnum('storage_backend_t', ['s3', 'vercel_blob', 'icp', 'arweave', 'ipfs', 'neon']);
-export const storageLocationT = pgEnum('storage_location_t', ['neon-db', 'vercel-blob', 'icp-canister', 'aws-s3']);
+export const storageLocationT = pgEnum('storage_location_t', ['neon', 's3', 'icp']);
 export const storagePrefT = pgEnum('storage_pref_t', ['neon', 'icp', 'dual']);
 export const syncT = pgEnum('sync_t', ['idle', 'migrating', 'failed']);
 
@@ -228,7 +228,7 @@ export const gallery = pgTable(
     createdAt: timestamp('created_at', { mode: 'string' }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { mode: 'string' }).defaultNow().notNull(),
     totalMemories: integer('total_memories').default(0),
-    storageLocations: storageLocationT('storage_locations').array().default(['neon-db']),
+    storageLocations: storageLocationT('storage_locations').array().default(['neon']),
     averageStorageDuration: integer('average_storage_duration'),
     storageDistribution: json('storage_distribution').default({}),
   },
@@ -525,7 +525,7 @@ export const memoryAssets = pgTable(
     assetType: assetTypeT('asset_type').notNull(),
     variant: text(),
     url: text().notNull(),
-    storageBackend: storageBackendT('storage_backend').notNull(),
+    assetLocation: blobHostingT('asset_location').notNull(),
     bucket: text(),
     storageKey: text('storage_key').notNull(),
     // You can use { mode: "bigint" } if numbers are exceeding js number limitations
@@ -544,7 +544,7 @@ export const memoryAssets = pgTable(
     index('memory_assets_memory_idx').using('btree', table.memoryId.asc().nullsLast().op('uuid_ops')),
     index('memory_assets_storage_idx').using(
       'btree',
-      table.storageBackend.asc().nullsLast().op('enum_ops'),
+      table.assetLocation.asc().nullsLast().op('enum_ops'),
       table.storageKey.asc().nullsLast().op('enum_ops')
     ),
     index('memory_assets_type_idx').using('btree', table.assetType.asc().nullsLast().op('enum_ops')),
@@ -746,7 +746,7 @@ export const memories = pgTable(
     updatedAt: timestamp('updated_at', { mode: 'string' }).defaultNow().notNull(),
     deletedAt: timestamp('deleted_at', { mode: 'string' }),
     metadata: json().default({}),
-    storageLocations: storageLocationT('storage_locations').array().default(['neon-db']),
+    storageLocations: storageLocationT('storage_locations').array().default(['neon']),
     storageDuration: integer('storage_duration'),
     storageCount: integer('storage_count').default(0),
   },
