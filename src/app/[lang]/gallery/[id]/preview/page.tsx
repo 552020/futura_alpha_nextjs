@@ -11,7 +11,7 @@ import { GalleryWithItems } from '@/types/gallery';
 import { ForeverStorageProgressModal } from '@/components/galleries/forever-storage-progress-modal';
 import { MemoryStorageBadge } from '@/components/common/memory-storage-badge';
 import { useToast } from '@/hooks/use-toast';
-import { getBlurPlaceholder, IMAGE_SIZES, getOptimalAssetUrl } from '@/utils/image-utils';
+import { getBlurPlaceholder, IMAGE_SIZES } from '@/utils/image-utils';
 
 // Gallery Hero Cover Component
 function GalleryHeroCover({
@@ -26,14 +26,13 @@ function GalleryHeroCover({
   return (
     <div className="relative w-full h-screen bg-black">
       {/* Cover image */}
-      {(gallery.items[0]?.memory.url || getOptimalAssetUrl(gallery.items[0]?.memory.assets, 'display')) &&
-      !failedImages.has(gallery.items[0].memory.url || '') ? (
+      {gallery.items[0]?.memory.url && !failedImages.has(gallery.items[0].memory.url) ? (
         <Image
-          src={getOptimalAssetUrl(gallery.items[0].memory.assets, 'display') || gallery.items[0].memory.url || ''}
+          src={gallery.items[0].memory.url}
           alt={gallery.items[0].memory.title || 'Gallery Cover'}
           fill
           className="object-cover"
-          onError={() => onImageError(gallery.items[0].memory.url || '')}
+          onError={() => onImageError(gallery.items[0].memory.url!)}
           sizes={IMAGE_SIZES.hero}
           priority
           placeholder="blur"
@@ -205,15 +204,14 @@ function GalleryGrid({
               className="aspect-square bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity relative"
               onClick={() => onImageClick(index)}
             >
-              {(item.memory.url || getOptimalAssetUrl(item.memory.assets, 'display')) &&
-              !failedImages.has(item.memory.url || '') ? (
+              {item.memory.url && !failedImages.has(item.memory.url) ? (
                 <div className="w-full h-full relative">
                   <Image
-                    src={getOptimalAssetUrl(item.memory.assets, 'display') || item.memory.url || ''}
+                    src={item.memory.url}
                     alt={item.memory.title || `Photo ${index + 1}`}
                     fill
                     className="object-cover"
-                    onError={() => onImageError(item.memory.url || '')}
+                    onError={() => onImageError(item.memory.url!)}
                     sizes={IMAGE_SIZES.gallery}
                     placeholder="blur"
                     blurDataURL={getBlurPlaceholder()}
@@ -549,15 +547,10 @@ function GalleryPreviewContent() {
 
             {/* Image */}
             <div className="max-w-5xl max-h-full p-8">
-              {(gallery.items[selectedImageIndex]?.memory.url ||
-                getOptimalAssetUrl(gallery.items[selectedImageIndex]?.memory.assets, 'display')) &&
-              !failedImages.has(gallery.items[selectedImageIndex].memory.url || '') ? (
+              {gallery.items[selectedImageIndex]?.memory.url &&
+              !failedImages.has(gallery.items[selectedImageIndex].memory.url!) ? (
                 <Image
-                  src={
-                    getOptimalAssetUrl(gallery.items[selectedImageIndex].memory.assets, 'display') ||
-                    gallery.items[selectedImageIndex].memory.url ||
-                    ''
-                  }
+                  src={gallery.items[selectedImageIndex].memory.url}
                   alt={gallery.items[selectedImageIndex].memory.title || `Photo ${selectedImageIndex + 1}`}
                   fill
                   className="object-contain"

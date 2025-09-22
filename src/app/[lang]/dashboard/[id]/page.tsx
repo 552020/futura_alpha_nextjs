@@ -439,10 +439,10 @@ export default function MemoryDetailPage() {
       </div>
 
       <div className="rounded-lg border p-6">
-        {memory.type === 'image' && (memory.url || memory.displayUrl) && (
+        {memory.type === 'image' && (memory.url || memory.assets?.length) && (
           <div className="relative mx-auto h-[600px] w-full">
             <Image
-              src={memory.displayUrl || memory.url || ''}
+              src={memory.url || ''}
               alt={memory.title || 'Memory image'}
               fill
               className="rounded-lg object-contain"
