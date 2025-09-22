@@ -117,14 +117,7 @@ const Gallery = () => {
 
   const handleSendClick = () => {
     if (selectedImages.length === 0) return;
-    
-    // Store selected images in session storage for the next page
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem(`gallery_${id}_selection`, JSON.stringify(selectedImages));
-    }
-    
-    // Navigate to the selection page
-    window.location.href = `/${params?.lang}/gallery/${id}/selection`;
+    setShowMessageModal(true);
   };
 
   const handleSendSelection = async (e: React.FormEvent) => {
@@ -188,20 +181,8 @@ const Gallery = () => {
       <div className="p-4 border-b space-y-4">
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-2xl font-bold">Your Wedding Memories</h1>
-            <div className="text-muted-foreground space-y-2 mt-2">
-              <p>
-                Relive your special day by selecting up to {MAX_SELECTION} of your favorite moments to cherish forever.
-              </p>
-              <p>We know it&apos;s difficult to chose among hundreds so here are a couple tips to help you out</p>
-              <ul className="list-disc pl-5 space-y-1">
-                <li>💖 Click to select your favorite photos</li>
-                <li>
-                  👁️ Use the <span className="font-medium">eye icon</span> to hide any photos you&apos;d like to exclude
-                </li>
-                <li>⭐ Rate your top picks to help with your final selection</li>
-              </ul>
-            </div>
+            <h1 className="text-2xl font-bold">Select your images</h1>
+            <p className="text-sm text-muted-foreground mt-1">Choose the pictures for your panorama album</p>
           </div>
           <div className="flex flex-col items-end gap-2">
             <div className="flex items-center gap-2">
@@ -362,11 +343,6 @@ const Gallery = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{item.memory.title || 'Untitled'}</p>
-                        <Rating
-                          value={item.memory.rating || 0}
-                          onChange={rating => handleRateImage(item.memory.id, rating)}
-                          size="sm"
-                        />
                       </div>
                       <Button
                         variant="ghost"
@@ -383,21 +359,13 @@ const Gallery = () => {
                 )}
               </div>
 
-              <div className="mt-6">
-                <Button
-                  onClick={handleSendClick}
-                  disabled={selectedImages.length === 0}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  {isSending ? 'Sending...' : `Send Selection (${selectedImages.length})`}
-                </Button>
-
-                {selectedImages.length > 0 && (
-                  <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">
+              {selectedImages.length > 0 && (
+                <div className="mt-2">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
                     {selectedImages.length} of {MAX_SELECTION} photos selected
                   </p>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </Panel>
         </PanelGroup>
