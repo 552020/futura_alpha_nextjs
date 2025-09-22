@@ -206,6 +206,10 @@ export async function uploadMultipleToS3WithProcessing(
     if (mode === 'directory') {
       const folderName = extractFolderName(files[0]);
       console.log(`📁 Creating folder: ${folderName}`);
+      console.log(
+        `🔍 DEBUG: Mode is directory, creating folder for files:`,
+        files.map(f => f.name)
+      );
 
       const folderResponse = await fetch('/api/folders', {
         method: 'POST',
@@ -229,10 +233,13 @@ export async function uploadMultipleToS3WithProcessing(
     if (laneAResult.status === 'fulfilled' && laneBResult?.status === 'fulfilled') {
       // Finalize each file's assets
       const finalizePromises = files.map(async (file, index) => {
+        const memoryId = laneAResult.value.results[index]?.memoryId;
+        console.log(`🔍 DEBUG: Lane A result for file ${index + 1}:`, { memoryId, hasMemoryId: !!memoryId });
+
         const laneAResultForFile = {
           status: 'fulfilled' as const,
           value: {
-            data: { id: laneAResult.value.results[index]?.memoryId || '' },
+            data: { id: memoryId || '' },
             results: [laneAResult.value.results[index] || { memoryId: '', size: 0, checksum_sha256: null }],
             userId: laneAResult.value.userId,
           },
@@ -243,7 +250,8 @@ export async function uploadMultipleToS3WithProcessing(
           value: laneBResult.value[index] || {},
         };
 
-        await finalizeAllAssets(laneAResultForFile, laneBResultForFile);
+        console.log(`🔍 DEBUG: Finalizing file ${index + 1}/${files.length} with parentFolderId:`, _parentFolderId);
+        await finalizeAllAssets(laneAResultForFile, laneBResultForFile, _parentFolderId);
       });
 
       await Promise.all(finalizePromises);
@@ -311,9 +319,13 @@ async function uploadMultipleOriginalsToS3WithGrants(
 
     const commitData = await commitResponse.json();
     console.log(`✅ Upload completed: ${file.name}`);
+    console.log(`🔍 DEBUG: Commit response for ${file.name}:`, {
+      memoryId: commitData.data?.id,
+      hasData: !!commitData.data,
+    });
 
     return {
-      memoryId: commitData.memoryId,
+      memoryId: commitData.data.id,
       size: file.size,
       checksum_sha256: null,
     };

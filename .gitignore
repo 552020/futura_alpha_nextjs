@@ -46,3 +46,4 @@ next-env.d.ts
 
 # export files
 scripts/blob/blob-files-export.json
+scripts/s3/s3-files-export.json
