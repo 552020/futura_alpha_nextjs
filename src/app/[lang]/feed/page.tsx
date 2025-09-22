@@ -291,7 +291,8 @@ export default function FeedPage({ params }: { params: Promise<{ lang: string }>
                     <span className="text-sm text-gray-500">shared a {item.type}</span>
                   </div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {new Date(item.sharedAt).toLocaleDateString()} at {new Date(item.sharedAt).toLocaleTimeString()}
+                    {new Date(item.sharedAt).toLocaleDateString('en-US')} at{' '}
+                    {new Date(item.sharedAt).toLocaleTimeString('en-US')}
                   </p>
                 </div>
               </div>

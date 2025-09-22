@@ -26,7 +26,6 @@ export const artifact_t = pgEnum('artifact_t', ['metadata', 'asset']);
 export const memory_type_t = pgEnum('memory_type_t', ['image', 'video', 'note', 'document', 'audio']);
 export const sync_t = pgEnum('sync_t', ['idle', 'migrating', 'failed']);
 
-
 // Hosting preference enums
 export const frontend_hosting_t = pgEnum('frontend_hosting_t', ['vercel', 'icp']);
 export const backend_hosting_t = pgEnum('backend_hosting_t', ['vercel', 'icp']);

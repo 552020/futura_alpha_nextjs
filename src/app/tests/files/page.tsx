@@ -239,7 +239,7 @@ export default function TestFiles() {
                             <TableCell className="font-medium">{file.filename}</TableCell>
                             <TableCell>{file.mimeType.split('/')[1].toUpperCase()}</TableCell>
                             <TableCell>{(parseInt(file.size) / 1024).toFixed(1)} KB</TableCell>
-                            <TableCell>{new Date(file.createdAt).toLocaleDateString()}</TableCell>
+                            <TableCell>{new Date(file.createdAt).toLocaleDateString('en-US')}</TableCell>
                             <TableCell>
                               <div className="flex gap-2">
                                 <a
@@ -307,7 +307,7 @@ export default function TestFiles() {
                             <TableCell className="max-w-xs">
                               <div className="truncate text-sm text-gray-500">{text.content}</div>
                             </TableCell>
-                            <TableCell>{new Date(text.createdAt).toLocaleDateString()}</TableCell>
+                            <TableCell>{new Date(text.createdAt).toLocaleDateString('en-US')}</TableCell>
                             <TableCell>
                               <div className="flex gap-2">
                                 <a
