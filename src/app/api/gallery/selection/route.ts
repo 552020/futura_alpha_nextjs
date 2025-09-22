@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { sendEmail } from '@/utils/mailgun';
 
-const TO_EMAIL = process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL;
+const TO_EMAIL = process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL || 'default@example.com'; // Replace with a default email or handle this case appropriately
 const LOG_PREFIX = '[Gallery Selection]';
 
 function log(level: 'info' | 'error' | 'warn', message: string, data?: Record<string, unknown>) {
@@ -182,6 +182,11 @@ If you encounter any problems or have questions, please contact us on WhatsApp.
 This is an automated message. Please do not reply directly to this email.
 Selection ID: ${requestId}
 `;
+
+    // Validate email
+    if (!TO_EMAIL) {
+      throw new Error('Recipient email address is not configured');
+    }
 
     // Send email
     log('info', `[${requestId}] Sending email to ${TO_EMAIL}`, { subject });
