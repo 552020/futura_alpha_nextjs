@@ -454,7 +454,7 @@ export default function MemoryDetailPage() {
               className="rounded-lg object-contain"
               sizes={IMAGE_SIZES.lightbox}
               placeholder="blur"
-              blurDataURL={getBlurPlaceholder()}
+              blurDataURL={memory.assets?.find?.(a => a.assetType === 'placeholder')?.url || getBlurPlaceholder()}
             />
           </div>
         )}
