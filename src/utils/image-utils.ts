@@ -45,3 +45,42 @@ export const IMAGE_SIZES = {
 } as const;
 
 export type ImageSizeKey = keyof typeof IMAGE_SIZES;
+
+/**
+ * Get the optimal asset URL for a given use case
+ * @param assets - Array of memory assets
+ * @param useCase - The use case (thumb, display, original)
+ * @returns The best URL for the use case, or null if not found
+ */
+export function getOptimalAssetUrl(
+  assets: Array<{ assetType: string; url: string }> | undefined,
+  useCase: 'thumb' | 'display' | 'original' = 'display'
+): string | null {
+  if (!assets || assets.length === 0) {
+    return null;
+  }
+
+  // For viewing images, prefer display over original for better performance
+  if (useCase === 'display') {
+    return (
+      assets.find(a => a.assetType === 'display')?.url || assets.find(a => a.assetType === 'original')?.url || null
+    );
+  }
+
+  // For thumbnails, prefer thumb over display
+  if (useCase === 'thumb') {
+    return (
+      assets.find(a => a.assetType === 'thumb')?.url ||
+      assets.find(a => a.assetType === 'display')?.url ||
+      assets.find(a => a.assetType === 'original')?.url ||
+      null
+    );
+  }
+
+  // For original, only return original asset
+  if (useCase === 'original') {
+    return assets.find(a => a.assetType === 'original')?.url || null;
+  }
+
+  return null;
+}

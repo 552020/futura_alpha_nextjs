@@ -12,6 +12,7 @@ import { shortenTitle } from '@/lib/utils';
 import { MemoryStorageBadge } from '@/components/common/memory-storage-badge';
 import { sampleDashboardMemories } from '../../../../../scripts/mock-data/create-dashboard-sample-data';
 import { getBlurPlaceholder, IMAGE_SIZES } from '@/utils/image-utils';
+import { generateBestAssetUrl } from '@/lib/presigned-url-utils';
 
 // Demo flag - set to true to use mock data for demo
 // 📝 Sample data generation script: scripts/mock-data/create-dashboard-sample-data.ts
@@ -51,8 +52,6 @@ interface Memory {
 // Allow all possible asset types
 type AssetType = MemoryAsset['assetType'];
 
-import { generatePresignedUrlFromStorageKey } from '@/lib/presigned-url-utils';
-
 const getAssetUrl = async (
   assets: MemoryAsset[] | undefined,
   preferredType: AssetType = 'display'
@@ -69,12 +68,7 @@ const getAssetUrl = async (
       bucket: asset.bucket,
     });
 
-    if (!asset.storageKey) {
-      console.log('ℹ️ No storageKey, using direct URL:', asset.url);
-      return asset.url || '';
-    }
-
-    return generatePresignedUrlFromStorageKey(asset.storageKey, asset.bucket);
+    return generateBestAssetUrl(asset);
   };
 
   // Try to find the preferred asset type first
@@ -445,10 +439,10 @@ export default function MemoryDetailPage() {
       </div>
 
       <div className="rounded-lg border p-6">
-        {memory.type === 'image' && memory.url && (
+        {memory.type === 'image' && (memory.url || memory.displayUrl) && (
           <div className="relative mx-auto h-[600px] w-full">
             <Image
-              src={memory.url}
+              src={memory.displayUrl || memory.url || ''}
               alt={memory.title || 'Memory image'}
               fill
               className="rounded-lg object-contain"

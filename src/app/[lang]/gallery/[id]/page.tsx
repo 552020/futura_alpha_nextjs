@@ -13,7 +13,7 @@ import { ForeverStorageProgressModal } from '@/components/galleries/forever-stor
 import { StorageStatusBadge, getGalleryStorageStatus } from '@/components/common/storage-status-badge';
 import { MemoryStorageBadge } from '@/components/common/memory-storage-badge';
 import { GalleryStorageSummary } from '@/components/galleries/gallery-storage-summary';
-import { getBlurPlaceholder, IMAGE_SIZES } from '@/utils/image-utils';
+import { getBlurPlaceholder, IMAGE_SIZES, getOptimalAssetUrl } from '@/utils/image-utils';
 
 // Mock data flag for development - same pattern as dashboard
 // const USE_MOCK_DATA = true;
@@ -357,14 +357,15 @@ function GalleryViewContent() {
                 className="min-w-0 aspect-square bg-muted rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity relative"
                 onClick={() => handleImageClick(index)}
               >
-                {item.memory.url && !failedImages.has(item.memory.url) ? (
+                {(item.memory.url || getOptimalAssetUrl(item.memory.assets, 'display')) &&
+                !failedImages.has(item.memory.url || '') ? (
                   <div className="w-full h-full relative min-w-0">
                     <Image
-                      src={item.memory.url}
+                      src={getOptimalAssetUrl(item.memory.assets, 'display') || item.memory.url || ''}
                       alt={item.memory.title || `Photo ${index + 1}`}
                       fill
                       className="object-cover"
-                      onError={() => handleImageError(item.memory.url!)}
+                      onError={() => handleImageError(item.memory.url || '')}
                       sizes={IMAGE_SIZES.gallery}
                       placeholder="blur"
                       blurDataURL={getBlurPlaceholder()}
