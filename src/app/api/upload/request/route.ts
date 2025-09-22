@@ -15,11 +15,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Generate a unique key for the original file
-    const originalKey = generateS3Key(fileName, session.user.id);
+    // Generate a unique base key for all assets (original + derivatives)
+    const baseKey = generateS3Key(fileName, session.user.id);
 
     // Generate presigned URL for original file
-    const originalUploadUrl = await generatePresignedUploadUrl(originalKey, fileType);
+    const originalUploadUrl = await generatePresignedUploadUrl(baseKey, fileType);
 
     // Build response with original file
     const response: {
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     } = {
       original: {
         uploadUrl: originalUploadUrl,
-        fileKey: originalKey,
+        fileKey: baseKey, // Use same base key for original
         contentType: fileType,
       },
       placeholderInDb: true, // Placeholder stored in database, not S3
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     // Add derivative presigned URLs if requested
     if (derivatives && Array.isArray(derivatives)) {
       if (derivatives.includes('display')) {
-        const displayKey = generateDerivativeS3Key(originalKey, 'display');
+        const displayKey = generateDerivativeS3Key(baseKey, 'display');
         const displayUploadUrl = await generatePresignedUploadUrl(displayKey, 'image/webp');
 
         response.display = {
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
       }
 
       if (derivatives.includes('thumb')) {
-        const thumbKey = generateDerivativeS3Key(originalKey, 'thumb');
+        const thumbKey = generateDerivativeS3Key(baseKey, 'thumb');
         const thumbUploadUrl = await generatePresignedUploadUrl(thumbKey, 'image/webp');
 
         response.thumb = {
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
     }
 
     console.log(`🎫 Generated presigned URLs for: ${fileName}`, {
-      original: originalKey,
+      original: baseKey,
       derivatives: derivatives || [],
       hasDisplay: !!response.display,
       hasThumb: !!response.thumb,
