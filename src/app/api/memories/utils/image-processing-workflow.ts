@@ -28,29 +28,40 @@ export interface ImageProcessingWorkflowInput {
 export async function processImageDerivatives(input: ImageProcessingWorkflowInput): Promise<void> {
   try {
     console.log(`🖼️ Starting image processing workflow for memory ${input.memoryId}`);
+    console.log(`📥 Original blob URL: ${input.originalBlobUrl}`);
 
     // Download the original image from blob storage
     const originalResponse = await fetch(input.originalBlobUrl);
     if (!originalResponse.ok) {
-      throw new Error(`Failed to download original image: ${originalResponse.status}`);
+      throw new Error(`Failed to download original image: ${originalResponse.status} ${originalResponse.statusText}`);
     }
 
     const originalBuffer = await originalResponse.arrayBuffer();
+    console.log(`📥 Downloaded original image: ${originalBuffer.byteLength} bytes`);
+    
     const originalFile = new File([originalBuffer], input.originalPathname, {
       type: input.originalContentType,
     });
 
     // Process the image to create derivatives
+    console.log(`🔄 Processing image derivatives...`);
     const processedAssets = await processImageForMultipleAssetsBackend(originalFile);
-    console.log(`✅ Image processing complete: original, display, thumb`);
+    console.log(`✅ Image processing complete:`, {
+      display: `${processedAssets.display.width}x${processedAssets.display.height} (${processedAssets.display.size} bytes)`,
+      thumb: `${processedAssets.thumb.width}x${processedAssets.thumb.height} (${processedAssets.thumb.size} bytes)`,
+    });
 
     // Upload derivatives to blob storage
+    console.log(`📤 Uploading derivatives to blob storage...`);
     const [displayResult, thumbResult] = await Promise.all([
       uploadDerivativeToBlob(processedAssets.display, 'display'),
       uploadDerivativeToBlob(processedAssets.thumb, 'thumb'),
     ]);
 
-    console.log(`📤 Uploaded derivatives: display=${displayResult.url}, thumb=${thumbResult.url}`);
+    console.log(`📤 Uploaded derivatives:`, {
+      display: displayResult.url,
+      thumb: thumbResult.url,
+    });
 
     // Create asset records in database
     const assetData = [
@@ -100,6 +111,7 @@ export async function processImageDerivatives(input: ImageProcessingWorkflowInpu
           processingError: error instanceof Error ? error.message : 'Unknown error',
         })
         .where(eq(memoryAssets.memoryId, input.memoryId));
+      console.log(`📝 Updated original asset with processing error for memory ${input.memoryId}`);
     } catch (updateError) {
       console.error('Failed to update asset with processing error:', updateError);
     }
@@ -133,12 +145,15 @@ async function uploadDerivativeToBlob(
  * and runs asynchronously without blocking the upload response
  */
 export function enqueueImageProcessing(input: ImageProcessingWorkflowInput): void {
-  // Use process.nextTick for fire-and-forget processing
-  process.nextTick(async () => {
+  // Use setTimeout with 0 delay to ensure it runs after the current event loop
+  // This is more reliable than process.nextTick for serverless environments
+  setTimeout(async () => {
     try {
+      console.log(`🚀 Starting async image processing for memory ${input.memoryId}`);
       await processImageDerivatives(input);
+      console.log(`✅ Completed async image processing for memory ${input.memoryId}`);
     } catch (error) {
-      console.error('Image processing enqueue failed:', error);
+      console.error(`❌ Async image processing failed for memory ${input.memoryId}:`, error);
     }
-  });
+  }, 0);
 }
