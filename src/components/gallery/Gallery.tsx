@@ -329,41 +329,53 @@ const Gallery = () => {
           <Panel defaultSize={30} minSize={20} className="border-l dark:border-gray-700 overflow-auto">
             <div className="p-4">
               <h2 className="text-lg font-semibold mb-4">Selected Photos ({selectedImages.length})</h2>
-              <div className="space-y-4">
-                {selectedItems.length > 0 ? (
-                  selectedItems.map(item => (
-                    <div key={item.id} className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                      <div className="relative w-16 h-16 flex-shrink-0">
+              {selectedItems.length > 0 ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {selectedItems.map(item => (
+                    <div 
+                      key={item.id} 
+                      className="relative group rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow"
+                    >
+                      <div className="relative w-full aspect-square">
                         <Image
                           src={item.memory.url || ''}
                           alt={item.memory.title || 'Selected image'}
                           fill
-                          className="object-cover rounded"
+                          className="object-cover"
+                          sizes="(max-width: 768px) 50vw, 25vw"
                         />
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleSelection(item.memory.id);
+                          }}
+                          className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                          aria-label="Remove from selection"
+                        >
+                          ×
+                        </button>
+                        {/* Stars removed from selected items tiles as per request */}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{item.memory.title || 'Untitled'}</p>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleSelection(item.memory.id)}
-                        className="text-gray-500 hover:text-red-500"
-                      >
-                        ×
-                      </Button>
                     </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Select photos to see them here</p>
-                )}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-48 text-center p-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">No photos selected yet</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">Click the checkboxes to select photos</p>
+                </div>
+              )}
 
               {selectedImages.length > 0 && (
-                <div className="mt-2">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                    {selectedImages.length} of {MAX_SELECTION} photos selected
+                <div className="mt-4 text-center">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {selectedImages.length} of {MAX_SELECTION} selected
                   </p>
+                  {selectedImages.length >= MAX_SELECTION && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                      Maximum selection reached
+                    </p>
+                  )}
                 </div>
               )}
             </div>
