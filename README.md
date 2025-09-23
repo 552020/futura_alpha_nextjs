@@ -14,7 +14,7 @@ Our initial go-to-market strategy focuses on **wedding photography**:
 2. Newlyweds are then offered the option to **store their memories forever**.  
 3. From there, they can expand to preserving other significant data they wish to pass on to future generations—such as autobiographies, personal documents, and cherished memories.  
 
-We’ve recently partnered with a professional photographer and are eager to gather feedback from clients and measure conversion rates over the coming months.
+We’ve recently partnered with a professional photographer [Salih, our Partner](https://www.instagram.com/salih_kurbet_films/) and are eager to gather feedback from clients and measure conversion rates over the coming months.
 
 ---
 
@@ -30,7 +30,7 @@ We are building a future of **digital inheritance**, ensuring your legacy endure
 ## Technology Approach
 Futura leverages **ICP’s storage innovations** and the security of decentralized infrastructure:
 
-- [Dominic Williams](https://x.com/dominic_w/status/1955447139347337491) (ICP) has announced unprecedented reductions in storage costs, supporting projects like **Caffeine**. We build upon this strategy to make **long-term, highly accessible storage** possible.  
+- [Dom](https://x.com/dominic_w/status/1955447139347337491) (ICP) has announced unprecedented reductions in storage costs, supporting projects like **Caffeine**. We build upon this strategy to make **long-term, highly accessible storage** possible.  
 - Decentralization ensures the **longevity and security** of hosted files.  
 - We focus on **data ownership and ownership transfer**, particularly in the delivery of digital files.  
 
