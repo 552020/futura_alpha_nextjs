@@ -6,7 +6,22 @@ import Image from 'next/image';
 import { useAuthGuard } from '@/utils/authentication';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Share2, Edit, Globe, Lock, ImageIcon, Trash2, Eye, EyeOff, Maximize2, HardDrive, CheckSquare } from 'lucide-react';
+import {
+  Share2,
+  Edit,
+  Globe,
+  Lock,
+  ImageIcon,
+  Trash2,
+  Eye,
+  EyeOff,
+  Maximize2,
+  HardDrive,
+  CheckSquare,
+  X,
+  Star,
+  Check,
+} from 'lucide-react';
 import { galleryService } from '@/services/gallery';
 import { GalleryWithItems } from '@/types/gallery';
 import { ForeverStorageProgressModal } from '@/components/galleries/forever-storage-progress-modal';
@@ -16,10 +31,9 @@ import { GalleryStorageSummary } from '@/components/galleries/gallery-storage-su
 import { getBlurPlaceholder, IMAGE_SIZES } from '@/utils/image-utils';
 
 // Mock data flag for development - same pattern as dashboard
-// const USE_MOCK_DATA = true;
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_GALLERY === 'true';
 
-function GalleryViewContent() {
+export function GalleryViewContent() {
   const { id, lang } = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -30,13 +44,31 @@ function GalleryViewContent() {
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [panelWidth, setPanelWidth] = useState(320);
+
+  // Selection state
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [ratings, setRatings] = useState<{ [imageId: string]: number }>({});
+  const [hiddenImages, setHiddenImages] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState<'all' | 'hidden'>('all');
+  const [showSidePanel, setShowSidePanel] = useState(false);
   const [showForeverStorageModal, setShowForeverStorageModal] = useState(false);
+  const [showMessageModal, setShowMessageModal] = useState(false);
+  const [message, setMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<{ url: string; title: string } | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
+
+  const MAX_SELECTION = 35;
 
   const loadGallery = useCallback(async () => {
     try {
+      console.log('Loading gallery with ID:', id);
       setIsLoading(true);
       setError(null);
       const result = await galleryService.getGallery(id as string, USE_MOCK_DATA);
+      console.log('Gallery data received:', result);
       setGallery(result.gallery);
     } catch (err) {
       console.error('Error loading gallery:', err);
@@ -65,12 +97,94 @@ function GalleryViewContent() {
     }
   }, [searchParams]);
 
-  const handleImageClick = (index: number) => {
-    // Navigate to individual memory page (same as dashboard/folder behavior)
-    if (gallery?.items?.[index]?.memory) {
-      const memory = gallery.items[index].memory;
+  const handleImageClick = (item: NonNullable<typeof gallery>['items'][number]) => {
+    if (!item?.memory) return;
+
+    const memory = item.memory;
+
+    if (isSelecting) {
+      // Toggle selection
+      setSelectedImages(prev =>
+        prev.includes(memory.id)
+          ? prev.filter(id => id !== memory.id)
+          : prev.length < MAX_SELECTION
+            ? [...prev, memory.id]
+            : prev
+      );
+    } else {
+      // Navigate to individual memory page
       router.push(`/${lang}/dashboard/${memory.id}`);
     }
+  };
+
+  const toggleSelectionMode = () => {
+    if (isSelecting) {
+      // Exit selection mode
+      setSelectedImages([]);
+      setActiveTab('all');
+      setShowSidePanel(false);
+    } else {
+      // Enter selection mode
+      setShowSidePanel(true);
+    }
+    setIsSelecting(!isSelecting);
+  };
+
+  // Filter items based on active tab and hidden state
+  const filteredItems =
+    gallery?.items.filter(item => {
+      if (activeTab === 'hidden') {
+        return hiddenImages.includes(item.memory.id);
+      }
+      // Hide images that are in the hidden list (unless we're in selection mode)
+      if (hiddenImages.includes(item.memory.id)) {
+        return false;
+      }
+      return true;
+    }) || [];
+
+  // Get selected items with their details
+  const selectedItems = selectedImages
+    .map(id => gallery?.items.find(item => item.memory.id === id))
+    .filter((item): item is NonNullable<typeof item> => Boolean(item))
+    .sort((a, b) => {
+      const ratingA = ratings[a.memory.id] || 0;
+      const ratingB = ratings[b.memory.id] || 0;
+      return ratingB - ratingA; // Sort in descending order
+    });
+
+  const handleRateImage = (imageId: string, rating: number) => {
+    setRatings(prev => ({ ...prev, [imageId]: rating }));
+  };
+
+  const handleHideImage = (imageId: string) => {
+    console.log('Hiding image:', imageId);
+    setHiddenImages(prev => {
+      const newHidden = [...prev, imageId];
+      console.log('New hidden images:', newHidden);
+      return newHidden;
+    });
+    // Remove from selected images if hidden
+    setSelectedImages(prev => {
+      const filtered = prev.filter(id => id !== imageId);
+      console.log('Removed from selection, new selection:', filtered);
+      return filtered;
+    });
+  };
+
+  const handleUnhideImage = (imageId: string) => {
+    console.log('Unhiding image:', imageId);
+    setHiddenImages(prev => {
+      const newHidden = prev.filter(id => id !== imageId);
+      console.log('New hidden images:', newHidden);
+      return newHidden;
+    });
+    // Remove from selected images if unhidden
+    setSelectedImages(prev => {
+      const filtered = prev.filter(id => id !== imageId);
+      console.log('Removed from selection, new selection:', filtered);
+      return filtered;
+    });
   };
 
   const handleImageError = useCallback((imageUrl: string) => {
@@ -119,7 +233,7 @@ function GalleryViewContent() {
 
   const handleEditGallery = () => {
     // TODO: Navigate to edit page or open edit modal
-    // console.log("Edit gallery:", gallery?.id);
+    console.log('Edit gallery:', gallery?.id);
   };
 
   const getStoreForeverButtonState = () => {
@@ -182,7 +296,7 @@ function GalleryViewContent() {
 
   const handleShareGallery = () => {
     // TODO: Implement share functionality
-    // console.log("Share gallery:", gallery?.id);
+    console.log('Share gallery:', gallery?.id);
   };
 
   if (authLoading || isLoading) {
@@ -286,9 +400,18 @@ function GalleryViewContent() {
                 <Edit className="h-4 w-4 mr-2" />
                 Edit
               </Button>
-              <Button variant="outline" size="sm" onClick={() => router.push(`/${lang}/gallery/${id}/selection`)}>
-                <CheckSquare className="h-4 w-4 mr-2" />
-                Select Photos
+              <Button variant={isSelecting ? 'default' : 'outline'} size="sm" onClick={toggleSelectionMode}>
+                {isSelecting ? (
+                  <>
+                    <X className="h-4 w-4 mr-2" />
+                    Cancel Selection
+                  </>
+                ) : (
+                  <>
+                    <CheckSquare className="h-4 w-4 mr-2" />
+                    Select Photos
+                  </>
+                )}
               </Button>
               {(() => {
                 const buttonState = getStoreForeverButtonState();
@@ -319,7 +442,7 @@ function GalleryViewContent() {
                         size="sm"
                         onClick={() => {
                           // TODO: Open ICP explorer or gallery viewer
-                          // console.log("View gallery on ICP:", gallery.id);
+                          console.log('View gallery on ICP:', gallery.id);
                         }}
                         className="border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-300 dark:hover:bg-purple-950"
                       >
@@ -349,61 +472,314 @@ function GalleryViewContent() {
       </div>
 
       {/* Gallery Storage Summary */}
-      <GalleryStorageSummary gallery={gallery} onStoreForever={handleStoreForever} />
+      {gallery && (
+        <>
+          <div className="container mx-auto px-6 py-4">
+            <h1 className="text-2xl font-bold">{gallery.title}</h1>
+            {gallery.description && <p className="text-muted-foreground">{gallery.description}</p>}
+          </div>
+          <GalleryStorageSummary gallery={gallery} onStoreForever={handleStoreForever} />
+        </>
+      )}
 
-      {/* Photo Grid */}
-      <div className="container mx-auto px-6 py-8 min-w-0">
-        {gallery.items && gallery.items.length > 0 ? (
-          <div className="grid min-w-0 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {gallery.items.map((item, index) => (
-              <div
-                key={item.id}
-                className="min-w-0 aspect-square bg-muted rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity relative"
-                onClick={() => handleImageClick(index)}
+      {isSelecting && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-900/50">
+          <div className="container mx-auto px-6 py-3 flex items-center justify-between">
+            <div className="text-sm text-blue-800 dark:text-blue-200">
+              {selectedImages.length} of {MAX_SELECTION} photos selected
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setActiveTab('all')}
+                className={activeTab === 'all' ? 'bg-blue-100 dark:bg-blue-900' : ''}
               >
-                {item.memory.url && !failedImages.has(item.memory.url) ? (
-                  <div className="w-full h-full relative min-w-0">
-                    <Image
-                      src={item.memory.url}
-                      alt={item.memory.title || `Photo ${index + 1}`}
-                      fill
-                      className="object-cover"
-                      onError={() => handleImageError(item.memory.url!)}
-                      sizes={IMAGE_SIZES.gallery}
-                      placeholder="blur"
-                      blurDataURL={getBlurPlaceholder()}
-                    />
-                  </div>
-                ) : (
-                  <div className="w-full h-full bg-muted flex items-center justify-center min-w-0">
-                    <div className="flex flex-col items-center justify-center text-muted-foreground">
-                      <ImageIcon className="h-16 w-16 mb-2" />
-                      <span className="text-sm break-words">Photo {index + 1}</span>
-                      {failedImages.has(item.memory.url!) && (
-                        <span className="text-xs text-muted-foreground/70 mt-1 break-words">Failed to load</span>
-                      )}
-                    </div>
-                  </div>
-                )}
+                All Photos
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setActiveTab('hidden')}
+                className={activeTab === 'hidden' ? 'bg-blue-100 dark:bg-blue-900' : ''}
+              >
+                Hidden ({hiddenImages.length})
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => setShowMessageModal(true)}
+                disabled={selectedImages.length === 0}
+              >
+                <Check className="h-4 w-4 mr-2" />
+                Send {selectedImages.length} Photos
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
-                {/* Memory Storage Status Badge */}
-                <div className="absolute top-2 right-2 z-10">
-                  <MemoryStorageBadge
-                    memoryId={item.memory.id}
-                    memoryType={item.memory.type}
-                    size="xs"
-                    showTooltip={true}
-                  />
+      {/* Main content area with side panel */}
+      <div className="relative flex-1 overflow-hidden min-h-0 h-full">
+        <div className={`flex h-full ${showSidePanel ? '' : 'justify-end'}`}>
+          {/* Photo Grid */}
+          <div className={`overflow-y-auto h-full ${showSidePanel ? 'flex-1' : 'w-full'}`}>
+            <div className="container min-w-0 px-6 py-8 mx-auto h-full flex flex-col">
+              {(() => {
+                if (isLoading) {
+                  return (
+                    <div className="flex-1 flex items-center justify-center">
+                      <div className="w-12 h-12 border-b-2 rounded-full animate-spin border-primary"></div>
+                    </div>
+                  );
+                }
+
+                if (error) {
+                  return (
+                    <div className="flex-1 flex items-center justify-center">
+                      <div className="text-center">
+                        <p className="text-destructive mb-4">{error}</p>
+                        <Button onClick={loadGallery}>Retry</Button>
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (filteredItems.length === 0) {
+                  return (
+                    <div className="flex-1 flex items-center justify-center">
+                      <div className="text-center">
+                        <h3 className="mb-2 text-xl font-semibold">No photos in this gallery yet</h3>
+                        <p className="text-muted-foreground">Add photos to this gallery to see them here.</p>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="flex-1 grid min-w-0 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {filteredItems.map((item, index) => (
+                      <div
+                        key={item.id}
+                        className={`min-w-0 aspect-square bg-muted rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity relative ${
+                          selectedImages.includes(item.memory.id) ? 'ring-4 ring-blue-500' : ''
+                        }`}
+                        onClick={() => handleImageClick(item)}
+                      >
+                        {item.memory.url && !failedImages.has(item.memory.url) ? (
+                          <div className="w-full h-full relative min-w-0">
+                            <Image
+                              src={item.memory.url}
+                              alt={item.memory.title || `Photo ${index + 1}`}
+                              fill
+                              className="object-cover"
+                              onError={() => handleImageError(item.memory.url!)}
+                              sizes={IMAGE_SIZES.gallery}
+                              placeholder="blur"
+                              blurDataURL={getBlurPlaceholder()}
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-full h-full bg-muted flex items-center justify-center min-w-0">
+                            <div className="flex flex-col items-center justify-center text-muted-foreground">
+                              <ImageIcon className="h-16 w-16 mb-2" />
+                              <span className="text-sm break-words">Photo {index + 1}</span>
+                              {failedImages.has(item.memory.url!) && (
+                                <span className="text-xs text-muted-foreground/70 mt-1 break-words">
+                                  Failed to load
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Image actions overlay */}
+                        <div
+                          className={`absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex flex-col justify-between p-2 ${activeTab === 'hidden' ? 'opacity-100' : ''}`}
+                        >
+                          {/* Top bar */}
+                          <div className="flex justify-between items-start">
+                            {/* Memory Storage Status Badge */}
+                            <MemoryStorageBadge
+                              memoryId={item.memory.id}
+                              memoryType={item.memory.type}
+                              size="xs"
+                              showTooltip={true}
+                            />
+
+                            {/* Rating and Hidden indicator */}
+                            <div className="flex items-center gap-1">
+                              {activeTab === 'hidden' && (
+                                <div className="bg-red-500/70 rounded-full px-2 py-1">
+                                  <span className="text-xs text-white">Hidden</span>
+                                </div>
+                              )}
+                              <div className="flex items-center gap-1 bg-black/70 rounded-full px-2 py-1">
+                                <Star className="h-3 w-3 text-yellow-400 fill-current" />
+                                <span className="text-xs text-white">{ratings[item.memory.id] || 0}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Bottom bar */}
+                          <div className="flex justify-between items-end">
+                            {/* Hide/Unhide button */}
+                            <button
+                              onClick={e => {
+                                e.stopPropagation();
+                                if (activeTab === 'hidden') {
+                                  handleUnhideImage(item.memory.id);
+                                } else {
+                                  handleHideImage(item.memory.id);
+                                }
+                              }}
+                              className="p-1.5 rounded-full bg-black/70 hover:bg-black/90 transition-colors"
+                              title={activeTab === 'hidden' ? 'Unhide photo' : 'Hide photo'}
+                            >
+                              {activeTab === 'hidden' ? (
+                                <Eye className="h-4 w-4 text-white" />
+                              ) : (
+                                <EyeOff className="h-4 w-4 text-white" />
+                              )}
+                            </button>
+
+                            {/* Rating stars */}
+                            <div className="flex items-center gap-0.5 bg-black/70 rounded-full px-2 py-1">
+                              {[1, 2, 3, 4, 5].map(star => (
+                                <button
+                                  key={star}
+                                  onClick={e => {
+                                    e.stopPropagation();
+                                    handleRateImage(item.memory.id, star);
+                                  }}
+                                  className="p-0.5"
+                                >
+                                  <Star
+                                    className={`h-4 w-4 ${
+                                      star <= (ratings[item.memory.id] || 0)
+                                        ? 'text-yellow-400 fill-current'
+                                        : 'text-gray-300'
+                                    }`}
+                                  />
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+
+          {/* Side Panel */}
+          {isSelecting && (
+            <div
+              className={`h-full border-l border-border bg-background/95 backdrop-blur-sm flex flex-col z-40 ${showSidePanel ? 'w-80' : 'w-0'}`}
+              style={{
+                width: showSidePanel ? `${panelWidth}px` : '0px',
+                minWidth: '280px',
+                maxWidth: '60%',
+              }}
+            >
+              {/* Resize Handle */}
+              <div
+                className="absolute left-0 top-0 bottom-0 w-2 bg-border hover:bg-primary cursor-col-resize transition-colors z-50 -ml-1"
+                onMouseDown={e => {
+                  e.preventDefault();
+                  const startX = e.clientX;
+                  const startWidth = panelWidth;
+
+                  const handleMouseMove = (e: MouseEvent) => {
+                    const newWidth = Math.max(
+                      280,
+                      Math.min(window.innerWidth * 0.6, startWidth - (e.clientX - startX))
+                    );
+                    setPanelWidth(newWidth);
+                  };
+
+                  const handleMouseUp = () => {
+                    document.removeEventListener('mousemove', handleMouseMove);
+                    document.removeEventListener('mouseup', handleMouseUp);
+                  };
+
+                  document.addEventListener('mousemove', handleMouseMove);
+                  document.addEventListener('mouseup', handleMouseUp);
+                }}
+              />
+
+              <div className="p-4 border-b border-border">
+                <h3 className="font-medium text-center">Selected Photos ({selectedItems.length})</h3>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4">
+                <div className="h-full flex flex-col">
+                  <div className="flex-1 grid grid-cols-2 gap-2 auto-rows-max">
+                    {selectedItems.map(item => (
+                      <div
+                        key={item.id}
+                        className="relative aspect-square rounded-md overflow-hidden border border-border hover:ring-2 hover:ring-primary hover:ring-offset-1 transition-all"
+                        onClick={() => handleImageClick(item)}
+                      >
+                        {item.memory.url && !failedImages.has(item.memory.url) ? (
+                          <Image
+                            src={item.memory.url}
+                            alt={item.memory.title || 'Selected photo'}
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 768px) 50vw, 150px"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-muted flex items-center justify-center">
+                            <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                          </div>
+                        )}
+                        <button
+                          className="absolute top-1 right-1 p-1 rounded-full bg-destructive/80 hover:bg-destructive text-white"
+                          onClick={e => {
+                            e.stopPropagation();
+                            setSelectedImages(prev => prev.filter(id => id !== item.memory.id));
+                          }}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                        {/* Rating indicator */}
+                        <div className="absolute bottom-1 left-1 bg-black/70 rounded-full px-2 py-1">
+                          <div className="flex items-center gap-1">
+                            <Star className="h-3 w-3 text-yellow-400 fill-current" />
+                            <span className="text-xs text-white">{ratings[item.memory.id] || 0}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {selectedItems.length === 0 && (
+                    <div className="flex-1 flex items-center justify-center text-muted-foreground">
+                      <div className="text-center">
+                        <p className="text-sm">Select photos to see them here</p>
+                        <p className="text-xs mt-1 opacity-70">Click on photos in the gallery to select them</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-16">
-            <h3 className="text-xl font-semibold mb-2">No photos in this gallery yet</h3>
-            <p className="text-muted-foreground mb-6">Add photos to this gallery to see them here.</p>
-          </div>
-        )}
+
+              <div className="p-4 border-t border-border">
+                <Button
+                  className="w-full"
+                  onClick={() => setShowMessageModal(true)}
+                  disabled={selectedItems.length === 0}
+                >
+                  <Check className="h-4 w-4 mr-2" />
+                  Send {selectedItems.length} Photo{selectedItems.length !== 1 ? 's' : ''}
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Forever Storage Modal */}
