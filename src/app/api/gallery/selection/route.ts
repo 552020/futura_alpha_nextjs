@@ -1,27 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { sendEmail } from '@/utils/mailgun';
+import { createLogger } from '@/utils/logger';
 
 const TO_EMAIL = process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL || 'default@example.com'; // Replace with a default email or handle this case appropriately
-const LOG_PREFIX = '[Gallery Selection]';
-
-function log(level: 'info' | 'error' | 'warn', message: string, data?: Record<string, unknown>) {
-  const timestamp = new Date().toISOString();
-  const logData = data ? `\n${JSON.stringify(data, null, 2)}` : '';
-  console[level](`${timestamp} ${LOG_PREFIX} ${message}${logData}`);
-}
+const logger = createLogger('Gallery Selection');
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
   const requestId = Math.random().toString(36).substring(2, 9);
 
-  log('info', `[${requestId}] Starting gallery selection request`);
+  logger.info(`[${requestId}] Starting gallery selection request`);
 
   try {
     // Authentication
     const session = await auth();
     if (!session?.user) {
-      log('warn', `[${requestId}] Unauthorized access attempt`);
+      logger.warn(`[${requestId}] Unauthorized access attempt`);
       return NextResponse.json(
         { error: 'Unauthorized', requestId },
         { status: 401, headers: { 'X-Request-ID': requestId } }
@@ -34,7 +29,7 @@ export async function POST(request: NextRequest) {
       body = await request.json();
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      log('error', `[${requestId}] Invalid JSON payload`, { error: errorMessage });
+      logger.error(`[${requestId}] Invalid JSON payload`, { error: errorMessage });
       return NextResponse.json(
         { error: 'Invalid JSON payload', requestId },
         { status: 400, headers: { 'X-Request-ID': requestId } }
@@ -43,7 +38,7 @@ export async function POST(request: NextRequest) {
 
     const { images, message: userMessage, timestamp } = body;
     if (!images || !Array.isArray(images) || images.length === 0) {
-      log('warn', `[${requestId}] Invalid or empty images array`, { images });
+      logger.warn(`[${requestId}] Invalid or empty images array`, { images });
       return NextResponse.json(
         {
           error: 'Invalid request: images array is required and cannot be empty',
@@ -56,7 +51,7 @@ export async function POST(request: NextRequest) {
     // Sort images by rating (highest first) and get top 35
     const sortedImages = [...images].sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 35);
 
-    log('info', `[${requestId}] Processing selection`, {
+    logger.info(`[${requestId}] Processing selection`, {
       userId: session.user.id,
       imageCount: images.length,
     });
@@ -189,7 +184,7 @@ Selection ID: ${requestId}
     }
 
     // Send email
-    log('info', `[${requestId}] Sending email to ${TO_EMAIL}`, { subject });
+    logger.info(`[${requestId}] Sending email to ${TO_EMAIL}`, { subject });
 
     const emailStartTime = Date.now();
 
