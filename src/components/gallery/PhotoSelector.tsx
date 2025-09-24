@@ -15,7 +15,7 @@ import { Eye, EyeOff } from 'lucide-react';
 
 const ResizeHandle = () => <PanelResizeHandle className="w-2 bg-gray-100 hover:bg-gray-200 transition-colors" />;
 
-const Gallery = () => {
+const PhotoSelector = () => {
   const params = useParams();
   const { id, lang: _lang } = params as { id: string; lang: string };
   const [gallery, setGallery] = useState<GalleryWithItems | null>(null);
@@ -290,7 +290,7 @@ const Gallery = () => {
                     />
                   </div>
                   <div
-                    className="relative w-full h-48 bg-gray-100 dark:bg-gray-800 cursor-zoom-in"
+                    className="relative aspect-square bg-gray-100 dark:bg-gray-800 cursor-zoom-in"
                     onClick={() =>
                       setSelectedImage({
                         url: item.memory.url!,
@@ -305,19 +305,14 @@ const Gallery = () => {
                       className="object-cover"
                       sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
                     />
-                  </div>
-                  <div className="p-2">
-                    <div className="flex justify-between items-start mb-1">
-                      <p className="text-sm font-medium truncate">{item.memory.title || 'Untitled'}</p>
-                      {hiddenImages.includes(item.memory.id) && (
-                        <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full">Hidden</span>
-                      )}
+                    {/* Rating overlay positioned over the image */}
+                    <div className="absolute bottom-2 left-2 right-2 z-10">
+                      <Rating
+                        value={item.memory.rating || 0}
+                        onChange={rating => handleRateImage(item.memory.id, rating)}
+                        className="justify-center"
+                      />
                     </div>
-                    <Rating
-                      value={item.memory.rating || 0}
-                      onChange={rating => handleRateImage(item.memory.id, rating)}
-                      className="justify-center"
-                    />
                   </div>
                 </div>
               ))}
@@ -503,4 +498,4 @@ const Gallery = () => {
   );
 };
 
-export default Gallery;
+export default PhotoSelector;
