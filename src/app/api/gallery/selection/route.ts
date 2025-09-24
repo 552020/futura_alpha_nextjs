@@ -165,9 +165,7 @@ ${userMessage}
     : ''
 }Selected ${sortedImages.length} images:
 
-${sortedImages
-  .map((img, i) => `${i + 1}. ${img.name}`)
-  .join('\n')}
+${sortedImages.map((img, i) => `${i + 1}. ${img.name}`).join('\n')}
 
 ${'='.repeat(50)}
 
@@ -210,7 +208,7 @@ Selection ID: ${requestId}
       });
 
       const emailDuration = Date.now() - emailStartTime;
-      log('info', `[${requestId}] Email sent successfully`, {
+      logger.info(`[${requestId}] Email sent successfully`, {
         emailId: emailResponse.id,
         duration: `${emailDuration}ms`,
       });
@@ -233,7 +231,7 @@ Selection ID: ${requestId}
         }
       );
     } catch (error) {
-      log('error', `[${requestId}] Error sending email`, { error });
+      logger.error(`[${requestId}] Error sending email`, { error });
       return NextResponse.json(
         {
           success: false,
@@ -252,7 +250,7 @@ Selection ID: ${requestId}
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     const stack = error instanceof Error ? error.stack : undefined;
 
-    log('error', `[${requestId}] Error processing request`, {
+    logger.error(`[${requestId}] Error processing request`, {
       error: errorMessage,
       stack,
       duration: `${Date.now() - startTime}ms`,
