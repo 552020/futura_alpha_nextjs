@@ -10,7 +10,7 @@ import Image from 'next/image';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { useSelection } from '@/contexts/SelectionContext';
 import Rating from './Rating';
-import HideButton from './HideButton';
+import HideButton from './hide-button';
 import { Eye, EyeOff } from 'lucide-react';
 
 const ResizeHandle = () => <PanelResizeHandle className="w-2 bg-gray-100 hover:bg-gray-200 transition-colors" />;
