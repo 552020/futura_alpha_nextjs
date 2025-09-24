@@ -18,8 +18,17 @@ if (!API_KEY || !DOMAIN) {
 const clientOptions: MailgunClientOptions = {
   username: 'api',
   key: API_KEY,
-  url: 'https://api.eu.mailgun.net', // or "https://api.mailgun.net" if in the US region
+  // Use EU endpoint by default as it was working before
+  url: 'https://api.eu.mailgun.net',
 };
+
+// Add debug logging for configuration
+console.log('Mailgun Configuration:', {
+  domain: DOMAIN,
+  fromEmail: FROM_EMAIL,
+  region: 'EU (explicitly set)',
+  apiKey: API_KEY ? '***' + API_KEY.slice(-4) : 'Not configured'
+});
 
 const mg = mailgun.client(clientOptions);
 
@@ -115,7 +124,29 @@ export const sendEmail = async ({
 
     return response;
   } catch (error) {
-    console.error('Mailgun Error:', error);
-    throw error;
+    // Create a more detailed error message
+    const errorMessage = error instanceof Error 
+      ? `Mailgun Error: ${error.message}${error.stack ? `\n${error.stack}` : ''}`
+      : 'Unknown error occurred while sending email';
+    
+    console.error(errorMessage);
+    
+    // Create a new error with more context
+    const enhancedError = new Error(`Failed to send email: ${errorMessage}`);
+    if (error instanceof Error) {
+      enhancedError.stack = error.stack;
+    }
+    
+    // Add additional debug information
+    Object.defineProperty(enhancedError, 'details', {
+      value: {
+        originalError: error,
+        domain: DOMAIN,
+        fromEmail: FROM_EMAIL,
+      },
+      enumerable: false,
+    });
+    
+    throw enhancedError;
   }
 };
