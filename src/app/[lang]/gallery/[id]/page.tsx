@@ -5,7 +5,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useAuthGuard } from '@/utils/authentication';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Globe, Lock, Trash2, Maximize2, CheckSquare } from 'lucide-react';
+import { Globe, Lock, Trash2, Maximize2, CheckSquare, Send } from 'lucide-react';
 import { galleryService } from '@/services/gallery';
 import { GalleryWithItems } from '@/types/gallery';
 import { ForeverStorageProgressModal } from '@/components/galleries/forever-storage-progress-modal';
@@ -15,6 +15,9 @@ import { GalleryImageModal } from '@/components/galleries/gallery-image-modal';
 import { GallerySelectionBar } from '@/components/galleries/gallery-selection-bar';
 import { GalleryPhotoGrid } from '@/components/galleries/gallery-photo-grid';
 import { GallerySelectionPanel } from '@/components/galleries/gallery-selection-panel';
+import { SendSelectionModal } from '@/components/galleries/send-selection-modal';
+import { toast } from '@/components/ui/use-toast';
+import { ToastContainer } from '@/components/ui/toast-container';
 
 // Mock data flag for development - same pattern as dashboard
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_GALLERY === 'true';
@@ -176,6 +179,94 @@ export function GalleryViewContent() {
       console.log('Removed from selection, new selection:', filtered);
       return filtered;
     });
+  };
+
+  const handleSendClick = () => {
+    if (selectedImages.length === 0) return;
+    setShowMessageModal(true);
+  };
+
+  const handleSendSelection = async (message: string) => {
+    if (selectedImages.length === 0) return;
+
+    const selectedItems = gallery?.items
+      .filter(item => selectedImages.includes(item.memory.id))
+      .map(item => ({
+        id: item.memory.id,
+        url: item.memory.url,
+        name: item.memory.title || `Photo ${item.memory.id}`,
+        rating: ratings[item.memory.id] || 0,
+      })) || [];
+
+    try {
+      // Get user info for the email
+      const session = await fetch('/api/auth/session').then(res => res.json());
+      const userName = session?.user?.name || 'a user';
+      const userEmail = session?.user?.email || 'unknown@example.com';
+
+      // Generate email content
+      const { subject, html, text } = await import('@/utils/email/gallerySelectionTemplate').then(m => 
+        m.renderGallerySelectionEmail({
+          userName,
+          images: selectedItems,
+          message,
+          timestamp: new Date().toISOString(),
+          requestId: Math.random().toString(36).substring(2, 9),
+        })
+      );
+
+      // Send using the generic email endpoint
+      const response = await fetch('/api/email/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to: process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL,
+          subject,
+          text,
+          html,
+          templateName: 'gallery-selection',
+          templateVars: {
+            userName,
+            userEmail,
+            imageCount: selectedItems.length,
+            message,
+            galleryId: id,
+            images: selectedItems.map(img => ({
+              ...img,
+              ratingStars: '★'.repeat(Math.round(img.rating || 0)) + '☆'.repeat(5 - Math.round(img.rating || 0))
+            })),
+            appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://futura.now',
+          },
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to send selection');
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Your selection has been sent successfully!',
+        variant: 'default',
+      });
+      
+      // Clear selection after successful send
+      setSelectedImages([]);
+      return true;
+      
+    } catch (error) {
+      console.error('Error sending selection:', error);
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to send selection',
+        variant: 'destructive',
+      });
+      throw error;
+    }
   };
 
   const handleImageError = useCallback((imageUrl: string) => {
@@ -362,7 +453,7 @@ export function GalleryViewContent() {
         hiddenCount={hiddenImages.length}
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        onSendPhotos={() => setShowMessageModal(true)}
+        onSendPhotos={handleSendClick}
       />
 
       {/* Main content area with side panel */}
@@ -371,10 +462,10 @@ export function GalleryViewContent() {
           {/* Photo Grid */}
           <div className={`overflow-y-auto h-full ${showSidePanel ? 'flex-1' : 'w-full'}`}>
             <div className="container min-w-0 px-6 py-8 mx-auto h-full flex flex-col">
-              <GalleryPhotoGrid
+                <GalleryPhotoGrid
                 items={filteredItems}
-                isLoading={false}
-                error={null}
+                isLoading={isLoading}
+                error={error}
                 isSelecting={isSelecting}
                 selectedImages={selectedImages}
                 ratings={ratings}
@@ -382,8 +473,19 @@ export function GalleryViewContent() {
                 activeTab={activeTab}
                 failedImages={failedImages}
                 maxSelection={MAX_SELECTION}
-                onImageClick={handleImageClick}
-                onSelectionToggle={handleSelectionToggle}
+                onImageClick={(item, index) => {
+                  setSelectedImage({ url: item.memory.url || '', title: item.memory.title || 'Image' });
+                  setIsImageModalOpen(true);
+                }}
+                onSelectionToggle={(imageId, checked) => {
+                  if (checked) {
+                    setSelectedImages(prev => 
+                      prev.length < MAX_SELECTION ? [...prev, imageId] : prev
+                    );
+                  } else {
+                    setSelectedImages(prev => prev.filter(id => id !== imageId));
+                  }
+                }}
                 onRate={handleRateImage}
                 onHide={handleHideImage}
                 onUnhide={handleUnhideImage}
@@ -392,17 +494,24 @@ export function GalleryViewContent() {
               />
             </div>
           </div>
-
-          {/* Side Panel */}
-          <GallerySelectionPanel
-            isOpen={showSidePanel && isSelecting}
-            selectedItems={selectedItems}
-            ratings={ratings}
-            failedImages={failedImages}
-            onImageClick={handleImageClick}
-            onRemoveFromSelection={imageId => setSelectedImages(prev => prev.filter(id => id !== imageId))}
-            onSendPhotos={() => setShowMessageModal(true)}
-          />
+          
+          {/* Selection Panel */}
+          {isSelecting && (
+            <GallerySelectionPanel
+              isOpen={showSidePanel}
+              selectedItems={gallery?.items.filter(item => selectedImages.includes(item.memory.id)) || []}
+              ratings={ratings}
+              failedImages={failedImages}
+              onImageClick={(item, index) => {
+                setSelectedImage({ url: item.memory.url || '', title: item.memory.title || 'Image' });
+                setIsImageModalOpen(true);
+              }}
+              onRemoveFromSelection={(imageId) => {
+                setSelectedImages(prev => prev.filter(id => id !== imageId));
+              }}
+              onSendPhotos={handleSendClick}
+            />
+          )}
         </div>
       </div>
 
@@ -421,6 +530,17 @@ export function GalleryViewContent() {
           }}
         />
       )}
+
+      {/* Send Selection Modal */}
+      <SendSelectionModal
+        isOpen={showMessageModal}
+        onClose={() => setShowMessageModal(false)}
+        selectedCount={selectedImages.length}
+        onSend={handleSendSelection}
+      />
+
+      {/* Toast Notifications */}
+      <ToastContainer />
     </div>
   );
 }
