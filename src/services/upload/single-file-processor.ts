@@ -16,7 +16,12 @@ import { UPLOAD_LIMITS } from '@/config/upload-limits';
 import type { FileInputAttributeMode } from '@/types/upload';
 import type { HostingPreferences } from '@/hooks/use-storage-preferences';
 import { getDefaultHostingPreferences } from '@/hooks/use-storage-preferences';
-import { uploadFileWithProgress, checkICPAuthentication, generateS3PublicUrl } from './shared-utils';
+import {
+  uploadFileWithProgress,
+  checkICPAuthentication,
+  generateS3PublicUrl,
+  validateUploadFiles,
+} from './shared-utils';
 import { uploadToS3WithProcessing } from './s3-with-processing';
 
 export interface ProcessSingleFileOptions {
@@ -224,12 +229,12 @@ export async function processSingleFile(options: ProcessSingleFileOptions): Prom
     onProgress,
   } = options;
 
-  try {
-    // Validate file size
-    if (!UPLOAD_LIMITS.isFileSizeValid(file.size)) {
-      throw new Error(UPLOAD_LIMITS.getFileSizeErrorMessage(file.size));
-    }
+  // Validate files using shared validation function
+  if (!validateUploadFiles([file], showToast)) {
+    return;
+  }
 
+  try {
     // Create a temporary URL for preview
     const url = URL.createObjectURL(file);
 

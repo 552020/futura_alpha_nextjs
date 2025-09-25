@@ -142,3 +142,56 @@ export function handleUploadError(
   console.error('❌ Upload error:', error);
   showToast({ variant: 'destructive', title, description });
 }
+
+/**
+ * Shared validation function for upload processors
+ *
+ * Validates file size, file count, and total size limits.
+ * Shows appropriate toast messages for validation failures.
+ *
+ * @param files - Array of files to validate
+ * @param showToast - Toast function to show error messages
+ * @returns true if validation passes, false if validation fails
+ */
+export function validateUploadFiles(
+  files: File[],
+  showToast: (toast: { variant: 'destructive'; title: string; description: string }) => void
+): boolean {
+  // Import UPLOAD_LIMITS here to avoid circular dependencies
+  const { UPLOAD_LIMITS } = require('@/config/upload-limits');
+
+  // Validate file count limit
+  if (!UPLOAD_LIMITS.isFileCountValid(files.length)) {
+    showToast({
+      variant: 'destructive',
+      title: 'Too many files',
+      description: UPLOAD_LIMITS.getFileCountErrorMessage(files.length),
+    });
+    return false;
+  }
+
+  // Validate individual file sizes
+  for (const file of files) {
+    if (!UPLOAD_LIMITS.isFileSizeValid(file.size)) {
+      showToast({
+        variant: 'destructive',
+        title: 'File too large',
+        description: UPLOAD_LIMITS.getFileSizeErrorMessage(file.size),
+      });
+      return false;
+    }
+  }
+
+  // Validate total size limit
+  const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+  if (!UPLOAD_LIMITS.isTotalSizeValid(totalSize)) {
+    showToast({
+      variant: 'destructive',
+      title: 'Upload too large',
+      description: UPLOAD_LIMITS.getTotalSizeErrorMessage(totalSize),
+    });
+    return false;
+  }
+
+  return true;
+}

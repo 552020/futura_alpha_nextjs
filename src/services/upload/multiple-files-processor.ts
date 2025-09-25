@@ -16,7 +16,7 @@ import { verifyUpload } from './verification';
 import { UPLOAD_LIMITS } from '@/config/upload-limits';
 import type { HostingPreferences } from '@/hooks/use-storage-preferences';
 import { getDefaultHostingPreferences } from '@/hooks/use-storage-preferences';
-import { checkICPAuthentication } from './shared-utils';
+import { checkICPAuthentication, validateUploadFiles } from './shared-utils';
 import { uploadMultipleToS3WithProcessing } from './s3-with-processing';
 
 export interface ProcessMultipleFilesOptions {
@@ -150,24 +150,8 @@ export async function processMultipleFiles(options: ProcessMultipleFilesOptions)
     onProgress,
   } = options;
 
-  // Validate file count limit
-  if (!UPLOAD_LIMITS.isFileCountValid(files.length)) {
-    showToast({
-      variant: 'destructive',
-      title: 'Too many files',
-      description: UPLOAD_LIMITS.getFileCountErrorMessage(files.length),
-    });
-    return;
-  }
-
-  // Validate total size limit
-  const totalSize = Array.from(files).reduce((sum, file) => sum + file.size, 0);
-  if (!UPLOAD_LIMITS.isTotalSizeValid(totalSize)) {
-    showToast({
-      variant: 'destructive',
-      title: 'Upload too large',
-      description: UPLOAD_LIMITS.getTotalSizeErrorMessage(totalSize),
-    });
+  // Validate files using shared validation function
+  if (!validateUploadFiles(files, showToast)) {
     return;
   }
 
