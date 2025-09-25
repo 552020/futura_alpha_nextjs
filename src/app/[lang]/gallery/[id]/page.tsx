@@ -6,6 +6,8 @@ import Image from 'next/image';
 import { useAuthGuard } from '@/utils/authentication';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   Share2,
   Edit,
@@ -26,7 +28,7 @@ import { galleryService } from '@/services/gallery';
 import { GalleryWithItems } from '@/types/gallery';
 import { ForeverStorageProgressModal } from '@/components/galleries/forever-storage-progress-modal';
 import { StorageStatusBadge, getGalleryStorageStatus } from '@/components/common/storage-status-badge';
-import { MemoryStorageBadge } from '@/components/common/memory-storage-badge';
+// import { MemoryStorageBadge } from '@/components/common/memory-storage-badge';
 import { GalleryStorageSummary } from '@/components/galleries/gallery-storage-summary';
 import { getBlurPlaceholder, IMAGE_SIZES } from '@/utils/image-utils';
 
@@ -58,6 +60,7 @@ export function GalleryViewContent() {
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [selectedImage, setSelectedImage] = useState<{ url: string; title: string } | null>(null);
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
 
   const MAX_SELECTION = 35;
@@ -97,24 +100,17 @@ export function GalleryViewContent() {
     }
   }, [searchParams]);
 
-  const handleImageClick = (item: NonNullable<typeof gallery>['items'][number]) => {
+  const handleImageClick = (item: NonNullable<typeof gallery>['items'][number], index?: number) => {
     if (!item?.memory) return;
 
     const memory = item.memory;
 
-    if (isSelecting) {
-      // Toggle selection
-      setSelectedImages(prev =>
-        prev.includes(memory.id)
-          ? prev.filter(id => id !== memory.id)
-          : prev.length < MAX_SELECTION
-            ? [...prev, memory.id]
-            : prev
-      );
-    } else {
-      // Navigate to individual memory page
-      router.push(`/${lang}/dashboard/${memory.id}`);
-    }
+    // Always show image in modal, regardless of selection mode
+    setSelectedImage({
+      url: memory.url || '',
+      title: memory.title || `Photo ${index !== undefined ? index + 1 : ''}`,
+    });
+    setIsImageModalOpen(true);
   };
 
   const toggleSelectionMode = () => {
@@ -155,6 +151,11 @@ export function GalleryViewContent() {
 
   const handleRateImage = (imageId: string, rating: number) => {
     setRatings(prev => ({ ...prev, [imageId]: rating }));
+
+    // Auto-select the image when rating it
+    if (isSelecting && !selectedImages.includes(imageId) && selectedImages.length < MAX_SELECTION) {
+      setSelectedImages(prev => [...prev, imageId]);
+    }
   };
 
   const handleHideImage = (imageId: string) => {
@@ -564,8 +565,27 @@ export function GalleryViewContent() {
                         className={`min-w-0 aspect-square bg-muted rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity relative ${
                           selectedImages.includes(item.memory.id) ? 'ring-4 ring-blue-500' : ''
                         }`}
-                        onClick={() => handleImageClick(item)}
+                        onClick={() => handleImageClick(item, index)}
                       >
+                        {/* Selection checkbox */}
+                        {isSelecting && (
+                          <div className="absolute top-2 left-2 z-10">
+                            <Checkbox
+                              checked={selectedImages.includes(item.memory.id)}
+                              onCheckedChange={checked => {
+                                if (checked) {
+                                  setSelectedImages(prev =>
+                                    prev.length < MAX_SELECTION ? [...prev, item.memory.id] : prev
+                                  );
+                                } else {
+                                  setSelectedImages(prev => prev.filter(id => id !== item.memory.id));
+                                }
+                              }}
+                              onClick={e => e.stopPropagation()}
+                              className="bg-white/90 border-white shadow-sm"
+                            />
+                          </div>
+                        )}
                         {item.memory.url && !failedImages.has(item.memory.url) ? (
                           <div className="w-full h-full relative min-w-0">
                             <Image
@@ -599,16 +619,16 @@ export function GalleryViewContent() {
                         >
                           {/* Top bar */}
                           <div className="flex justify-between items-start">
-                            {/* Memory Storage Status Badge */}
-                            <MemoryStorageBadge
+                            {/* Memory Storage Status Badge - Commented out */}
+                            {/* <MemoryStorageBadge
                               memoryId={item.memory.id}
                               memoryType={item.memory.type}
                               size="xs"
                               showTooltip={true}
-                            />
+                            /> */}
 
                             {/* Rating and Hidden indicator */}
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1 ml-auto">
                               {activeTab === 'hidden' && (
                                 <div className="bg-red-500/70 rounded-full px-2 py-1">
                                   <span className="text-xs text-white">Hidden</span>
@@ -721,7 +741,7 @@ export function GalleryViewContent() {
                       <div
                         key={item.id}
                         className="relative aspect-square rounded-md overflow-hidden border border-border hover:ring-2 hover:ring-primary hover:ring-offset-1 transition-all"
-                        onClick={() => handleImageClick(item)}
+                        onClick={() => handleImageClick(item, selectedItems.indexOf(item))}
                       >
                         {item.memory.url && !failedImages.has(item.memory.url) ? (
                           <Image
@@ -781,6 +801,26 @@ export function GalleryViewContent() {
           )}
         </div>
       </div>
+
+      {/* Image Modal */}
+      <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
+        <DialogContent className="max-w-4xl w-full p-0">
+          <DialogHeader className="p-6 pb-0">
+            <DialogTitle>{selectedImage?.title}</DialogTitle>
+          </DialogHeader>
+          <div className="relative aspect-video w-full">
+            {selectedImage?.url && (
+              <Image
+                src={selectedImage.url}
+                alt={selectedImage.title}
+                fill
+                className="object-contain"
+                sizes="(max-width: 768px) 100vw, 80vw"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Forever Storage Modal */}
       {gallery && (
