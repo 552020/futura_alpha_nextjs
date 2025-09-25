@@ -20,7 +20,15 @@ interface GalleryPhotoGridProps {
   activeTab: 'all' | 'hidden';
   failedImages: Set<string>;
   maxSelection: number;
-  onImageClick: (item: any, index: number) => void;
+onImageClick: (item: {
+    id: string;
+    memory: {
+      id: string;
+      url?: string;
+      title?: string;
+      type: string;
+    };
+  }, index: number) => void;
   onSelectionToggle: (imageId: string, checked: boolean) => void;
   onRate: (imageId: string, rating: number) => void;
   onHide: (imageId: string) => void;

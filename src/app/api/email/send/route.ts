@@ -37,7 +37,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const emailData: any = {
+    const emailData: {
+      to: string | string[];
+      subject: string;
+      text?: string;
+      html?: string;
+      'h:X-Mailgun-Variables'?: string;
+    } = {
       to,
       subject,
       ...(text && { text: text.trim() }),

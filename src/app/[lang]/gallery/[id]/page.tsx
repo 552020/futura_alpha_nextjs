@@ -104,8 +104,8 @@ export function GalleryViewContent() {
       if (activeTab === 'hidden') {
         return hiddenImages.includes(item.memory.id);
       }
-      // Hide images that are in the hidden list (unless we're in selection mode)
-      if (!isSelecting && hiddenImages.includes(item.memory.id)) {
+      // Always hide images that are in the hidden list when viewing 'all' tab
+      if (hiddenImages.includes(item.memory.id)) {
         return false;
       }
       return true;
