@@ -157,7 +157,7 @@ export async function processMultipleFiles(options: ProcessMultipleFilesOptions)
 
   try {
     // Route to appropriate upload service based on user preferences
-    const userBlobHosting = preferences?.blobHosting || 's3'; // Default to S3 (413 solution)
+    const userBlobHostingPreference = preferences?.blobHosting || 's3'; // Default to S3 (413 solution)
 
     let data: {
       results?: Array<{
@@ -172,11 +172,11 @@ export async function processMultipleFiles(options: ProcessMultipleFilesOptions)
     };
 
     // Upload routing based on storage preference
-    if (userBlobHosting === 'icp') {
+    if (userBlobHostingPreference === 'icp') {
       data = await uploadMultipleToICP(files, preferences || getDefaultHostingPreferences(), onProgress);
-    } else if (userBlobHosting === 'vercel_blob') {
+    } else if (userBlobHostingPreference === 'vercel_blob') {
       data = await uploadMultipleToVercelBlob(files, mode, onProgress);
-    } else if (userBlobHosting === 's3') {
+    } else if (userBlobHostingPreference === 's3') {
       // S3 with parallel processing (Lane A + Lane B)
       data = await uploadMultipleToS3WithProcessing(files, mode, onProgress);
     } else {
@@ -193,7 +193,7 @@ export async function processMultipleFiles(options: ProcessMultipleFilesOptions)
 
     // Best-effort verify first reported memory
     const appMemoryId = data?.results?.[0]?.memoryId;
-    if (appMemoryId && userBlobHosting !== 'icp') {
+    if (appMemoryId && userBlobHostingPreference !== 'icp') {
       // For non-ICP flows, we still need to get storage info for verification
       const storageResponse = await verifyIntent({
         preferred: preferences?.blobHosting,

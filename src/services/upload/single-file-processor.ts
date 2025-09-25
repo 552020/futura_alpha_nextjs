@@ -229,17 +229,13 @@ export async function processSingleFile(options: ProcessSingleFileOptions): Prom
     onProgress,
   } = options;
 
-  // Validate files using shared validation function
   if (!validateUploadFiles([file], showToast)) {
     return;
   }
 
   try {
-    // Create a temporary URL for preview
-    const url = URL.createObjectURL(file);
-
     // Route to appropriate upload service based on user preferences
-    const userBlobHosting = preferences?.blobHosting || 's3'; // Default to S3 (413 solution)
+    const userBlobHostingPreference = preferences?.blobHosting || 's3'; // Default to S3 (413 solution)
 
     let data: {
       data: { id: string };
@@ -248,12 +244,12 @@ export async function processSingleFile(options: ProcessSingleFileOptions): Prom
     };
 
     // Upload routing based on storage preference
-    if (userBlobHosting === 'icp') {
+    if (userBlobHostingPreference === 'icp') {
       data = await uploadToICP(file, preferences || getDefaultHostingPreferences(), onProgress);
       data.userId = existingUserId || '';
-    } else if (userBlobHosting === 'vercel_blob') {
-      data = await uploadToVercelBlob(file, isOnboarding, existingUserId, mode, userBlobHosting, onProgress);
-    } else if (userBlobHosting === 's3') {
+    } else if (userBlobHostingPreference === 'vercel_blob') {
+      data = await uploadToVercelBlob(file, isOnboarding, existingUserId, mode, userBlobHostingPreference, onProgress);
+    } else if (userBlobHostingPreference === 's3') {
       // S3 with parallel processing (Lane A + Lane B)
       data = await uploadToS3WithProcessing(file, onProgress);
       data.userId = existingUserId || '';
@@ -275,7 +271,7 @@ export async function processSingleFile(options: ProcessSingleFileOptions): Prom
     // 3) Verify after upload (best-effort) - only for non-ICP flows
     // ICP flows handle verification internally
     const appMemoryId = data?.data?.id;
-    if (appMemoryId && userBlobHosting !== 'icp') {
+    if (appMemoryId && userBlobHostingPreference !== 'icp') {
       // For non-ICP flows, we still need to get storage info for verification
       const storageResponse = await verifyIntent({
         preferred: preferences?.blobHosting,
@@ -295,6 +291,8 @@ export async function processSingleFile(options: ProcessSingleFileOptions): Prom
     }
 
     if (isOnboarding && data && updateOnboardingContext) {
+      // Create a temporary URL for preview only when needed
+      const url = URL.createObjectURL(file);
       updateOnboardingContext(
         { data: { ownerId: data.userId ?? '', id: data.data?.id ?? appMemoryId ?? '' } },
         file,
