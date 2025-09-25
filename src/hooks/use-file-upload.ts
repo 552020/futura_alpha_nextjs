@@ -57,6 +57,21 @@ export function useFileUpload({ isOnboarding = false, mode = 'directory', onSucc
     });
   };
 
+  const processMultipleFiles = async (files: File[], mode: 'directory' | 'multiple-files') => {
+    await processMultipleFilesService({
+      files,
+      mode,
+      isOnboarding,
+      preferences,
+      onSuccess,
+      onError,
+      updateUserData,
+      setCurrentStep,
+      session,
+      showToast: toast,
+    });
+  };
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = event.target.files;
 
@@ -70,73 +85,24 @@ export function useFileUpload({ isOnboarding = false, mode = 'directory', onSucc
     // Reset input value to allow selecting the same files again
     event.target.value = '';
 
-    if (mode === 'directory') {
+    if (mode === 'single' || files.length === 1) {
+      // Single file: use existing single file logic
+      const file = files[0];
       setIsLoading(true);
       try {
-        await processMultipleFilesService({
-          files: Array.from(files),
-          mode: 'directory',
-          isOnboarding,
-          preferences,
-          onSuccess,
-          onError,
-          updateUserData,
-          setCurrentStep,
-          session,
-          showToast: toast,
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    } else if (mode === 'multiple-files' || mode === 'single') {
-      if (files.length === 1 || mode === 'single') {
-        // Single file: use existing single file logic
-        const file = files[0];
-        console.log(`🎯 DASHBOARD SINGLE FILE UPLOAD TRIGGERED:`, {
-          fileName: file.name,
-          fileSize: file.size,
-          fileSizeMB: (file.size / (1024 * 1024)).toFixed(2),
-          fileType: file.type,
-          mode,
-          isOnboarding,
-        });
-
-        setIsLoading(true);
         // Get the authenticated user's ID from the session
         const userId = session?.user?.id;
         await processSingleFile(file, false, userId);
+      } finally {
         setIsLoading(false);
-      } else if (mode === 'multiple-files') {
-        // Multiple files: use multiple files processor
-        console.log(`🎯 DASHBOARD MULTIPLE FILES UPLOAD TRIGGERED:`, {
-          fileCount: files.length,
-          files: Array.from(files).map(f => ({
-            name: f.name,
-            size: f.size,
-            sizeMB: (f.size / (1024 * 1024)).toFixed(2),
-            type: f.type,
-          })),
-          mode,
-          isOnboarding,
-        });
-
-        setIsLoading(true);
-        try {
-          await processMultipleFilesService({
-            files: Array.from(files),
-            mode: 'multiple-files',
-            isOnboarding,
-            preferences,
-            onSuccess,
-            onError,
-            updateUserData,
-            setCurrentStep,
-            session,
-            showToast: toast,
-          });
-        } finally {
-          setIsLoading(false);
-        }
+      }
+    } else {
+      // Multiple files: handles both 'directory' and 'multiple-files' modes
+      setIsLoading(true);
+      try {
+        await processMultipleFiles(files, mode);
+      } finally {
+        setIsLoading(false);
       }
     }
   };
