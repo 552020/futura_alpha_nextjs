@@ -5,13 +5,13 @@ import { parseApiError, normalizeError, type NormalizedError } from '@/lib/error
 export type FrontendHosting = 'vercel' | 'icp';
 export type BackendHosting = 'vercel' | 'icp';
 export type DatabaseHosting = 'neon' | 'icp';
-export type BlobHosting = 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs';
+export type BlobHosting = 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs' | 'neon';
 
 export interface HostingPreferences {
   frontendHosting: FrontendHosting;
   backendHosting: BackendHosting;
-  databaseHosting: DatabaseHosting;
-  blobHosting: BlobHosting;
+  databaseHosting: DatabaseHosting[];
+  blobHosting: BlobHosting[];
   updatedAt?: string;
 }
 
@@ -20,8 +20,8 @@ export function getDefaultHostingPreferences(): HostingPreferences {
   return {
     frontendHosting: 'vercel',
     backendHosting: 'vercel',
-    databaseHosting: 'neon',
-    blobHosting: 's3',
+    databaseHosting: ['neon'],
+    blobHosting: ['s3'],
   };
 }
 

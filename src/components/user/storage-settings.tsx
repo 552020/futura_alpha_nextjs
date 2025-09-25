@@ -29,13 +29,13 @@ export function StorageSettings() {
 
   const handleDatabaseHostingChange = (hosting: 'neon' | 'icp') => {
     updatePreferences.mutate({
-      databaseHosting: hosting,
+      databaseHosting: [hosting],
     });
   };
 
-  const handleBlobHostingChange = (hosting: 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs') => {
+  const handleBlobHostingChange = (hosting: 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs' | 'neon') => {
     updatePreferences.mutate({
-      blobHosting: hosting,
+      blobHosting: [hosting],
     });
   };
 
@@ -135,7 +135,7 @@ export function StorageSettings() {
             <Label htmlFor="database-hosting">Database Hosting</Label>
             <p className="text-sm text-muted-foreground">Where your database is hosted</p>
           </div>
-          <Select value={currentPreferences.databaseHosting} onValueChange={handleDatabaseHostingChange}>
+          <Select value={currentPreferences.databaseHosting[0]} onValueChange={handleDatabaseHostingChange}>
             <SelectTrigger className="w-32">
               <SelectValue />
             </SelectTrigger>
@@ -154,7 +154,7 @@ export function StorageSettings() {
             <Label htmlFor="blob-hosting">Blob Storage</Label>
             <p className="text-sm text-muted-foreground">Where your files are stored</p>
           </div>
-          <Select value={currentPreferences.blobHosting} onValueChange={handleBlobHostingChange}>
+          <Select value={currentPreferences.blobHosting[0]} onValueChange={handleBlobHostingChange}>
             <SelectTrigger className="w-32">
               <SelectValue />
             </SelectTrigger>

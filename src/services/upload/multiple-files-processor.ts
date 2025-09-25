@@ -13,7 +13,6 @@
 
 import { verifyIntent } from './intent';
 import { verifyUpload } from './verification';
-import { UPLOAD_LIMITS } from '@/config/upload-limits';
 import type { HostingPreferences } from '@/hooks/use-storage-preferences';
 import { getDefaultHostingPreferences } from '@/hooks/use-storage-preferences';
 import { checkICPAuthentication, validateUploadFiles } from './shared-utils';
@@ -48,7 +47,7 @@ async function uploadMultipleToICP(
   // Get storage configuration for ICP
   const storageResponse = await verifyIntent({
     preferred: 'icp',
-    databaseHosting: preferences?.databaseHosting,
+    databaseHosting: preferences?.databaseHosting[0],
     backendHosting: preferences?.backendHosting,
   });
   const storage = storageResponse.uploadStorage;
@@ -157,7 +156,7 @@ export async function processMultipleFiles(options: ProcessMultipleFilesOptions)
 
   try {
     // Route to appropriate upload service based on user preferences
-    const userBlobHostingPreference = preferences?.blobHosting || 's3'; // Default to S3 (413 solution)
+    const userBlobHostingPreference = preferences?.blobHosting[0] || 's3'; // Default to S3 (413 solution)
 
     let data: {
       results?: Array<{
@@ -196,8 +195,8 @@ export async function processMultipleFiles(options: ProcessMultipleFilesOptions)
     if (appMemoryId && userBlobHostingPreference !== 'icp') {
       // For non-ICP flows, we still need to get storage info for verification
       const storageResponse = await verifyIntent({
-        preferred: preferences?.blobHosting,
-        databaseHosting: preferences?.databaseHosting,
+        preferred: preferences?.blobHosting[0] === 'neon' ? 's3' : preferences?.blobHosting[0],
+        databaseHosting: preferences?.databaseHosting[0],
         backendHosting: preferences?.backendHosting,
       });
       const storage = storageResponse.uploadStorage;

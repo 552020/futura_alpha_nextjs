@@ -153,13 +153,12 @@ export function handleUploadError(
  * @param showToast - Toast function to show error messages
  * @returns true if validation passes, false if validation fails
  */
+import { UPLOAD_LIMITS } from '@/config/upload-limits';
+
 export function validateUploadFiles(
   files: File[],
   showToast: (toast: { variant: 'destructive'; title: string; description: string }) => void
 ): boolean {
-  // Import UPLOAD_LIMITS here to avoid circular dependencies
-  const { UPLOAD_LIMITS } = require('@/config/upload-limits');
-
   // Validate file count limit
   if (!UPLOAD_LIMITS.isFileCountValid(files.length)) {
     showToast({
