@@ -16,6 +16,8 @@ import { UPLOAD_LIMITS } from '@/config/upload-limits';
 import type { FileInputAttributeMode } from '@/types/upload';
 import type { HostingPreferences } from '@/hooks/use-storage-preferences';
 import { getDefaultHostingPreferences } from '@/hooks/use-storage-preferences';
+import { uploadFileWithProgress, checkICPAuthentication, generateS3PublicUrl } from './shared-utils';
+import { uploadToS3WithProcessing } from './s3-with-processing';
 
 export interface ProcessSingleFileOptions {
   file: File;
@@ -30,9 +32,6 @@ export interface ProcessSingleFileOptions {
   onProgress?: (progress: number) => void;
 }
 
-import { uploadFileWithProgress, checkICPAuthentication, generateS3PublicUrl } from './shared-utils';
-import { uploadToS3WithProcessing } from './s3-with-processing';
-
 // Upload to ICP canister
 async function uploadToICP(
   file: File,
@@ -43,9 +42,7 @@ async function uploadToICP(
   results: Array<{ memoryId: string; size: number; checksum_sha256: string | null }>;
   userId: string;
 }> {
-  console.log(`🔐 Checking ICP authentication...`);
   await checkICPAuthentication();
-  console.log(`✅ ICP authentication confirmed`);
 
   // Get storage configuration for ICP
   const storageResponse = await verifyIntent({
@@ -84,7 +81,6 @@ export async function uploadToS3(
   results: Array<{ memoryId: string; size: number; checksum_sha256: string | null }>;
   userId: string;
 }> {
-  console.log(`🚀 Getting presigned URL for: ${file.name}`);
   const presignResponse = await fetch('/api/upload/presign', {
     method: 'POST',
     headers: {
@@ -105,13 +101,11 @@ export async function uploadToS3(
   const { signedUrl, s3Key } = await presignResponse.json();
 
   // Upload file to S3 with progress
-  console.log(`📤 Uploading to S3: ${file.name}`);
   await uploadFileWithProgress(file, signedUrl, progress => {
     onProgress?.(progress);
   });
 
   // Commit to database
-  console.log(`💾 Committing to database: ${file.name}`);
   const commitResponse = await fetch('/api/upload/commit', {
     method: 'POST',
     headers: {
@@ -131,7 +125,6 @@ export async function uploadToS3(
   }
 
   const commitResult = await commitResponse.json();
-  console.log(`✅ Upload completed: ${file.name}`);
 
   return {
     data: { id: commitResult.data.id },
@@ -159,8 +152,6 @@ async function uploadToVercelBlob(
   results: Array<{ memoryId: string; size: number; checksum_sha256: string | null }>;
   userId: string;
 }> {
-  console.log(`☁️ Using Vercel Blob upload for: ${file.name}`);
-
   // Use the original uploadFile function for Vercel Blob
   const { uploadFile } = await import('./upload');
 
@@ -197,7 +188,6 @@ async function uploadToVercelBlob(
     const memory = Array.isArray(uploadResult.data) ? uploadResult.data[0] : uploadResult.data;
 
     if (!memory || !memory.id) {
-      console.error('❌ Invalid upload response:', uploadResult);
       throw new Error('Upload failed: Invalid response from server');
     }
 
@@ -234,23 +224,9 @@ export async function processSingleFile(options: ProcessSingleFileOptions): Prom
     onProgress,
   } = options;
 
-  console.log(`📁 Processing single file: ${file.name} (${file.size} bytes)`);
-  console.log(`📊 DASHBOARD UPLOAD ANALYSIS:`, {
-    fileName: file.name,
-    fileSize: file.size,
-    fileSizeMB: (file.size / (1024 * 1024)).toFixed(2),
-    fileType: file.type,
-    isOnboarding,
-    mode,
-    existingUserId,
-    isLargeFile: file.size / (1024 * 1024) > 4,
-    threshold: '4MB',
-  });
-
   try {
     // Validate file size
     if (!UPLOAD_LIMITS.isFileSizeValid(file.size)) {
-      console.error('❌ File too large:', UPLOAD_LIMITS.getFileSizeErrorMessage(file.size));
       throw new Error(UPLOAD_LIMITS.getFileSizeErrorMessage(file.size));
     }
 
@@ -259,7 +235,6 @@ export async function processSingleFile(options: ProcessSingleFileOptions): Prom
 
     // Route to appropriate upload service based on user preferences
     const userBlobHosting = preferences?.blobHosting || 's3'; // Default to S3 (413 solution)
-    console.log(`🔍 User blob hosting: ${userBlobHosting}`);
 
     let data: {
       data: { id: string };
@@ -275,13 +250,10 @@ export async function processSingleFile(options: ProcessSingleFileOptions): Prom
       data = await uploadToVercelBlob(file, isOnboarding, existingUserId, mode, userBlobHosting, onProgress);
     } else if (userBlobHosting === 's3') {
       // S3 with parallel processing (Lane A + Lane B)
-      console.log(`🚀 Using S3 upload with parallel processing for: ${file.name}`);
       data = await uploadToS3WithProcessing(file, onProgress);
       data.userId = existingUserId || '';
     } else {
       // Default to S3 with parallel processing for unknown preferences
-      console.warn(`⚠️ Unknown storage preference: ${userBlobHosting}, falling back to S3`);
-      console.log(`🚀 Using S3 upload with parallel processing for: ${file.name}`);
       data = await uploadToS3WithProcessing(file, onProgress);
       data.userId = existingUserId || '';
     }
@@ -339,8 +311,6 @@ export async function processSingleFile(options: ProcessSingleFileOptions): Prom
       title = 'Upload not ready';
       description = error.message;
     }
-
-    console.error('❌ Upload error:', error);
 
     showToast({ variant: 'destructive', title, description });
 

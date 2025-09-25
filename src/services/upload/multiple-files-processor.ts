@@ -16,6 +16,8 @@ import { verifyUpload } from './verification';
 import { UPLOAD_LIMITS } from '@/config/upload-limits';
 import type { HostingPreferences } from '@/hooks/use-storage-preferences';
 import { getDefaultHostingPreferences } from '@/hooks/use-storage-preferences';
+import { checkICPAuthentication } from './shared-utils';
+import { uploadMultipleToS3WithProcessing } from './s3-with-processing';
 
 export interface ProcessMultipleFilesOptions {
   files: File[];
@@ -31,9 +33,6 @@ export interface ProcessMultipleFilesOptions {
   onProgress?: (file: File, progress: number) => void;
 }
 
-import { checkICPAuthentication } from './shared-utils';
-import { uploadMultipleToS3WithProcessing } from './s3-with-processing';
-
 // Upload multiple files to ICP canister
 async function uploadMultipleToICP(
   files: File[],
@@ -44,9 +43,7 @@ async function uploadMultipleToICP(
   userId?: string;
   successfulUploads?: number;
 }> {
-  console.log(`🔐 Checking ICP authentication...`);
   await checkICPAuthentication();
-  console.log(`✅ ICP authentication confirmed`);
 
   // Get storage configuration for ICP
   const storageResponse = await verifyIntent({
@@ -75,116 +72,6 @@ async function uploadMultipleToICP(
   };
 }
 
-// Upload multiple files to S3 using 413 solution (batch presigned URLs)
-// async function uploadMultipleToS3(
-//   files: File[],
-//   mode: 'directory' | 'multiple-files',
-//   onProgress?: (file: File, progress: number) => void
-// ): Promise<{
-//   results?: Array<{ memoryId: string; size?: number; checksum_sha256?: string | null; name?: string; type?: string }>;
-//   userId?: string;
-//   successfulUploads?: number;
-// }> {
-//   console.log(`🚀 Getting batch presigned URLs for ${files.length} files`);
-//   const presignResponse = await fetch('/api/upload/batch-presign', {
-//     method: 'POST',
-//     headers: {
-//       'Content-Type': 'application/json',
-//     },
-//     body: JSON.stringify({
-//       files: files.map(file => ({
-//         fileName: file.name,
-//         fileType: file.type,
-//         fileSize: file.size,
-//       })),
-//     }),
-//   });
-
-//   if (!presignResponse.ok) {
-//     const error = await presignResponse.json();
-//     throw new Error(error.error || 'Failed to get presigned URLs');
-//   }
-
-//   const { presignedUrls } = await presignResponse.json();
-
-//   // Upload files to S3 with progress
-//   console.log(`📤 Uploading ${files.length} files to S3`);
-//   const uploadPromises = presignedUrls.map((upload: { signedUrl: string; s3Key: string }, index: number) => {
-//     const file = files[index];
-//     return uploadFileWithProgress(file, upload.signedUrl, progress => {
-//       onProgress?.(file, progress);
-//     });
-//   });
-
-//   const uploadedFiles = await Promise.all(uploadPromises);
-
-//   // Create folder if needed
-//   let parentFolderId: string | undefined = undefined;
-//   if (mode === 'directory') {
-//     const folderName = extractFolderName(files[0]);
-//     console.log(`📁 Creating folder: ${folderName}`);
-
-//     const folderResponse = await fetch('/api/folders', {
-//       method: 'POST',
-//       headers: {
-//         'Content-Type': 'application/json',
-//       },
-//       body: JSON.stringify({ folderName }),
-//     });
-
-//     if (!folderResponse.ok) {
-//       const error = await folderResponse.json();
-//       throw new Error(error.error || 'Failed to create folder');
-//     }
-
-//     const { folder } = await folderResponse.json();
-//     parentFolderId = folder.id;
-//   }
-
-//   // Commit to database
-//   console.log(`💾 Committing ${files.length} files to database`);
-//   const commitResponse = await fetch('/api/upload/batch-commit', {
-//     method: 'POST',
-//     headers: {
-//       'Content-Type': 'application/json',
-//     },
-//     body: JSON.stringify({
-//       files: uploadedFiles.map((file, index) => {
-//         const s3Key = presignedUrls[index].s3Key;
-//         return {
-//           fileName: file.name,
-//           fileType: file.type,
-//           fileSize: file.size,
-//           s3Url: generateS3PublicUrl(s3Key),
-//         };
-//       }),
-//       parentFolderId,
-//     }),
-//   });
-
-//   if (!commitResponse.ok) {
-//     const error = await commitResponse.json();
-//     throw new Error(error.error || 'Failed to commit upload');
-//   }
-
-//   const commitResult = await commitResponse.json();
-//   console.log(`✅ Batch upload completed: ${files.length} files`);
-
-//   return {
-//     results:
-//       commitResult.results ||
-//       uploadedFiles.map((file, index) => ({
-//         memoryId: `mem-${Date.now()}-${index}`,
-//         size: file.size,
-//         name: file.name,
-//         type: file.type,
-//         checksum_sha256: null,
-//       })),
-//     userId: commitResult.userId || '',
-//     successfulUploads: uploadedFiles.length,
-//   };
-// }
-
 // Upload multiple files to Vercel Blob (legacy fallback)
 async function uploadMultipleToVercelBlob(
   files: File[],
@@ -195,8 +82,6 @@ async function uploadMultipleToVercelBlob(
   userId?: string;
   successfulUploads?: number;
 }> {
-  console.log(`☁️ Using Vercel Blob upload for ${files.length} files`);
-
   // Create a progress wrapper for Vercel Blob
   let progressInterval: NodeJS.Timeout | null = null;
 
@@ -220,7 +105,6 @@ async function uploadMultipleToVercelBlob(
 
     if (mode === 'directory') {
       formData.append('storageBackend', 'vercel_blob');
-      console.log('📤 Uploading folder with storageBackend=vercel_blob');
     }
 
     const response = await fetch('/api/memories', { method: 'POST', body: formData });
@@ -290,7 +174,6 @@ export async function processMultipleFiles(options: ProcessMultipleFilesOptions)
   try {
     // Route to appropriate upload service based on user preferences
     const userBlobHosting = preferences?.blobHosting || 's3'; // Default to S3 (413 solution)
-    console.log(`🔍 User blob hosting: ${userBlobHosting}`);
 
     let data: {
       results?: Array<{
@@ -311,12 +194,9 @@ export async function processMultipleFiles(options: ProcessMultipleFilesOptions)
       data = await uploadMultipleToVercelBlob(files, mode, onProgress);
     } else if (userBlobHosting === 's3') {
       // S3 with parallel processing (Lane A + Lane B)
-      console.log(`🚀 Using S3 batch upload with parallel processing for ${files.length} files`);
       data = await uploadMultipleToS3WithProcessing(files, mode, onProgress);
     } else {
       // Default to S3 with parallel processing for unknown preferences
-      console.warn(`⚠️ Unknown storage preference: ${userBlobHosting}, falling back to S3`);
-      console.log(`🚀 Using S3 batch upload with parallel processing for ${files.length} files`);
       data = await uploadMultipleToS3WithProcessing(files, mode, onProgress);
     }
 
@@ -365,7 +245,6 @@ export async function processMultipleFiles(options: ProcessMultipleFilesOptions)
 
     onSuccess?.();
   } catch (error) {
-    console.error(`${mode === 'directory' ? 'Folder' : 'Multiple files'} upload error:`, error);
     showToast({
       variant: 'destructive',
       title: 'Upload failed',
