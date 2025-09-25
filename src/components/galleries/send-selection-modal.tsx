@@ -49,9 +49,14 @@ export function SendSelectionModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-background rounded-lg p-6 w-full max-w-md">
-        <h2 className="text-xl font-semibold mb-4">Send {selectedCount} Photo{selectedCount !== 1 ? 's' : ''}</h2>
+    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md border border-gray-200">
+        <h2 className="text-xl font-semibold mb-2">Send {selectedCount} Photo{selectedCount !== 1 ? 's' : ''}</h2>
+        
+        <p className="text-sm text-gray-600 mb-4">
+          Your selected photos will be sent to your photographer. 
+          Add an optional message below if you'd like to include any special notes or instructions.
+        </p>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
