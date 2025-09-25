@@ -36,101 +36,55 @@ export function renderGallerySelectionEmail({
   const formattedDate = formatDate(timestamp);
   const subject = `🎨 New Photo Selection from ${userName} (${sortedImages.length} images)`;
 
-  // HTML Content
+  // HTML Content (commented out in favor of text-only emails)
   const html = `
   <!DOCTYPE html>
   <html>
   <head>
-    <style>
-      body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
-      .header { background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin-bottom: 20px; text-align: center; }
-      .subtitle { color: #6c757d; font-style: italic; margin: 10px 0 20px; }
-      .message { background-color: #e9ecef; padding: 15px; border-radius: 5px; margin: 15px 0; }
-      .image-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
-      .image-card { border: 1px solid #dee2e6; border-radius: 5px; overflow: hidden; }
-      .image-card img { width: 100%; height: 150px; object-fit: cover; }
-      .image-info { padding: 10px; font-size: 14px; }
-      .rating { color: #ffc107; font-size: 14px; margin-top: 5px; }
-      .footer { margin-top: 30px; font-size: 12px; color: #6c757d; text-align: center; }
-      h1, h2, h3 { color: #2c3e50; }
-      .file-list { margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px; }
-      .file-list h4 { margin-top: 0; }
-      .file-list ul { margin: 10px 0 0 0; padding-left: 20px; }
-      .contact-info { margin-top: 20px; padding: 15px; background-color: #e9f7ef; border-radius: 5px; text-align: center; }
-    </style>
+    <title>New Photo Selection from ${userName}</title>
   </head>
   <body>
-    <div class="header">
-      <h1>New Photo Selection from ${userName}</h1>
-      <p class="subtitle">Made with love in Berlin</p>
-      <p>${formattedDate}</p>
-    </div>
+    <p>New Photo Selection from ${userName}</p>
+    <p>${formattedDate}</p>
     
     ${
       userMessage
-        ? `
-    <div class="message">
-      <h3>Message from ${userName}:</h3>
-      <p>${userMessage}</p>
-    </div>
-    `
+        ? `<p><strong>Message from ${userName}:</strong><br>${userMessage}</p>`
         : ''
     }
     
-    <h3>Selected Images (${sortedImages.length}):</h3>
+    <p><strong>Selected Images (${sortedImages.length}):</strong></p>
+    <ul>
+      ${sortedImages.map((img, i) => `<li>${i + 1}. ${img.name}</li>`).join('')}
+    </ul>
     
-    <div class="file-list">
-      <h4>File List:</h4>
-      <ul>
-        ${sortedImages.map((img, i) => `<li>${i + 1}. ${img.name}</li>`).join('')}
-      </ul>
-    </div>
+    <p>If you encounter any problems or have questions, please contact us on WhatsApp.</p>
     
-    <div class="image-grid">
-      ${sortedImages
-        .map(
-          (img, i) => `
-        <div class="image-card">
-          <img src="${img.url}" alt="${img.name}" />
-          <div class="image-info">
-            <div><strong>#${i + 1}</strong> ${img.name}</div>
-            ${img.rating ? `<div class="rating">${'★'.repeat(Math.round(img.rating))}${'☆'.repeat(5 - Math.round(img.rating))}</div>` : ''}
-          </div>
-        </div>
-      `
-        )
-        .join('')}
-    </div>
-    
-    <div class="contact-info">
-      <p>If you encounter any problems or have questions, please contact us on WhatsApp.</p>
-    </div>
-    
-    <div class="footer">
-      <p>This is an automated message. Please do not reply directly to this email.</p>
-      <p>Selection ID: ${requestId}</p>
-    </div>
+    <p>---<br>
+    This is an automated message. Please do not reply directly to this email.<br>
+    Selection ID: ${requestId}</p>
   </body>
   </html>
   `;
 
-  // Text Content
+  // Text Content (simplified for better email client compatibility)
   const text = `
-New Photo Selection from ${userName}
+NEW PHOTO SELECTION
 ${'='.repeat(50)}
 
-Made with love in Berlin
+From: ${userName}
+Date: ${formattedDate}
 
 ${
   userMessage
-    ? `Message from ${userName}:
+    ? `MESSAGE FROM ${userName.toUpperCase()}:
 ${userMessage}
 
 `
     : ''
-}Selected ${sortedImages.length} images:
-
-${sortedImages.map((img, i) => `${i + 1}. ${img.name}`).join('\n')}
+}SELECTED IMAGES (${sortedImages.length}):
+${'~'.repeat(50)}
+${sortedImages.map((img, i) => `${i + 1}. ${img.name}${img.rating ? ` [Rating: ${'★'.repeat(Math.round(img.rating))}${'☆'.repeat(5 - Math.round(img.rating))}]` : ''}`).join('\n')}
 
 ${'='.repeat(50)}
 
