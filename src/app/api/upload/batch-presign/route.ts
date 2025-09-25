@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     const grantPromises = files.map(async (file: FileInfo) => {
       // Generate a unique base key for all assets (original + derivatives)
       const baseKey = generateS3Key(file.fileName, allUserId);
-      
+
       // Generate presigned URL for original file
       const originalUploadUrl = await generatePresignedUploadUrl(baseKey, file.fileType);
 
