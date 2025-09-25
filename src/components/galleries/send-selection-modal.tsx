@@ -55,7 +55,7 @@ export function SendSelectionModal({
         
         <p className="text-sm text-gray-600 mb-4">
           Your selected photos will be sent to your photographer. 
-          Add an optional message below if you'd like to include any special notes or instructions.
+          Add an optional message below if you&apos;d like to include any special notes or instructions.
         </p>
         
         <form onSubmit={handleSubmit} className="space-y-4">

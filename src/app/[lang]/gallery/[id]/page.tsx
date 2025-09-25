@@ -22,7 +22,7 @@ import { ToastContainer } from '@/components/ui/toast-container';
 // Mock data flag for development - same pattern as dashboard
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_GALLERY === 'true';
 
-export function GalleryViewContent() {
+function GalleryViewContent() {
   const { id } = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -155,14 +155,13 @@ export function GalleryViewContent() {
     setShowMessageModal(true);
   };
 
-  const handleSendSelection = async (message: string) => {
+  const handleSendSelection = async (message: string): Promise<void> => {
     if (selectedImages.length === 0) return;
 
     const selectedItems = gallery?.items
-      .filter(item => selectedImages.includes(item.memory.id))
+      .filter(item => selectedImages.includes(item.memory.id) && item.memory.url)
       .map(item => ({
-        id: item.memory.id,
-        url: item.memory.url,
+        url: item.memory.url!, // We know it's defined due to the filter above
         name: item.memory.title || `Photo ${item.memory.id}`,
         rating: ratings[item.memory.id] || 0,
       })) || [];
@@ -225,7 +224,6 @@ export function GalleryViewContent() {
       
       // Clear selection after successful send
       setSelectedImages([]);
-      return true;
       
     } catch (error) {
       console.error('Error sending selection:', error);
@@ -441,7 +439,7 @@ export function GalleryViewContent() {
                 hiddenImages={hiddenImages}
                 activeTab={activeTab}
                 failedImages={failedImages}
-                maxSelection={MAX_SELECTION}
+                _maxSelection={MAX_SELECTION}
                 onImageClick={(item, _index) => {
                   setSelectedImage({ url: item.memory.url || '', title: item.memory.title || 'Image' });
                   setIsImageModalOpen(true);
@@ -486,12 +484,24 @@ export function GalleryViewContent() {
 
       {/* Forever Storage Modal */}
       {showForeverStorageModal && (
-        <ForeverStorageProgressModal onClose={() => setShowForeverStorageModal(false)} galleryId={gallery.id} />
+        <ForeverStorageProgressModal
+          isOpen={showForeverStorageModal}
+          onClose={() => setShowForeverStorageModal(false)}
+          gallery={gallery}
+          onSuccess={(result) => {
+            console.log('Gallery stored successfully:', result);
+            setShowForeverStorageModal(false);
+          }}
+          onError={(error) => {
+            console.error('Error storing gallery:', error);
+          }}
+        />
       )}
 
       {/* Image Modal */}
       {isImageModalOpen && selectedImage && (
         <GalleryImageModal
+          isOpen={isImageModalOpen}
           image={selectedImage}
           onClose={() => {
             setIsImageModalOpen(false);

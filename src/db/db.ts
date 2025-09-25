@@ -19,3 +19,6 @@ const connectionString = typeof window === 'undefined' ? process.env.DATABASE_UR
 
 const sql = neon(connectionString!);
 export const db = drizzle(sql, { schema }); // Pass schema as second parameter
+
+// Export schema for tests and other modules
+export * from './schema';

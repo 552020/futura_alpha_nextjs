@@ -16,7 +16,7 @@ interface GalleryPhotoItemProps {
   index: number;
   isSelecting: boolean;
   isSelected: boolean;
-  isHidden: boolean;
+  _isHidden: boolean;
   rating: number;
   activeTab: 'all' | 'hidden';
   failedImages: Set<string>;

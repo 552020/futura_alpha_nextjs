@@ -15,7 +15,14 @@ interface GallerySelectionPanelProps {
   }>;
   ratings: { [imageId: string]: number };
   failedImages: Set<string>;
-  onImageClick: (item: any, index: number) => void;
+  onImageClick: (item: {
+    id: string;
+    memory: {
+      id: string;
+      url?: string;
+      title?: string;
+    };
+  }, index: number) => void;
   onRemoveFromSelection: (imageId: string) => void;
   onSendPhotos: () => void;
 }

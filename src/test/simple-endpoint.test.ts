@@ -2,6 +2,18 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import { createServer, IncomingMessage, ServerResponse } from 'http';
 
+type EndpointResponse = {
+  status: number;
+  body: Record<string, unknown>;
+};
+
+type EndpointHandler = {
+  GET?: () => EndpointResponse;
+  POST?: (body: Record<string, unknown>) => EndpointResponse;
+};
+
+type SimpleEndpoints = Record<string, EndpointHandler>;
+
 // ============================================================================
 // SIMPLE ENDPOINT FOR SUPERTEST EXPERIMENTATION
 // ============================================================================
@@ -12,7 +24,7 @@ import { createServer, IncomingMessage, ServerResponse } from 'http';
 let server: ReturnType<typeof createServer>;
 
 // Simple mock endpoints for experimentation
-const simpleEndpoints = {
+const simpleEndpoints: SimpleEndpoints = {
   // Basic GET endpoint
   '/api/hello': {
     GET: () => ({
@@ -133,9 +145,14 @@ beforeAll(async () => {
           }
 
           console.log(`🔍 Request body:`, parsedBody);
-          const result = endpoint.POST(parsedBody);
-          res.writeHead(result.status, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify(result.body));
+          if (endpoint.POST) {
+            const result = endpoint.POST(parsedBody);
+            res.writeHead(result.status, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(result.body));
+          } else {
+            res.writeHead(405, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Method not allowed' }));
+          }
         });
         return;
       }

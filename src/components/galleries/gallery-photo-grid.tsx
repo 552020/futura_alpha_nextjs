@@ -19,7 +19,7 @@ interface GalleryPhotoGridProps {
   hiddenImages: string[];
   activeTab: 'all' | 'hidden';
   failedImages: Set<string>;
-  maxSelection: number;
+  _maxSelection: number;
 onImageClick: (item: {
     id: string;
     memory: {
@@ -95,7 +95,7 @@ export function GalleryPhotoGrid({
           index={index}
           isSelecting={isSelecting}
           isSelected={selectedImages.includes(item.memory.id)}
-          isHidden={hiddenImages.includes(item.memory.id)}
+          _isHidden={hiddenImages.includes(item.memory.id)}
           rating={ratings[item.memory.id] || 0}
           activeTab={activeTab}
           failedImages={failedImages}

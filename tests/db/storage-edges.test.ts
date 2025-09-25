@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
 import { eq, and } from 'drizzle-orm';
-import { storageEdges } from '../db/schema';
+import { storageEdges } from '../../src/db/db';
 import { config } from 'dotenv';
 
 // Load environment variables
@@ -33,9 +33,9 @@ describe('Storage Edges Table', () => {
       memoryId: TEST_MEMORY_ID,
       memoryType: 'image' as const,
       artifact: 'metadata' as const,
-      backend: 'neon-db' as const,
+      locationMetadata: 'neon' as const,
       present: true,
-      location: 'neon://memory/metadata',
+      locationUrl: 'neon://memory/metadata',
       contentHash: 'sha256:abc123',
       sizeBytes: 1024,
       syncState: 'idle' as const,
@@ -48,7 +48,7 @@ describe('Storage Edges Table', () => {
     expect(inserted[0].memoryId).toBe(TEST_MEMORY_ID);
     expect(inserted[0].memoryType).toBe('image');
     expect(inserted[0].artifact).toBe('metadata');
-    expect(inserted[0].backend).toBe('neon-db');
+    expect(inserted[0].locationMetadata).toBe('neon');
     expect(inserted[0].present).toBe(true);
     expect(inserted[0].syncState).toBe('idle');
     expect(inserted[0].createdAt).toBeDefined();
@@ -62,9 +62,9 @@ describe('Storage Edges Table', () => {
       memoryId: TEST_MEMORY_ID,
       memoryType: 'image' as const,
       artifact: 'asset' as const,
-      backend: 'vercel-blob' as const,
+      locationAsset: 's3' as const,
       present: true,
-      location: 'blob://assets/image.jpg',
+      locationUrl: 's3://assets/image.jpg',
       contentHash: 'sha256:def456',
       sizeBytes: 2048576,
       syncState: 'idle' as const,
@@ -74,7 +74,7 @@ describe('Storage Edges Table', () => {
 
     expect(inserted).toHaveLength(1);
     expect(inserted[0].artifact).toBe('asset');
-    expect(inserted[0].backend).toBe('vercel-blob');
+    expect(inserted[0].locationAsset).toBe('s3');
 
     testEdgeIds.push(inserted[0].id);
   });
@@ -91,14 +91,14 @@ describe('Storage Edges Table', () => {
     expect(hasAsset).toBe(true);
   });
 
-  it('should query edges by backend and present status using ix_edges_backend_present index', async () => {
+  it('should query edges by backend and present status using ix_edges_location_present index', async () => {
     const presentOnNeon = await db
       .select()
       .from(storageEdges)
-      .where(and(eq(storageEdges.backend, 'neon-db'), eq(storageEdges.present, true)));
+      .where(and(eq(storageEdges.locationMetadata, 'neon'), eq(storageEdges.present, true)));
 
     expect(presentOnNeon.length).toBeGreaterThan(0);
-    expect(presentOnNeon.every(edge => edge.backend === 'neon-db')).toBe(true);
+    expect(presentOnNeon.every(edge => edge.locationMetadata === 'neon')).toBe(true);
     expect(presentOnNeon.every(edge => edge.present === true)).toBe(true);
   });
 
@@ -109,14 +109,14 @@ describe('Storage Edges Table', () => {
     expect(idleEdges.every(edge => edge.syncState === 'idle')).toBe(true);
   });
 
-  it('should enforce unique constraint on (memoryId, memoryType, artifact, backend)', async () => {
+  it('should enforce unique constraint on (memoryId, memoryType, artifact, locationMetadata, locationAsset)', async () => {
     const duplicateEdge = {
       memoryId: TEST_MEMORY_ID,
       memoryType: 'image' as const,
       artifact: 'metadata' as const,
-      backend: 'neon-db' as const,
+      locationMetadata: 'neon' as const,
       present: true,
-      location: 'neon://memory/metadata',
+      locationUrl: 'neon://memory/metadata',
       contentHash: 'sha256:abc123',
       sizeBytes: 1024,
       syncState: 'idle' as const,
@@ -130,7 +130,7 @@ describe('Storage Edges Table', () => {
       memoryId: TEST_MEMORY_ID,
       memoryType: 'image' as const,
       artifact: 'metadata' as const,
-      backend: 'icp-canister' as const,
+      locationMetadata: 'icp' as const,
       present: false,
       syncState: 'migrating' as const,
       lastSyncedAt: new Date(),
@@ -145,14 +145,14 @@ describe('Storage Edges Table', () => {
       .set({
         syncState: 'idle',
         present: true,
-        location: 'icp://canister/memory/metadata',
+        locationUrl: 'icp://canister/memory/metadata',
         lastSyncedAt: new Date(),
       })
       .where(
         and(
           eq(storageEdges.memoryId, TEST_MEMORY_ID),
           eq(storageEdges.artifact, 'metadata'),
-          eq(storageEdges.backend, 'icp-canister')
+          eq(storageEdges.locationMetadata, 'icp')
         )
       )
       .returning();
@@ -160,7 +160,7 @@ describe('Storage Edges Table', () => {
     expect(updated).toHaveLength(1);
     expect(updated[0].syncState).toBe('idle');
     expect(updated[0].present).toBe(true);
-    expect(updated[0].location).toBe('icp://canister/memory/metadata');
+    expect(updated[0].locationUrl).toBe('icp://canister/memory/metadata');
   });
 
   it('should perform complex queries with ordering', async () => {
@@ -169,18 +169,19 @@ describe('Storage Edges Table', () => {
         memoryId: storageEdges.memoryId,
         memoryType: storageEdges.memoryType,
         artifact: storageEdges.artifact,
-        backend: storageEdges.backend,
+        locationMetadata: storageEdges.locationMetadata,
+        locationAsset: storageEdges.locationAsset,
         present: storageEdges.present,
         syncState: storageEdges.syncState,
-        location: storageEdges.location,
+        locationUrl: storageEdges.locationUrl,
       })
       .from(storageEdges)
       .where(eq(storageEdges.memoryId, TEST_MEMORY_ID))
-      .orderBy(storageEdges.artifact, storageEdges.backend);
+      .orderBy(storageEdges.artifact, storageEdges.locationMetadata);
 
     expect(memorySummary.length).toBeGreaterThan(0);
 
-    // Check that results are ordered by artifact, then backend
+    // Check that results are ordered by artifact, then locationMetadata
     const artifacts = memorySummary.map(edge => edge.artifact);
     const uniqueArtifacts = [...new Set(artifacts)];
     expect(uniqueArtifacts).toEqual(uniqueArtifacts.sort());
@@ -215,7 +216,7 @@ describe('Storage Edges Table', () => {
     // Test all memory types
     const memoryTypes = ['image', 'video', 'note', 'document', 'audio'] as const;
     const artifacts = ['metadata', 'asset'] as const;
-    const backends = ['neon-db', 'vercel-blob', 'icp-canister'] as const;
+    const locationTypes = ['neon', 'icp', 's3', 'vercel_blob', 'arweave', 'ipfs'] as const;
     const syncStates = ['idle', 'migrating', 'failed'] as const;
 
     // Test with a different memory ID to avoid unique constraint violation
@@ -226,7 +227,7 @@ describe('Storage Edges Table', () => {
       memoryId: testMemoryId,
       memoryType: memoryTypes[0],
       artifact: artifacts[0],
-      backend: backends[0],
+      locationMetadata: locationTypes[0],
       present: true,
       syncState: syncStates[0],
     };
@@ -236,7 +237,7 @@ describe('Storage Edges Table', () => {
 
     expect(inserted[0].memoryType).toBe(memoryTypes[0]);
     expect(inserted[0].artifact).toBe(artifacts[0]);
-    expect(inserted[0].backend).toBe(backends[0]);
+    expect(inserted[0].locationMetadata).toBe(locationTypes[0]);
     expect(inserted[0].syncState).toBe(syncStates[0]);
 
     // Clean up this test data

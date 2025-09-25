@@ -83,9 +83,9 @@ export default function GalleryClient() {
                 />
                 <div className="gallery-item-info">
                   <h3>{item.memory.title}</h3>
-<Rating 
+                  <Rating
                     value={item.memory.rating || 0}
-                    onChange={(newRating) => {
+                    onChange={(newRating: number) => {
                       // Add your rating update logic here
                       console.log(`Rating updated to ${newRating} for item ${item.id}`);
                     }}
