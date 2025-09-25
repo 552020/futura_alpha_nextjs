@@ -2,35 +2,19 @@
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import Image from 'next/image';
 import { useAuthGuard } from '@/utils/authentication';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import {
-  Share2,
-  Edit,
-  Globe,
-  Lock,
-  ImageIcon,
-  Trash2,
-  Eye,
-  EyeOff,
-  Maximize2,
-  HardDrive,
-  CheckSquare,
-  X,
-  Star,
-  Check,
-} from 'lucide-react';
+import { Globe, Lock, Trash2, Maximize2, CheckSquare } from 'lucide-react';
 import { galleryService } from '@/services/gallery';
 import { GalleryWithItems } from '@/types/gallery';
 import { ForeverStorageProgressModal } from '@/components/galleries/forever-storage-progress-modal';
 import { StorageStatusBadge, getGalleryStorageStatus } from '@/components/common/storage-status-badge';
-// import { MemoryStorageBadge } from '@/components/common/memory-storage-badge';
 import { GalleryStorageSummary } from '@/components/galleries/gallery-storage-summary';
-import { getBlurPlaceholder, IMAGE_SIZES } from '@/utils/image-utils';
+import { GalleryImageModal } from '@/components/galleries/gallery-image-modal';
+import { GallerySelectionBar } from '@/components/galleries/gallery-selection-bar';
+import { GalleryPhotoGrid } from '@/components/galleries/gallery-photo-grid';
+import { GallerySelectionPanel } from '@/components/galleries/gallery-selection-panel';
 
 // Mock data flag for development - same pattern as dashboard
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_GALLERY === 'true';
@@ -46,7 +30,6 @@ export function GalleryViewContent() {
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [panelWidth, setPanelWidth] = useState(320);
 
   // Selection state
   const [isSelecting, setIsSelecting] = useState(false);
@@ -56,12 +39,11 @@ export function GalleryViewContent() {
   const [activeTab, setActiveTab] = useState<'all' | 'hidden'>('all');
   const [showSidePanel, setShowSidePanel] = useState(false);
   const [showForeverStorageModal, setShowForeverStorageModal] = useState(false);
-  const [showMessageModal, setShowMessageModal] = useState(false);
-  const [message, setMessage] = useState('');
-  const [isSending, setIsSending] = useState(false);
+
+  // Missing state variables that were in the original
   const [selectedImage, setSelectedImage] = useState<{ url: string; title: string } | null>(null);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
-  const [sendError, setSendError] = useState<string | null>(null);
+  const [showMessageModal, setShowMessageModal] = useState(false);
 
   const MAX_SELECTION = 35;
 
@@ -111,6 +93,14 @@ export function GalleryViewContent() {
       title: memory.title || `Photo ${index !== undefined ? index + 1 : ''}`,
     });
     setIsImageModalOpen(true);
+  };
+
+  const handleSelectionToggle = (imageId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedImages(prev => (prev.length < MAX_SELECTION ? [...prev, imageId] : prev));
+    } else {
+      setSelectedImages(prev => prev.filter(id => id !== imageId));
+    }
   };
 
   const toggleSelectionMode = () => {
@@ -232,80 +222,13 @@ export function GalleryViewContent() {
     }
   };
 
-  const handleEditGallery = () => {
-    // TODO: Navigate to edit page or open edit modal
-    console.log('Edit gallery:', gallery?.id);
-  };
-
-  const getStoreForeverButtonState = () => {
-    if (!gallery) return { text: 'Store Forever', disabled: true, variant: 'outline' as const };
-
-    // Check if gallery has storage status
-    if (gallery.storageStatus) {
-      switch (gallery.storageStatus.status) {
-        case 'stored_forever':
-          return {
-            text: 'Already Stored',
-            disabled: true,
-            variant: 'secondary' as const,
-            className:
-              'border-green-200 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-300 dark:hover:bg-green-950',
-          };
-        case 'partially_stored':
-          return {
-            text: 'Continue Storing',
-            disabled: false,
-            variant: 'outline' as const,
-            className:
-              'border-orange-200 text-orange-700 hover:bg-orange-50 dark:border-orange-800 dark:text-orange-300 dark:hover:bg-orange-950',
-          };
-        case 'web2_only':
-        default:
-          return {
-            text: 'Store Forever',
-            disabled: false,
-            variant: 'outline' as const,
-            className:
-              'border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950',
-          };
-      }
-    }
-
-    // Fallback for galleries without storage status
-    return {
-      text: 'Store Forever',
-      disabled: false,
-      variant: 'outline' as const,
-      className:
-        'border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950',
-    };
-  };
-
-  const handleStoreForever = () => {
-    setShowForeverStorageModal(true);
-  };
-
-  const handleForeverStorageSuccess = async () => {
-    // Refresh gallery data to show updated storage status
-    await loadGallery();
-  };
-
-  const handleForeverStorageError = (error: Error) => {
-    console.error('Error storing gallery forever:', error);
-    setError('Failed to store gallery forever');
-  };
-
-  const handleShareGallery = () => {
-    // TODO: Implement share functionality
-    console.log('Share gallery:', gallery?.id);
-  };
-
-  if (authLoading || isLoading) {
+  // Early returns for loading states
+  if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Loading gallery...</p>
+          <p>Loading...</p>
         </div>
       </div>
     );
@@ -322,12 +245,36 @@ export function GalleryViewContent() {
     );
   }
 
-  if (error || !gallery) {
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Loading gallery...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h2 className="text-2xl font-semibold mb-4">Error</h2>
+          <p className="text-muted-foreground mb-6">{error}</p>
+          <Button onClick={loadGallery}>Retry</Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!gallery) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <h2 className="text-2xl font-semibold mb-4">Gallery not found</h2>
-          <p className="text-muted-foreground mb-6">{error || "This gallery doesn't exist"}</p>
+          <p className="text-muted-foreground mb-6">This gallery doesn't exist or you don't have access to it</p>
+          <Button onClick={() => router.back()}>Go Back</Button>
         </div>
       </div>
     );
@@ -336,189 +283,87 @@ export function GalleryViewContent() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40">
-        <div className="container mx-auto px-6 py-4 min-w-0">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 min-w-0">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between min-w-0">
-                <h1 className="text-2xl font-light">{gallery.title}</h1>
-                <div className="flex items-center gap-2">
-                  <div className="relative group">
-                    <StorageStatusBadge status={getGalleryStorageStatus(gallery)} />
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                      {gallery.storageStatus?.status === 'stored_forever'
-                        ? 'Gallery stored permanently on Internet Computer'
-                        : gallery.storageStatus?.status === 'partially_stored'
-                          ? 'Gallery partially stored on Internet Computer'
-                          : 'Gallery stored in standard database'}
-                    </div>
-                  </div>
-                  <Badge variant="outline" className="text-xs font-normal">
-                    {gallery.isPublic ? (
-                      <>
-                        <Globe className="h-3 w-3 mr-1" />
-                        Public
-                      </>
-                    ) : (
-                      <>
-                        <Lock className="h-3 w-3 mr-1" />
-                        Private
-                      </>
-                    )}
-                  </Badge>
-                </div>
+      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" size="sm" onClick={() => router.back()} className="flex items-center gap-2">
+                ← Back
+              </Button>
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-bold">{gallery.title}</h1>
+                <StorageStatusBadge status={getGalleryStorageStatus(gallery)} />
               </div>
-              {gallery.description && <p className="text-muted-foreground text-sm mt-1">{gallery.description}</p>}
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0 min-w-0">
-              <Button variant="outline" size="sm" onClick={handleFullScreenView}>
-                <Maximize2 className="h-4 w-4 mr-2" />
-                Preview
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleShareGallery}>
-                <Share2 className="h-4 w-4 mr-2" />
-                Share
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleTogglePrivacy} disabled={isUpdating}>
-                {isUpdating ? (
+
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs font-normal">
+                {gallery.isPublic ? (
                   <>
-                    <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                    Updating...
-                  </>
-                ) : gallery.isPublic ? (
-                  <>
-                    <EyeOff className="h-4 w-4 mr-2" />
-                    Hide
+                    <Globe className="h-3 w-3 mr-1" />
+                    Public
                   </>
                 ) : (
                   <>
-                    <Eye className="h-4 w-4 mr-2" />
-                    Publish
+                    <Lock className="h-3 w-3 mr-1" />
+                    Private
                   </>
                 )}
+              </Badge>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleTogglePrivacy}
+                disabled={isUpdating}
+                className="flex items-center gap-2"
+              >
+                {gallery.isPublic ? <Globe className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+                {gallery.isPublic ? 'Make Private' : 'Make Public'}
               </Button>
-              <Button variant="outline" size="sm" onClick={handleEditGallery}>
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
+
+              <Button variant="outline" size="sm" onClick={handleFullScreenView} className="flex items-center gap-2">
+                <Maximize2 className="h-4 w-4" />
+                Full Screen
               </Button>
-              <Button variant={isSelecting ? 'default' : 'outline'} size="sm" onClick={toggleSelectionMode}>
-                {isSelecting ? (
-                  <>
-                    <X className="h-4 w-4 mr-2" />
-                    Cancel Selection
-                  </>
-                ) : (
-                  <>
-                    <CheckSquare className="h-4 w-4 mr-2" />
-                    Select Photos
-                  </>
-                )}
+
+              <Button variant="outline" size="sm" onClick={toggleSelectionMode} className="flex items-center gap-2">
+                <CheckSquare className="h-4 w-4" />
+                {isSelecting ? 'Exit Selection' : 'Select'}
               </Button>
-              {(() => {
-                const buttonState = getStoreForeverButtonState();
-                return (
-                  <>
-                    <div className="relative group">
-                      <Button
-                        variant={buttonState.variant}
-                        size="sm"
-                        onClick={handleStoreForever}
-                        disabled={buttonState.disabled}
-                        className={buttonState.className}
-                      >
-                        <HardDrive className="h-4 w-4 mr-2" />
-                        {buttonState.text}
-                      </Button>
-                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                        {gallery?.storageStatus?.status === 'stored_forever'
-                          ? 'This gallery is already permanently stored on the Internet Computer'
-                          : gallery?.storageStatus?.status === 'partially_stored'
-                            ? 'Continue storing the remaining items on the Internet Computer'
-                            : 'Store this gallery permanently on the Internet Computer blockchain'}
-                      </div>
-                    </div>
-                    {gallery?.storageStatus?.status === 'stored_forever' && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          // TODO: Open ICP explorer or gallery viewer
-                          console.log('View gallery on ICP:', gallery.id);
-                        }}
-                        className="border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-300 dark:hover:bg-purple-950"
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        View on ICP
-                      </Button>
-                    )}
-                  </>
-                );
-              })()}
-              <Button variant="outline" size="sm" onClick={handleDeleteGallery} disabled={isDeleting}>
-                {isDeleting ? (
-                  <>
-                    <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                    Deleting...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </>
-                )}
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDeleteGallery}
+                disabled={isDeleting}
+                className="flex items-center gap-2 text-red-600 hover:text-red-700"
+              >
+                <Trash2 className="h-4 w-4" />
+                {isDeleting ? 'Deleting...' : 'Delete'}
               </Button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Gallery Storage Summary */}
-      {gallery && (
-        <>
-          <div className="container mx-auto px-6 py-4">
-            <h1 className="text-2xl font-bold">{gallery.title}</h1>
-            {gallery.description && <p className="text-muted-foreground">{gallery.description}</p>}
-          </div>
-          <GalleryStorageSummary gallery={gallery} onStoreForever={handleStoreForever} />
-        </>
-      )}
-
-      {isSelecting && (
-        <div className="bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-900/50">
-          <div className="container mx-auto px-6 py-3 flex items-center justify-between">
-            <div className="text-sm text-blue-800 dark:text-blue-200">
-              {selectedImages.length} of {MAX_SELECTION} photos selected
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setActiveTab('all')}
-                className={activeTab === 'all' ? 'bg-blue-100 dark:bg-blue-900' : ''}
-              >
-                All Photos
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setActiveTab('hidden')}
-                className={activeTab === 'hidden' ? 'bg-blue-100 dark:bg-blue-900' : ''}
-              >
-                Hidden ({hiddenImages.length})
-              </Button>
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => setShowMessageModal(true)}
-                disabled={selectedImages.length === 0}
-              >
-                <Check className="h-4 w-4 mr-2" />
-                Send {selectedImages.length} Photos
-              </Button>
-            </div>
-          </div>
+      {/* Storage Summary */}
+      <div className="border-b bg-muted/50">
+        <div className="container mx-auto px-4 py-2">
+          <GalleryStorageSummary gallery={gallery} />
         </div>
-      )}
+      </div>
+
+      {/* Selection Bar */}
+      <GallerySelectionBar
+        isSelecting={isSelecting}
+        selectedCount={selectedImages.length}
+        maxSelection={MAX_SELECTION}
+        hiddenCount={hiddenImages.length}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onSendPhotos={() => setShowMessageModal(true)}
+      />
 
       {/* Main content area with side panel */}
       <div className="relative flex-1 overflow-hidden min-h-0 h-full">
@@ -526,319 +371,72 @@ export function GalleryViewContent() {
           {/* Photo Grid */}
           <div className={`overflow-y-auto h-full ${showSidePanel ? 'flex-1' : 'w-full'}`}>
             <div className="container min-w-0 px-6 py-8 mx-auto h-full flex flex-col">
-              {(() => {
-                if (isLoading) {
-                  return (
-                    <div className="flex-1 flex items-center justify-center">
-                      <div className="w-12 h-12 border-b-2 rounded-full animate-spin border-primary"></div>
-                    </div>
-                  );
-                }
-
-                if (error) {
-                  return (
-                    <div className="flex-1 flex items-center justify-center">
-                      <div className="text-center">
-                        <p className="text-destructive mb-4">{error}</p>
-                        <Button onClick={loadGallery}>Retry</Button>
-                      </div>
-                    </div>
-                  );
-                }
-
-                if (filteredItems.length === 0) {
-                  return (
-                    <div className="flex-1 flex items-center justify-center">
-                      <div className="text-center">
-                        <h3 className="mb-2 text-xl font-semibold">No photos in this gallery yet</h3>
-                        <p className="text-muted-foreground">Add photos to this gallery to see them here.</p>
-                      </div>
-                    </div>
-                  );
-                }
-
-                return (
-                  <div className="flex-1 grid min-w-0 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {filteredItems.map((item, index) => (
-                      <div
-                        key={item.id}
-                        className={`min-w-0 aspect-square bg-muted rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity relative ${
-                          selectedImages.includes(item.memory.id) ? 'ring-4 ring-blue-500' : ''
-                        }`}
-                        onClick={() => handleImageClick(item, index)}
-                      >
-                        {/* Selection checkbox */}
-                        {isSelecting && (
-                          <div className="absolute top-2 left-2 z-10">
-                            <Checkbox
-                              checked={selectedImages.includes(item.memory.id)}
-                              onCheckedChange={checked => {
-                                if (checked) {
-                                  setSelectedImages(prev =>
-                                    prev.length < MAX_SELECTION ? [...prev, item.memory.id] : prev
-                                  );
-                                } else {
-                                  setSelectedImages(prev => prev.filter(id => id !== item.memory.id));
-                                }
-                              }}
-                              onClick={e => e.stopPropagation()}
-                              className="bg-white/90 border-white shadow-sm"
-                            />
-                          </div>
-                        )}
-                        {item.memory.url && !failedImages.has(item.memory.url) ? (
-                          <div className="w-full h-full relative min-w-0">
-                            <Image
-                              src={item.memory.url}
-                              alt={item.memory.title || `Photo ${index + 1}`}
-                              fill
-                              className="object-cover"
-                              onError={() => handleImageError(item.memory.url!)}
-                              sizes={IMAGE_SIZES.gallery}
-                              placeholder="blur"
-                              blurDataURL={getBlurPlaceholder()}
-                            />
-                          </div>
-                        ) : (
-                          <div className="w-full h-full bg-muted flex items-center justify-center min-w-0">
-                            <div className="flex flex-col items-center justify-center text-muted-foreground">
-                              <ImageIcon className="h-16 w-16 mb-2" />
-                              <span className="text-sm break-words">Photo {index + 1}</span>
-                              {failedImages.has(item.memory.url!) && (
-                                <span className="text-xs text-muted-foreground/70 mt-1 break-words">
-                                  Failed to load
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Image actions overlay */}
-                        <div
-                          className={`absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex flex-col justify-between p-2 ${activeTab === 'hidden' ? 'opacity-100' : ''}`}
-                        >
-                          {/* Top bar */}
-                          <div className="flex justify-between items-start">
-                            {/* Memory Storage Status Badge - Commented out */}
-                            {/* <MemoryStorageBadge
-                              memoryId={item.memory.id}
-                              memoryType={item.memory.type}
-                              size="xs"
-                              showTooltip={true}
-                            /> */}
-
-                            {/* Rating and Hidden indicator */}
-                            <div className="flex items-center gap-1 ml-auto">
-                              {activeTab === 'hidden' && (
-                                <div className="bg-red-500/70 rounded-full px-2 py-1">
-                                  <span className="text-xs text-white">Hidden</span>
-                                </div>
-                              )}
-                              <div className="flex items-center gap-1 bg-black/70 rounded-full px-2 py-1">
-                                <Star className="h-3 w-3 text-yellow-400 fill-current" />
-                                <span className="text-xs text-white">{ratings[item.memory.id] || 0}</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Bottom bar */}
-                          <div className="flex justify-between items-end">
-                            {/* Hide/Unhide button */}
-                            <button
-                              onClick={e => {
-                                e.stopPropagation();
-                                if (activeTab === 'hidden') {
-                                  handleUnhideImage(item.memory.id);
-                                } else {
-                                  handleHideImage(item.memory.id);
-                                }
-                              }}
-                              className="p-1.5 rounded-full bg-black/70 hover:bg-black/90 transition-colors"
-                              title={activeTab === 'hidden' ? 'Unhide photo' : 'Hide photo'}
-                            >
-                              {activeTab === 'hidden' ? (
-                                <Eye className="h-4 w-4 text-white" />
-                              ) : (
-                                <EyeOff className="h-4 w-4 text-white" />
-                              )}
-                            </button>
-
-                            {/* Rating stars */}
-                            <div className="flex items-center gap-0.5 bg-black/70 rounded-full px-2 py-1">
-                              {[1, 2, 3, 4, 5].map(star => (
-                                <button
-                                  key={star}
-                                  onClick={e => {
-                                    e.stopPropagation();
-                                    handleRateImage(item.memory.id, star);
-                                  }}
-                                  className="p-0.5"
-                                >
-                                  <Star
-                                    className={`h-4 w-4 ${
-                                      star <= (ratings[item.memory.id] || 0)
-                                        ? 'text-yellow-400 fill-current'
-                                        : 'text-gray-300'
-                                    }`}
-                                  />
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })()}
+              <GalleryPhotoGrid
+                items={filteredItems}
+                isLoading={false}
+                error={null}
+                isSelecting={isSelecting}
+                selectedImages={selectedImages}
+                ratings={ratings}
+                hiddenImages={hiddenImages}
+                activeTab={activeTab}
+                failedImages={failedImages}
+                maxSelection={MAX_SELECTION}
+                onImageClick={handleImageClick}
+                onSelectionToggle={handleSelectionToggle}
+                onRate={handleRateImage}
+                onHide={handleHideImage}
+                onUnhide={handleUnhideImage}
+                onImageError={handleImageError}
+                onRetry={loadGallery}
+              />
             </div>
           </div>
 
           {/* Side Panel */}
-          {isSelecting && (
-            <div
-              className={`h-full border-l border-border bg-background/95 backdrop-blur-sm flex flex-col z-40 ${showSidePanel ? 'w-80' : 'w-0'}`}
-              style={{
-                width: showSidePanel ? `${panelWidth}px` : '0px',
-                minWidth: '280px',
-                maxWidth: '60%',
-              }}
-            >
-              {/* Resize Handle */}
-              <div
-                className="absolute left-0 top-0 bottom-0 w-2 bg-border hover:bg-primary cursor-col-resize transition-colors z-50 -ml-1"
-                onMouseDown={e => {
-                  e.preventDefault();
-                  const startX = e.clientX;
-                  const startWidth = panelWidth;
-
-                  const handleMouseMove = (e: MouseEvent) => {
-                    const newWidth = Math.max(
-                      280,
-                      Math.min(window.innerWidth * 0.6, startWidth - (e.clientX - startX))
-                    );
-                    setPanelWidth(newWidth);
-                  };
-
-                  const handleMouseUp = () => {
-                    document.removeEventListener('mousemove', handleMouseMove);
-                    document.removeEventListener('mouseup', handleMouseUp);
-                  };
-
-                  document.addEventListener('mousemove', handleMouseMove);
-                  document.addEventListener('mouseup', handleMouseUp);
-                }}
-              />
-
-              <div className="p-4 border-b border-border">
-                <h3 className="font-medium text-center">Selected Photos ({selectedItems.length})</h3>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-4">
-                <div className="h-full flex flex-col">
-                  <div className="flex-1 grid grid-cols-2 gap-2 auto-rows-max">
-                    {selectedItems.map(item => (
-                      <div
-                        key={item.id}
-                        className="relative aspect-square rounded-md overflow-hidden border border-border hover:ring-2 hover:ring-primary hover:ring-offset-1 transition-all"
-                        onClick={() => handleImageClick(item, selectedItems.indexOf(item))}
-                      >
-                        {item.memory.url && !failedImages.has(item.memory.url) ? (
-                          <Image
-                            src={item.memory.url}
-                            alt={item.memory.title || 'Selected photo'}
-                            fill
-                            className="object-cover"
-                            sizes="(max-width: 768px) 50vw, 150px"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-muted flex items-center justify-center">
-                            <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                          </div>
-                        )}
-                        <button
-                          className="absolute top-1 right-1 p-1 rounded-full bg-destructive/80 hover:bg-destructive text-white"
-                          onClick={e => {
-                            e.stopPropagation();
-                            setSelectedImages(prev => prev.filter(id => id !== item.memory.id));
-                          }}
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                        {/* Rating indicator */}
-                        <div className="absolute bottom-1 left-1 bg-black/70 rounded-full px-2 py-1">
-                          <div className="flex items-center gap-1">
-                            <Star className="h-3 w-3 text-yellow-400 fill-current" />
-                            <span className="text-xs text-white">{ratings[item.memory.id] || 0}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {selectedItems.length === 0 && (
-                    <div className="flex-1 flex items-center justify-center text-muted-foreground">
-                      <div className="text-center">
-                        <p className="text-sm">Select photos to see them here</p>
-                        <p className="text-xs mt-1 opacity-70">Click on photos in the gallery to select them</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="p-4 border-t border-border">
-                <Button
-                  className="w-full"
-                  onClick={() => setShowMessageModal(true)}
-                  disabled={selectedItems.length === 0}
-                >
-                  <Check className="h-4 w-4 mr-2" />
-                  Send {selectedItems.length} Photo{selectedItems.length !== 1 ? 's' : ''}
-                </Button>
-              </div>
-            </div>
-          )}
+          <GallerySelectionPanel
+            isOpen={showSidePanel && isSelecting}
+            selectedItems={selectedItems}
+            ratings={ratings}
+            failedImages={failedImages}
+            onImageClick={handleImageClick}
+            onRemoveFromSelection={imageId => setSelectedImages(prev => prev.filter(id => id !== imageId))}
+            onSendPhotos={() => setShowMessageModal(true)}
+          />
         </div>
       </div>
 
-      {/* Image Modal */}
-      <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
-        <DialogContent className="max-w-4xl w-full p-0">
-          <DialogHeader className="p-6 pb-0">
-            <DialogTitle>{selectedImage?.title}</DialogTitle>
-          </DialogHeader>
-          <div className="relative aspect-video w-full">
-            {selectedImage?.url && (
-              <Image
-                src={selectedImage.url}
-                alt={selectedImage.title}
-                fill
-                className="object-contain"
-                sizes="(max-width: 768px) 100vw, 80vw"
-              />
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
       {/* Forever Storage Modal */}
-      {gallery && (
-        <ForeverStorageProgressModal
-          isOpen={showForeverStorageModal}
-          onClose={() => setShowForeverStorageModal(false)}
-          gallery={gallery}
-          onSuccess={handleForeverStorageSuccess}
-          onError={handleForeverStorageError}
+      {showForeverStorageModal && (
+        <ForeverStorageProgressModal onClose={() => setShowForeverStorageModal(false)} galleryId={gallery.id} />
+      )}
+
+      {/* Image Modal */}
+      {isImageModalOpen && selectedImage && (
+        <GalleryImageModal
+          image={selectedImage}
+          onClose={() => {
+            setIsImageModalOpen(false);
+            setSelectedImage(null);
+          }}
         />
       )}
     </div>
   );
 }
 
-export default function GalleryViewPage() {
+export default function GalleryPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p>Loading...</p>
+          </div>
+        </div>
+      }
+    >
       <GalleryViewContent />
     </Suspense>
   );
