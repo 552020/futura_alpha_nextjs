@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import Image from 'next/image';
-import { Button } from '@/components/ui/button';
-import { ImageIcon, X, Star, Check } from 'lucide-react';
+import { ImageIcon, X, Star } from 'lucide-react';
 
 interface GallerySelectionPanelProps {
   isOpen: boolean;
@@ -34,8 +33,8 @@ export function GallerySelectionPanel({
   failedImages,
   onImageClick,
   onRemoveFromSelection,
-  onSendPhotos,
-}: GallerySelectionPanelProps) {
+  // onSendPhotos prop removed as it's no longer used
+}: Omit<GallerySelectionPanelProps, 'onSendPhotos'>) {
   const [panelWidth, setPanelWidth] = useState(320);
 
   if (!isOpen) return null;
@@ -129,12 +128,7 @@ export function GallerySelectionPanel({
         </div>
       </div>
 
-      <div className="p-4 border-t border-border">
-        <Button className="w-full" onClick={onSendPhotos} disabled={selectedItems.length === 0}>
-          <Check className="h-4 w-4 mr-2" />
-          Send {selectedItems.length} Photo{selectedItems.length !== 1 ? 's' : ''}
-        </Button>
-      </div>
+      {/* Removed Send button as it's now only shown in the gallery selection bar */}
     </div>
   );
 }

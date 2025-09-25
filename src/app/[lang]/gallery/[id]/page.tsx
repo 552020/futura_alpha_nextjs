@@ -476,7 +476,6 @@ function GalleryViewContent() {
               onRemoveFromSelection={(imageId) => {
                 setSelectedImages(prev => prev.filter(id => id !== imageId));
               }}
-              onSendPhotos={handleSendClick}
             />
           )}
         </div>
