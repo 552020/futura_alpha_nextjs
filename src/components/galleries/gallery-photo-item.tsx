@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import Image from 'next/image';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ImageIcon, Star, Eye, EyeOff } from 'lucide-react';
@@ -34,7 +33,7 @@ export function GalleryPhotoItem({
   index,
   isSelecting,
   isSelected,
-  isHidden,
+  _isHidden,
   rating,
   activeTab,
   failedImages,

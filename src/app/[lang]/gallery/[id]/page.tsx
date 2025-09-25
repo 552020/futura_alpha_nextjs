@@ -5,7 +5,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useAuthGuard } from '@/utils/authentication';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Globe, Lock, Trash2, Maximize2, CheckSquare, Send } from 'lucide-react';
+import { Globe, Lock, Trash2, Maximize2, CheckSquare } from 'lucide-react';
 import { galleryService } from '@/services/gallery';
 import { GalleryWithItems } from '@/types/gallery';
 import { ForeverStorageProgressModal } from '@/components/galleries/forever-storage-progress-modal';
@@ -23,7 +23,7 @@ import { ToastContainer } from '@/components/ui/toast-container';
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_GALLERY === 'true';
 
 export function GalleryViewContent() {
-  const { id, lang } = useParams();
+  const { id } = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
   const { isAuthorized, isLoading: authLoading } = useAuthGuard();
@@ -85,27 +85,6 @@ export function GalleryViewContent() {
     }
   }, [searchParams]);
 
-  const handleImageClick = (item: NonNullable<typeof gallery>['items'][number], index?: number) => {
-    if (!item?.memory) return;
-
-    const memory = item.memory;
-
-    // Always show image in modal, regardless of selection mode
-    setSelectedImage({
-      url: memory.url || '',
-      title: memory.title || `Photo ${index !== undefined ? index + 1 : ''}`,
-    });
-    setIsImageModalOpen(true);
-  };
-
-  const handleSelectionToggle = (imageId: string, checked: boolean) => {
-    if (checked) {
-      setSelectedImages(prev => (prev.length < MAX_SELECTION ? [...prev, imageId] : prev));
-    } else {
-      setSelectedImages(prev => prev.filter(id => id !== imageId));
-    }
-  };
-
   const toggleSelectionMode = () => {
     if (isSelecting) {
       // Exit selection mode
@@ -126,21 +105,11 @@ export function GalleryViewContent() {
         return hiddenImages.includes(item.memory.id);
       }
       // Hide images that are in the hidden list (unless we're in selection mode)
-      if (hiddenImages.includes(item.memory.id)) {
+      if (!isSelecting && hiddenImages.includes(item.memory.id)) {
         return false;
       }
       return true;
     }) || [];
-
-  // Get selected items with their details
-  const selectedItems = selectedImages
-    .map(id => gallery?.items.find(item => item.memory.id === id))
-    .filter((item): item is NonNullable<typeof item> => Boolean(item))
-    .sort((a, b) => {
-      const ratingA = ratings[a.memory.id] || 0;
-      const ratingB = ratings[b.memory.id] || 0;
-      return ratingB - ratingA; // Sort in descending order
-    });
 
   const handleRateImage = (imageId: string, rating: number) => {
     setRatings(prev => ({ ...prev, [imageId]: rating }));
@@ -364,7 +333,7 @@ export function GalleryViewContent() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <h2 className="text-2xl font-semibold mb-4">Gallery not found</h2>
-          <p className="text-muted-foreground mb-6">This gallery doesn't exist or you don't have access to it</p>
+          <p className="text-muted-foreground mb-6">This gallery doesn&apos;t exist or you don&apos;t have access to it</p>
           <Button onClick={() => router.back()}>Go Back</Button>
         </div>
       </div>
@@ -473,7 +442,7 @@ export function GalleryViewContent() {
                 activeTab={activeTab}
                 failedImages={failedImages}
                 maxSelection={MAX_SELECTION}
-                onImageClick={(item, index) => {
+                onImageClick={(item, _index) => {
                   setSelectedImage({ url: item.memory.url || '', title: item.memory.title || 'Image' });
                   setIsImageModalOpen(true);
                 }}
@@ -502,7 +471,7 @@ export function GalleryViewContent() {
               selectedItems={gallery?.items.filter(item => selectedImages.includes(item.memory.id)) || []}
               ratings={ratings}
               failedImages={failedImages}
-              onImageClick={(item, index) => {
+              onImageClick={(item, _index) => {
                 setSelectedImage({ url: item.memory.url || '', title: item.memory.title || 'Image' });
                 setIsImageModalOpen(true);
               }}

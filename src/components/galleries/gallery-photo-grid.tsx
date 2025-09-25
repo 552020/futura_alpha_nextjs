@@ -39,7 +39,7 @@ export function GalleryPhotoGrid({
   hiddenImages,
   activeTab,
   failedImages,
-  maxSelection,
+  _maxSelection,
   onImageClick,
   onSelectionToggle,
   onRate,
