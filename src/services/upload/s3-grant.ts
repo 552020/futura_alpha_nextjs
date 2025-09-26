@@ -25,22 +25,26 @@ export interface GrantResponse {
 }
 
 /**
- * Get single grant for all assets before starting parallel lanes
+ * Get grants for files (single or multiple) - unified function
+ * STEP 1 of the upload pipeline (uploadMultipleToS3WithProcessing in s3-with-processing.ts)
  */
-export async function getSingleGrant(file: File): Promise<GrantResponse> {
-  console.log(`🎫 Getting single grant for: ${file.name}`);
+export async function getGrants(files: File[]): Promise<GrantResponse[]> {
+  console.log(
+    `🎫 Getting grants for ${files.length} file(s):`,
+    files.map(f => f.name)
+  );
 
-  const response = await fetch('/api/upload/request', {
+  const response = await fetch('/api/upload/s3/presign', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      fileName: file.name,
-      fileType: file.type,
-      fileSize: file.size,
-      // Request presigned URLs for all derivative types
-      derivatives: ['display', 'thumb'],
+      files: files.map(file => ({
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+      })),
     }),
   });
 
@@ -49,8 +53,8 @@ export async function getSingleGrant(file: File): Promise<GrantResponse> {
     throw new Error(error.error || 'Failed to get presigned URLs');
   }
 
-  const grant = await response.json();
-  console.log(`✅ Grant received for: ${file.name}`);
+  const { grants } = await response.json();
+  console.log(`✅ Grants received for ${files.length} file(s)`);
 
-  return grant;
+  return grants;
 }

@@ -5,7 +5,7 @@
  * Phase 1: Real processing - display → thumb → placeholder using Web Worker
  */
 
-import type { GrantResponse } from './grant';
+import type { GrantResponse } from './s3-grant';
 import type { ProcessedAssets } from './finalize';
 
 // Web Worker types

@@ -352,15 +352,17 @@ async function uploadFileToS3(file: File, isOnboarding: boolean, existingUserId?
     }
 
     // 1. Request a presigned URL from our API
-    const presignResponse = await fetch('/api/upload/request', {
+    const presignResponse = await fetch('/api/upload/s3/presign', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        fileName: file.name,
-        fileType: file.type,
-        fileSize: file.size,
+        files: [{
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+        }],
       }),
     });
 

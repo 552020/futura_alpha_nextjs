@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateS3Key, generateDerivativeS3Key, generatePresignedUploadUrl } from '@/lib/s3-service';
-import { getUserIdForUpload } from '../../memories/utils/user-management';
+import { getUserIdForUpload } from '../../../memories/utils/user-management';
 
 interface FileInfo {
   fileName: string;

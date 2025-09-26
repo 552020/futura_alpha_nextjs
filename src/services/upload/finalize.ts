@@ -32,7 +32,8 @@ export interface ProcessedAssets {
 }
 
 /**
- * Finalize all assets in a single API call with idempotent upserts
+ * Finalize all assets in a single API call with idempotent upsert
+ * STEP 5 of the upload pipeline (uploadMultipleToS3WithProcessing in s3-with-processing.ts)
  */
 export async function finalizeAllAssets(
   laneAResult: PromiseSettledResult<{
