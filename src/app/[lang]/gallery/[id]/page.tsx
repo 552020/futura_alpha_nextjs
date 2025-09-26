@@ -53,6 +53,7 @@ function GalleryViewContent() {
   const [activeTab, setActiveTab] = useState<'all' | 'hidden'>('all');
   const [showSidePanel, setShowSidePanel] = useState(false);
   const [showForeverStorageModal, setShowForeverStorageModal] = useState(false);
+  const [businessEmail, setBusinessEmail] = useState<string | null>(null);
 
   // Image modal state
   const [selectedImage, setSelectedImage] = useState<{ 
@@ -76,6 +77,22 @@ function GalleryViewContent() {
       const result = await galleryService.getGallery(id as string, USE_MOCK_DATA);
       console.log('Gallery data received:', result);
       setGallery(result.gallery);
+      
+      // Fetch business relationship to get the business email
+      try {
+        const response = await fetch('/api/business-relationship');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.businessEmail) {
+            console.log('Using business email from relationship:', data.businessEmail);
+            setBusinessEmail(data.businessEmail);
+          } else {
+            console.log('No business relationship found, falling back to default email');
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching business relationship:', error);
+      }
     } catch (err) {
       console.error('Error loading gallery:', err);
       setError('Failed to load gallery');
@@ -201,6 +218,14 @@ function GalleryViewContent() {
         })
       );
 
+      // Determine recipient email - use business email if available, otherwise fall back to env var
+      const recipientEmail = businessEmail || process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL;
+      console.log('Sending email to:', recipientEmail);
+      
+      if (!recipientEmail) {
+        throw new Error('No recipient email address available');
+      }
+
       // Send using the generic email endpoint
       const response = await fetch('/api/email/send', {
         method: 'POST',
@@ -208,7 +233,7 @@ function GalleryViewContent() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          to: process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL,
+          to: recipientEmail,
           subject,
           text,
           html,
