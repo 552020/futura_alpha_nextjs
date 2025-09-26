@@ -78,20 +78,69 @@ function GalleryViewContent() {
       console.log('Gallery data received:', result);
       setGallery(result.gallery);
       
+      // Log the environment variable for debugging
+      console.log('NEXT_PUBLIC_PHOTOGRAPHER_EMAIL from env:', process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL);
+      
+      // Get the current user's ID from the session
+      const sessionResponse = await fetch('/api/auth/session');
+      const session = await sessionResponse.json();
+      const userId = session?.user?.id;
+      
+      if (!userId) {
+        console.log('No user session found, skipping business relationship check');
+        return;
+      }
+      
       // Fetch business relationship to get the business email
       try {
-        const response = await fetch('/api/business-relationship');
+        console.log('Fetching business relationship for user ID:', userId);
+        const response = await fetch(`/api/users/${userId}/business-relationship`);
         if (response.ok) {
           const data = await response.json();
-          if (data.businessEmail) {
-            console.log('Using business email from relationship:', data.businessEmail);
+          console.log('Business relationship API response:', {
+            status: 'success',
+            isClient: data.isClient,
+            isBusiness: data.isBusiness,
+            businessEmail: data.businessEmail,
+            relationships: data.relationships || []
+          });
+          
+          if (data.isClient && data.businessEmail) {
+            console.log(`✅ Using business email from relationship: ${data.businessEmail}`);
             setBusinessEmail(data.businessEmail);
+          } else if (data.isBusiness) {
+            console.log('ℹ️ User is a business. No business email to use from relationship.');
+            if (process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL) {
+              console.log(`ℹ️ Using fallback email from environment: ${process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL}`);
+            }
           } else {
-            console.log('No business relationship found, falling back to default email');
+            console.log('ℹ️ No business relationship found.');
+            if (process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL) {
+              console.log(`ℹ️ Using fallback email from environment: ${process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL}`);
+            } else {
+              console.warn('⚠️ No fallback email available in environment variables');
+            }
+          }
+        } else {
+          const error = await response.json().catch(() => ({}));
+          console.error('❌ Error response from business-relationship API:', {
+            status: response.status,
+            statusText: response.statusText,
+            error
+          });
+          if (process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL) {
+            console.log(`ℹ️ Using fallback email from environment due to API error: ${process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL}`);
+          } else {
+            console.warn('⚠️ No fallback email available in environment variables');
           }
         }
       } catch (error) {
-        console.error('Error fetching business relationship:', error);
+        console.error('❌ Error fetching business relationship:', error);
+        if (process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL) {
+          console.log(`ℹ️ Using fallback email from environment due to error: ${process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL}`);
+        } else {
+          console.warn('⚠️ No fallback email available in environment variables');
+        }
       }
     } catch (err) {
       console.error('Error loading gallery:', err);
@@ -220,10 +269,20 @@ function GalleryViewContent() {
 
       // Determine recipient email - use business email if available, otherwise fall back to env var
       const recipientEmail = businessEmail || process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL;
-      console.log('Sending email to:', recipientEmail);
+      
+      console.log('📧 Email sending details:', {
+        source: businessEmail ? 'business-relationship' : 'NEXT_PUBLIC_PHOTOGRAPHER_EMAIL',
+        recipientEmail,
+        hasBusinessEmail: !!businessEmail,
+        hasEnvEmail: !!process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL
+      });
       
       if (!recipientEmail) {
-        throw new Error('No recipient email address available');
+        const errorMsg = 'No recipient email address available. Tried:' +
+          `\n- Business email from relationship: ${businessEmail || 'Not available'}` +
+          `\n- Environment variable: ${process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL || 'Not set'}`;
+        console.error('❌', errorMsg);
+        throw new Error(errorMsg);
       }
 
       // Send using the generic email endpoint
