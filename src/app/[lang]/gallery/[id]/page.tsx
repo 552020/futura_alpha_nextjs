@@ -8,7 +8,18 @@ import { Badge } from '@/components/ui/badge';
 import { Globe, Lock, Trash2, Maximize2, CheckSquare } from 'lucide-react';
 import { galleryService } from '@/services/gallery';
 import { GalleryWithItems } from '@/types/gallery';
+import { Memory } from '@/types/memory';
 import { ForeverStorageProgressModal } from '@/components/galleries/forever-storage-progress-modal';
+
+interface MemoryAsset {
+  assetType: string;
+  url: string;
+  mimeType?: string;
+}
+
+interface GalleryItemMemory extends Memory {
+  assets?: MemoryAsset[];
+}
 import { StorageStatusBadge, getGalleryStorageStatus } from '@/components/common/storage-status-badge';
 import { GalleryStorageSummary } from '@/components/galleries/gallery-storage-summary';
 import { GalleryImageModal } from '@/components/galleries/gallery-image-modal';
@@ -44,7 +55,13 @@ function GalleryViewContent() {
   const [showForeverStorageModal, setShowForeverStorageModal] = useState(false);
 
   // Image modal state
-  const [selectedImage, setSelectedImage] = useState<{ url: string; title: string; id: string; type?: string } | null>(null);
+  const [selectedImage, setSelectedImage] = useState<{ 
+    url: string; 
+    title: string; 
+    id: string; 
+    type?: string;
+    assets?: Array<{ assetType: string; url: string; mimeType?: string }>;
+  } | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(-1);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [showMessageModal, setShowMessageModal] = useState(false);
@@ -281,13 +298,22 @@ function GalleryViewContent() {
     }
   };
 
-  const handleImageClick = (item: { id: string; memory: { id: string; url?: string; title?: string; type?: string } }, _index: number) => {
+  const handleImageClick = (item: { id: string; memory: GalleryItemMemory }, _index: number) => {
+    // Extract assets from the memory object if they exist
+    const assets: MemoryAsset[] = item.memory.assets?.map(asset => ({
+      assetType: asset.assetType,
+      url: asset.url,
+      mimeType: asset.mimeType,
+    })) || [];
+    
     setSelectedImage({ 
       url: item.memory.url || '', 
       title: item.memory.title || 'Image',
       id: item.memory.id,
-      type: item.memory.type || 'image' // Default to 'image' if not specified
+      type: item.memory.type || 'image', // Default to 'image' if not specified
+      assets // Pass the assets array
     });
+    
     // Find the index of the item in the filtered items array
     const itemIndex = filteredItems.findIndex(i => i.memory.id === item.memory.id);
     setCurrentImageIndex(itemIndex);
@@ -298,11 +324,19 @@ function GalleryViewContent() {
     if (currentImageIndex < filteredItems.length - 1) {
       const nextIndex = currentImageIndex + 1;
       const nextItem = filteredItems[nextIndex];
+      // Extract assets from the memory object if they exist
+      const assets: MemoryAsset[] = (nextItem.memory as GalleryItemMemory).assets?.map(asset => ({
+        assetType: asset.assetType,
+        url: asset.url,
+        mimeType: asset.mimeType,
+      })) || [];
+      
       setSelectedImage({
         url: nextItem.memory.url || '',
         title: nextItem.memory.title || 'Image',
         id: nextItem.memory.id,
-        type: nextItem.memory.type || 'image' // Default to 'image' if not specified
+        type: nextItem.memory.type || 'image', // Default to 'image' if not specified
+        assets // Pass the assets array
       });
       setCurrentImageIndex(nextIndex);
     }
@@ -312,11 +346,19 @@ function GalleryViewContent() {
     if (currentImageIndex > 0) {
       const prevIndex = currentImageIndex - 1;
       const prevItem = filteredItems[prevIndex];
+      // Extract assets from the memory object if they exist
+      const assets: MemoryAsset[] = (prevItem.memory as GalleryItemMemory).assets?.map(asset => ({
+        assetType: asset.assetType,
+        url: asset.url,
+        mimeType: asset.mimeType,
+      })) || [];
+      
       setSelectedImage({
         url: prevItem.memory.url || '',
         title: prevItem.memory.title || 'Image',
         id: prevItem.memory.id,
-        type: prevItem.memory.type || 'image' // Default to 'image' if not specified
+        type: prevItem.memory.type || 'image', // Default to 'image' if not specified
+        assets // Pass the assets array
       });
       setCurrentImageIndex(prevIndex);
     }
@@ -543,6 +585,7 @@ function GalleryViewContent() {
         <GalleryImageModal
           isOpen={isImageModalOpen}
           image={selectedImage}
+          assets={selectedImage?.assets || []}
           onClose={() => {
             setIsImageModalOpen(false);
             setSelectedImage(null);
