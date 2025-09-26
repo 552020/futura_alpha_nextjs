@@ -298,19 +298,19 @@ function GalleryViewContent() {
     }
   };
 
-  const handleImageClick = (item: { id: string; memory: GalleryItemMemory }, _index: number) => {
+  const handleImageClick = (item: { id: string; memory: { id: string; url?: string; title?: string; type?: string; assets?: { assetType: string; url: string; mimeType?: string }[] } }, _index: number) => {
     // Extract assets from the memory object if they exist
-    const assets: MemoryAsset[] = item.memory.assets?.map(asset => ({
+    const assets: MemoryAsset[] = (item.memory.assets || []).map(asset => ({
       assetType: asset.assetType,
       url: asset.url,
       mimeType: asset.mimeType,
-    })) || [];
+    }));
     
     setSelectedImage({ 
       url: item.memory.url || '', 
       title: item.memory.title || 'Image',
       id: item.memory.id,
-      type: item.memory.type || 'image', // Default to 'image' if not specified
+type: 'image', // Default to 'image' as the selection panel doesn't pass the type
       assets // Pass the assets array
     });
     

@@ -233,8 +233,6 @@ export function GalleryImageModal({
     }
   };
 
-  // Generate a unique ID for the dialog description
-  const descriptionId = React.useId();
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

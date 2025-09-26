@@ -1,29 +1,26 @@
 import * as React from 'react';
 
-interface VisuallyHiddenProps extends React.HTMLAttributes<HTMLSpanElement> {
+type VisuallyHiddenProps = {
   children: React.ReactNode;
   asChild?: boolean;
-}
+};
 
-export const VisuallyHidden = React.forwardRef<HTMLSpanElement, VisuallyHiddenProps>(
-  ({ className, children, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? 'span' : 'span';
+export const VisuallyHidden = ({
+  children,
+  asChild = false,
+  ...props
+}: VisuallyHiddenProps) => {
+  if (asChild) {
     return (
-      <Comp
-        ref={ref}
-        className={[
-          'absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0',
-          'clip-[rect(0,0,0,0)]',
-          className,
-        ]
-          .filter(Boolean)
-          .join(' ')}
-        {...props}
-      >
+      <span className="sr-only" {...props}>
         {children}
-      </Comp>
+      </span>
     );
   }
-);
-
-VisuallyHidden.displayName = 'VisuallyHidden';
+  
+  return (
+    <span className="sr-only" {...props}>
+      {children}
+    </span>
+  );
+};
