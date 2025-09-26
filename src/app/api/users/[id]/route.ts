@@ -36,13 +36,11 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     if (isClient) {
       const clientRelationship = relationships.find(rel => rel.clientId === id);
       if (clientRelationship) {
-        const businessUser = await db.query.allUsers.findFirst({
-          where: (allUsers, { eq }) => eq(allUsers.id, clientRelationship.businessId),
-          with: {
-            user: true
-          }
+        // Query the users table directly to get the business email
+        const businessUser = await db.query.users.findFirst({
+          where: (users, { eq }) => eq(users.id, clientRelationship.businessId)
         });
-        businessEmail = businessUser?.user?.email || null;
+        businessEmail = businessUser?.email || null;
       }
     }
 

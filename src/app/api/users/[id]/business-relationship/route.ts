@@ -1,13 +1,14 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
 import { businessRelationship, users } from '@/db/schema';
 import { eq, or } from 'drizzle-orm';
 
 export async function GET(
-  _request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
+  const { id: userId } = await context.params;
   try {
     // Verify the session to ensure the user is authenticated
     const session = await auth();
@@ -17,8 +18,6 @@ export async function GET(
         { status: 401 }
       );
     }
-
-    const userId = params.id;
 
     console.log('Fetching business relationships for user ID:', userId);
     
