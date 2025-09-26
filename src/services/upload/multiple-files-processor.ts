@@ -15,7 +15,7 @@
 // import { verifyUpload } from './verification';
 import type { HostingPreferences } from '@/hooks/use-storage-preferences';
 import { getDefaultHostingPreferences } from '@/hooks/use-storage-preferences';
-import { checkICPAuthentication, validateUploadFiles } from './shared-utils';
+import { validateUploadFiles } from './shared-utils';
 import { uploadMultipleToS3WithProcessing } from './s3-with-processing';
 
 export interface ProcessMultipleFilesOptions {
@@ -31,107 +31,9 @@ export interface ProcessMultipleFilesOptions {
   onProgress?: (file: File, progress: number) => void;
 }
 
-// Upload multiple files to ICP canister
-async function uploadMultipleToICP(
-  files: File[],
-  preferences: HostingPreferences,
-  onProgress?: (file: File, progress: number) => void
-): Promise<{
-  results?: Array<{ memoryId: string; size?: number; checksum_sha256?: string | null; name?: string; type?: string }>;
-  userId?: string;
-  successfulUploads?: number;
-}> {
-  await checkICPAuthentication();
-
-  // Get storage configuration for ICP
-  // const storageResponse = await verifyIntent({
-  //   preferred: 'icp',
-  //   databaseHosting: preferences?.databaseHosting[0],
-  //   backendHosting: preferences?.backendHosting,
-  // });
-  // const storage = storageResponse.uploadStorage;
-
-  // Upload to ICP canister
-  const { icpUploadService } = await import('./icp-upload');
-  const icpResults = await icpUploadService.uploadFolder(files, preferences.blobHosting, progress => {
-    // Standardize progress format to match S3 (0-100 number)
-    onProgress?.(files[0], progress.percentage); // Use first file for progress
-  });
-
-  return {
-    results: icpResults.map((result, index) => ({
-      memoryId: result.memoryId,
-      size: result.size,
-      name: files[index].name,
-      type: files[index].type,
-      checksum_sha256: result.checksum_sha256,
-    })),
-    successfulUploads: icpResults.length,
-  };
-}
+// Upload multiple files to ICP canister - moved to icp-upload.ts
 
 // Upload multiple files to Vercel Blob (legacy fallback)
-async function uploadMultipleToVercelBlob(
-  files: File[],
-  mode: 'directory' | 'multiple-files',
-  onProgress?: (file: File, progress: number) => void
-): Promise<{
-  results?: Array<{ memoryId: string; size?: number; checksum_sha256?: string | null }>;
-  userId?: string;
-  successfulUploads?: number;
-}> {
-  // Create a progress wrapper for Vercel Blob
-  let progressInterval: NodeJS.Timeout | null = null;
-
-  try {
-    // Start progress simulation (Vercel Blob doesn't provide real-time progress)
-    if (onProgress) {
-      let simulatedProgress = 0;
-      progressInterval = setInterval(() => {
-        if (simulatedProgress < 90) {
-          simulatedProgress += Math.random() * 10;
-          onProgress(files[0], Math.min(simulatedProgress, 90)); // Use first file for progress
-        }
-      }, 200);
-    }
-
-    // Use the original FormData approach for Vercel Blob
-    const formData = new FormData();
-    files.forEach(file => {
-      formData.append('file', file);
-    });
-
-    if (mode === 'directory') {
-      formData.append('storageBackend', 'vercel_blob');
-    }
-
-    const response = await fetch('/api/memories', { method: 'POST', body: formData });
-
-    // Complete progress
-    if (onProgress) {
-      onProgress(files[0], 100);
-    }
-
-    type MultipleFilesResp = {
-      error?: string;
-      userId?: string;
-      successfulUploads?: number;
-      results?: Array<{ memoryId: string; size?: number; checksum_sha256?: string | null }>;
-    };
-    const json = (await response.json()) as MultipleFilesResp;
-
-    if (!response.ok) {
-      throw new Error(json?.error || `${mode === 'directory' ? 'Folder' : 'Multiple files'} upload failed`);
-    }
-
-    return json;
-  } finally {
-    // Clean up progress interval
-    if (progressInterval) {
-      clearInterval(progressInterval);
-    }
-  }
-}
 
 export async function processMultipleFiles(options: ProcessMultipleFilesOptions): Promise<void> {
   const {
@@ -142,10 +44,12 @@ export async function processMultipleFiles(options: ProcessMultipleFilesOptions)
     onSuccess,
     onError,
     updateOnboardingContext,
-    session: _session,
+    session,
     showToast,
     onProgress,
   } = options;
+
+  const existingUserId = session?.user?.id;
 
   // Validate files using shared validation function
   if (!validateUploadFiles(files, showToast)) {
@@ -170,9 +74,39 @@ export async function processMultipleFiles(options: ProcessMultipleFilesOptions)
 
     // Upload routing based on storage preference
     if (userBlobHostingPreference === 'icp') {
-      data = await uploadMultipleToICP(files, preferences || getDefaultHostingPreferences(), onProgress);
+      // NOTE: For ICP users, isOnboarding is ignored because ICP always requires Internet Identity auth
+      // Even "onboarding" users must authenticate with II to interact with ICP canister
+      const { uploadToICP } = await import('./icp-upload');
+      const results = await uploadToICP(files, preferences || getDefaultHostingPreferences(), progress => {
+        // Convert overall progress to per-file progress for compatibility
+        onProgress?.(files[0], progress);
+      });
+
+      // Convert results to expected format
+      data = {
+        results: results.map(result => ({
+          memoryId: result.data.id,
+          size: result.results[0]?.size,
+          checksum_sha256: result.results[0]?.checksum_sha256,
+        })),
+        successfulUploads: results.length,
+      };
     } else if (userBlobHostingPreference === 'vercel_blob') {
-      data = await uploadMultipleToVercelBlob(files, mode, onProgress);
+      const { uploadToVercelBlob } = await import('./vercel-blob-upload');
+      const results = await uploadToVercelBlob(files, isOnboarding, existingUserId, mode, progress => {
+        // Convert overall progress to per-file progress for compatibility
+        onProgress?.(files[0], progress);
+      });
+
+      // Convert results to expected format
+      data = {
+        results: results.map(result => ({
+          memoryId: result.data.id,
+          size: result.results[0]?.size,
+          checksum_sha256: result.results[0]?.checksum_sha256,
+        })),
+        successfulUploads: results.length,
+      };
     } else if (userBlobHostingPreference === 's3') {
       // S3 with parallel processing (Lane A + Lane B)
       data = await uploadMultipleToS3WithProcessing(files, mode, onProgress);

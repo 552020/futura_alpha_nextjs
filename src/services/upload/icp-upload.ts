@@ -2,8 +2,9 @@
 
 // import { HttpAgent } from '@dfinity/agent';
 import type { MemoryData, MemoryMeta, _SERVICE } from '@/ic/declarations/backend/backend.did';
-import type { BlobHosting } from '@/hooks/use-storage-preferences';
+import type { BlobHosting, HostingPreferences } from '@/hooks/use-storage-preferences';
 import { UPLOAD_LIMITS_ICP } from '@/config/upload-limits';
+import type { UploadServiceResult } from './shared-utils';
 
 // Types for ICP upload - compatible with existing UploadStorage
 export interface UploadStorage {
@@ -295,3 +296,62 @@ export class ICPUploadService {
 
 // Export singleton instance
 export const icpUploadService = new ICPUploadService();
+
+// Unified upload to ICP canister (single or multiple files)
+export async function uploadToICP(
+  files: File[], // Always an array (single file = [file])
+  preferences: HostingPreferences,
+  onProgress?: (progress: number) => void // Overall progress (0-100)
+): Promise<UploadServiceResult[]> {
+  // Always returns array
+  const { checkICPAuthentication } = await import('./shared-utils');
+  await checkICPAuthentication();
+
+  const isSingleFile = files.length === 1;
+  const results: UploadServiceResult[] = [];
+
+  if (isSingleFile) {
+    // Single file mode - use uploadFile
+    const file = files[0];
+    const icpResult = await icpUploadService.uploadFile(file, preferences.blobHosting, progress => {
+      onProgress?.(progress.percentage);
+    });
+
+    results.push({
+      data: { id: icpResult.memoryId },
+      results: [
+        {
+          memoryId: icpResult.memoryId,
+          size: file.size,
+          checksum_sha256: icpResult.checksum_sha256,
+        },
+      ],
+      userId: '', // Will be set by caller
+    });
+  } else {
+    // Multiple files mode - use uploadFolder
+    const icpResults = await icpUploadService.uploadFolder(files, preferences.blobHosting, progress => {
+      onProgress?.(progress.percentage);
+    });
+
+    // Convert to UploadServiceResult format
+    for (let i = 0; i < icpResults.length; i++) {
+      const icpResult = icpResults[i];
+      const file = files[i];
+
+      results.push({
+        data: { id: icpResult.memoryId },
+        results: [
+          {
+            memoryId: icpResult.memoryId,
+            size: file.size,
+            checksum_sha256: icpResult.checksum_sha256,
+          },
+        ],
+        userId: '', // Will be set by caller
+      });
+    }
+  }
+
+  return results;
+}

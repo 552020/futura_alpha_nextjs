@@ -15,13 +15,7 @@
 import type { FileInputAttributeMode } from '@/types/upload';
 import type { HostingPreferences } from '@/hooks/use-storage-preferences';
 import { getDefaultHostingPreferences } from '@/hooks/use-storage-preferences';
-import {
-  uploadFileWithProgress,
-  checkICPAuthentication,
-  generateS3PublicUrl,
-  validateUploadFiles,
-  type UploadServiceResult,
-} from './shared-utils';
+import { validateUploadFiles } from './shared-utils';
 import { uploadToS3WithProcessing } from './s3-with-processing';
 
 export interface ProcessSingleFileOptions {
@@ -37,167 +31,76 @@ export interface ProcessSingleFileOptions {
   onProgress?: (progress: number) => void;
 }
 
-// Upload to ICP canister
-async function uploadToICP(
-  file: File,
-  preferences: HostingPreferences,
-  onProgress?: (progress: number) => void
-): Promise<UploadServiceResult> {
-  await checkICPAuthentication();
-
-  // Upload to ICP canister
-  const { icpUploadService } = await import('./icp-upload');
-  const icpResult = await icpUploadService.uploadFile(file, preferences.blobHosting, progress => {
-    // Standardize progress format to match S3 (0-100 number)
-    onProgress?.(progress.percentage);
-  });
-
-  return {
-    data: { id: icpResult.memoryId },
-    results: [
-      {
-        memoryId: icpResult.memoryId,
-        size: file.size,
-        checksum_sha256: icpResult.checksum_sha256,
-      },
-    ],
-    userId: '', // Will be set by caller
-  };
-}
+// Upload to ICP canister - moved to icp-upload.ts
 
 // Upload to S3 using 413 solution (presigned URLs)
-export async function uploadToS3(
-  file: File,
-  onProgress?: (progress: number) => void
-): Promise<{
-  data: { id: string };
-  results: Array<{ memoryId: string; size: number; checksum_sha256: string | null }>;
-  userId: string;
-}> {
-  const presignResponse = await fetch('/api/upload/presign', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      fileName: file.name,
-      fileType: file.type,
-      fileSize: file.size,
-    }),
-  });
+// export async function uploadToS3(
+//   file: File,
+//   onProgress?: (progress: number) => void
+// ): Promise<{
+//   data: { id: string };
+//   results: Array<{ memoryId: string; size: number; checksum_sha256: string | null }>;
+//   userId: string;
+// }> {
+//   const presignResponse = await fetch('/api/upload/presign', {
+//     method: 'POST',
+//     headers: {
+//       'Content-Type': 'application/json',
+//     },
+//     body: JSON.stringify({
+//       fileName: file.name,
+//       fileType: file.type,
+//       fileSize: file.size,
+//     }),
+//   });
 
-  if (!presignResponse.ok) {
-    const error = await presignResponse.json();
-    throw new Error(error.error || 'Failed to get presigned URL');
-  }
+//   if (!presignResponse.ok) {
+//     const error = await presignResponse.json();
+//     throw new Error(error.error || 'Failed to get presigned URL');
+//   }
 
-  const { signedUrl, s3Key } = await presignResponse.json();
+//   const { signedUrl, s3Key } = await presignResponse.json();
 
-  // Upload file to S3 with progress
-  await uploadFileWithProgress(file, signedUrl, progress => {
-    onProgress?.(progress);
-  });
+//   // Upload file to S3 with progress
+//   await uploadFileWithProgress(file, signedUrl, progress => {
+//     onProgress?.(progress);
+//   });
 
-  // Commit to database
-  const commitResponse = await fetch('/api/upload/commit', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      fileName: file.name,
-      fileType: file.type,
-      fileSize: file.size,
-      s3Url: generateS3PublicUrl(s3Key),
-    }),
-  });
+//   // Commit to database
+//   const commitResponse = await fetch('/api/upload/commit', {
+//     method: 'POST',
+//     headers: {
+//       'Content-Type': 'application/json',
+//     },
+//     body: JSON.stringify({
+//       fileName: file.name,
+//       fileType: file.type,
+//       fileSize: file.size,
+//       s3Url: generateS3PublicUrl(s3Key),
+//     }),
+//   });
 
-  if (!commitResponse.ok) {
-    const error = await commitResponse.json();
-    throw new Error(error.error || 'Failed to commit upload');
-  }
+//   if (!commitResponse.ok) {
+//     const error = await commitResponse.json();
+//     throw new Error(error.error || 'Failed to commit upload');
+//   }
 
-  const commitResult = await commitResponse.json();
+//   const commitResult = await commitResponse.json();
 
-  return {
-    data: { id: commitResult.data.id },
-    results: [
-      {
-        memoryId: commitResult.data.id,
-        size: file.size,
-        checksum_sha256: null,
-      },
-    ],
-    userId: '', // Will be set by caller
-  };
-}
+//   return {
+//     data: { id: commitResult.data.id },
+//     results: [
+//       {
+//         memoryId: commitResult.data.id,
+//         size: file.size,
+//         checksum_sha256: null,
+//       },
+//     ],
+//     userId: '', // Will be set by caller
+//   };
+// }
 
 // Upload to Vercel Blob (legacy fallback)
-async function uploadToVercelBlob(
-  file: File,
-  isOnboarding: boolean,
-  existingUserId: string | undefined,
-  mode: FileInputAttributeMode,
-  userBlobHosting: string,
-  onProgress?: (progress: number) => void
-): Promise<UploadServiceResult> {
-  // Use the original uploadFile function for Vercel Blob
-  const { uploadFile } = await import('./upload');
-
-  // Create a progress wrapper for Vercel Blob
-  let progressInterval: NodeJS.Timeout | null = null;
-
-  try {
-    // Start progress simulation (Vercel Blob doesn't provide real-time progress)
-    if (onProgress) {
-      let simulatedProgress = 0;
-      progressInterval = setInterval(() => {
-        if (simulatedProgress < 90) {
-          simulatedProgress += Math.random() * 10;
-          onProgress(Math.min(simulatedProgress, 90));
-        }
-      }, 200);
-    }
-
-    const uploadResult = await uploadFile(
-      file,
-      isOnboarding,
-      existingUserId,
-      mode,
-      'vercel_blob',
-      userBlobHosting as 'vercel_blob'
-    );
-
-    // Complete progress
-    if (onProgress) {
-      onProgress(100);
-    }
-
-    // Convert to expected format
-    const memory = Array.isArray(uploadResult.data) ? uploadResult.data[0] : uploadResult.data;
-
-    if (!memory || !memory.id) {
-      throw new Error('Upload failed: Invalid response from server');
-    }
-
-    return {
-      data: { id: memory.id },
-      results: [
-        {
-          memoryId: memory.id,
-          size: file.size,
-          checksum_sha256: null,
-        },
-      ],
-      userId: existingUserId || '',
-    };
-  } finally {
-    // Clean up progress interval
-    if (progressInterval) {
-      clearInterval(progressInterval);
-    }
-  }
-}
 
 export async function processSingleFile(options: ProcessSingleFileOptions): Promise<void> {
   const {
@@ -229,16 +132,15 @@ export async function processSingleFile(options: ProcessSingleFileOptions): Prom
 
     // Upload routing based on storage preferences (check if preference is in array)
     if (userBlobHostingPreferences.includes('icp')) {
-      data = await uploadToICP(file, preferences || getDefaultHostingPreferences(), onProgress);
+      // NOTE: For ICP users, isOnboarding is ignored because ICP always requires Internet Identity auth
+      // Even "onboarding" users must authenticate with II to interact with ICP canister
+      const { uploadToICP } = await import('./icp-upload');
+      const results = await uploadToICP([file], preferences || getDefaultHostingPreferences(), onProgress);
+      data = results[0]; // Get first (and only) result
     } else if (userBlobHostingPreferences.includes('vercel_blob')) {
-      data = await uploadToVercelBlob(
-        file,
-        isOnboarding,
-        existingUserId,
-        mode,
-        userBlobHostingPreferences[0],
-        onProgress
-      );
+      const { uploadToVercelBlob } = await import('./vercel-blob-upload');
+      const results = await uploadToVercelBlob([file], isOnboarding, existingUserId, mode);
+      data = results[0]; // Get first (and only) result
     } else if (userBlobHostingPreferences.includes('s3')) {
       // S3 with parallel processing (Lane A + Lane B)
       data = await uploadToS3WithProcessing(file, onProgress);

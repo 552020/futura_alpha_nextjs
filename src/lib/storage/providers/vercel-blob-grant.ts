@@ -66,7 +66,7 @@ export class VercelBlobGrantProvider implements StorageProvider {
    * Request upload grant from server
    */
   private async requestUploadGrant(file: File, options?: UploadOptions): Promise<GrantResponse> {
-    const response = await fetch('/api/memories/grant', {
+    const response = await fetch('/api/memories/grant/vercel-blob', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
