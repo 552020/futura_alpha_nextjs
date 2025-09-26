@@ -43,8 +43,9 @@ function GalleryViewContent() {
   const [showSidePanel, setShowSidePanel] = useState(false);
   const [showForeverStorageModal, setShowForeverStorageModal] = useState(false);
 
-  // Missing state variables that were in the original
-  const [selectedImage, setSelectedImage] = useState<{ url: string; title: string } | null>(null);
+  // Image modal state
+  const [selectedImage, setSelectedImage] = useState<{ url: string; title: string; id: string; type?: string } | null>(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(-1);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [showMessageModal, setShowMessageModal] = useState(false);
 
@@ -280,6 +281,50 @@ function GalleryViewContent() {
     }
   };
 
+  const handleImageClick = (item: { id: string; memory: { id: string; url?: string; title?: string; type?: string } }, _index: number) => {
+    setSelectedImage({ 
+      url: item.memory.url || '', 
+      title: item.memory.title || 'Image',
+      id: item.memory.id,
+      type: item.memory.type || 'image' // Default to 'image' if not specified
+    });
+    // Find the index of the item in the filtered items array
+    const itemIndex = filteredItems.findIndex(i => i.memory.id === item.memory.id);
+    setCurrentImageIndex(itemIndex);
+    setIsImageModalOpen(true);
+  };
+
+  const handleNextImage = () => {
+    if (currentImageIndex < filteredItems.length - 1) {
+      const nextIndex = currentImageIndex + 1;
+      const nextItem = filteredItems[nextIndex];
+      setSelectedImage({
+        url: nextItem.memory.url || '',
+        title: nextItem.memory.title || 'Image',
+        id: nextItem.memory.id,
+        type: nextItem.memory.type || 'image' // Default to 'image' if not specified
+      });
+      setCurrentImageIndex(nextIndex);
+    }
+  };
+
+  const handlePreviousImage = () => {
+    if (currentImageIndex > 0) {
+      const prevIndex = currentImageIndex - 1;
+      const prevItem = filteredItems[prevIndex];
+      setSelectedImage({
+        url: prevItem.memory.url || '',
+        title: prevItem.memory.title || 'Image',
+        id: prevItem.memory.id,
+        type: prevItem.memory.type || 'image' // Default to 'image' if not specified
+      });
+      setCurrentImageIndex(prevIndex);
+    }
+  };
+
+  const hasNextImage = currentImageIndex < filteredItems.length - 1;
+  const hasPreviousImage = currentImageIndex > 0;
+
   // Early returns for loading states
   if (authLoading) {
     return (
@@ -440,10 +485,7 @@ function GalleryViewContent() {
                 activeTab={activeTab}
                 failedImages={failedImages}
                 _maxSelection={MAX_SELECTION}
-                onImageClick={(item, _index) => {
-                  setSelectedImage({ url: item.memory.url || '', title: item.memory.title || 'Image' });
-                  setIsImageModalOpen(true);
-                }}
+                onImageClick={handleImageClick}
                 onSelectionToggle={(imageId, checked) => {
                   if (checked) {
                     setSelectedImages(prev => 
@@ -469,9 +511,8 @@ function GalleryViewContent() {
               selectedItems={gallery?.items.filter(item => selectedImages.includes(item.memory.id)) || []}
               ratings={ratings}
               failedImages={failedImages}
-              onImageClick={(item, _index) => {
-                setSelectedImage({ url: item.memory.url || '', title: item.memory.title || 'Image' });
-                setIsImageModalOpen(true);
+              onImageClick={(item, index) => {
+                handleImageClick(item, index);
               }}
               onRemoveFromSelection={(imageId) => {
                 setSelectedImages(prev => prev.filter(id => id !== imageId));
@@ -505,7 +546,12 @@ function GalleryViewContent() {
           onClose={() => {
             setIsImageModalOpen(false);
             setSelectedImage(null);
+            setCurrentImageIndex(-1);
           }}
+          onNext={handleNextImage}
+          onPrevious={handlePreviousImage}
+          hasNext={hasNextImage}
+          hasPrevious={hasPreviousImage}
         />
       )}
 

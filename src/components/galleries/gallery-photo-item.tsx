@@ -89,67 +89,66 @@ export function GalleryPhotoItem({
         </div>
       )}
 
-      {/* Image actions overlay */}
-      <div
-        className={`absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex flex-col justify-between p-2 ${
-          activeTab === 'hidden' ? 'opacity-100' : ''
-        }`}
-      >
-        {/* Top bar */}
-        <div className="flex justify-between items-start">
-          {/* Rating and Hidden indicator */}
-          <div className="flex items-center gap-1 ml-auto">
-            {activeTab === 'hidden' && (
-              <div className="bg-red-500/70 rounded-full px-2 py-1">
-                <span className="text-xs text-white">Hidden</span>
-              </div>
-            )}
+      {/* Hidden indicator - always show in hidden tab */}
+      {activeTab === 'hidden' && (
+        <div className="absolute top-2 right-2 z-10">
+          <div className="bg-red-500/70 rounded-full px-2 py-1">
+            <span className="text-xs text-white">Hidden</span>
+          </div>
+        </div>
+      )}
+
+      {/* Image actions overlay - only show in selection mode */}
+      {isSelecting && (
+        <div className="absolute inset-0 bg-black/50 flex flex-col justify-between p-2">
+          {/* Top bar - Rating display */}
+          <div className="flex justify-end">
             <div className="flex items-center gap-1 bg-black/70 rounded-full px-2 py-1">
               <Star className="h-3 w-3 text-yellow-400 fill-current" />
               <span className="text-xs text-white">{rating}</span>
             </div>
           </div>
-        </div>
 
-        {/* Bottom bar */}
-        <div className="flex justify-between items-end">
-          {/* Hide/Unhide button */}
-          <button
-            onClick={e => {
-              e.stopPropagation();
-              if (activeTab === 'hidden') {
-                onUnhide();
-              } else {
-                onHide();
-              }
-            }}
-            className="p-1.5 rounded-full bg-black/70 hover:bg-black/90 transition-colors"
-            title={activeTab === 'hidden' ? 'Unhide photo' : 'Hide photo'}
-          >
-            {activeTab === 'hidden' ? (
-              <Eye className="h-4 w-4 text-white" />
-            ) : (
-              <EyeOff className="h-4 w-4 text-white" />
-            )}
-          </button>
+          {/* Bottom bar - Hide/Unhide and Rating controls */}
+          <div className="flex justify-between items-end">
+            {/* Hide/Unhide button */}
+            <button
+              onClick={e => {
+                e.stopPropagation();
+                if (activeTab === 'hidden') {
+                  onUnhide();
+                } else {
+                  onHide();
+                }
+              }}
+              className="p-1.5 rounded-full bg-black/70 hover:bg-black/90 transition-colors"
+              title={activeTab === 'hidden' ? 'Unhide photo' : 'Hide photo'}
+            >
+              {activeTab === 'hidden' ? (
+                <Eye className="h-4 w-4 text-white" />
+              ) : (
+                <EyeOff className="h-4 w-4 text-white" />
+              )}
+            </button>
 
-          {/* Rating stars */}
-          <div className="flex items-center gap-0.5 bg-black/70 rounded-full px-2 py-1">
-            {[1, 2, 3, 4, 5].map(star => (
-              <button
-                key={star}
-                onClick={e => {
-                  e.stopPropagation();
-                  onRate(star);
-                }}
-                className="p-0.5"
-              >
-                <Star className={`h-4 w-4 ${star <= rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
-              </button>
-            ))}
+            {/* Rating stars */}
+            <div className="flex items-center gap-0.5 bg-black/70 rounded-full px-2 py-1">
+              {[1, 2, 3, 4, 5].map(star => (
+                <button
+                  key={star}
+                  onClick={e => {
+                    e.stopPropagation();
+                    onRate(star);
+                  }}
+                  className="p-0.5"
+                >
+                  <Star className={`h-4 w-4 ${star <= rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
+                </button>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
