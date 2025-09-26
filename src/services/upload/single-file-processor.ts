@@ -10,8 +10,8 @@
  * - Context updates
  */
 
-import { verifyIntent } from './intent';
-import { verifyUpload } from './verification';
+// import { verifyIntent } from './intent';
+// import { verifyUpload } from './verification';
 import type { FileInputAttributeMode } from '@/types/upload';
 import type { HostingPreferences } from '@/hooks/use-storage-preferences';
 import { getDefaultHostingPreferences } from '@/hooks/use-storage-preferences';
@@ -20,6 +20,7 @@ import {
   checkICPAuthentication,
   generateS3PublicUrl,
   validateUploadFiles,
+  type UploadServiceResult,
 } from './shared-utils';
 import { uploadToS3WithProcessing } from './s3-with-processing';
 
@@ -31,7 +32,7 @@ export interface ProcessSingleFileOptions {
   preferences?: HostingPreferences;
   onSuccess?: () => void;
   onError?: (error: Error) => void;
-  updateOnboardingContext?: (data: { data: { ownerId: string; id: string } }, file: File, url: string) => void;
+  updateOnboardingContext?: (data: { data: { ownerId: string; id: string } }, files: File[]) => void;
   showToast: (toast: { variant: 'destructive'; title: string; description: string }) => void;
   onProgress?: (progress: number) => void;
 }
@@ -41,24 +42,12 @@ async function uploadToICP(
   file: File,
   preferences: HostingPreferences,
   onProgress?: (progress: number) => void
-): Promise<{
-  data: { id: string };
-  results: Array<{ memoryId: string; size: number; checksum_sha256: string | null }>;
-  userId: string;
-}> {
+): Promise<UploadServiceResult> {
   await checkICPAuthentication();
-
-  // Get storage configuration for ICP
-  const storageResponse = await verifyIntent({
-    preferred: 'icp',
-    databaseHosting: preferences?.databaseHosting[0],
-    backendHosting: preferences?.backendHosting,
-  });
-  const storage = storageResponse.uploadStorage;
 
   // Upload to ICP canister
   const { icpUploadService } = await import('./icp-upload');
-  const icpResult = await icpUploadService.uploadFile(file, storage, progress => {
+  const icpResult = await icpUploadService.uploadFile(file, preferences.blobHosting, progress => {
     // Standardize progress format to match S3 (0-100 number)
     onProgress?.(progress.percentage);
   });
@@ -151,11 +140,7 @@ async function uploadToVercelBlob(
   mode: FileInputAttributeMode,
   userBlobHosting: string,
   onProgress?: (progress: number) => void
-): Promise<{
-  data: { id: string };
-  results: Array<{ memoryId: string; size: number; checksum_sha256: string | null }>;
-  userId: string;
-}> {
+): Promise<UploadServiceResult> {
   // Use the original uploadFile function for Vercel Blob
   const { uploadFile } = await import('./upload');
 
@@ -234,7 +219,7 @@ export async function processSingleFile(options: ProcessSingleFileOptions): Prom
 
   try {
     // Route to appropriate upload service based on user preferences
-    const userBlobHostingPreference = preferences?.blobHosting[0] || 's3'; // Default to S3 (413 solution)
+    const userBlobHostingPreferences = preferences?.blobHosting || ['s3']; // Default to S3 (413 solution)
 
     let data: {
       data: { id: string };
@@ -242,61 +227,51 @@ export async function processSingleFile(options: ProcessSingleFileOptions): Prom
       userId: string;
     };
 
-    // Upload routing based on storage preference
-    if (userBlobHostingPreference === 'icp') {
+    // Upload routing based on storage preferences (check if preference is in array)
+    if (userBlobHostingPreferences.includes('icp')) {
       data = await uploadToICP(file, preferences || getDefaultHostingPreferences(), onProgress);
-      data.userId = existingUserId || '';
-    } else if (userBlobHostingPreference === 'vercel_blob') {
-      data = await uploadToVercelBlob(file, isOnboarding, existingUserId, mode, userBlobHostingPreference, onProgress);
-    } else if (userBlobHostingPreference === 's3') {
+    } else if (userBlobHostingPreferences.includes('vercel_blob')) {
+      data = await uploadToVercelBlob(
+        file,
+        isOnboarding,
+        existingUserId,
+        mode,
+        userBlobHostingPreferences[0],
+        onProgress
+      );
+    } else if (userBlobHostingPreferences.includes('s3')) {
       // S3 with parallel processing (Lane A + Lane B)
       data = await uploadToS3WithProcessing(file, onProgress);
-      data.userId = existingUserId || '';
     } else {
       // Default to S3 with parallel processing for unknown preferences
       data = await uploadToS3WithProcessing(file, onProgress);
-      data.userId = existingUserId || '';
     }
 
-    // Future storage options can be added here:
-    // else if (userBlobHosting === 'arweave') {
-    //   data = await uploadToArweave(file, onProgress);
-    //   data.userId = existingUserId || '';
-    // } else if (userBlobHosting === 'ipfs') {
-    //   data = await uploadToIPFS(file, onProgress);
-    //   data.userId = existingUserId || '';
+    // Set userId for all upload services (normalize response)
+    data.userId = existingUserId || '';
+
+    // 3) Get memory ID for context updates
+    // if (data?.data?.id && !userBlobHostingPreferences.includes('icp')) {
+    //   // For non-ICP flows, we still need to get storage info for verification
+    //   const storageResponse = await verifyIntent({
+    //     preferred: preferences?.blobHosting[0] === 'neon' ? 's3' : preferences?.blobHosting[0],
+    //     databaseHosting: preferences?.databaseHosting[0],
+    //     backendHosting: preferences?.backendHosting,
+    //   });
+    //   const storage = storageResponse.uploadStorage;
+    //   await verifyUpload({
+    //     appMemoryId,
+    //     database: storage.database,
+    //     blob_storage: storage.blob_storage,
+    //     idem: storage.idem,
+    //     size: file.size,
+    //     checksum_sha256: data?.results?.[0]?.checksum_sha256 ?? null,
+    //     remote_id: data?.results?.[0]?.memoryId ?? data?.data?.id,
+    //   });
     // }
 
-    // 3) Verify after upload (best-effort) - only for non-ICP flows
-    // ICP flows handle verification internally
-    const appMemoryId = data?.data?.id;
-    if (appMemoryId && userBlobHostingPreference !== 'icp') {
-      // For non-ICP flows, we still need to get storage info for verification
-      const storageResponse = await verifyIntent({
-        preferred: preferences?.blobHosting[0] === 'neon' ? 's3' : preferences?.blobHosting[0],
-        databaseHosting: preferences?.databaseHosting[0],
-        backendHosting: preferences?.backendHosting,
-      });
-      const storage = storageResponse.uploadStorage;
-      await verifyUpload({
-        appMemoryId,
-        database: storage.database,
-        blob_storage: storage.blob_storage,
-        idem: storage.idem,
-        size: file.size,
-        checksum_sha256: data?.results?.[0]?.checksum_sha256 ?? null,
-        remote_id: data?.results?.[0]?.memoryId ?? appMemoryId,
-      });
-    }
-
     if (isOnboarding && data && updateOnboardingContext) {
-      // Create a temporary URL for preview only when needed
-      const url = URL.createObjectURL(file);
-      updateOnboardingContext(
-        { data: { ownerId: data.userId ?? '', id: data.data?.id ?? appMemoryId ?? '' } },
-        file,
-        url
-      );
+      updateOnboardingContext({ data: { ownerId: data.userId ?? '', id: data.data?.id ?? '' } }, [file]);
     }
 
     onSuccess?.();

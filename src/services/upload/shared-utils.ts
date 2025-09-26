@@ -66,10 +66,22 @@ export async function uploadFileWithProgress(
   });
 }
 
-// 413 Solution: Check ICP authentication
+// Common return type for all upload functions (based on S3 format)
+export interface UploadServiceResult {
+  data: { id: string };
+  results: Array<{
+    memoryId: string;
+    size: number;
+    checksum_sha256: string | null;
+  }>;
+  userId: string;
+}
+
+// 413 Solution: Check ICP authentication using functional approach
 export async function checkICPAuthentication(): Promise<void> {
-  const { icpUploadService } = await import('./icp-upload');
-  const isAuthenticated = await icpUploadService.isAuthenticated();
+  const { getAuthClient } = await import('@/ic/ii');
+  const authClient = await getAuthClient();
+  const isAuthenticated = await authClient.isAuthenticated();
   if (!isAuthenticated) {
     throw new Error('Please connect your Internet Identity to upload to ICP');
   }

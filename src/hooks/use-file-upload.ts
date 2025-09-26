@@ -18,22 +18,25 @@ export function useFileUpload({ isOnboarding = false, mode = 'directory', onSucc
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { data: preferences } = useHostingPreferences();
 
-  const updateOnboardingContext = (data: { data: { ownerId: string; id: string } }, file: File, url: string) => {
+  const updateOnboardingContext = (data: { data: { ownerId: string; id: string } }, files: File[]) => {
     updateUserData({
       allUserId: data.data.ownerId,
       isTemporary: !session,
       memoryId: data.data.id,
     });
 
-    // Add file to context without user data
-    const fileToAdd = {
-      url,
-      file,
-      uploadedAt: new Date(),
-      memoryId: data.data.id,
-      fileType: file.type,
-    };
-    addOnboardingFile(fileToAdd);
+    // Add files to context
+    files.forEach(file => {
+      const url = URL.createObjectURL(file);
+      const fileToAdd = {
+        url,
+        file,
+        uploadedAt: new Date(),
+        memoryId: data.data.id,
+        fileType: file.type,
+      };
+      addOnboardingFile(fileToAdd);
+    });
 
     // Set the next step based on authentication status
     if (session) {
@@ -65,8 +68,7 @@ export function useFileUpload({ isOnboarding = false, mode = 'directory', onSucc
       preferences,
       onSuccess,
       onError,
-      updateUserData,
-      setCurrentStep,
+      updateOnboardingContext,
       session,
       showToast: toast,
     });

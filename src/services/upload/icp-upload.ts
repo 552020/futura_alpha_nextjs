@@ -1,7 +1,9 @@
 'use client';
 
-import { HttpAgent } from '@dfinity/agent';
+// import { HttpAgent } from '@dfinity/agent';
 import type { MemoryData, MemoryMeta, _SERVICE } from '@/ic/declarations/backend/backend.did';
+import type { BlobHosting } from '@/hooks/use-storage-preferences';
+import { UPLOAD_LIMITS_ICP } from '@/config/upload-limits';
 
 // Types for ICP upload - compatible with existing UploadStorage
 export interface UploadStorage {
@@ -41,46 +43,8 @@ export interface UploadProgress {
 type CanisterActor = _SERVICE;
 
 export class ICPUploadService {
-  private agent: HttpAgent | null = null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private authClient: any = null;
-
   constructor() {
-    // Don't initialize auth in constructor to avoid SSR issues
-  }
-
-  private async initializeAuth() {
-    if (typeof window === 'undefined') {
-      throw new Error('ICP authentication not available in server environment');
-    }
-
-    try {
-      // Dynamic import to avoid SSR issues
-      const { AuthClient } = await import('@dfinity/auth-client');
-      this.authClient = await AuthClient.create();
-    } catch (error) {
-      console.error('Failed to initialize ICP auth client:', error);
-      throw new Error('ICP authentication not available');
-    }
-  }
-
-  private async ensureAuthenticated(): Promise<HttpAgent> {
-    if (!this.authClient) {
-      await this.initializeAuth();
-    }
-
-    if (!(await this.authClient?.isAuthenticated())) {
-      throw new Error('User not authenticated with Internet Identity');
-    }
-
-    if (!this.agent) {
-      // Dynamic import to avoid SSR issues
-      const { createAgent } = await import('@/ic/agent');
-      const identity = this.authClient!.getIdentity();
-      this.agent = await createAgent(identity);
-    }
-
-    return this.agent;
+    // Service class for ICP upload operations
   }
 
   /**
@@ -88,37 +52,63 @@ export class ICPUploadService {
    */
   async uploadFile(
     file: File,
-    uploadStorage: UploadStorage,
+    blobHostingPreferences: BlobHosting[],
     onProgress?: (progress: UploadProgress) => void
   ): Promise<UploadResult> {
-    if (uploadStorage.blob_storage !== 'icp') {
-      throw new Error('Upload storage is not ICP canister');
+    // Handle blob hosting preferences
+    if (blobHostingPreferences.includes('icp')) {
+      // Case 1: ICP storage - current implementation
+      const limits = {
+        inline_max: UPLOAD_LIMITS_ICP.INLINE_MAX_BYTES,
+        chunk_size: UPLOAD_LIMITS_ICP.CHUNK_SIZE_BYTES,
+        max_chunks: UPLOAD_LIMITS_ICP.MAX_CHUNKS,
+      };
+      const idem = crypto.randomUUID();
+
+      // Use existing backendActor function (simplified approach)
+      const { backendActor } = await import('@/ic/backend');
+      const actor = (await backendActor()) as CanisterActor;
+
+      const fileSize = file.size;
+      const isInline = fileSize <= limits.inline_max;
+      const capsuleId = 'mock-capsule-id';
+
+      if (isInline) {
+        return this.uploadInline(file, actor, capsuleId, idem, onProgress);
+      } else {
+        return this.uploadChunked(file, actor, capsuleId, idem, limits, onProgress);
+      }
     }
 
-    if (!uploadStorage.icp?.canister_id) {
-      throw new Error('ICP canister ID not provided in upload storage');
+    if (blobHostingPreferences.includes('s3')) {
+      // Case 2: S3 storage - TODO: implement
+      throw new Error('ICP upload service: S3 storage not yet implemented');
     }
 
-    const agent = await this.ensureAuthenticated();
-
-    // Dynamic import to avoid SSR issues
-    const { makeActor } = await import('@/ic/actor-factory');
-    const { idlFactory } = await import('@/ic/declarations/backend');
-
-    const actor = makeActor(idlFactory, uploadStorage.icp.canister_id, agent) as CanisterActor;
-
-    const fileSize = file.size;
-    const limits = uploadStorage.limits || { inline_max: 32 * 1024, chunk_size: 64 * 1024, max_chunks: 512 };
-    const isInline = fileSize <= limits.inline_max;
-
-    // For now, we'll use a mock capsule ID - this should come from user context
-    const capsuleId = 'mock-capsule-id';
-
-    if (isInline) {
-      return this.uploadInline(file, actor, capsuleId, uploadStorage, onProgress);
-    } else {
-      return this.uploadChunked(file, actor, capsuleId, uploadStorage, onProgress);
+    if (blobHostingPreferences.includes('arweave')) {
+      // Case 3: Arweave storage - TODO: implement
+      throw new Error('ICP upload service: Arweave storage not yet implemented');
     }
+
+    if (blobHostingPreferences.includes('ipfs')) {
+      // Case 4: IPFS storage - TODO: implement
+      throw new Error('ICP upload service: IPFS storage not yet implemented');
+    }
+
+    if (blobHostingPreferences.includes('vercel_blob')) {
+      // Case 5: Vercel Blob storage - TODO: implement
+      throw new Error('ICP upload service: Vercel Blob storage not yet implemented');
+    }
+
+    if (blobHostingPreferences.includes('neon')) {
+      // Case 6: Neon storage - TODO: implement
+      throw new Error('ICP upload service: Neon storage not yet implemented');
+    }
+
+    // No matching storage preference found
+    throw new Error(
+      `ICP upload service: No supported storage preference found. User preferences: ${blobHostingPreferences.join(', ')}`
+    );
   }
 
   /**
@@ -126,7 +116,7 @@ export class ICPUploadService {
    */
   async uploadFolder(
     files: File[],
-    uploadStorage: UploadStorage,
+    blobHostingPreferences: BlobHosting[],
     onProgress?: (progress: UploadProgress) => void
   ): Promise<UploadResult[]> {
     const results: UploadResult[] = [];
@@ -146,7 +136,7 @@ export class ICPUploadService {
       });
 
       try {
-        const result = await this.uploadFile(file, uploadStorage, fileProgress => {
+        const result = await this.uploadFile(file, blobHostingPreferences, fileProgress => {
           // Calculate overall progress including current file
           const overallPercentage = (i / totalFiles) * 100 + fileProgress.percentage / totalFiles;
           onProgress?.({
@@ -174,7 +164,7 @@ export class ICPUploadService {
     file: File,
     actor: CanisterActor,
     capsuleId: string,
-    uploadStorage: UploadStorage,
+    idem: string,
     onProgress?: (progress: UploadProgress) => void
   ): Promise<UploadResult> {
     try {
@@ -204,7 +194,7 @@ export class ICPUploadService {
         },
       };
 
-      const createResult = await actor.memories_create(capsuleId, memoryData, uploadStorage.idem);
+      const createResult = await actor.memories_create(capsuleId, memoryData, idem);
 
       if ('Err' in createResult) {
         throw new Error(`Failed to create memory: ${JSON.stringify(createResult.Err)}`);
@@ -227,12 +217,12 @@ export class ICPUploadService {
     file: File,
     actor: CanisterActor,
     capsuleId: string,
-    uploadStorage: UploadStorage,
+    idem: string,
+    limits: { inline_max: number; chunk_size: number; max_chunks: number },
     onProgress?: (progress: UploadProgress) => void
   ): Promise<UploadResult> {
     try {
       const fileSize = file.size;
-      const limits = uploadStorage.limits || { inline_max: 32 * 1024, chunk_size: 64 * 1024, max_chunks: 512 };
       const chunkSize = limits.chunk_size;
       const expectedChunks = Math.ceil(fileSize / chunkSize);
 
@@ -247,7 +237,7 @@ export class ICPUploadService {
         tags: [file.type.split('/')[0] || 'file'],
       };
 
-      const sessionResult = await actor.uploads_begin(capsuleId, memoryMeta, expectedChunks, uploadStorage.idem);
+      const sessionResult = await actor.uploads_begin(capsuleId, memoryMeta, expectedChunks, idem);
 
       if ('Err' in sessionResult) {
         throw new Error(`Failed to begin upload: ${JSON.stringify(sessionResult.Err)}`);
@@ -299,34 +289,6 @@ export class ICPUploadService {
     } catch (error) {
       console.error('Chunked upload failed:', error);
       throw new Error(`Chunked upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }
-
-  /**
-   * Check if user is authenticated with Internet Identity
-   */
-  async isAuthenticated(): Promise<boolean> {
-    try {
-      if (!this.authClient) {
-        await this.initializeAuth();
-      }
-      return (await this.authClient?.isAuthenticated()) ?? false;
-    } catch {
-      return false;
-    }
-  }
-
-  /**
-   * Get user's Internet Identity principal
-   */
-  async getPrincipal(): Promise<string | null> {
-    try {
-      if (!this.authClient) {
-        await this.initializeAuth();
-      }
-      return this.authClient?.getIdentity()?.getPrincipal()?.toText() ?? null;
-    } catch {
-      return null;
     }
   }
 }

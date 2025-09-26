@@ -10,7 +10,12 @@
 import { getSingleGrant, type GrantResponse } from './grant';
 import { processImageDerivatives } from './image-derivatives';
 import { finalizeAllAssets, type ProcessedAssets } from './finalize';
-import { uploadFileWithProgress, extractFolderName, generateS3PublicUrl } from './shared-utils';
+import {
+  uploadFileWithProgress,
+  extractFolderName,
+  generateS3PublicUrl,
+  type UploadServiceResult,
+} from './shared-utils';
 
 // Types for batch commit response
 interface BatchCommitResponse {
@@ -37,12 +42,8 @@ async function uploadToS3WithGrant(
   results: Array<{ memoryId: string; size: number; checksum_sha256: string | null }>;
   userId: string;
 }> {
-  console.log(`🚀 Getting presigned URL for: ${file.name}`);
-
   // Upload original file using grant
   await uploadFileWithProgress(file, grant.original.uploadUrl, onProgress || (() => {}));
-
-  console.log(`💾 Committing to database: ${file.name}`);
 
   // Commit to database
   const commitResponse = await fetch('/api/upload/complete', {
@@ -62,7 +63,6 @@ async function uploadToS3WithGrant(
   }
 
   const commitData = await commitResponse.json();
-  console.log(`✅ Upload completed: ${file.name}`);
 
   return {
     data: { id: commitData.data.id },
@@ -80,13 +80,8 @@ async function uploadToS3WithGrant(
 export async function uploadToS3WithProcessing(
   file: File,
   onProgress?: (progress: number) => void
-): Promise<{
-  data: { id: string };
-  results: Array<{ memoryId: string; size: number; checksum_sha256: string | null }>;
-  userId: string;
-}> {
-  console.log(`🚀 Starting parallel upload for: ${file.name}`);
-  const startTime = Date.now();
+): Promise<UploadServiceResult> {
+  // const startTime = Date.now();
 
   try {
     // 1. Single grant before starting both lanes
@@ -98,27 +93,15 @@ export async function uploadToS3WithProcessing(
     let laneBPromise: Promise<ProcessedAssets> | null = null;
     if (file.type.startsWith('image/')) {
       // Lane B processes original File object immediately
-      console.log(`🖼️ Starting Lane B (derivatives) for: ${file.name}`);
       laneBPromise = processImageDerivatives(file, grant);
-    } else {
-      console.log(`⏭️ Skipping Lane B (derivatives) for non-image: ${file.name}`);
     }
 
     // 3. Wait for both lanes to complete
     const laneAResult = await Promise.allSettled([laneAPromise]).then(results => results[0]);
     const laneBResult = laneBPromise ? await Promise.allSettled([laneBPromise]).then(results => results[0]) : null;
 
-    // Log lane results
-    console.log(`📊 Lane A result: ${laneAResult.status === 'fulfilled' ? '✅ success' : '❌ failed'}`);
-    console.log(
-      `📊 Lane B result: ${laneBResult?.status === 'fulfilled' ? '✅ success' : laneBResult?.status === 'rejected' ? '❌ failed' : '⏭️ skipped'}`
-    );
-
     // 4. Single finalize with all assets and precise statuses
     await finalizeAllAssets(laneAResult, laneBResult);
-
-    const duration = Date.now() - startTime;
-    console.log(`✅ Parallel upload completed for: ${file.name} (${duration}ms)`);
 
     // Return Lane A result (original upload)
     if (laneAResult.status === 'fulfilled') {
@@ -127,8 +110,6 @@ export async function uploadToS3WithProcessing(
       throw laneAResult.reason;
     }
   } catch (error) {
-    const duration = Date.now() - startTime;
-    console.error(`❌ Parallel upload failed for: ${file.name} (${duration}ms)`, error);
     throw error;
   }
 }
@@ -150,12 +131,10 @@ export async function uploadMultipleToS3WithProcessing(
   userId?: string;
   successfulUploads?: number;
 }> {
-  console.log(`🚀 Starting parallel batch upload for ${files.length} files`);
-  const startTime = Date.now();
+  // const startTime = Date.now();
 
   try {
     // 1. Get batch grants for all files (Lane A preparation)
-    console.log(`🎫 Getting batch grants for ${files.length} files`);
     const grantResponse = await fetch('/api/upload/batch-presign', {
       method: 'POST',
       headers: {
@@ -185,31 +164,17 @@ export async function uploadMultipleToS3WithProcessing(
     let laneBPromise: Promise<ProcessedAssets[]> | null = null;
 
     if (imageFiles.length > 0) {
-      console.log(`🖼️ Starting Lane B (derivatives) for ${imageFiles.length} image files`);
       laneBPromise = processMultipleImageDerivativesWithGrants(imageFiles, grants);
-    } else {
-      console.log(`⏭️ Skipping Lane B (derivatives) - no image files`);
     }
 
     // 3. Wait for both lanes to complete
     const laneAResult = await Promise.allSettled([laneAPromise]).then(results => results[0]);
     const laneBResult = laneBPromise ? await Promise.allSettled([laneBPromise]).then(results => results[0]) : null;
 
-    // Log lane results
-    console.log(`📊 Lane A result: ${laneAResult.status === 'fulfilled' ? '✅ success' : '❌ failed'}`);
-    console.log(
-      `📊 Lane B result: ${laneBResult?.status === 'fulfilled' ? '✅ success' : laneBResult?.status === 'rejected' ? '❌ failed' : '⏭️ skipped'}`
-    );
-
     // 4. Create folder if needed (for directory mode)
     let _parentFolderId: string | undefined = undefined;
     if (mode === 'directory') {
       const folderName = extractFolderName(files[0]);
-      console.log(`📁 Creating folder: ${folderName}`);
-      console.log(
-        `🔍 DEBUG: Mode is directory, creating folder for files:`,
-        files.map(f => f.name)
-      );
 
       const folderResponse = await fetch('/api/folders', {
         method: 'POST',
@@ -229,12 +194,10 @@ export async function uploadMultipleToS3WithProcessing(
     }
 
     // 5. Finalize all assets for each file
-    console.log(`💾 Finalizing assets for ${files.length} files`);
     if (laneAResult.status === 'fulfilled' && laneBResult?.status === 'fulfilled') {
       // Finalize each file's assets
       const finalizePromises = files.map(async (file, index) => {
         const memoryId = laneAResult.value.results[index]?.memoryId;
-        console.log(`🔍 DEBUG: Lane A result for file ${index + 1}:`, { memoryId, hasMemoryId: !!memoryId });
 
         const laneAResultForFile = {
           status: 'fulfilled' as const,
@@ -250,15 +213,11 @@ export async function uploadMultipleToS3WithProcessing(
           value: laneBResult.value[index] || {},
         };
 
-        console.log(`🔍 DEBUG: Finalizing file ${index + 1}/${files.length} with parentFolderId:`, _parentFolderId);
         await finalizeAllAssets(laneAResultForFile, laneBResultForFile, _parentFolderId);
       });
 
       await Promise.all(finalizePromises);
     }
-
-    const duration = Date.now() - startTime;
-    console.log(`✅ Parallel batch upload completed for ${files.length} files (${duration}ms)`);
 
     return {
       results: laneAResult.status === 'fulfilled' ? laneAResult.value.results : [],
@@ -266,8 +225,6 @@ export async function uploadMultipleToS3WithProcessing(
       successfulUploads: laneAResult.status === 'fulfilled' ? laneAResult.value.results.length : 0,
     };
   } catch (error) {
-    const duration = Date.now() - startTime;
-    console.error(`❌ Parallel batch upload failed for ${files.length} files (${duration}ms)`, error);
     throw error;
   }
 }
@@ -293,12 +250,8 @@ async function uploadMultipleOriginalsToS3WithGrants(
       throw new Error(`No grant found for file: ${file.name}`);
     }
 
-    console.log(`📤 Uploading original to S3: ${file.name}`);
-
     // Upload original file using grant
     await uploadFileWithProgress(file, grant.original.uploadUrl, progress => onProgress?.(file, progress));
-
-    console.log(`💾 Committing to database: ${file.name}`);
 
     // Commit to database
     const commitResponse = await fetch('/api/upload/complete', {
@@ -318,11 +271,6 @@ async function uploadMultipleOriginalsToS3WithGrants(
     }
 
     const commitData = await commitResponse.json();
-    console.log(`✅ Upload completed: ${file.name}`);
-    console.log(`🔍 DEBUG: Commit response for ${file.name}:`, {
-      memoryId: commitData.data?.id,
-      hasData: !!commitData.data,
-    });
 
     return {
       memoryId: commitData.data.id,
@@ -354,8 +302,7 @@ async function processMultipleImageDerivativesWithGrants(
       }
 
       return await processImageDerivatives(file, grant);
-    } catch (error) {
-      console.error(`Failed to process derivatives for ${file.name}:`, error);
+    } catch (_error) {
       return {
         display: { assetType: 'display' as const, processingStatus: 'failed' as const },
         thumb: { assetType: 'thumb' as const, processingStatus: 'failed' as const },
@@ -405,12 +352,9 @@ async function commitMultipleFilesWithDerivatives(
   }
 
   const commitResult = await commitResponse.json();
-  console.log(`✅ Batch upload committed: ${files.length} files`);
 
   // If we have derivatives, finalize them for each memory
   if (derivatives && commitResult.results) {
-    console.log(`🔄 Finalizing derivatives for ${derivatives.length} memories`);
-
     const finalizePromises = commitResult.results.map(
       async (result: BatchCommitResponse['results'][0], index: number) => {
         if (result.success && derivatives[index]) {
@@ -432,9 +376,8 @@ async function commitMultipleFilesWithDerivatives(
             };
 
             await finalizeAllAssets(laneAResult, laneBResult);
-            console.log(`✅ Finalized derivatives for memory: ${result.memoryId}`);
-          } catch (error) {
-            console.error(`❌ Failed to finalize derivatives for memory ${result.memoryId}:`, error);
+          } catch (_error) {
+            // Failed to finalize derivatives - continue with other files
           }
         }
       }

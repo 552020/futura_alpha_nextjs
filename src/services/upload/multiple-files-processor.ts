@@ -11,8 +11,8 @@
  * - Context updates
  */
 
-import { verifyIntent } from './intent';
-import { verifyUpload } from './verification';
+// import { verifyIntent } from './intent';
+// import { verifyUpload } from './verification';
 import type { HostingPreferences } from '@/hooks/use-storage-preferences';
 import { getDefaultHostingPreferences } from '@/hooks/use-storage-preferences';
 import { checkICPAuthentication, validateUploadFiles } from './shared-utils';
@@ -25,8 +25,7 @@ export interface ProcessMultipleFilesOptions {
   preferences?: HostingPreferences;
   onSuccess?: () => void;
   onError?: (error: Error) => void;
-  updateUserData?: (data: { uploadedFileCount: number; allUserId: string; memoryId: string }) => void;
-  setCurrentStep?: (step: 'upload' | 'user-info' | 'share' | 'sign-up' | 'complete') => void;
+  updateOnboardingContext?: (data: { data: { ownerId: string; id: string } }, files: File[]) => void;
   session?: { user?: { id?: string } } | null;
   showToast: (toast: { variant: 'destructive'; title: string; description: string }) => void;
   onProgress?: (file: File, progress: number) => void;
@@ -45,16 +44,16 @@ async function uploadMultipleToICP(
   await checkICPAuthentication();
 
   // Get storage configuration for ICP
-  const storageResponse = await verifyIntent({
-    preferred: 'icp',
-    databaseHosting: preferences?.databaseHosting[0],
-    backendHosting: preferences?.backendHosting,
-  });
-  const storage = storageResponse.uploadStorage;
+  // const storageResponse = await verifyIntent({
+  //   preferred: 'icp',
+  //   databaseHosting: preferences?.databaseHosting[0],
+  //   backendHosting: preferences?.backendHosting,
+  // });
+  // const storage = storageResponse.uploadStorage;
 
   // Upload to ICP canister
   const { icpUploadService } = await import('./icp-upload');
-  const icpResults = await icpUploadService.uploadFolder(files, storage, progress => {
+  const icpResults = await icpUploadService.uploadFolder(files, preferences.blobHosting, progress => {
     // Standardize progress format to match S3 (0-100 number)
     onProgress?.(files[0], progress.percentage); // Use first file for progress
   });
@@ -142,9 +141,8 @@ export async function processMultipleFiles(options: ProcessMultipleFilesOptions)
     preferences,
     onSuccess,
     onError,
-    updateUserData,
-    setCurrentStep,
-    session,
+    updateOnboardingContext,
+    session: _session,
     showToast,
     onProgress,
   } = options;
@@ -191,39 +189,28 @@ export async function processMultipleFiles(options: ProcessMultipleFilesOptions)
     // }
 
     // Best-effort verify first reported memory
-    const appMemoryId = data?.results?.[0]?.memoryId;
-    if (appMemoryId && userBlobHostingPreference !== 'icp') {
-      // For non-ICP flows, we still need to get storage info for verification
-      const storageResponse = await verifyIntent({
-        preferred: preferences?.blobHosting[0] === 'neon' ? 's3' : preferences?.blobHosting[0],
-        databaseHosting: preferences?.databaseHosting[0],
-        backendHosting: preferences?.backendHosting,
-      });
-      const storage = storageResponse.uploadStorage;
-      await verifyUpload({
-        appMemoryId,
-        database: storage.database,
-        blob_storage: storage.blob_storage,
-        idem: storage.idem,
-        size: data?.results?.[0]?.size || null,
-        checksum_sha256: data?.results?.[0]?.checksum_sha256 || null,
-        remote_id: data?.results?.[0]?.memoryId || appMemoryId,
-      });
-    }
+    // if (data?.results?.[0]?.memoryId && userBlobHostingPreference !== 'icp') {
+    //   // For non-ICP flows, we still need to get storage info for verification
+    //   const storageResponse = await verifyIntent({
+    //     preferred: preferences?.blobHosting[0] === 'neon' ? 's3' : preferences?.blobHosting[0],
+    //     databaseHosting: preferences?.databaseHosting[0],
+    //     backendHosting: preferences?.backendHosting,
+    //   });
+    //   const storage = storageResponse.uploadStorage;
+    //   await verifyUpload({
+    //     appMemoryId,
+    //     database: storage.database,
+    //     blob_storage: storage.blob_storage,
+    //     idem: storage.idem,
+    //     size: data?.results?.[0]?.size || null,
+    //     checksum_sha256: data?.results?.[0]?.checksum_sha256 || null,
+    //     remote_id: data?.results?.[0]?.memoryId,
+    //   });
+    // }
 
     // Update context with results (onboarding)
-    if (isOnboarding && data?.successfulUploads && data.successfulUploads > 0 && updateUserData && setCurrentStep) {
-      updateUserData({
-        uploadedFileCount: data.successfulUploads,
-        allUserId: data.userId ?? '',
-        memoryId: data.results?.[0]?.memoryId ?? '',
-      });
-
-      if (session) {
-        setCurrentStep('share');
-      } else {
-        setCurrentStep('user-info');
-      }
+    if (isOnboarding && data?.successfulUploads && data.successfulUploads > 0 && updateOnboardingContext) {
+      updateOnboardingContext({ data: { ownerId: data.userId ?? '', id: data.results?.[0]?.memoryId ?? '' } }, files);
     }
 
     onSuccess?.();
