@@ -39,9 +39,64 @@ export function GalleryImageModal({
   hasPrevious = false,
   assets = []
 }: GalleryImageModalProps) {
-  const [downloadSize, setDownloadSize] = React.useState<'display' | 'original'>('display');
+  const [displaySize, setDisplaySize] = React.useState<'display' | 'original'>('display');
+  const [currentImageUrl, setCurrentImageUrl] = React.useState(image?.url || '');
   const [isDownloading, setIsDownloading] = React.useState(false);
   const [showSizeDropdown, setShowSizeDropdown] = React.useState(false);
+  
+  // Update current image URL when display size or assets change
+  React.useEffect(() => {
+    const updateDisplayedImage = async () => {
+      if (!image) return;
+      
+      // If no assets, use the image URL directly
+      if (!assets || assets.length === 0) {
+        setCurrentImageUrl(image.url);
+        return;
+      }
+      
+      try {
+        // Try to find the best asset for display
+        const preferredOrder = displaySize === 'display' 
+          ? ['display', 'original', 'thumb'] 
+          : ['original', 'display', 'thumb'];
+        
+        for (const assetType of preferredOrder) {
+          const asset = assets.find(a => a.assetType === assetType);
+          if (asset) {
+            const formattedAsset = {
+              url: asset.url,
+              assetLocation: 's3',
+              storageKey: asset.url,
+              bucket: process.env.AWS_S3_BUCKET
+            };
+            const url = await generateBestAssetUrl(formattedAsset);
+            setCurrentImageUrl(url);
+            return;
+          }
+        }
+        
+        // Fallback to first available asset or image URL
+        if (assets[0]) {
+          const formattedAsset = {
+            url: assets[0].url,
+            assetLocation: 's3',
+            storageKey: assets[0].url,
+            bucket: process.env.AWS_S3_BUCKET
+          };
+          const url = await generateBestAssetUrl(formattedAsset);
+          setCurrentImageUrl(url);
+        } else {
+          setCurrentImageUrl(image.url);
+        }
+      } catch (error) {
+        console.error('Error updating displayed image:', error);
+        setCurrentImageUrl(image.url);
+      }
+    };
+    
+    updateDisplayedImage();
+  }, [image, assets, displaySize]);
   
   // Handle keyboard navigation
   const handleKeyDown = React.useCallback((e: KeyboardEvent) => {
@@ -83,63 +138,48 @@ export function GalleryImageModal({
   
   // Get the best URL for the selected download size
   const getDownloadUrl = async (): Promise<string> => {
-    console.log('getDownloadUrl called with downloadSize:', downloadSize);
-    console.log('Available assets:', assets);
+    if (!image) return '';
     
     // If no assets array or it's empty, use the image URL directly
     if (!assets || assets.length === 0) {
-      console.log('No assets available, falling back to image URL');
-      return image?.url || '';
+      return image.url;
     }
 
-    // Similar to /app/api/galleries/[id]/route.ts but with different priority order
-    const preferredOrder = downloadSize === 'display' 
+    // For downloads, we'll use the same logic as display but with the downloadSize
+    const preferredOrder = displaySize === 'display' 
       ? ['display', 'original', 'thumb'] 
       : ['original', 'display', 'thumb'];
     
-    console.log('Preferred order for selection:', preferredOrder);
-    
     for (const assetType of preferredOrder) {
       const asset = assets.find(a => a.assetType === assetType);
-      console.log(`Checking asset type: ${assetType}`, asset);
-      
       if (asset) {
         try {
-          // Format the asset object to match what generateBestAssetUrl expects
           const formattedAsset = {
             url: asset.url,
-            assetLocation: 's3', // Assuming all assets are in S3
-            storageKey: asset.url, // Use URL as storage key as a fallback
-            bucket: process.env.AWS_S3_BUCKET // Use the environment variable for bucket
+            assetLocation: 's3',
+            storageKey: asset.url,
+            bucket: process.env.AWS_S3_BUCKET
           };
-          
-          console.log('Formatted asset for generateBestAssetUrl:', formattedAsset);
-          
-          const url = await generateBestAssetUrl(formattedAsset);
-          console.log(`Selected asset type: ${assetType}`, { url });
-          return url;
+          return await generateBestAssetUrl(formattedAsset);
         } catch (error) {
           console.error(`Error generating URL for asset type ${assetType}:`, error);
-          continue; // Try the next asset type if this one fails
+          continue;
         }
       }
     }
 
     // Fallback to first available asset or image URL
-    const fallbackUrl = assets[0] 
-      ? (() => {
-          const formattedAsset = {
-            url: assets[0].url,
-            assetLocation: 's3',
-            storageKey: assets[0].url,
-            bucket: process.env.AWS_S3_BUCKET
-          };
-          return generateBestAssetUrl(formattedAsset);
-        })()
-      : (image?.url || '');
+    if (assets[0]) {
+      const formattedAsset = {
+        url: assets[0].url,
+        assetLocation: 's3',
+        storageKey: assets[0].url,
+        bucket: process.env.AWS_S3_BUCKET
+      };
+      return generateBestAssetUrl(formattedAsset);
+    }
     
-    console.log('Using fallback URL:', await fallbackUrl);
-    return fallbackUrl;
+    return image.url;
   };
 
   const handleDownload = async () => {
@@ -151,20 +191,35 @@ export function GalleryImageModal({
       // Get the appropriate URL based on selected size
       const downloadUrl = await getDownloadUrl();
       
-      // Fetch the image as a blob
-      const response = await fetch(downloadUrl, {
-        method: 'GET',
-        headers: {
-          'Cache-Control': 'no-cache',
-        },
-        credentials: 'same-origin'
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      // Try to fetch the file first to handle potential errors
+      let blob: Blob;
+      try {
+        const response = await fetch(downloadUrl, {
+          method: 'GET',
+          headers: {
+            'Cache-Control': 'no-cache',
+          },
+          credentials: 'include' // Include credentials for authenticated requests
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        blob = await response.blob();
+      } catch (fetchError) {
+        console.warn('Fetch failed, trying direct download:', fetchError);
+        // If fetch fails, try direct download
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = `download-${displaySize}${downloadUrl.includes('.') ? '' : '.jpg'}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        return;
       }
       
-      const blob = await response.blob();
+      // Create a blob URL for the downloaded file
       const blobUrl = URL.createObjectURL(blob);
       
       // Create a temporary anchor element
@@ -192,21 +247,21 @@ export function GalleryImageModal({
           }
           
           // Add size indicator if not in the filename
-          if (!filename.includes(downloadSize) && downloadSize !== 'original') {
+          if (!filename.includes(displaySize) && displaySize !== 'original') {
             const parts = filename.split('.');
             const ext = parts.pop();
-            filename = `${parts.join('.')}-${downloadSize}.${ext}`;
+            filename = `${parts.join('.')}-${displaySize}.${ext}`;
           }
         }
       } catch (e) {
         console.warn('Could not parse URL for filename', e);
-        filename = `download-${downloadSize}.jpg`;
+        const ext = blob.type.split('/')[1] || 'jpg';
+        filename = `download-${displaySize}.${ext}`;
       }
       
       // Set up the download link
       link.href = blobUrl;
       link.download = filename;
-      link.style.display = 'none';
       
       // Add to document, trigger download, and clean up
       document.body.appendChild(link);
@@ -219,11 +274,12 @@ export function GalleryImageModal({
       }, 100);
       
     } catch (error) {
-      console.error('Error downloading image:', error);
-      // Fallback to the original method if the fetch approach fails
+      console.error('Error in download handler:', error);
+      // Final fallback - try direct download with the image URL
       const link = document.createElement('a');
       link.href = image.url;
-      link.download = `download-${downloadSize}.jpg`;
+      const ext = image.url.split('.').pop()?.split('?')[0] || 'jpg';
+      link.download = `download-${displaySize}.${ext}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -291,7 +347,7 @@ export function GalleryImageModal({
           <div className="relative w-full h-full flex items-center justify-center">
             {image?.url && (
               <Image
-                src={image.url}
+                src={currentImageUrl}
                 alt={image.title}
                 fill
                 className="object-contain"
@@ -314,7 +370,7 @@ export function GalleryImageModal({
                   disabled={isDownloading}
                 >
                   <Download className="h-4 w-4 mr-2" />
-                  {isDownloading ? 'Downloading...' : `Download (${downloadSize})`}
+                  {isDownloading ? 'Downloading...' : `Download (${displaySize})`}
                 </Button>
                 <Button
                   variant="ghost"
@@ -341,11 +397,11 @@ export function GalleryImageModal({
                   <div className="py-1">
                     <button
                       className={`w-full text-left px-4 py-2 text-sm text-white hover:bg-white/20 ${
-                        downloadSize === 'display' ? 'bg-white/30' : ''
+                        displaySize === 'display' ? 'bg-white/30' : ''
                       }`}
                       onClick={(e) => {
                         e.stopPropagation();
-                        setDownloadSize('display');
+                        setDisplaySize('display');
                         setShowSizeDropdown(false);
                       }}
                     >
@@ -353,11 +409,11 @@ export function GalleryImageModal({
                     </button>
                     <button
                       className={`w-full text-left px-4 py-2 text-sm text-white hover:bg-white/20 ${
-                        downloadSize === 'original' ? 'bg-white/30' : ''
+                        displaySize === 'original' ? 'bg-white/30' : ''
                       }`}
                       onClick={(e) => {
                         e.stopPropagation();
-                        setDownloadSize('original');
+                        setDisplaySize('original');
                         setShowSizeDropdown(false);
                       }}
                     >
