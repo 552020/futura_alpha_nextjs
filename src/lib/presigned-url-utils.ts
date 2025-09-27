@@ -15,11 +15,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
  * @param region - The S3 region (optional, will use env var if not provided)
  * @returns Promise<string> - The presigned URL
  */
-export async function generatePresignedUrlDirect(
-  key: string,
-  bucket?: string,
-  region?: string
-): Promise<string> {
+export async function generatePresignedUrlDirect(key: string, bucket?: string, region?: string): Promise<string> {
   console.log('🔑 generatePresignedUrlDirect called with:', {
     key,
     bucket,
