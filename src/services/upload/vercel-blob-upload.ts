@@ -90,36 +90,41 @@ export async function uploadFileToVercelBlob(
     },
   });
 
-  // Memory record creation is handled automatically by the grant endpoint with ngrok
-  try {
-    const memoryResponse = await fetch('/api/memories', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        blobUrl: blob.url,
-        filename: file.name,
-        contentType: file.type,
-        size: file.size,
-        pathname: blob.pathname,
-        isOnboarding,
-        mode,
-        ...(existingUserId && { userId: existingUserId }), // Only include userId if it exists
-      }),
-    });
+  // Memory was already created by the grant endpoint's onUploadCompleted callback
+  // The grant endpoint now returns the memoryId in the response
+  const memoryId = (blob as { memoryId?: string }).memoryId;
 
-    if (!memoryResponse.ok) {
-      throw new Error(`Failed to create memory: ${memoryResponse.statusText}`);
-    }
-
-    const memoryData = await memoryResponse.json();
-
+  if (memoryId) {
+    // Return the memory data using the ID from the grant endpoint
     return {
       success: true,
-      data: memoryData.data,
+      data: {
+        id: memoryId,
+        type: getMemoryTypeFromFile(file),
+        title: file.name.split('.')[0] || 'Untitled',
+        description: '',
+        fileCreatedAt: new Date().toISOString(),
+        isPublic: false,
+        parentFolderId: null,
+        tags: [],
+        recipients: [],
+        unlockDate: null,
+        metadata: {},
+        createdAt: new Date().toISOString(),
+        assets: [
+          {
+            id: 'temp-asset-id',
+            assetType: 'original',
+            url: blob.url,
+            bytes: file.size,
+            mimeType: file.type,
+            storageBackend: 'vercel_blob',
+            storageKey: blob.pathname,
+          },
+        ],
+      },
     };
-  } catch (_error) {
+  } else {
     // Fallback: return the blob info even if memory creation failed
     // This allows the upload to appear successful, but the file won't show in dashboard
     return {
@@ -154,39 +159,6 @@ export async function uploadFileToVercelBlob(
 }
 
 /**
- * Upload multiple files (folder upload) using blob-first approach
- */
-export const uploadFiles = async (
-  files: File[],
-  isOnboarding: boolean,
-  existingUserId?: string,
-  mode: UploadMode = 'directory'
-): Promise<UploadResponse[]> => {
-  const uploadPromises = files.map((file, _index) => {
-    return uploadFileToVercelBlob(file, isOnboarding, existingUserId, mode);
-  });
-
-  try {
-    const results = await Promise.allSettled(uploadPromises);
-
-    const successful = results
-      .filter((result): result is PromiseFulfilledResult<UploadResponse> => result.status === 'fulfilled')
-      .map(result => result.value);
-
-    const _failed = results
-      .filter((result): result is PromiseRejectedResult => result.status === 'rejected')
-      .map((result, index) => ({
-        file: files[index].name,
-        error: result.reason.message,
-      }));
-
-    return successful;
-  } catch (error) {
-    throw error;
-  }
-};
-
-/**
  * Upload to Vercel Blob - unified function for single and multiple files
  */
 export async function uploadToVercelBlob(
@@ -196,39 +168,23 @@ export async function uploadToVercelBlob(
   mode: 'single' | 'multiple-files' | 'directory',
   _onProgress?: (progress: number) => void
 ): Promise<UploadServiceResult[]> {
-  const isSingleFile = files.length === 1;
   const results: UploadServiceResult[] = [];
 
-  if (isSingleFile) {
-    // Single file mode
-    const file = files[0];
+  // Upload all files in parallel
+  const uploadPromises = files.map(async file => {
     const uploadResult = await uploadFileToVercelBlob(file, isOnboarding, existingUserId, mode);
+    return { file, uploadResult };
+  });
 
-    // Convert to expected format
-    const memory = Array.isArray(uploadResult.data) ? uploadResult.data[0] : uploadResult.data;
+  const uploadResults = await Promise.allSettled(uploadPromises);
 
-    if (!memory || !memory.id) {
-      throw new Error('Upload failed: Invalid response from server');
-    }
+  // Process results
+  for (let i = 0; i < uploadResults.length; i++) {
+    const result = uploadResults[i];
+    const file = files[i];
 
-    results.push({
-      data: { id: memory.id },
-      results: [
-        {
-          memoryId: memory.id,
-          size: file.size,
-          checksum_sha256: null,
-        },
-      ],
-      userId: existingUserId || '',
-    });
-  } else {
-    // Multiple files mode - use uploadFiles
-    const uploadResults = await uploadFiles(files, isOnboarding, existingUserId, mode);
-
-    for (let i = 0; i < uploadResults.length; i++) {
-      const uploadResult = uploadResults[i];
-      const file = files[i];
+    if (result.status === 'fulfilled') {
+      const { uploadResult } = result.value;
 
       // Convert to expected format
       const memory = Array.isArray(uploadResult.data) ? uploadResult.data[0] : uploadResult.data;
@@ -248,6 +204,10 @@ export async function uploadToVercelBlob(
         ],
         userId: existingUserId || '',
       });
+    } else {
+      // Handle failed uploads - continue with other files
+      console.error(`Upload failed for file ${file.name}:`, result.reason);
+      throw new Error(`Upload failed for file ${file.name}: ${result.reason.message}`);
     }
   }
 

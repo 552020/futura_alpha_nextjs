@@ -16,7 +16,7 @@ const ALLOWED = [
 ];
 
 export async function POST(req: NextRequest) {
-  // who’s uploading?
+  // who's uploading?
   const user = await getAllUserId(req);
   if (!user?.allUserId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -29,6 +29,9 @@ export async function POST(req: NextRequest) {
   // Extract client payload from the request body
   const clientPayload = body.clientPayload ? JSON.parse(body.clientPayload) : {};
   console.log('📦 Client payload received:', clientPayload);
+
+  // Store memory ID to return to client
+  let createdMemoryId: string | undefined;
 
   const res = await handleUpload({
     request: req,
@@ -69,6 +72,11 @@ export async function POST(req: NextRequest) {
 
         console.log('📝 Memory creation result:', result);
 
+        // Store the memory ID to return to client
+        if (result.success && result.memoryId) {
+          createdMemoryId = result.memoryId;
+        }
+
         // If this is an image and memory creation was successful, enqueue image processing
         if (result.success && result.memoryId && blob.contentType?.startsWith('image/')) {
           console.log(`🖼️ Enqueueing image processing for memory ${result.memoryId}`);
@@ -87,5 +95,9 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  return NextResponse.json(res);
+  // Add the created memory ID to the response
+  return NextResponse.json({
+    ...res,
+    memoryId: createdMemoryId,
+  });
 }

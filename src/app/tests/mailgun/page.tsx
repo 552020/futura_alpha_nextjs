@@ -20,7 +20,7 @@ export default function MailgunTest() {
     setResult(null);
 
     try {
-      const response = await fetch('/api/tests/mailgun', {
+      const response = await fetch('/api/test/mailgun', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ to, subject, content }),

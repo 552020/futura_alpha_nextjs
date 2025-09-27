@@ -69,7 +69,7 @@ This document outlines all API endpoints for the family file sharing application
 
 - `GET /api/test/auth` - Test authentication
 - `GET /api/test/hello` - Test endpoint
-- `POST /api/tests/mailgun` - Test Mailgun integration
+- `POST /api/test/mailgun` - Test Mailgun integration
 
 ---
 
@@ -686,7 +686,7 @@ Common HTTP status codes:
 
 - ✅ `GET /api/test/auth` - Test authentication
 - ✅ `GET /api/test/hello` - Test endpoint
-- ✅ `POST /api/tests/mailgun` - Test Mailgun
+- ✅ `POST /api/test/mailgun` - Test Mailgun
 
 ### ❌ **NOT IMPLEMENTED (Legacy Documentation)**
 
