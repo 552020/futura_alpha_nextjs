@@ -63,7 +63,7 @@ export async function generatePresignedUrl(key: string): Promise<string> {
   try {
     // Use absolute URL for server-side fetch
     const baseUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL || 'http://localhost:3000';
-    const apiUrl = `${baseUrl}/api/s3/presigned-url`;
+    const apiUrl = `${baseUrl}/api/upload/s3/download`;
     console.log('🌐 Using API URL:', apiUrl);
     console.log('🌐 Environment check:', {
       hasNextAuthUrl: !!process.env.NEXTAUTH_URL,

@@ -60,7 +60,7 @@ This document outlines all API endpoints for the family file sharing application
 
 ### S3 Integration
 
-- `POST /api/s3/presigned-url` - Generate S3 presigned URLs
+- `POST /api/upload/s3/download` - Generate S3 download presigned URLs
 
 ### Testing & Development
 
@@ -671,7 +671,7 @@ Common HTTP status codes:
 
 #### S3 Integration
 
-- ✅ `POST /api/s3/presigned-url` - Generate S3 presigned URLs
+- ✅ `POST /api/upload/s3/download` - Generate S3 download presigned URLs
 
 #### Testing & Development
 
