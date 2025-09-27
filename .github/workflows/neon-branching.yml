@@ -64,7 +64,7 @@ jobs:
       - name: Run Database Migrations
         run: pnpm run db:push
         env:
-          DATABASE_URL: '${{ steps.create_neon_branch.outputs.db_url_with_pooler }}'
+          DATABASE_URL_UNPOOLED: '${{ steps.create_neon_branch.outputs.db_url_with_pooler }}'
 
       # Optional: Run database tests
       # - name: Run Database Tests
