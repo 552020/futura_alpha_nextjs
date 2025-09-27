@@ -78,7 +78,7 @@ export async function uploadFileToVercelBlob(
 
   const blob = await blobUpload(file.name, file, {
     access: 'public',
-    handleUploadUrl: '/api/memories/grant/vercel-blob', // Use Vercel Blob specific grant endpoint
+    handleUploadUrl: '/api/upload/vercel-blob/grant', // Use Vercel Blob specific grant endpoint
     multipart: true, // chunked + parallel + retries for large files
     clientPayload: JSON.stringify(clientPayloadData),
     onUploadProgress: _ev => {
