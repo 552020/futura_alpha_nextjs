@@ -20,7 +20,6 @@ This document outlines all API endpoints for the family file sharing application
 
 ### Upload System (413 Solution)
 
-- `POST /api/upload/presign` - Get presigned URL for single file upload
 - `POST /api/upload/batch-presign` - Get presigned URLs for multiple files
 - `POST /api/upload/intent` - Request upload storage configuration
 - `POST /api/upload/verify` - Verify upload completion
@@ -208,7 +207,6 @@ All API routes require authentication unless specified otherwise. Authentication
 
 ### Get Presigned URL (Single File)
 
-- **URL**: `POST /api/upload/presign`
 - **Description**: Get presigned URL for single file upload to S3
 - **Request Body**:
   ```json
@@ -634,7 +632,6 @@ Common HTTP status codes:
 
 #### Upload System (413 Solution)
 
-- ✅ `POST /api/upload/presign` - Single file presigned URL
 - ✅ `POST /api/upload/batch-presign` - Multiple files presigned URLs
 - ✅ `POST /api/upload/intent` - Upload storage configuration
 - ✅ `POST /api/upload/verify` - Upload verification
@@ -686,7 +683,7 @@ Common HTTP status codes:
 
 #### File Management (Deprecated)
 
-- ❌ `POST /api/files/upload` - **DEPRECATED** - Use `/api/upload/presign` + `/api/upload/complete`
+- ❌ `POST /api/files/upload` - **DEPRECATED** - Use `/api/upload/s3/presign` + `/api/upload/complete`
 - ❌ `GET /api/files` - **DEPRECATED** - Use `/api/memories`
 - ❌ `GET /api/files/[id]` - **DEPRECATED** - Use `/api/memories/[id]`
 - ❌ `PATCH /api/files/[id]` - **DEPRECATED** - Use `/api/memories/[id]`
@@ -720,7 +717,7 @@ Common HTTP status codes:
 
 ### 📊 **USAGE RECOMMENDATIONS**
 
-- **For new uploads**: Use the 413 solution endpoints (`/api/upload/presign`, `/api/upload/complete`)
+- **For new uploads**: Use the 413 solution endpoints (`/api/upload/s3/presign`, `/api/upload/complete`)
 - **For file management**: Use memory endpoints (`/api/memories/*`)
 - **For sharing**: Use memory sharing endpoints (`/api/memories/[id]/share`)
 - **For organization**: Use folders (`/api/folders`) and galleries (`/api/galleries`)
