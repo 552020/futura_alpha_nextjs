@@ -10,8 +10,6 @@
  * - Context updates
  */
 
-// import { verifyIntent } from './intent';
-// import { verifyUpload } from './verification';
 import type { FileInputAttributeMode } from '@/types/upload';
 import type { HostingPreferences } from '@/hooks/use-storage-preferences';
 import { getDefaultHostingPreferences } from '@/hooks/use-storage-preferences';
@@ -30,77 +28,6 @@ export interface ProcessSingleFileOptions {
   showToast: (toast: { variant: 'destructive'; title: string; description: string }) => void;
   onProgress?: (progress: number) => void;
 }
-
-// Upload to ICP canister - moved to icp-upload.ts
-
-// Upload to S3 using 413 solution (presigned URLs)
-// export async function uploadToS3(
-//   file: File,
-//   onProgress?: (progress: number) => void
-// ): Promise<{
-//   data: { id: string };
-//   results: Array<{ memoryId: string; size: number; checksum_sha256: string | null }>;
-//   userId: string;
-// }> {
-//   const presignResponse = await fetch('/api/upload/presign', {
-//     method: 'POST',
-//     headers: {
-//       'Content-Type': 'application/json',
-//     },
-//     body: JSON.stringify({
-//       fileName: file.name,
-//       fileType: file.type,
-//       fileSize: file.size,
-//     }),
-//   });
-
-//   if (!presignResponse.ok) {
-//     const error = await presignResponse.json();
-//     throw new Error(error.error || 'Failed to get presigned URL');
-//   }
-
-//   const { signedUrl, s3Key } = await presignResponse.json();
-
-//   // Upload file to S3 with progress
-//   await uploadFileWithProgress(file, signedUrl, progress => {
-//     onProgress?.(progress);
-//   });
-
-//   // Commit to database
-//   const commitResponse = await fetch('/api/upload/commit', {
-//     method: 'POST',
-//     headers: {
-//       'Content-Type': 'application/json',
-//     },
-//     body: JSON.stringify({
-//       fileName: file.name,
-//       fileType: file.type,
-//       fileSize: file.size,
-//       s3Url: generateS3PublicUrl(s3Key),
-//     }),
-//   });
-
-//   if (!commitResponse.ok) {
-//     const error = await commitResponse.json();
-//     throw new Error(error.error || 'Failed to commit upload');
-//   }
-
-//   const commitResult = await commitResponse.json();
-
-//   return {
-//     data: { id: commitResult.data.id },
-//     results: [
-//       {
-//         memoryId: commitResult.data.id,
-//         size: file.size,
-//         checksum_sha256: null,
-//       },
-//     ],
-//     userId: '', // Will be set by caller
-//   };
-// }
-
-// Upload to Vercel Blob (legacy fallback)
 
 export async function processSingleFile(options: ProcessSingleFileOptions): Promise<void> {
   const {
@@ -151,27 +78,6 @@ export async function processSingleFile(options: ProcessSingleFileOptions): Prom
 
     // Set userId for all upload services (normalize response)
     data.userId = existingUserId || '';
-
-    // 3) Get memory ID for context updates
-    // if (data?.data?.id && !userBlobHostingPreferences.includes('icp')) {
-    //   // For non-ICP flows, we still need to get storage info for verification
-    //   const storageResponse = await verifyIntent({
-    //     preferred: preferences?.blobHosting[0] === 'neon' ? 's3' : preferences?.blobHosting[0],
-    //     databaseHosting: preferences?.databaseHosting[0],
-    //     backendHosting: preferences?.backendHosting,
-    //   });
-    //   const storage = storageResponse.uploadStorage;
-    //   await verifyUpload({
-    //     appMemoryId,
-    //     database: storage.database,
-    //     blob_storage: storage.blob_storage,
-    //     idem: storage.idem,
-    //     size: file.size,
-    //     checksum_sha256: data?.results?.[0]?.checksum_sha256 ?? null,
-    //     remote_id: data?.results?.[0]?.memoryId ?? data?.data?.id,
-    //   });
-    // }
-
     if (isOnboarding && data && updateOnboardingContext) {
       updateOnboardingContext({ data: { ownerId: data.userId ?? '', id: data.data?.id ?? '' } }, [file]);
     }

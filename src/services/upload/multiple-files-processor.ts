@@ -11,8 +11,6 @@
  * - Context updates
  */
 
-// import { verifyIntent } from './intent';
-// import { verifyUpload } from './verification';
 import type { HostingPreferences } from '@/hooks/use-storage-preferences';
 import { getDefaultHostingPreferences } from '@/hooks/use-storage-preferences';
 import { validateUploadFiles } from './shared-utils';
@@ -114,34 +112,6 @@ export async function processMultipleFiles(options: ProcessMultipleFilesOptions)
       // Default to S3 with parallel processing for unknown preferences
       data = await uploadMultipleToS3WithProcessing(files, mode, onProgress);
     }
-
-    // Future storage options can be added here:
-    // else if (userBlobHosting === 'arweave') {
-    //   data = await uploadMultipleToArweave(files, onProgress);
-    // } else if (userBlobHosting === 'ipfs') {
-    //   data = await uploadMultipleToIPFS(files, onProgress);
-    // }
-
-    // Best-effort verify first reported memory
-    // if (data?.results?.[0]?.memoryId && userBlobHostingPreference !== 'icp') {
-    //   // For non-ICP flows, we still need to get storage info for verification
-    //   const storageResponse = await verifyIntent({
-    //     preferred: preferences?.blobHosting[0] === 'neon' ? 's3' : preferences?.blobHosting[0],
-    //     databaseHosting: preferences?.databaseHosting[0],
-    //     backendHosting: preferences?.backendHosting,
-    //   });
-    //   const storage = storageResponse.uploadStorage;
-    //   await verifyUpload({
-    //     appMemoryId,
-    //     database: storage.database,
-    //     blob_storage: storage.blob_storage,
-    //     idem: storage.idem,
-    //     size: data?.results?.[0]?.size || null,
-    //     checksum_sha256: data?.results?.[0]?.checksum_sha256 || null,
-    //     remote_id: data?.results?.[0]?.memoryId,
-    //   });
-    // }
-
     // Update context with results (onboarding)
     if (isOnboarding && data?.successfulUploads && data.successfulUploads > 0 && updateOnboardingContext) {
       updateOnboardingContext({ data: { ownerId: data.userId ?? '', id: data.results?.[0]?.memoryId ?? '' } }, files);
