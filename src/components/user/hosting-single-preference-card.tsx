@@ -1,17 +1,28 @@
 'use client';
 
+/**
+ * HostingSinglePreferenceCard
+ * 
+ * NOTE: This component is an ALTERNATIVE to HostingWeb2Web3ToggleCard.
+ * They do NOT work together - use one or the other.
+ * 
+ * This component provides detailed hosting provider selection using dropdown selects.
+ * It's designed for users who want to choose specific hosting providers
+ * rather than just Web2 vs Web3 paradigms.
+ */
+
 import {
   useHostingPreferences,
   useUpdateHostingPreferences,
   getDefaultHostingPreferences,
-} from '@/hooks/use-storage-preferences';
+} from '@/hooks/use-hosting-preferences';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-export function StorageSettings() {
+export function HostingSinglePreferenceCard() {
   const { data: preferences, isLoading, error } = useHostingPreferences();
   const updatePreferences = useUpdateHostingPreferences();
 

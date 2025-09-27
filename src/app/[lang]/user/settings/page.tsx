@@ -9,9 +9,9 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useInterface } from '@/contexts/interface-context';
-import { StorageSettings } from '@/components/user/storage-settings';
-import { HostingCard } from '@/components/user/hosting-card';
-import { useHostingPreferences, useUpdateHostingPreferences, type BlobHosting } from '@/hooks/use-storage-preferences';
+import { HostingSinglePreferenceCard } from '@/components/user/hosting-single-preference-card';
+import { HostingWeb2Web3ToggleCard } from '@/components/user/hosting-web2-web3-toggle-card';
+import { useHostingPreferences, useUpdateHostingPreferences, type BlobHosting } from '@/hooks/use-hosting-preferences';
 import { Skeleton } from '@/components/ui/skeleton';
 
 function TemporaryUserCard() {
@@ -334,7 +334,7 @@ export default function SettingsPage() {
         {isTemporaryUser && <TemporaryUserCard />}
 
         {/* Hosting Cards */}
-        <HostingCard
+        <HostingWeb2Web3ToggleCard
           title="Frontend"
           web2Label="Web2"
           web2Description="Vercel"
@@ -347,7 +347,7 @@ export default function SettingsPage() {
           isLoading={updatePreferences.isPending}
         />
 
-        <HostingCard
+        <HostingWeb2Web3ToggleCard
           title="Backend"
           web2Label="Web2"
           web2Description="Vercel"
@@ -360,7 +360,7 @@ export default function SettingsPage() {
           isLoading={updatePreferences.isPending}
         />
 
-        <HostingCard
+        <HostingWeb2Web3ToggleCard
           title="Database"
           web2Label="Web2"
           web2Description="Neon"
@@ -373,7 +373,7 @@ export default function SettingsPage() {
           isLoading={updatePreferences.isPending}
         />
 
-        <HostingCard
+        <HostingWeb2Web3ToggleCard
           title="Blob"
           web2Label="Web2"
           web2Description="S3"
@@ -393,7 +393,7 @@ export default function SettingsPage() {
         />
 
         {/* Hosting Preferences Component */}
-        <StorageSettings />
+        <HostingSinglePreferenceCard />
 
         {/* Settings Cards */}
         <NotificationsCard />

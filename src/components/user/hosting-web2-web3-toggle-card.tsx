@@ -1,11 +1,22 @@
 'use client';
 
+/**
+ * HostingWeb2Web3ToggleCard
+ *
+ * NOTE: This component is an ALTERNATIVE to HostingSinglePreferenceCard.
+ * They do NOT work together - use one or the other.
+ *
+ * This component provides a simple Web2 vs Web3 paradigm selection using toggle switches.
+ * It's designed for users who want to choose between Web2 and Web3 hosting paradigms
+ * rather than specific hosting providers.
+ */
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 
-export interface HostingCardProps {
+export interface HostingWeb2Web3ToggleCardProps {
   title: string;
   web2Label: string;
   web2Description: string;
@@ -21,7 +32,7 @@ export interface HostingCardProps {
   isLoading?: boolean;
 }
 
-export function HostingCard({
+export function HostingWeb2Web3ToggleCard({
   title,
   web2Label,
   web2Description,
@@ -35,7 +46,7 @@ export function HostingCard({
   onWeb3Change,
   onSharedCanisterChange,
   isLoading = false,
-}: HostingCardProps) {
+}: HostingWeb2Web3ToggleCardProps) {
   return (
     <Card>
       <CardHeader>

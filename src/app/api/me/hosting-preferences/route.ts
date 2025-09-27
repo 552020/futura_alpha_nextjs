@@ -3,7 +3,7 @@ import { auth } from '@/auth';
 import { db } from '@/db/db';
 import { userHostingPreferences } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import type { HostingPreferences } from '@/hooks/use-storage-preferences';
+import type { HostingPreferences } from '@/hooks/use-hosting-preferences';
 
 /**
  * GET /api/me/hosting-preferences

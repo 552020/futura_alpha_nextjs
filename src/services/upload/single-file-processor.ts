@@ -11,8 +11,8 @@
  */
 
 import type { FileInputAttributeMode } from '@/types/upload';
-import type { HostingPreferences } from '@/hooks/use-storage-preferences';
-import { getDefaultHostingPreferences } from '@/hooks/use-storage-preferences';
+import type { HostingPreferences } from '@/hooks/use-hosting-preferences';
+import { getDefaultHostingPreferences } from '@/hooks/use-hosting-preferences';
 import { validateUploadFiles } from './shared-utils';
 import { uploadToS3WithProcessing } from './s3-with-processing';
 

@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useOnboarding } from '@/contexts/onboarding-context';
 import { useSession } from 'next-auth/react';
-import { useHostingPreferences } from '@/hooks/use-storage-preferences';
+import { useHostingPreferences } from '@/hooks/use-hosting-preferences';
 import { processSingleFile as processSingleFileService } from '@/services/upload/single-file-processor';
 import { processMultipleFiles as processMultipleFilesService } from '@/services/upload/multiple-files-processor';
 import type { UseFileUploadProps } from '@/types/upload';

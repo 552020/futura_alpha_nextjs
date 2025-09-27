@@ -2,7 +2,7 @@
 
 // import { HttpAgent } from '@dfinity/agent';
 import type { MemoryData, MemoryMeta, _SERVICE } from '@/ic/declarations/backend/backend.did';
-import type { BlobHosting, HostingPreferences } from '@/hooks/use-storage-preferences';
+import type { BlobHosting, HostingPreferences } from '@/hooks/use-hosting-preferences';
 import { UPLOAD_LIMITS_ICP } from '@/config/upload-limits';
 import type { UploadServiceResult } from './shared-utils';
 
