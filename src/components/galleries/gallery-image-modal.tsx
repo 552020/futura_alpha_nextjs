@@ -43,6 +43,7 @@ export function GalleryImageModal({
   const [currentImageUrl, setCurrentImageUrl] = React.useState(image?.url || '');
   const [isDownloading, setIsDownloading] = React.useState(false);
   const [showSizeDropdown, setShowSizeDropdown] = React.useState(false);
+  const [shouldDropUp, setShouldDropUp] = React.useState(false);
   
   // Update current image URL when display size or assets change
   React.useEffect(() => {
@@ -361,7 +362,7 @@ export function GalleryImageModal({
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-black/50 text-white px-4 py-2 rounded-full">
             <span className="text-sm font-medium">{image?.title}</span>
             <div className="relative inline-block">
-              <div className="flex items-center space-x-1">
+              <div className="flex items-center space-x-1 relative">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -372,56 +373,78 @@ export function GalleryImageModal({
                   <Download className="h-4 w-4 mr-2" />
                   {isDownloading ? 'Downloading...' : `Download (${displaySize})`}
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-white hover:bg-white/20 h-9 w-6"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowSizeDropdown(!showSizeDropdown);
-                  }}
-                >
-                  <ChevronDown
-                    className={`h-4 w-4 transition-transform ${
-                      showSizeDropdown ? 'rotate-180' : ''
-                    }`}
-                  />
-                  <span className="sr-only">Select download size</span>
-                </Button>
-              </div>
-              {showSizeDropdown && (
-                <div
-                  className="absolute left-0 mt-1 w-40 bg-black/80 backdrop-blur-sm rounded-md shadow-lg z-50 border border-white/20"
-                  onMouseLeave={() => setShowSizeDropdown(false)}
-                >
-                  <div className="py-1">
-                    <button
-                      className={`w-full text-left px-4 py-2 text-sm text-white hover:bg-white/20 ${
-                        displaySize === 'display' ? 'bg-white/30' : ''
+                <div className="relative">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-white hover:bg-white/20 h-9 w-6"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowSizeDropdown(!showSizeDropdown);
+                    }}
+                    ref={(el) => {
+                      if (el) {
+                        const rect = el.getBoundingClientRect();
+                        const spaceBelow = window.innerHeight - rect.bottom;
+                        const spaceAbove = rect.top;
+                        const dropdownHeight = 100; // Approximate height of the dropdown
+                        
+                        // Position dropdown below if there's enough space, otherwise above
+                        setShouldDropUp(spaceBelow < dropdownHeight && spaceAbove > spaceBelow);
+                      }
+                    }}
+                  >
+                    <ChevronDown
+                      className={`h-4 w-4 transition-transform ${
+                        showSizeDropdown ? 'rotate-180' : ''
                       }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDisplaySize('display');
-                        setShowSizeDropdown(false);
+                    />
+                    <span className="sr-only">Select download size</span>
+                  </Button>
+                  {showSizeDropdown && (
+                    <div
+                      className={`absolute ${
+                        shouldDropUp ? 'bottom-full mb-1' : 'top-full mt-1'
+                      } right-0 w-40 bg-black/80 backdrop-blur-sm rounded-md shadow-lg z-50 border border-white/20`}
+                      onMouseLeave={() => setShowSizeDropdown(false)}
+                      style={{
+                        // Ensure dropdown stays within viewport
+                        maxHeight: 'calc(100vh - 20px)',
+                        overflowY: 'auto',
+                        // Add some animation
+                        animation: 'fadeIn 100ms ease-out',
                       }}
                     >
-                      Medium (Display)
-                    </button>
-                    <button
-                      className={`w-full text-left px-4 py-2 text-sm text-white hover:bg-white/20 ${
-                        displaySize === 'original' ? 'bg-white/30' : ''
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDisplaySize('original');
-                        setShowSizeDropdown(false);
-                      }}
-                    >
-                      Original
-                    </button>
-                  </div>
+                      <div className="py-1">
+                        <button
+                          className={`w-full text-left px-4 py-2 text-sm text-white hover:bg-white/20 ${
+                            displaySize === 'display' ? 'bg-white/30' : ''
+                          }`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDisplaySize('display');
+                            setShowSizeDropdown(false);
+                          }}
+                        >
+                          Medium (Display)
+                        </button>
+                        <button
+                          className={`w-full text-left px-4 py-2 text-sm text-white hover:bg-white/20 ${
+                            displaySize === 'original' ? 'bg-white/30' : ''
+                          }`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDisplaySize('original');
+                            setShowSizeDropdown(false);
+                          }}
+                        >
+                          Original
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
           </div>
         </div>
