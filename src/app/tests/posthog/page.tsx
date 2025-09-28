@@ -57,7 +57,7 @@ export default function PostHogTestPage() {
   const handleTestEvent = (eventName: string, properties: PostHogEventProperties) => {
     posthog.capture(eventName, properties);
     setLastEvent(`Event &ldquo;${eventName}&rdquo; sent at ${new Date().toLocaleTimeString('en-US')}`);
-    logger.info('PostHog event sent:', { eventName, properties });
+    logger.info('PostHog event sent:', undefined, { eventName, properties });
   };
 
   return (

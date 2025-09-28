@@ -169,7 +169,7 @@ beforeAll(async () => {
       });
 
       req.on('end', () => {
-        logger.info(`🔍 Request body:`, { body });
+        logger.info(`🔍 Request body:`, undefined, { body });
 
         let parsedBody: Record<string, unknown> = {};
         try {
@@ -177,7 +177,7 @@ beforeAll(async () => {
             parsedBody = JSON.parse(body);
           }
         } catch (e) {
-          logger.info(`🔍 Failed to parse body:`, { error: e instanceof Error ? e : undefined });
+          logger.info(`🔍 Failed to parse body:`, undefined, { error: e instanceof Error ? e : undefined });
         }
 
         // Create a mock request object with the parsed body
@@ -185,13 +185,13 @@ beforeAll(async () => {
 
         if (url === '/api/auth/link-ii') {
           mockICPEndpoints['/api/auth/link-ii'](mockReq).then(result => {
-            logger.info(`🔍 Link-II result:`, { result });
+            logger.info(`🔍 Link-II result:`, undefined, { result });
             res.writeHead(result.status, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify(result.body));
           });
         } else if (url === '/api/ii/verify-nonce') {
           mockICPEndpoints['/api/ii/verify-nonce'](mockReq).then(result => {
-            logger.info(`🔍 Verify-nonce result:`, { result });
+            logger.info(`🔍 Verify-nonce result:`, undefined, { result });
             res.writeHead(result.status, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify(result.body));
           });

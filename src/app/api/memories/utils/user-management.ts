@@ -54,7 +54,7 @@ export async function getAllUserId(request: NextRequest): Promise<{ allUserId: s
         logger.info('👤 Using provided allUserId for temporary user...');
         // For temporary users, directly check the allUsers table
         const [tempUser] = await db.select().from(allUsers).where(eq(allUsers.id, providedAllUserId));
-        logger.info('Found temporary user:', { allUserId: tempUser?.id, type: tempUser?.type });
+        logger.info('Found temporary user:', undefined, { allUserId: tempUser?.id, type: tempUser?.type });
 
         if (!tempUser || tempUser.type !== 'temporary') {
           logger.error('❌ Valid temporary user not found');
@@ -85,13 +85,13 @@ export async function getUserIdForUpload(params: {
 
   try {
     const session = await auth();
-    logger.info('🔍 Auth session data:', { session: JSON.stringify(session, null, 2) });
+    logger.info('🔍 Auth session data:', undefined, { session: JSON.stringify(session, null, 2) });
 
     if (session?.user?.id) {
       logger.info('👤 Looking up authenticated user in users table...');
       // First get the user from users table
       const [permanentUser] = await db.select().from(users).where(eq(users.id, session.user.id));
-      logger.info('Found permanent user:', { userId: permanentUser?.id });
+      logger.info('Found permanent user:', undefined, { userId: permanentUser?.id });
 
       if (!permanentUser) {
         logger.error('❌ Permanent user not found in database');
@@ -112,7 +112,7 @@ export async function getUserIdForUpload(params: {
             .returning();
 
           if (newUser) {
-            logger.info('✅ Successfully created user from session:', { userId: newUser.id });
+            logger.info('✅ Successfully created user from session:', undefined, { userId: newUser.id });
             // Create corresponding all_users entry
             const [allUserRecord] = await db
               .insert(allUsers)
@@ -146,13 +146,12 @@ export async function getUserIdForUpload(params: {
 
       // Then get their allUserId
       const [allUserRecord] = await db.select().from(allUsers).where(eq(allUsers.userId, permanentUser.id));
-      logger.info('Found all_users record:', { allUserId: allUserRecord?.id });
+      logger.info('Found all_users record:', undefined, { allUserId: allUserRecord?.id });
 
       if (!allUserRecord) {
         logger.error('❌ No all_users record found for permanent user');
         return {
-          allUserId: '',
-          error: NextResponse.json({ error: 'User record not found' }, { status: 404 }),
+          allUserId: '', error: NextResponse.json({ error: 'User record not found' }, { status: 404 }),
         };
       }
 
@@ -161,13 +160,12 @@ export async function getUserIdForUpload(params: {
       logger.info('👤 Using provided allUserId for temporary user...');
       // For temporary users, directly check the allUsers table
       const [tempUser] = await db.select().from(allUsers).where(eq(allUsers.id, providedUserId));
-      logger.info('Found temporary user:', { allUserId: tempUser?.id, type: tempUser?.type });
+      logger.info('Found temporary user:', undefined, { allUserId: tempUser?.id, type: tempUser?.type });
 
       if (!tempUser || tempUser.type !== 'temporary') {
         logger.error('❌ Valid temporary user not found');
         return {
-          allUserId: '',
-          error: NextResponse.json({ error: 'Invalid temporary user' }, { status: 404 }),
+          allUserId: '', error: NextResponse.json({ error: 'Invalid temporary user' }, { status: 404 }),
         };
       }
 
@@ -175,8 +173,7 @@ export async function getUserIdForUpload(params: {
     } else {
       logger.error('❌ No valid user identification provided');
       return {
-        allUserId: '',
-        error: NextResponse.json({ error: 'User identification required' }, { status: 401 }),
+        allUserId: '', error: NextResponse.json({ error: 'User identification required' }, { status: 401 }),
       };
     }
   } catch (error) {
@@ -203,7 +200,7 @@ export async function createTemporaryUserWithErrorHandling(
   try {
     // logger.info("👤 Creating temporary user...");
     const { allUser } = await createTemporaryUserBase('inviter');
-    // logger.info("✅ Temporary user created:", { userId: allUser.id });
+    // logger.info("✅ Temporary user created:", undefined, { userId: allUser.id });
     return { allUser, error: null };
   } catch (userError) {
     logger.error('❌ User creation error:', undefined, { data: userError });

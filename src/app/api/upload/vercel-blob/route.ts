@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
       onUploadCompleted: async ({ blob }) => {
         // Minimal callback - just log the completion
         // Database operations are handled by client via /api/upload/complete
-        logger.info('✅ Vercel Blob upload completed:', { url: blob.url });
+        logger.info('✅ Vercel Blob upload completed:', undefined, { url: blob.url });
       },
     });
 

@@ -12,7 +12,7 @@ async function handleCompleteSignOut() {
     await clearIiSession();
   } catch (error) {
     // Ignore II cleanup errors - proceed with NextAuth signOut
-    logger.warn('II cleanup failed:', { error: error instanceof Error ? error : undefined });
+    logger.warn('II cleanup failed:', undefined, { error: error instanceof Error ? error : undefined });
   }
 
   // Clear NextAuth session completely

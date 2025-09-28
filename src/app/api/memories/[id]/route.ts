@@ -184,7 +184,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       | null
       | undefined;
 
-    logger.info('🔧 DEBUG - Individual route memory data retrieved:', {
+    logger.info('🔧 DEBUG - Individual route memory data retrieved:', undefined, {
       found: !!memoryData,
       memoryId: memoryData?.id,
       type: memoryData?.type,
@@ -199,7 +199,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       return NextResponse.json({ error: 'Memory not found' }, { status: 404 });
     }
 
-    logger.info(`📋 Individual route - Retrieved memory data for cleanup:`, {
+    logger.info(`📋 Individual route - Retrieved memory data for cleanup:`, undefined, {
       id: memoryData.id,
       type: memoryData.type,
       hasMetadata: !!typedMetadata,
@@ -220,7 +220,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     logger.info(`✅ Individual route - Deleted memory from database: ${memoryId}`);
 
     // Debug: Log what we're about to pass to cleanup
-    logger.info('🔧 DEBUG - Individual route - About to call cleanup with:', {
+    logger.info('🔧 DEBUG - Individual route - About to call cleanup with:', undefined, {
       memoryId,
       memoryType: memoryData.type,
       memoryDataProvided: !!memoryData,
@@ -241,7 +241,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       logger.error(`❌ Individual route - Storage cleanup failed for ${memoryId}:`, undefined, { data: cleanupResult.error });
       // Don't fail the entire operation if cleanup fails
     } else {
-      logger.info(`✅ Individual route - Storage cleanup completed for ${memoryId}`, {
+      logger.info(`✅ Individual route - Storage cleanup completed for ${memoryId}`, undefined, {
         deletedS3Objects: cleanupResult.deletedS3Count,
         deletedEdges: cleanupResult.deletedCount,
       });

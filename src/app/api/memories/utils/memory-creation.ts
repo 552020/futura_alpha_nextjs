@@ -168,7 +168,7 @@ async function createMemoryAssets(
 
     const createdAssets = await db.insert(memoryAssets).values(assetData).returning();
 
-    logger.info(`Created ${createdAssets.length} assets for memory ${memoryId}`, {
+    logger.info(`Created ${createdAssets.length} assets for memory ${memoryId}`, undefined, {
       operation: 'create_memory_assets',
       memoryId,
       assetCount: createdAssets.length,

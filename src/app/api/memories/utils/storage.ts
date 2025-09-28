@@ -22,7 +22,7 @@ export async function uploadFileToStorage(
   userId?: string
 ): Promise<string> {
   if (storageBackend === 's3') {
-    logger.info('☁️ Using S3 storage backend for file:', { fileName: file.name });
+    logger.info('☁️ Using S3 storage backend for file:', undefined, { fileName: file.name });
 
     try {
       // Use the existing S3 utility function
@@ -34,7 +34,7 @@ export async function uploadFileToStorage(
 
       // Upload to S3 with the clean file name and user ID
       const url = await uploadToS3(s3File, undefined, userId);
-      logger.info('✅ Successfully uploaded to S3:', { url });
+      logger.info('✅ Successfully uploaded to S3:', undefined, { url });
       return url;
     } catch (error) {
       logger.error('❌ S3 upload error:', undefined, { data: error instanceof Error ? error : undefined });
@@ -43,7 +43,7 @@ export async function uploadFileToStorage(
   }
 
   // Default to Vercel Blob for other cases
-  logger.info('☁️ Using Vercel Blob storage for file:', { fileName: file.name });
+  logger.info('☁️ Using Vercel Blob storage for file:', undefined, { fileName: file.name });
   try {
     const safeFileName = file.name.replace(/[^a-zA-Z0-9-_\.]/g, '_');
     const buffer = existingBuffer || Buffer.from(await file.arrayBuffer());
@@ -70,9 +70,9 @@ export async function uploadFileToStorageWithErrorHandling(
   userId?: string
 ): Promise<{ url: string; error: null } | { url: null; error: string }> {
   try {
-    logger.info(`📤 Starting ${storageBackend} file upload for:`, { fileName: file.name });
+    logger.info(`📤 Starting ${storageBackend} file upload for:`, undefined, { fileName: file.name });
     const url = await uploadFn(file, buffer, storageBackend, userId);
-    logger.info(`✅ File uploaded successfully to ${storageBackend}:`, { url });
+    logger.info(`✅ File uploaded successfully to ${storageBackend}:`, undefined, { url });
     return { url, error: null };
   } catch (uploadError) {
     logger.error(`❌ ${storageBackend} upload error:`, undefined, { data: uploadError });

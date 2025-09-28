@@ -8,7 +8,7 @@ export default function TailwindTestPage() {
     logger.info('TailwindTestPage mounted');
 
     // Log all loaded stylesheets
-    logger.info('All loaded stylesheets:', {
+    logger.info('All loaded stylesheets:', undefined, {
       stylesheets: Array.from(document.styleSheets).map(sheet => ({
         href: sheet.href,
         type: sheet.type,
@@ -19,7 +19,7 @@ export default function TailwindTestPage() {
     // Check specific Tailwind classes
     //     const testElement = document.querySelector(".test-tailwind");
     //     if (testElement) {
-    //       logger.info("Test element styles:", {
+    //       logger.info("Test element styles:", undefined, {
     //         computed: window.getComputedStyle(testElement),
     //         classList: testElement.classList,
     //         backgroundColor: window.getComputedStyle(testElement).backgroundColor,

@@ -37,8 +37,8 @@ export async function POST(req: NextRequest) {
   }
 
   const body = (await req.json()) as HandleUploadBody & { clientPayload?: string };
-  logger.info('🔍 Raw request body keys:', { keys: Object.keys(body) });
-  logger.info('🔍 Raw clientPayload value:', { clientPayload: body.clientPayload });
+  logger.info('🔍 Raw request body keys:', undefined, { keys: Object.keys(body) });
+  logger.info('🔍 Raw clientPayload value:', undefined, { clientPayload: body.clientPayload });
 
   // Extract client payload from the request body
   const clientPayload = body.clientPayload ? JSON.parse(body.clientPayload) : {};
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
       };
     },
     onUploadCompleted: async ({ blob, tokenPayload }) => {
-      logger.info('🎉 onUploadCompleted callback triggered!', { blob: blob.url, tokenPayload });
+      logger.info('🎉 onUploadCompleted callback triggered!', undefined, { blob: blob.url, tokenPayload });
       // persist in DB
       try {
         const payload = tokenPayload ? JSON.parse(tokenPayload as string) : {};

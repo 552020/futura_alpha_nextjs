@@ -24,7 +24,7 @@ export async function GET() {
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
-    // logger.info("Fetching folders for user:", {
+    // logger.info("Fetching folders for user:", undefined, {
     //   sessionUserId: session.user.id,
     //   allUserId: allUserRecord.id,
     //   useMockData,
@@ -127,7 +127,7 @@ export async function GET() {
     // Sort folders by name
     folders.sort((a, b) => a.name.localeCompare(b.name));
 
-    // logger.info("Found folders:", {
+    // logger.info("Found folders:", undefined, {
     //   count: folders.length,
     //   folders: folders.map(f => ({ name: f.name, count: f.count })),
     // });

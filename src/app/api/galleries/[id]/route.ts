@@ -171,7 +171,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       }
     }
 
-    // logger.info("Gallery access result:", {
+    // logger.info("Gallery access result:", undefined, {
     //   galleryId,
     //   totalItems: galleryItemsList.length,
     //   accessibleItems: accessibleItems.length,
@@ -197,7 +197,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         });
 
         if (memory) {
-          logger.info(`🔍 Found memory for item ${item.memoryId}:`, {
+          logger.info(`🔍 Found memory for item ${item.memoryId}:`, undefined, {
             memoryId: memory.id,
             title: memory.title,
             type: memory.type,
@@ -262,7 +262,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             mimeType: getAssetMimeType(memory.assets),
           };
 
-          logger.info(`🔗 Generated URL for memory ${item.memoryId}:`, {
+          logger.info(`🔗 Generated URL for memory ${item.memoryId}:`, undefined, {
             finalUrl: finalUrl,
             hasUrl: !!finalUrl,
             urlLength: finalUrl?.length || 0,
@@ -293,7 +293,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       isOwner: accessibleGallery.ownerId === allUserRecord.id,
     };
 
-    // logger.info("Returning gallery with items:", {
+    // logger.info("Returning gallery with items:", undefined, {
     //   galleryId,
     //   itemsCount: itemsWithMemories.length,
     //   isOwner: galleryWithItems.isOwner,
@@ -402,7 +402,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       }
     }
 
-    // logger.info("Updated gallery:", {
+    // logger.info("Updated gallery:", undefined, {
     //   gallery: updatedGallery[0],
     //   items: itemsResult,
     // });

@@ -40,7 +40,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
 
   try {
     const body = (await request.json()) as ShareRequest;
-    logger.info('📨 Share request body:', body);
+    logger.info('📨 Share request body:', undefined, body);
 
     const {
       target,
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
 
     // Find the memory first
     const memory = await findMemory(memoryId);
-    logger.info('🔍 Found memory:', { exists: !!memory, id: memoryId });
+    logger.info('🔍 Found memory:', undefined, { exists: !!memory, id: memoryId });
     if (!memory) {
       return NextResponse.json({ error: 'Memory not found' }, { status: 404 });
     }
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     // Handle authentication differently for onboarding vs regular flow
     let authenticatedUserId: string | undefined;
     if (isOnboarding) {
-      logger.info('👤 Onboarding flow - checking owner:', { ownerAllUserId });
+      logger.info('👤 Onboarding flow - checking owner:', undefined, { ownerAllUserId });
       if (!ownerAllUserId) {
         return NextResponse.json({ error: 'Owner ID required for onboarding' }, { status: 400 });
       }
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       const owner = await db.query.allUsers.findFirst({
         where: eq(allUsers.id, ownerAllUserId),
       });
-      logger.info('👤 Found owner:', { exists: !!owner, type: owner?.type });
+      logger.info('👤 Found owner:', undefined, { exists: !!owner, type: owner?.type });
       if (!owner || owner.type !== 'temporary') {
         return NextResponse.json({ error: 'Invalid onboarding user' }, { status: 401 });
       }
@@ -115,13 +115,13 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
         where: eq(users.id, targetUser.userId),
       });
       userEmail = permanentUser?.email ?? undefined;
-      logger.info('📧 Found permanent user email:', { email: userEmail, userId: targetUser.userId });
+      logger.info('📧 Found permanent user email:', undefined, { email: userEmail, userId: targetUser.userId });
     } else if (targetUser.type === 'temporary' && targetUser.temporaryUserId) {
       const temporaryUser = await db.query.temporaryUsers.findFirst({
         where: eq(temporaryUsers.id, targetUser.temporaryUserId),
       });
       userEmail = temporaryUser?.email ?? undefined;
-      logger.info('📧 Found temporary user email:', {
+      logger.info('📧 Found temporary user email:', undefined, {
         email: userEmail,
         temporaryUserId: targetUser.temporaryUserId,
         temporaryUser: {
@@ -136,7 +136,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       logger.error('❌ User email not found:', undefined, { data: { targetUser } });
       return NextResponse.json({ error: 'User email not found' }, { status: 404 });
     }
-    logger.info('📧 Will send email to:', { userEmail, isInviteeNew });
+    logger.info('📧 Will send email to:', undefined, { userEmail, isInviteeNew });
 
     // Create share record
     const [share] = await db

@@ -125,7 +125,7 @@ export function CreateGalleryModal({
         false // Use real data
       );
 
-      logger.info('Gallery created successfully:', { gallery });
+      logger.info('Gallery created successfully:', undefined, { gallery });
 
       // Success - close modal and notify parent
       setOpen(false);

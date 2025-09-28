@@ -48,7 +48,7 @@ const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_DASHBOARD === 'true'
 export default function VaultPage() {
   // logger.info("🔍 Dashboard component rendered");
   const { isAuthorized, isTemporaryUser, userId, isLoading } = useAuthGuard();
-  // logger.info("🔍 Dashboard auth state:", { isAuthorized, isTemporaryUser, userId, isLoading });
+  // logger.info("🔍 Dashboard auth state:", undefined, { isAuthorized, isTemporaryUser, userId, isLoading });
   const router = useRouter();
   const { toast } = useToast();
   const [memories, setMemories] = useState<DashboardItem[]>([]);
@@ -66,7 +66,7 @@ export default function VaultPage() {
   const fetchDashboardMemories = useCallback(async () => {
     // logger.info("🚀 LINE 104: ENTERING fetchMemories function");
     const timestamp = new Date().toISOString();
-    // logger.info("🔍 fetchMemories called with:", { currentPage, USE_MOCK_DATA, timestamp });
+    // logger.info("🔍 fetchMemories called with:", undefined, { currentPage, USE_MOCK_DATA, timestamp });
 
     if (USE_MOCK_DATA) {
       // logger.info("🎭 MOCK DATA - Using sample data for demo");
@@ -78,7 +78,7 @@ export default function VaultPage() {
     }
 
     try {
-      // logger.info("🔄 FETCH MEMORIES - Starting fetch:", {
+      // logger.info("🔄 FETCH MEMORIES - Starting fetch:", undefined, {
       //   page: currentPage,
       //   timestamp,
       // });
@@ -91,7 +91,7 @@ export default function VaultPage() {
       const processedItems = processDashboardItems(result.memories);
       // logger.info("✅ LINE 128: EXITED processDashboardItems");
 
-      // logger.info("✅ FETCH MEMORIES - Success:", {
+      // logger.info("✅ FETCH MEMORIES - Success:", undefined, {
       //   memoriesCount: result.memories.length,
       //   processedItemsCount: processedItems.length,
       //   hasMore: result.hasMore,
@@ -106,7 +106,7 @@ export default function VaultPage() {
       });
       setHasMore(result.hasMore);
     } catch (error) {
-      logger.error('FETCH MEMORIES ERROR', error as Error, {
+      logger.dashboard().error('FETCH MEMORIES ERROR', error instanceof Error ? error : undefined, {
         message: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
         status: (error as Error & { status?: number })?.status,
@@ -131,7 +131,7 @@ export default function VaultPage() {
   // Removed automatic redirect - now handled by RequireAuth component in render
 
   useEffect(() => {
-    // logger.info("🔍 Dashboard useEffect - Auth check:", { isAuthorized, userId, isLoading });
+    // logger.info("🔍 Dashboard useEffect - Auth check:", undefined, { isAuthorized, userId, isLoading });
     if (isAuthorized && !isLoading) {
       // logger.info("🚀 LINE 168: CALLING fetchDashboardMemories");
       fetchDashboardMemories();
@@ -219,7 +219,7 @@ export default function VaultPage() {
   };
 
   const handleFilteredMemoriesChange = useCallback((filtered: ExtendedMemory[]) => {
-    logger.info('🔍 handleFilteredMemoriesChange called:', {
+    logger.dashboard().info('🔍 handleFilteredMemoriesChange called:', {
       filteredCount: filtered.length,
       filtered: filtered.map(f => ({ id: f.id, type: f.type, title: f.title })),
     });

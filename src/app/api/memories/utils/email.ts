@@ -53,14 +53,14 @@ async function sendEmail(options: EmailOptions): Promise<any> {
     ...options,
   };
 
-  // logger.info("📧 Sending email:", {
+  // logger.info("📧 Sending email:", undefined, {
   //   from: messageData.from,
   //   to: messageData.to,
   //   subject: messageData.subject,
   // });
 
   const response = await mg.messages.create(DOMAIN, messageData);
-  // logger.info("📬 Email sent successfully:", {
+  // logger.info("📬 Email sent successfully:", undefined, {
   //   messageId: response.id,
   //   from: FROM_EMAIL,
   //   status: response.status,
@@ -167,7 +167,7 @@ export async function sendInvitationEmail(
   options: { useTemplate?: boolean; useHTML?: boolean } = {}
 ) {
   try {
-    // logger.info("📧 sendInvitationEmail called with:", {
+    // logger.info("📧 sendInvitationEmail called with:", undefined, {
     //   recipientEmail: email,
     //   memoryType: memory.type,
     //   invitedById,
@@ -178,7 +178,7 @@ export async function sendInvitationEmail(
     const inviterName = await getInviterName(invitedById);
     const relationship = await getRelationship(invitedById, memory.id);
 
-    // logger.info("👤 Got inviter details:", {
+    // logger.info("👤 Got inviter details:", undefined, {
     //   inviterName,
     //   relationship,
     //   invitedById,
@@ -213,7 +213,7 @@ export async function sendInvitationEmail(
     }
 
     const response = await sendEmail(messageData);
-    // logger.info("📬 Email sent to:", { email, status: response.status });
+    // logger.info("📬 Email sent to:", undefined, { email, status: response.status });
 
     if (response.statusCode === 200) {
       return true;

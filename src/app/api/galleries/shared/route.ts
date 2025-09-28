@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
     const validGalleries = sharedGalleries.filter(Boolean);
     const paginatedGalleries = validGalleries.slice(offset, offset + limit);
 
-    // logger.info("Fetched shared galleries:", {
+    // logger.info("Fetched shared galleries:", undefined, {
     //   page,
     //   limit,
     //   offset,

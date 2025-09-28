@@ -45,7 +45,7 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
-    logger.info('🔍 API: Found allUserRecord:', { userId: allUserRecord.id });
+    logger.info('🔍 API: Found allUserRecord:', allUserRecord.id);
 
     // Get query parameters
     const searchParams = request.nextUrl.searchParams;
@@ -95,24 +95,25 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
     }
 
     // Fetch memories with optional assets and folder information
-    logger.info('🔍 API: Fetching memories with whereCondition:', { whereCondition });
-    logger.info('🔍 API: Pagination params:', { limit, offset, page });
+    logger.info('🔍 API: Fetching memories with whereCondition:', undefined, { whereCondition });
+    logger.info('🔍 API: Pagination params:', undefined, { limit, offset, page });
 
     // First, let's check total count without pagination
     const totalCount = await db.query.memories.findMany({
       where: whereCondition,
     });
-    logger.info('🔍 API: Total memories count (no pagination):', { count: totalCount.length });
-    logger.info('🔍 API: Total memories by folder:', {
-      folderCounts: totalCount.reduce(
+    logger.info('🔍 API: Total memories count (no pagination):', totalCount.length);
+    logger.info(
+      '🔍 API: Total memories by folder:',
+      totalCount.reduce(
         (acc, m) => {
           const folderId = m.parentFolderId || 'no-folder';
           acc[folderId] = (acc[folderId] || 0) + 1;
           return acc;
         },
         {} as Record<string, number>
-      ),
-    });
+      )
+    );
 
     // For dashboard, we need ALL memories to properly group into folders
     // The limit should be applied to the final dashboard items, not raw memories
@@ -129,8 +130,8 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
             folder: true, // Always include folder information for dashboard grouping
           },
     });
-    logger.info('🔍 API: Found memories:', { count: userMemories.length });
-    logger.info('🔍 API: All memories with folder info:', {
+    logger.info('🔍 API: Found memories:', undefined, { count: userMemories.length });
+    logger.info('🔍 API: All memories with folder info:', undefined, {
       memories: userMemories.map(m => ({
         id: m.id,
         title: m.title,
@@ -138,7 +139,7 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
         folderName: m.folder?.name,
       })),
     });
-    logger.info('🔍 API: Sample memory:', userMemories[0]);
+    logger.info('🔍 API: Sample memory:', undefined, userMemories[0]);
 
     // Calculate share counts for each memory (like the old implementation)
     const memoriesWithShareInfo = await Promise.all(
@@ -185,7 +186,7 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
           // Use thumb if available, otherwise fallback to display, then original
           const thumbOrFallback = thumbAsset || displayAsset || originalAsset;
 
-          logger.info(`📸 Found asset for memory ${memory.id}:`, {
+          logger.info(`📸 Found asset for memory ${memory.id}:`, undefined, {
             assetType: thumbOrFallback?.assetType,
             url: thumbOrFallback?.url,
             assetLocation: thumbOrFallback?.assetLocation,
@@ -200,11 +201,11 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
               thumbnailUrl = await generateBestAssetUrl(thumbOrFallback);
               logger.s3().info(`🎯 Generated thumbnail URL for memory ${memory.id}:`, { thumbnailUrl });
             } catch (error) {
-              logger.warn(`Failed to generate thumbnail URL for memory ${memory.id}:`, {
+              logger.warn(`Failed to generate thumbnail URL for memory ${memory.id}:`, undefined, {
                 error: error instanceof Error ? error : undefined,
               });
               thumbnailUrl = thumbOrFallback.url; // Fallback to direct URL
-              logger.info(`🔄 Using fallback URL for memory ${memory.id}:`, { thumbnailUrl });
+              logger.info(`🔄 Using fallback URL for memory ${memory.id}:`, undefined, { thumbnailUrl });
             }
           } else {
             logger.info(`❌ No asset found for memory ${memory.id}`);
@@ -228,8 +229,8 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
       });
     }
 
-    logger.info('🔍 API: Returning memories:', { count: memoriesWithShareInfo.length });
-    logger.info('🔍 API: Sample returned memory:', memoriesWithShareInfo[0]);
+    logger.info('🔍 API: Returning memories:', undefined, { count: memoriesWithShareInfo.length });
+    logger.info('🔍 API: Sample returned memory:', undefined, memoriesWithShareInfo[0]);
 
     return NextResponse.json({
       success: true,

@@ -31,7 +31,7 @@ const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_FOLDER === 'true';
 export default function FolderPage() {
   // logger.info("🔍 Folder page component rendered");
   const { isAuthorized, userId, redirectToSignIn, isLoading } = useAuthGuard();
-  // logger.info("🔍 Folder page auth state:", { isAuthorized, isTemporaryUser, userId, isLoading });
+  // logger.info("🔍 Folder page auth state:", undefined, { isAuthorized, isTemporaryUser, userId, isLoading });
 
   const router = useRouter();
   const params = useParams();
@@ -135,7 +135,7 @@ export default function FolderPage() {
   }, [isAuthorized, redirectToSignIn]);
 
   useEffect(() => {
-    // logger.info("🔍 Folder useEffect - Auth check:", { isAuthorized, userId, isLoading });
+    // logger.info("🔍 Folder useEffect - Auth check:", undefined, { isAuthorized, userId, isLoading });
     if (isAuthorized && !isLoading && folderId) {
       // logger.info("🚀 CALLING fetchFolderMemories");
       fetchFolderMemories();
@@ -170,7 +170,7 @@ export default function FolderPage() {
 
   const handleEdit = (memoryId: string) => {
     // TODO: Implement edit functionality
-    logger.info('Edit memory', { memoryId });
+    logger.dashboard().info('Edit memory', { memoryId });
     toast({
       title: 'Edit',
       description: 'Edit functionality coming soon!',

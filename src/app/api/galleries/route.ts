@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '12');
     const offset = (page - 1) * limit;
 
-    // logger.info("Fetching galleries for:", {
+    // logger.info("Fetching galleries for:", undefined, {
     //   sessionUserId: session.user.id,
     //   allUserId: allUserRecord.id,
     //   page,
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     // Add computed storage status to galleries
     const galleriesWithStorageStatus = await addStorageStatusToGalleries(userGalleries);
 
-    // logger.info("Fetched galleries:", {
+    // logger.info("Fetched galleries:", undefined, {
     //   page,
     //   limit,
     //   offset,
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { type, folderName, memories, title, description, isPublic = false } = body;
 
-    logger.info('🔍 Gallery Creation Request:', {
+    logger.info('🔍 Gallery Creation Request:', undefined, {
       type,
       folderName,
       title,
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
         orderBy: desc(folders.createdAt), // Get the most recent one
       });
 
-      logger.info('🔍 All folders with name:', {
+      logger.info('🔍 All folders with name:', undefined, {
         folderName,
         count: allFoldersWithName.length,
         folders: allFoldersWithName.map(f => ({ id: f.id, name: f.name, createdAt: f.createdAt })),
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
       const folder = allFoldersWithName[0];
 
       // Find all memories that belong to this folder using the unified memories table
-      logger.info('🔍 Gallery Creation Debug:', {
+      logger.info('🔍 Gallery Creation Debug:', undefined, {
         folderName,
         folderId: folder.id,
         ownerId: allUserRecord.id,
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
         where: and(eq(memoriesTable.ownerId, allUserRecord.id), eq(memoriesTable.parentFolderId, folder.id)),
       });
 
-      logger.info('🔍 Found folder memories:', {
+      logger.info('🔍 Found folder memories:', undefined, {
         count: folderMemories.length,
         memories: folderMemories.map(m => ({ id: m.id, title: m.title, parentFolderId: m.parentFolderId })),
       });
@@ -234,7 +234,7 @@ export async function POST(request: NextRequest) {
       })
       .where(eq(galleries.id, gallery.id));
 
-    // logger.info("Created gallery:", {
+    // logger.info("Created gallery:", undefined, {
     //   type,
     //   folderName,
     //   galleryId: gallery.id,

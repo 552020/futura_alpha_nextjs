@@ -81,12 +81,12 @@ export default function SharedMemoriesPage({ params }: { params: Promise<{ lang:
   }, [memories]);
 
   // Log route parameters for debugging
-  // logger.info("Rendering SharedMemoriesPage", { lang, isAuthorized, userId });
+  // logger.info("Rendering SharedMemoriesPage", undefined, { lang, isAuthorized, userId });
 
   const fetchMemories = useCallback(async () => {
     const timestamp = new Date().toISOString();
     try {
-      // logger.info("🔄 FETCH SHARED MEMORIES - Starting fetch:", {
+      // logger.info("🔄 FETCH SHARED MEMORIES - Starting fetch:", undefined, {
       //   page: currentPage,
       //   timestamp,
       //   lang,
@@ -98,7 +98,7 @@ export default function SharedMemoriesPage({ params }: { params: Promise<{ lang:
       }
 
       const data = await response.json();
-      // logger.info("✅ FETCH SHARED MEMORIES - Success:", {
+      // logger.info("✅ FETCH SHARED MEMORIES - Success:", undefined, {
       //   memoriesCount: data.data.length,
       //   hasMore: data.hasMore,
       //   timestamp,
@@ -118,7 +118,7 @@ export default function SharedMemoriesPage({ params }: { params: Promise<{ lang:
       });
       setHasMore(data.hasMore);
     } catch (error) {
-      logger.error('FETCH SHARED MEMORIES ERROR', error as Error, {
+      logger.dashboard().error('FETCH SHARED MEMORIES ERROR', error instanceof Error ? error : undefined, {
         message: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
         timestamp,

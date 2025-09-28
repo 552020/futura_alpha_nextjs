@@ -25,21 +25,21 @@ export function GalleryGrid({
   const handleEdit =
     onGalleryEdit ||
     ((gallery: GalleryWithItems) => {
-      logger.info('Edit gallery:', { galleryId: gallery.id });
+      logger.info('Edit gallery:', undefined, { galleryId: gallery.id });
       // TODO: Implement gallery editing
     });
 
   const handleShare =
     onGalleryShare ||
     ((gallery: GalleryWithItems) => {
-      logger.info('Share gallery:', { galleryId: gallery.id });
+      logger.info('Share gallery:', undefined, { galleryId: gallery.id });
       // TODO: Implement gallery sharing
     });
 
   const handleDelete =
     onGalleryDelete ||
     ((gallery: GalleryWithItems) => {
-      logger.info('Delete gallery:', { galleryId: gallery.id });
+      logger.info('Delete gallery:', undefined, { galleryId: gallery.id });
       // TODO: Implement gallery deletion
     });
   // Create empty state component

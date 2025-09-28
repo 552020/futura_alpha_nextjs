@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
 
     const grants = await Promise.all(grantPromises);
 
-    logger.info(`🎫 Generated batch grants for ${files.length} files`, {
+    logger.info(`🎫 Generated batch grants for ${files.length} files`, undefined, {
       files: files.map(f => f.fileName),
       hasDerivatives: grants.some(g => g.display && g.thumb),
     });

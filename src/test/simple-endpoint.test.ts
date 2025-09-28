@@ -111,7 +111,7 @@ beforeAll(async () => {
 
       if (method === 'GET' && endpoint && 'GET' in endpoint) {
         const result = endpoint.GET();
-        res.writeHead(result.status, { 'Content-Type': 'application/json' });
+        res.writeHead(result.status, undefined, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(result.body));
         return;
       }

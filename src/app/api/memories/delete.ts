@@ -173,7 +173,7 @@ export async function handleApiMemoryDelete(request: NextRequest): Promise<NextR
       });
     } else if (all === 'true') {
       // Delete all memories, folders, and galleries for the user
-      logger.info('🗑️ Clearing all data for user:', { userId: allUserRecord.id });
+      logger.info('🗑️ Clearing all data for user:', undefined, { userId: allUserRecord.id });
 
       // 1. First get all memories that will be deleted for cleanup
       const memoriesToDelete = await db.query.memories.findMany({

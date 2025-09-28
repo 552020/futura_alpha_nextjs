@@ -108,7 +108,7 @@ function SignInPageInternal() {
           await markBoundOnCanister(identity);
           // logger.info("handleInternetIdentity", "after markBoundOnCanister - success");
         } catch (error) {
-          logger.warn('markBoundOnCanister failed', { error: error instanceof Error ? error.message : String(error) });
+          logger.warn('markBoundOnCanister failed', undefined, { error: error instanceof Error ? error.message : String(error) });
           // Don't fail the auth flow if this optional step fails
         }
 

@@ -169,7 +169,7 @@ export async function validateFileWithErrorHandling(
         error: validationResult.error || 'File validation failed',
       };
     }
-    // logger.info("✅ File validation successful:", {
+    // logger.info("✅ File validation successful:", undefined, {
     //   type: file.type,
     //   size: file.size,
     // });

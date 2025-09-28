@@ -26,7 +26,7 @@ export default function TestUpload() {
   // Log the response when it changes
   useEffect(() => {
     if (uploadedFile) {
-      logger.info('Upload response:', { uploadedFile });
+      logger.info('Upload response:', undefined, { uploadedFile });
 
       try {
         // Check if we need to force image display based on URL or filename
@@ -67,7 +67,7 @@ export default function TestUpload() {
           else if (extension === 'gif') detectedMimeType = 'image/gif';
           else if (extension === 'pdf') detectedMimeType = 'application/pdf';
 
-          logger.info('Auto-detected mime type:', { detectedMimeType, extension });
+          logger.info('Auto-detected mime type:', undefined, { detectedMimeType, extension });
           setDetectedType(detectedMimeType);
         }
       } catch (err) {
@@ -80,7 +80,7 @@ export default function TestUpload() {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
       setFile(selectedFile);
-      logger.info('Selected file:', { type: selectedFile.type, name: selectedFile.name });
+      logger.info('Selected file:', undefined, { type: selectedFile.type, name: selectedFile.name });
       setError(null);
     }
   };

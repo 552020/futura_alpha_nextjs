@@ -47,7 +47,7 @@ export async function processImageDerivatives(input: ImageProcessingWorkflowInpu
     // Process the image to create derivatives
     logger.info(`🔄 Processing image derivatives...`);
     const processedAssets = await processImageForMultipleAssetsBackend(originalFile);
-    logger.info(`✅ Image processing complete:`, {
+    logger.info(`✅ Image processing complete:`, undefined, {
       display: `${processedAssets.display.width}x${processedAssets.display.height} (${processedAssets.display.size} bytes)`,
       thumb: `${processedAssets.thumb.width}x${processedAssets.thumb.height} (${processedAssets.thumb.size} bytes)`,
     });
@@ -59,7 +59,7 @@ export async function processImageDerivatives(input: ImageProcessingWorkflowInpu
       uploadDerivativeToBlob(processedAssets.thumb, 'thumb'),
     ]);
 
-    logger.info(`📤 Uploaded derivatives:`, {
+    logger.info(`📤 Uploaded derivatives:`, undefined, {
       display: displayResult.url,
       thumb: thumbResult.url,
     });

@@ -188,7 +188,7 @@ export default function ICPPage() {
           setCapsuleInfo(null);
         }
       } catch (error) {
-        logger.warn('Failed to fetch capsule info on login', { error: error instanceof Error ? error.message : String(error) });
+        logger.warn('Failed to fetch capsule info on login', undefined, { error: error instanceof Error ? error.message : String(error) });
         // Don't fail the login if capsule info fetch fails
       }
 

@@ -206,7 +206,7 @@ export async function storeInNewDatabase(params: {
   });
 
   if (!storageEdgeResult.success) {
-    logger.warn('⚠️ Failed to create storage edges for memory:', {
+    logger.warn('⚠️ Failed to create storage edges for memory:', undefined, {
       memoryId: createdMemory.id,
       error: storageEdgeResult.error,
     });
@@ -237,7 +237,7 @@ export async function createStorageEdgesForMemory(params: {
   const { memoryId, memoryType, url, size, contentHash } = params;
 
   try {
-    // logger.info("🔗 Creating storage edges for memory:", { memoryId, memoryType });
+    // logger.info("🔗 Creating storage edges for memory:", undefined, { memoryId, memoryType });
 
     // Create metadata edge for neon-db (always present when memory is created)
     const metadataEdge = {
@@ -276,7 +276,7 @@ export async function createStorageEdgesForMemory(params: {
       db.insert(storageEdges).values(assetEdge).returning(),
     ]);
 
-    // logger.info("✅ Storage edges created successfully:", {
+    // logger.info("✅ Storage edges created successfully:", undefined, {
     //   metadataEdgeId: metadataResult[0]?.id,
     //   assetEdgeId: assetResult[0]?.id,
     // });
@@ -346,7 +346,7 @@ export async function cleanupStorageEdgesForMemory(params: {
   };
 
   try {
-    logger.info('🔄 Starting cleanup for memory:', { memoryId });
+    logger.info('🔄 Starting cleanup for memory:', undefined, { memoryId });
 
     // Import the storage edges and memory assets tables
     const { storageEdges, memoryAssets } = await import('@/db/schema');
@@ -354,7 +354,7 @@ export async function cleanupStorageEdgesForMemory(params: {
     // FIXED: Use the provided memory data directly (don't try to fetch from DB)
     const memory = memoryData;
 
-    logger.info('🔍 Memory record for cleanup:', {
+    logger.info('🔍 Memory record for cleanup:', undefined, {
       memoryId,
       found: !!memory,
       hasMetadata: !!memory?.metadata,
@@ -385,7 +385,7 @@ export async function cleanupStorageEdgesForMemory(params: {
     const hasS3Metadata = storageBackend === 's3' && storageKey;
 
     if (hasS3Metadata && storageKey) {
-      logger.info('✅ Found S3 storage info in memory metadata:', {
+      logger.info('✅ Found S3 storage info in memory metadata:', undefined, {
         storageKey,
         backend: storageBackend,
         timestamp: new Date().toISOString(),
@@ -400,7 +400,7 @@ export async function cleanupStorageEdgesForMemory(params: {
         mimeType: memory.metadata?.mimeType as string | undefined,
       });
     } else {
-      logger.info('⚠️ No S3 storage info found in memory metadata:', {
+      logger.info('⚠️ No S3 storage info found in memory metadata:', undefined, {
         hasMetadata: !!memory?.metadata,
         hasCustom: !!memory?.metadata?.custom,
         storageBackend: memory?.metadata?.custom?.storageBackend,
@@ -489,7 +489,7 @@ export async function cleanupStorageEdgesForMemory(params: {
       [] as typeof allS3Assets
     );
 
-    logger.info(`🗑️ Found ${uniqueS3Assets.length} unique S3 assets to delete:`, {
+    logger.info(`🗑️ Found ${uniqueS3Assets.length} unique S3 assets to delete:`, undefined, {
       assets: uniqueS3Assets.map(a => ({ id: a.id, key: a.storageKey })),
     });
 
@@ -585,7 +585,7 @@ export async function getMemoryDataForCleanup(memoryId: string) {
       return null;
     }
 
-    logger.info('✅ Retrieved memory data for cleanup:', {
+    logger.info('✅ Retrieved memory data for cleanup:', undefined, {
       id: memory.id,
       type: memory.type,
       hasMetadata: !!memory.metadata,

@@ -250,7 +250,7 @@ async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserI
         const tokenData = JSON.parse(requestData.token);
         metadata.userId = tokenData.userId || metadata.userId;
       } catch (e) {
-        logger.warn('Failed to parse token data', { error: e instanceof Error ? e : undefined });
+        logger.warn('Failed to parse token data', undefined, { error: e instanceof Error ? e : undefined });
       }
     }
   } else {
