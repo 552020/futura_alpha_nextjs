@@ -18,6 +18,7 @@ import { db } from '@/db/db';
 import { memories } from '@/db/schema';
 import { randomUUID } from 'crypto';
 import type { NewDBMemory } from '@/db/schema';
+import { logger } from '@/lib/logger';
 
 // Schema-based interfaces for memory creation
 export interface CreateMemoryParams {
@@ -77,17 +78,18 @@ async function resolveOwnerId(
   }
 
   // Handle onboarding case - create temporary user
-  console.log('🎯 Onboarding upload detected - creating temporary user');
 
   try {
     const { createTemporaryUserBase } = await import('@/app/api/utils');
     const result = await createTemporaryUserBase('inviter');
     const temporaryOwnerId = result.allUser.id;
-    console.log('✅ Temporary user created for onboarding:', { userId: temporaryOwnerId });
 
     return { success: true, ownerId: temporaryOwnerId };
   } catch (error) {
-    console.error('❌ Failed to create temporary user for onboarding:', error);
+    logger.error('Failed to create temporary user for onboarding', error as Error, {
+      operation: 'create_temporary_user',
+      isOnboarding: true,
+    });
     return {
       success: false,
       error: 'Failed to create temporary user for onboarding',
@@ -122,11 +124,17 @@ async function createMemoryRecord(
     };
 
     const [createdMemory] = await db.insert(memories).values(newMemory).returning();
-    console.log('✅ Memory created:', { id: createdMemory.id, ownerId: ownerId });
 
+    logger.memoryCreated(createdMemory.id || 'unknown', createdMemory.title || 'Untitled', {
+      ownerId: ownerId,
+      type: createdMemory.type,
+    });
     return { success: true, memory: createdMemory };
   } catch (error) {
-    console.error('❌ Failed to create memory record:', error);
+    logger.error('Failed to create memory record', error as Error, {
+      operation: 'create_memory_record',
+      ownerId: ownerId,
+    });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -143,8 +151,6 @@ async function createMemoryAssets(
   assets: CreateMemoryAssetParams[]
 ): Promise<{ success: true; assets: unknown[] } | { success: false; error: string }> {
   try {
-    console.log(`📦 Creating ${assets.length} assets for memory ${memoryId}`);
-
     const { memoryAssets } = await import('@/db/schema');
     const assetData = assets.map(asset => ({
       memoryId: memoryId,
@@ -164,11 +170,18 @@ async function createMemoryAssets(
     }));
 
     const createdAssets = await db.insert(memoryAssets).values(assetData).returning();
-    console.log(`✅ Created ${createdAssets.length} assets`);
 
+    logger.info(`Created ${createdAssets.length} assets for memory ${memoryId}`, {
+      operation: 'create_memory_assets',
+      memoryId,
+      assetCount: createdAssets.length,
+    });
     return { success: true, assets: createdAssets };
   } catch (error) {
-    console.error('❌ Failed to create memory assets:', error);
+    logger.error('Failed to create memory assets', error as Error, {
+      operation: 'create_memory_assets',
+      memoryId,
+    });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -193,7 +206,6 @@ export async function createMemory(params: CreateMemoryParams): Promise<CreateMe
 
     // Handle mode logic
     if (params.mode === 'folder') {
-      console.log('📁 Folder upload mode detected');
       // Note: Current folder upload just processes multiple files without creating a folder
       // TODO: In the future, we could create a folder here and set parentFolderId
     }
@@ -218,7 +230,12 @@ export async function createMemory(params: CreateMemoryParams): Promise<CreateMe
       memoryId: createdMemory.id || '',
     };
   } catch (error) {
-    console.error('❌ Failed to create memory:', error);
+    logger.error('Failed to create memory', error as Error, {
+      operation: 'create_memory',
+      ownerId: params.ownerId,
+      type: params.type,
+      title: params.title,
+    });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -263,8 +280,6 @@ export async function createMemoryFromBlob(
   }
 ): Promise<{ success: boolean; memoryId?: string; error?: string }> {
   try {
-    console.log('📦 Creating memory from blob:', { url: blob.url, size: blob.size, contentType: blob.contentType });
-
     // Extract missing information automatically
     const memoryType = extractMemoryType(blob.contentType);
     const title = extractTitleFromPath(blob.pathname);
@@ -300,7 +315,12 @@ export async function createMemoryFromBlob(
     // Use the unified createMemory function
     return await createMemory(params);
   } catch (error) {
-    console.error('❌ Failed to create memory from blob:', error);
+    logger.error('Failed to create memory from blob', error as Error, {
+      operation: 'create_memory_from_blob',
+      url: blob.url,
+      size: blob.size,
+      contentType: blob.contentType,
+    });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',

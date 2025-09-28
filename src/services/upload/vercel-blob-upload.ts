@@ -14,6 +14,7 @@ import { upload as blobUpload } from '@vercel/blob/client';
 import { type UploadServiceResult } from './shared-utils';
 import { processImageDerivativesPure, type ProcessedBlobs } from './image-derivatives';
 
+import { logger } from '@/lib/logger';
 // Import image processing functions (we'll need to create these)
 
 interface UploadResponse {
@@ -209,7 +210,7 @@ export async function uploadToVercelBlob(
       });
     } else {
       // Handle failed uploads - continue with other files
-      console.error(`Upload failed for file ${file.name}:`, result.reason);
+      logger.error(`Upload failed for file ${file.name}:`, undefined, { data: result.reason });
       throw new Error(`Upload failed for file ${file.name}: ${result.reason.message}`);
     }
   }
@@ -296,8 +297,6 @@ async function uploadOriginalToVercelBlob(
  * Lane B: Process image derivatives for Vercel Blob using pure processing
  */
 async function processImageDerivativesForVercelBlob(file: File): Promise<ProcessedBlobs> {
-  console.log(`🖼️ Processing image derivatives for ${file.name} (Vercel Blob)`);
-
   // Use the same pure processing function as S3
   return await processImageDerivativesPure(file);
 }

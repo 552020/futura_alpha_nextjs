@@ -12,6 +12,7 @@ import { GalleryWithItems } from '@/types/gallery';
 import { galleryService } from '@/services/gallery';
 import { AlertCircle, RefreshCw, Plus } from 'lucide-react';
 
+import { logger } from '@/lib/logger';
 interface GalleryListProps {
   page?: number;
   limit?: number;
@@ -54,7 +55,7 @@ export function GalleryList({
         setHasMore(result.galleries.length === limit);
         setCurrentPage(pageNum);
       } catch (err) {
-        console.error('Error loading galleries:', err);
+        logger.error('Error loading galleries:', undefined, { data: err });
         setError(err instanceof Error ? err.message : 'Failed to load galleries');
       } finally {
         setIsLoading(false);

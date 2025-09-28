@@ -4,6 +4,7 @@ import { db } from '@/db/db';
 import { eq, and } from 'drizzle-orm';
 import { allUsers, memories } from '@/db/schema';
 
+import { logger } from '@/lib/logger';
 // Helper function to add storage status to memory (similar to gallery utils)
 function addStorageStatusToMemory(memory: typeof memories.$inferSelect) {
   // Calculate storage status from the memory's own fields
@@ -49,7 +50,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     });
 
     if (!allUserRecord) {
-      console.error('No allUsers record found for user:', session.user.id);
+      logger.error('No allUsers record found for user:', undefined, { data: session.user.id });
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
@@ -75,7 +76,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       data: memoryWithStorageStatus,
     });
   } catch (error) {
-    console.error('Error fetching memory:', error);
+    logger.error('Error fetching memory:', undefined, { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to fetch memory' }, { status: 500 });
   }
 }
@@ -95,7 +96,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     });
 
     if (!allUserRecord) {
-      console.error('No allUsers record found for user:', session.user.id);
+      logger.error('No allUsers record found for user:', undefined, { data: session.user.id });
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
@@ -133,7 +134,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       data: updatedMemory,
     });
   } catch (error) {
-    console.error('Error updating memory:', error);
+    logger.error('Error updating memory:', undefined, { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to update memory' }, { status: 500 });
   }
 }
@@ -153,13 +154,13 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     });
 
     if (!allUserRecord) {
-      console.error('No allUsers record found for user:', session.user.id);
+      logger.error('No allUsers record found for user:', undefined, { data: session.user.id });
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
     const { id: memoryId } = await params;
 
-    console.log(`🗑️ [Individual Route] Deleting memory: ${memoryId}`);
+    logger.info(`🗑️ [Individual Route] Deleting memory: ${memoryId}`);
 
     // 1. FIRST: Get the memory data BEFORE deletion (with all relations)
     const memoryData = await db.query.memories.findFirst({
@@ -183,7 +184,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       | null
       | undefined;
 
-    console.log('🔧 DEBUG - Individual route memory data retrieved:', {
+    logger.info('🔧 DEBUG - Individual route memory data retrieved:', {
       found: !!memoryData,
       memoryId: memoryData?.id,
       type: memoryData?.type,
@@ -194,11 +195,11 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     });
 
     if (!memoryData) {
-      console.error(`❌ Memory not found: ${memoryId}`);
+      logger.error(`❌ Memory not found: ${memoryId}`);
       return NextResponse.json({ error: 'Memory not found' }, { status: 404 });
     }
 
-    console.log(`📋 Individual route - Retrieved memory data for cleanup:`, {
+    logger.info(`📋 Individual route - Retrieved memory data for cleanup:`, {
       id: memoryData.id,
       type: memoryData.type,
       hasMetadata: !!typedMetadata,
@@ -212,14 +213,14 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const deletedMemories = await db.delete(memories).where(eq(memories.id, memoryId)).returning();
 
     if (!deletedMemories || deletedMemories.length === 0) {
-      console.error(`❌ Failed to delete memory: ${memoryId}`);
+      logger.error(`❌ Failed to delete memory: ${memoryId}`);
       return NextResponse.json({ error: 'Failed to delete memory' }, { status: 500 });
     }
 
-    console.log(`✅ Individual route - Deleted memory from database: ${memoryId}`);
+    logger.info(`✅ Individual route - Deleted memory from database: ${memoryId}`);
 
     // Debug: Log what we're about to pass to cleanup
-    console.log('🔧 DEBUG - Individual route - About to call cleanup with:', {
+    logger.info('🔧 DEBUG - Individual route - About to call cleanup with:', {
       memoryId,
       memoryType: memoryData.type,
       memoryDataProvided: !!memoryData,
@@ -237,10 +238,10 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     });
 
     if (!cleanupResult.success) {
-      console.error(`❌ Individual route - Storage cleanup failed for ${memoryId}:`, cleanupResult.error);
+      logger.error(`❌ Individual route - Storage cleanup failed for ${memoryId}:`, undefined, { data: cleanupResult.error });
       // Don't fail the entire operation if cleanup fails
     } else {
-      console.log(`✅ Individual route - Storage cleanup completed for ${memoryId}`, {
+      logger.info(`✅ Individual route - Storage cleanup completed for ${memoryId}`, {
         deletedS3Objects: cleanupResult.deletedS3Count,
         deletedEdges: cleanupResult.deletedCount,
       });
@@ -256,7 +257,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       },
     });
   } catch (error) {
-    console.error('Error deleting individual memory:', error);
+    logger.error('Error deleting individual memory:', undefined, { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to delete memory' }, { status: 500 });
   }
 }

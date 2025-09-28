@@ -5,6 +5,7 @@ import { userHostingPreferences } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import type { HostingPreferences } from '@/hooks/use-hosting-preferences';
 
+import { logger } from '@/lib/logger';
 /**
  * GET /api/me/hosting-preferences
  * Returns the user's current hosting preferences
@@ -44,7 +45,7 @@ export async function GET(): Promise<NextResponse> {
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error('Error fetching hosting preferences:', error);
+    logger.error('Error fetching hosting preferences:', undefined, { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -119,7 +120,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error('Error updating hosting preferences:', error);
+    logger.error('Error updating hosting preferences:', undefined, { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -1,6 +1,7 @@
 // import { normalizeMemories } from "@/utils/normalizeMemories"; // Unused
 import { Memory } from '@/types/memory';
 
+import { logger } from '@/lib/logger';
 // Removed old interfaces - now using unified format
 
 export interface MemoryWithFolder extends Omit<Memory, 'parentFolderId'> {
@@ -44,9 +45,9 @@ export interface FetchMemoriesResult {
 }
 
 export const fetchMemories = async (page: number): Promise<FetchMemoriesResult> => {
-  console.log(`🔍 Fetching memories for page ${page}...`);
+  logger.info(`🔍 Fetching memories for page ${page}...`);
   const response = await fetch(`/api/memories?page=${page}`);
-  console.log(`🔍 API response status: ${response.status} ${response.statusText}`);
+  logger.info(`🔍 API response status: ${response.status} ${response.statusText}`);
 
   if (!response.ok) {
     // Try to get error details from the response
@@ -75,7 +76,7 @@ export const fetchMemories = async (page: number): Promise<FetchMemoriesResult> 
   }
 
   const data = await response.json();
-  console.log(`🔍 API response data:`, {
+  logger.info(`🔍 API response data:`, {
     memoriesCount: data.data?.length || 0,
     hasMore: data.hasMore,
     total: data.total,
@@ -134,49 +135,47 @@ export const deleteAllMemories = async (options?: {
 };
 
 export const processDashboardItems = (memories: MemoryWithFolder[]): DashboardItem[] => {
-  console.log('🚀 LINE 129: ENTERING processDashboardItems');
-  console.log('🔍 processDashboardItems - Received memories:', memories.length);
-  console.log(
-    '🔍 All memories with folder info:',
-    memories.map(m => ({
+  logger.info('🚀 LINE 129: ENTERING processDashboardItems');
+  logger.info('🔍 processDashboardItems - Received memories:', { count: memories.length });
+  logger.info('🔍 All memories with folder info:', {
+    memories: memories.map(m => ({
       id: m.id,
       title: m.title,
       parentFolderId: m.parentFolderId,
       folderName: m.folder?.name,
-    }))
-  );
+    })),
+  });
 
   // Step 1: Group memories by parentFolderId
   const folderGroups = memories.reduce(
     (groups, memory) => {
       const parentFolderId = memory.parentFolderId;
-      console.log(`🔍 Processing memory "${memory.title}" with parentFolderId: ${parentFolderId}`);
+      logger.info(`🔍 Processing memory "${memory.title}" with parentFolderId: ${parentFolderId}`);
       if (parentFolderId) {
         if (!groups[parentFolderId]) {
           groups[parentFolderId] = [];
-          console.log(`📁 Created new folder group for: ${parentFolderId}`);
+          logger.info(`📁 Created new folder group for: ${parentFolderId}`);
         }
         groups[parentFolderId].push(memory);
-        console.log(
+        logger.info(
           `📁 Added "${memory.title}" to folder ${parentFolderId}. Group now has ${groups[parentFolderId].length} items`
         );
       } else {
-        console.log(`🔍 Memory "${memory.title}" has no parentFolderId - will be individual`);
+        logger.info(`🔍 Memory "${memory.title}" has no parentFolderId - will be individual`);
       }
       return groups;
     },
     {} as Record<string, MemoryWithFolder[]>
   );
 
-  console.log(
-    '🔍 Final folder groups:',
-    Object.entries(folderGroups).map(([folderId, memories]) => ({
+  logger.info('🔍 Final folder groups:', {
+    folderGroups: Object.entries(folderGroups).map(([folderId, memories]) => ({
       folderId,
       folderName: memories[0]?.folder?.name || 'Unknown',
       count: memories.length,
       memories: memories.map(m => m.title),
-    }))
-  );
+    })),
+  });
 
   // Step 2: Create FolderItems for each group
   const folderItems: FolderItem[] = Object.entries(folderGroups).map(([folderId, folderMemories]) => ({
@@ -206,20 +205,20 @@ export const processDashboardItems = (memories: MemoryWithFolder[]): DashboardIt
     sharedWithCount: 0,
   }));
 
-  console.log('🔍 Created folder items:', folderItems);
+  logger.info('🔍 Created folder items:', { folderItems });
 
   // Step 3: Get individual memories (not in folders)
   const individualMemories = memories.filter(memory => !memory.parentFolderId);
 
-  // console.log("🔍 Individual memories:", individualMemories.length);
+  // logger.info("🔍 Individual memories:", individualMemories.length);
 
   // Step 4: Combine and return
   const result = [...individualMemories, ...folderItems];
-  console.log('🔍 Final result:', result.length, 'items');
-  console.log('🔍 Individual memories count:', individualMemories.length);
-  console.log('🔍 Folder items count:', folderItems.length);
+  logger.info('🔍 Final result:', { count: result.length, type: 'items' });
+  logger.info('🔍 Individual memories count:', { count: individualMemories.length });
+  logger.info('🔍 Folder items count:', { count: folderItems.length });
 
-  console.log('✅ LINE 180: EXITING processDashboardItems');
+  logger.info('✅ LINE 180: EXITING processDashboardItems');
   return result;
 };
 
@@ -229,7 +228,7 @@ export const memoryActions = {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   share: async (id: string) => {
     // TODO: Implement share logic
-    // console.log("Sharing memory:", id);
+    // logger.info("Sharing memory:", id);
   },
 
   navigate: (memory: Memory, lang: string, segment: string) => {

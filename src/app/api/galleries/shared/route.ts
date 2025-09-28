@@ -5,6 +5,7 @@ import { allUsers, galleries, galleryShares, users, temporaryUsers } from '@/db/
 import { addStorageStatusToGallery } from '../utils';
 import { eq, desc, sql } from 'drizzle-orm';
 
+import { logger } from '@/lib/logger';
 /**
  * GET /api/galleries/shared
  *
@@ -109,7 +110,7 @@ export async function GET(request: NextRequest) {
     const validGalleries = sharedGalleries.filter(Boolean);
     const paginatedGalleries = validGalleries.slice(offset, offset + limit);
 
-    // console.log("Fetched shared galleries:", {
+    // logger.info("Fetched shared galleries:", {
     //   page,
     //   limit,
     //   offset,
@@ -123,7 +124,7 @@ export async function GET(request: NextRequest) {
       hasMore: offset + limit < validGalleries.length,
     });
   } catch (error) {
-    console.error('Error listing shared galleries:', error);
+    logger.error('Error listing shared galleries:', undefined, { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to list shared galleries' }, { status: 500 });
   }
 }
@@ -155,7 +156,7 @@ async function getOwnerName(ownerId: string): Promise<string> {
 
     return 'Unknown';
   } catch (error) {
-    console.error('Error getting owner name:', error);
+    logger.error('Error getting owner name:', undefined, { data: error instanceof Error ? error : undefined });
     return 'Unknown';
   }
 }

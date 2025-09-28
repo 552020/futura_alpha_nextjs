@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateS3Key, generateDerivativeS3Key, generatePresignedUploadUrl } from '@/lib/s3-service';
 import { getUserIdForUpload } from '../../../memories/utils/user-management';
 
+import { logger } from '@/lib/logger';
 interface FileInfo {
   fileName: string;
   fileType: string;
@@ -82,14 +83,14 @@ export async function POST(request: NextRequest) {
 
     const grants = await Promise.all(grantPromises);
 
-    console.log(`🎫 Generated batch grants for ${files.length} files`, {
+    logger.info(`🎫 Generated batch grants for ${files.length} files`, {
       files: files.map(f => f.fileName),
       hasDerivatives: grants.some(g => g.display && g.thumb),
     });
 
     return NextResponse.json({ grants });
   } catch (error) {
-    console.error('Error in batch presign endpoint:', error);
+    logger.error('Error in batch presign endpoint:', undefined, { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to generate batch presigned URLs' }, { status: 500 });
   }
 }

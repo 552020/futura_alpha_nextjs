@@ -4,6 +4,7 @@ import { testDb } from '@/db/test-db';
 import { users, allUsers } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
+import { logger } from '@/lib/logger';
 // 🎯 AUTH BYPASS TESTING - IMMEDIATE UNBLOCKING
 // This test demonstrates that we can now test authenticated endpoints
 // by bypassing NextAuth complexity in test environment
@@ -17,7 +18,7 @@ describe('Auth Bypass Testing - Immediate ICP Endpoint Testing', () => {
   let testUser2Id: string;
 
   beforeAll(async () => {
-    console.log(`
+    logger.info(`
 🎯 SETTING UP AUTH BYPASS TESTING
 
 We're now using the senior dev's recommended approach:
@@ -68,7 +69,7 @@ This should unblock your ICP endpoint testing!
       testUser1Id = testUser1.id;
       testUser2Id = testUser2.id;
 
-      console.log(`
+      logger.info(`
 ✅ TEST USERS CREATED SUCCESSFULLY:
 - User 1: ${testUser1.email} (ID: ${testUser1.id}) - Role: ${testUser1.role}
 - User 2: ${testUser2.email} (ID: ${testUser2.id}) - Role: ${testUser2.role}
@@ -76,7 +77,7 @@ This should unblock your ICP endpoint testing!
 Now let's test the auth bypass!
       `);
     } catch (error) {
-      console.error('❌ Error creating test users:', error);
+      logger.error('❌ Error creating test users:', undefined, { data: error instanceof Error ? error : undefined });
       throw error;
     }
   });
@@ -86,15 +87,15 @@ Now let's test the auth bypass!
     try {
       await testDb.delete(users).where(eq(users.id, testUser1Id));
       await testDb.delete(users).where(eq(users.id, testUser2Id));
-      console.log('🧹 Test users cleaned up successfully');
+      logger.info('🧹 Test users cleaned up successfully');
     } catch (error) {
-      console.error('❌ Error cleaning up test users:', error);
+      logger.error('❌ Error cleaning up test users:', undefined, { data: error instanceof Error ? error : undefined });
     }
   });
 
   describe('Testing Auth Bypass with Headers', () => {
     it('should test basic user authentication bypass', async () => {
-      console.log(`
+      logger.info(`
 🔍 TESTING BASIC AUTH BYPASS:
 - Setting TEST_AUTH_BYPASS=1
 - Using x-test-user-id header
@@ -124,7 +125,7 @@ Testing authenticated endpoint with auth bypass...
         status: 'success',
       });
 
-      console.log(`
+      logger.info(`
 ✅ BASIC AUTH BYPASS TEST PASSED!
 - Endpoint returned 200 (authenticated)
 - User data correctly returned
@@ -134,7 +135,7 @@ Testing authenticated endpoint with auth bypass...
     });
 
     it('should test admin user with different role', async () => {
-      console.log(`
+      logger.info(`
 🔍 TESTING ADMIN USER AUTH BYPASS:
 - User: ${testUser2Id}
 - Role: admin
@@ -164,7 +165,7 @@ Testing admin endpoint with auth bypass...
         status: 'success',
       });
 
-      console.log(`
+      logger.info(`
 ✅ ADMIN USER AUTH BYPASS TEST PASSED!
 - Endpoint returned 200 (authenticated)
 - Admin user data correctly returned
@@ -174,7 +175,7 @@ Testing admin endpoint with auth bypass...
     });
 
     it('should test user with linked Internet Identity Principal', async () => {
-      console.log(`
+      logger.info(`
 🔍 TESTING II USER WITH LINKED PRINCIPAL:
 - User: ${testUser1Id}
 - Linked Principal: 2vxsx-fae
@@ -208,7 +209,7 @@ Testing II user with auth bypass...
         status: 'success',
       });
 
-      console.log(`
+      logger.info(`
 ✅ II USER AUTH BYPASS TEST PASSED!
 - Endpoint returned 200 (authenticated)
 - II Principal data correctly included
@@ -217,7 +218,7 @@ Testing II user with auth bypass...
     });
 
     it('should test user with active II co-authentication', async () => {
-      console.log(`
+      logger.info(`
 🔍 TESTING ACTIVE II CO-AUTHENTICATION:
 - User: ${testUser1Id}
 - Active Principal: 2vxsx-fae
@@ -254,7 +255,7 @@ Testing active co-auth with auth bypass...
         status: 'success',
       });
 
-      console.log(`
+      logger.info(`
 ✅ ACTIVE II CO-AUTHENTICATION TEST PASSED!
 - Endpoint returned 200 (authenticated)
 - Active co-auth data correctly included
@@ -266,7 +267,7 @@ Testing active co-auth with auth bypass...
 
   describe('Next Steps: Testing Real ICP Endpoints', () => {
     it('should outline how to test your real ICP endpoints', () => {
-      console.log(`
+      logger.info(`
 🎯 NEXT STEPS: TESTING REAL ICP ENDPOINTS WITH AUTH BYPASS
 
 Now that we have auth bypass working, we can test:

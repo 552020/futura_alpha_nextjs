@@ -6,6 +6,7 @@ import type { BlobHosting, HostingPreferences } from '@/hooks/use-hosting-prefer
 import { UPLOAD_LIMITS_ICP } from '@/config/upload-limits';
 import type { UploadServiceResult } from './shared-utils';
 
+import { logger } from '@/lib/logger';
 // Types for ICP upload - compatible with existing UploadStorage
 export interface UploadStorage {
   database: 'neon' | 'icp';
@@ -152,7 +153,7 @@ export class ICPUploadService {
 
         results.push(result);
       } catch (error) {
-        console.error(`Failed to upload file ${file.name}:`, error);
+        logger.error(`Failed to upload file ${file.name}:`, undefined, { data: error instanceof Error ? error : undefined });
         // Continue with other files, but log the error
         throw new Error(`Failed to upload ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
@@ -209,7 +210,7 @@ export class ICPUploadService {
         remote_id: memoryId,
       };
     } catch (error) {
-      console.error('Inline upload failed:', error);
+      logger.error('Inline upload failed:', undefined, { data: error instanceof Error ? error : undefined });
       throw new Error(`Inline upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -288,7 +289,7 @@ export class ICPUploadService {
         remote_id: memoryId,
       };
     } catch (error) {
-      console.error('Chunked upload failed:', error);
+      logger.error('Chunked upload failed:', undefined, { data: error instanceof Error ? error : undefined });
       throw new Error(`Chunked upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }

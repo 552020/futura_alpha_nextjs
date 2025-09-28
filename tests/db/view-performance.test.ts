@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
 import { eq, sql } from 'drizzle-orm';
-import { storageEdges } from '../db/schema';
+import { storageEdges } from '../../src/db/schema';
 import { config } from 'dotenv';
 
 // Load environment variables
@@ -58,7 +58,7 @@ describe('View Performance Tests', () => {
     }
 
     const inserted = await db.insert(storageEdges).values(testEdges).returning();
-    testEdgeIds = inserted.map(edge => edge.id);
+    testEdgeIds = inserted.map((edge: any) => edge.id);
 
     expect(inserted).toHaveLength(testEdges.length);
     console.log(`✅ Created ${testEdges.length} test storage edges`);
@@ -134,9 +134,9 @@ describe('View Performance Tests', () => {
     const failedResult = await db.execute(sql`SELECT COUNT(*) FROM sync_status WHERE sync_state = 'failed'`);
 
     // The view should only show migrating and failed syncs
-    const totalInView = parseInt(allResult[0]?.count || '0');
-    const migratingInView = parseInt(migratingResult[0]?.count || '0');
-    const failedInView = parseInt(failedResult[0]?.count || '0');
+    const totalInView = parseInt((allResult as any)[0]?.count || '0');
+    const migratingInView = parseInt((migratingResult as any)[0]?.count || '0');
+    const failedInView = parseInt((failedResult as any)[0]?.count || '0');
 
     expect(totalInView).toBe(migratingInView + failedInView);
     console.log(

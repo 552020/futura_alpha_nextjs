@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import { createServer, IncomingMessage, ServerResponse } from 'http';
 
+import { logger } from '@/lib/logger';
 // ============================================================================
 // SIMPLE ENDPOINT FOR SUPERTEST EXPERIMENTATION
 // ============================================================================
@@ -102,20 +103,20 @@ beforeAll(async () => {
     const url = req.url;
     const method = req.method;
 
-    console.log(`🔍 Simple Server: ${method} ${url}`);
+    logger.info(`🔍 Simple Server: ${method} ${url}`);
 
     // Handle requests to our simple endpoints
     if (url && simpleEndpoints[url as keyof typeof simpleEndpoints]) {
       const endpoint = simpleEndpoints[url as keyof typeof simpleEndpoints];
 
-      if (method === 'GET' && endpoint.GET) {
+      if (method === 'GET' && endpoint && 'GET' in endpoint) {
         const result = endpoint.GET();
         res.writeHead(result.status, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(result.body));
         return;
       }
 
-      if (method === 'POST' && endpoint.POST) {
+      if (method === 'POST' && endpoint && 'POST' in endpoint) {
         // Parse request body
         let body = '';
         req.on('data', (chunk: Buffer) => {
@@ -132,8 +133,10 @@ beforeAll(async () => {
             parsedBody = {};
           }
 
-          console.log(`🔍 Request body:`, parsedBody);
-          const result = endpoint.POST(parsedBody);
+          logger.info(`🔍 Request body:`, parsedBody);
+          const result = (
+            endpoint as { POST: (body: Record<string, unknown>) => { status: number; body: Record<string, unknown> } }
+          ).POST(parsedBody);
           res.writeHead(result.status, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify(result.body));
         });

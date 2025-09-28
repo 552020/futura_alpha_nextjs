@@ -23,11 +23,11 @@ export function middleware(request: NextRequest) {
 
   // Log for /decide paths
   if (pathname.includes('decide')) {
-    // console.log("🔥 DECIDE HIT");
-    // console.log(" → Host:", request.headers.get("host"));
-    // console.log(" → Origin:", origin);
-    // console.log(" → Method:", request.method);
-    // console.log(" → Pathname:", pathname);
+    // icpLogger.info("🔥 DECIDE HIT");
+    // icpLogger.info(" → Host:", request.headers.get("host"));
+    // icpLogger.info(" → Origin:", origin);
+    // icpLogger.info(" → Method:", request.method);
+    // icpLogger.info(" → Pathname:", pathname);
   }
 
   // Handle PostHog paths
@@ -52,14 +52,14 @@ export function middleware(request: NextRequest) {
       const response = new NextResponse(null, { status: 204 });
 
       if (origin && allowedOrigins.includes(origin)) {
-        // console.log("🟢 Handling preflight from allowed origin:", origin);
+        // icpLogger.info("🟢 Handling preflight from allowed origin:", origin);
         response.headers.set('Access-Control-Allow-Origin', origin);
         response.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
         response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
         response.headers.set('Access-Control-Allow-Credentials', 'true');
         response.headers.set('Access-Control-Max-Age', '86400');
       } else {
-        // console.warn("⛔ Origin not allowed:", origin);
+        // icpLogger.warn("⛔ Origin not allowed:", origin);
       }
 
       return response;
@@ -69,7 +69,7 @@ export function middleware(request: NextRequest) {
     const response = NextResponse.next();
 
     if (origin && allowedOrigins.includes(origin)) {
-      // console.log("✅ Setting CORS headers for origin:", origin);
+      // icpLogger.info("✅ Setting CORS headers for origin:", origin);
       response.headers.set('Access-Control-Allow-Origin', origin);
       response.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
       response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -77,13 +77,13 @@ export function middleware(request: NextRequest) {
       response.headers.set('Access-Control-Expose-Headers', '*');
 
       // Log the response headers
-      // console.log("🧾 Response Headers being sent:");
+      // icpLogger.info("🧾 Response Headers being sent:");
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       response.headers.forEach((_value, _key) => {
-        // console.log(`   - ${_key}: ${_value}`);
+        // icpLogger.info(`   - ${_key}: ${_value}`);
       });
     } else {
-      // console.warn("❌ No CORS headers set — origin not allowed:", origin);
+      // icpLogger.warn("❌ No CORS headers set — origin not allowed:", origin);
     }
     return response;
   }

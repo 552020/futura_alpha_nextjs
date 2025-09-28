@@ -7,6 +7,7 @@ import { validateFile } from '@/app/api/memories/utils/file-processing';
 import { join } from 'path';
 import { readFileSync } from 'fs';
 import { hash } from 'bcrypt';
+import { logger } from '@/lib/logger';
 import margotData from './margot.json' assert { type: 'json' };
 import richieData from './richie.json' assert { type: 'json' };
 import wesData from './wes.json' assert { type: 'json' };
@@ -80,7 +81,7 @@ async function uploadAsset(filename: string): Promise<{ url: string; size: numbe
     const url = await uploadFileToStorage(file, validationResult.buffer);
     return { url, size: buffer.length, mimeType };
   } catch (error) {
-    console.error(`Failed to upload asset ${filename}:`, error);
+    logger.error(`Failed to upload asset ${filename}:`, undefined, { data: error instanceof Error ? error : undefined });
     throw error;
   }
 }
@@ -242,7 +243,7 @@ async function shareMemory(memoryId: string, memoryType: MemoryType, ownerId: st
 }
 
 export async function seedTenenbaum() {
-  console.log('🌱 Seeding Tenenbaum family data...');
+  logger.info('🌱 Seeding Tenenbaum family data...');
 
   try {
     // Safety check - only proceed if these are test emails
@@ -255,7 +256,7 @@ export async function seedTenenbaum() {
     ];
 
     // Clean up only Tenenbaum-related test data
-    console.log('🧹 Cleaning up existing Tenenbaum test data...');
+    logger.info('🧹 Cleaning up existing Tenenbaum test data...');
 
     // First get the user IDs
     const existingUsers = await db.select().from(users).where(inArray(users.email, tenenBaumEmails));
@@ -278,16 +279,16 @@ export async function seedTenenbaum() {
       await db.delete(users).where(inArray(users.id, userIds));
     }
 
-    console.log('✅ Tenenbaum test data cleaned');
+    logger.info('✅ Tenenbaum test data cleaned');
 
     // Create users
-    console.log('👥 Creating Tenenbaum users...');
+    logger.info('👥 Creating Tenenbaum users...');
     const margot = await createUser(margotData as UserData);
     const richie = await createUser(richieData as UserData);
     // const chas = await createUser(chasData as UserData);
     const wes = await createUser(wesData as UserData);
     const eli = await createUser(eliData as UserData);
-    console.log('✅ Tenenbaum users created');
+    logger.info('✅ Tenenbaum users created');
 
     // Create memories for each user
     const margotMemories = await Promise.all(
@@ -326,9 +327,9 @@ export async function seedTenenbaum() {
     await shareMemory(eliMemories[0].id, eliMemories[0].type, eli.allUser.id, margot.allUser.id);
     await shareMemory(eliMemories[1].id, eliMemories[1].type, eli.allUser.id, margot.allUser.id);
 
-    console.log('✅ Tenenbaum family data seeded successfully');
+    logger.info('✅ Tenenbaum family data seeded successfully');
   } catch (error) {
-    console.error('❌ Error seeding Tenenbaum family data:', error);
+    logger.error('❌ Error seeding Tenenbaum family data:', undefined, { data: error instanceof Error ? error : undefined });
     throw error;
   }
 }

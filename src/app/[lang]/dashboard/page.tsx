@@ -40,14 +40,15 @@ import { TawkChat } from '@/components/chat/tawk-chat';
 import { DashboardTopBar } from '@/components/dashboard/dashboard-top-bar';
 import { sampleDashboardMemories } from '../../../../scripts/mock-data/create-dashboard-sample-data';
 
+import { logger } from '@/lib/logger';
 // Demo flag - set to true to use mock data for demo
 // 📝 Sample data generation script: scripts/mock-data/create-dashboard-sample-data.ts
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_DASHBOARD === 'true';
 
 export default function VaultPage() {
-  // console.log("🔍 Dashboard component rendered");
+  // logger.info("🔍 Dashboard component rendered");
   const { isAuthorized, isTemporaryUser, userId, isLoading } = useAuthGuard();
-  // console.log("🔍 Dashboard auth state:", { isAuthorized, isTemporaryUser, userId, isLoading });
+  // logger.info("🔍 Dashboard auth state:", { isAuthorized, isTemporaryUser, userId, isLoading });
   const router = useRouter();
   const { toast } = useToast();
   const [memories, setMemories] = useState<DashboardItem[]>([]);
@@ -63,12 +64,12 @@ export default function VaultPage() {
   const params = useParams();
 
   const fetchDashboardMemories = useCallback(async () => {
-    // console.log("🚀 LINE 104: ENTERING fetchMemories function");
+    // logger.info("🚀 LINE 104: ENTERING fetchMemories function");
     const timestamp = new Date().toISOString();
-    // console.log("🔍 fetchMemories called with:", { currentPage, USE_MOCK_DATA, timestamp });
+    // logger.info("🔍 fetchMemories called with:", { currentPage, USE_MOCK_DATA, timestamp });
 
     if (USE_MOCK_DATA) {
-      // console.log("🎭 MOCK DATA - Using sample data for demo");
+      // logger.info("🎭 MOCK DATA - Using sample data for demo");
       const processedItems = processDashboardItems(sampleDashboardMemories as MemoryWithFolder[]);
       setMemories(processedItems);
       setHasMore(false);
@@ -77,36 +78,35 @@ export default function VaultPage() {
     }
 
     try {
-      // console.log("🔄 FETCH MEMORIES - Starting fetch:", {
+      // logger.info("🔄 FETCH MEMORIES - Starting fetch:", {
       //   page: currentPage,
       //   timestamp,
       // });
 
-      // console.log("🚀 LINE 122: CALLING fetchMemories");
+      // logger.info("🚀 LINE 122: CALLING fetchMemories");
       const result = await fetchMemories(currentPage);
-      // console.log("✅ LINE 124: EXITED fetchMemories");
+      // logger.info("✅ LINE 124: EXITED fetchMemories");
 
-      // console.log("🚀 LINE 126: CALLING processDashboardItems");
+      // logger.info("🚀 LINE 126: CALLING processDashboardItems");
       const processedItems = processDashboardItems(result.memories);
-      // console.log("✅ LINE 128: EXITED processDashboardItems");
+      // logger.info("✅ LINE 128: EXITED processDashboardItems");
 
-      // console.log("✅ FETCH MEMORIES - Success:", {
+      // logger.info("✅ FETCH MEMORIES - Success:", {
       //   memoriesCount: result.memories.length,
       //   processedItemsCount: processedItems.length,
       //   hasMore: result.hasMore,
       //   timestamp,
       // });
 
-      // console.log("🔍 About to set memories with processedItems:", processedItems);
+      // logger.info("🔍 About to set memories with processedItems:", processedItems);
       setMemories(prev => {
         const newMemories = currentPage === 1 ? processedItems : [...prev, ...processedItems];
-        // console.log("🔍 Setting memories to:", newMemories);
+        // logger.info("🔍 Setting memories to:", newMemories);
         return newMemories;
       });
       setHasMore(result.hasMore);
     } catch (error) {
-      console.error('❌ FETCH MEMORIES ERROR:', {
-        error,
+      logger.error('FETCH MEMORIES ERROR', error as Error, {
         message: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
         status: (error as Error & { status?: number })?.status,
@@ -125,19 +125,19 @@ export default function VaultPage() {
     } finally {
       setIsLoadingMemories(false);
     }
-    // console.log("🚀 LINE 156: EXITING fetchMemories function");
+    // logger.info("🚀 LINE 156: EXITING fetchMemories function");
   }, [currentPage, toast]);
 
   // Removed automatic redirect - now handled by RequireAuth component in render
 
   useEffect(() => {
-    // console.log("🔍 Dashboard useEffect - Auth check:", { isAuthorized, userId, isLoading });
+    // logger.info("🔍 Dashboard useEffect - Auth check:", { isAuthorized, userId, isLoading });
     if (isAuthorized && !isLoading) {
-      // console.log("🚀 LINE 168: CALLING fetchDashboardMemories");
+      // logger.info("🚀 LINE 168: CALLING fetchDashboardMemories");
       fetchDashboardMemories();
-      // console.log("✅ LINE 170: EXITED fetchDashboardMemories");
+      // logger.info("✅ LINE 170: EXITED fetchDashboardMemories");
     } else {
-      // console.log("🔍 Dashboard useEffect - Not authorized or still loading");
+      // logger.info("🔍 Dashboard useEffect - Not authorized or still loading");
     }
   }, [isAuthorized, isLoading, userId, fetchDashboardMemories]);
 
@@ -156,7 +156,7 @@ export default function VaultPage() {
 
   // Initialize filtered memories when memories are loaded
   useEffect(() => {
-    console.log('🔍 Dashboard useEffect - memories changed:', {
+    logger.info('🔍 Dashboard useEffect - memories changed:', {
       memoriesCount: memories.length,
       memories: memories.map(m => ({ id: m.id, type: m.type, title: m.title })),
     });
@@ -172,7 +172,7 @@ export default function VaultPage() {
         description: 'Memory deleted successfully.',
       });
     } catch (error) {
-      console.error('Error deleting memory:', error);
+      logger.error('Error deleting memory', undefined, { data: error as Error });
       toast({
         title: 'Error',
         description: 'Failed to delete memory. Please try again.',
@@ -187,20 +187,20 @@ export default function VaultPage() {
   };
 
   const handleMemoryClick = (memory: Memory | DashboardItem) => {
-    // console.log("🔍 Memory clicked:", memory);
-    // console.log("🔍 Memory type:", memory.type);
-    // console.log("🔍 Memory ID:", memory.id);
+    // logger.info("🔍 Memory clicked:", memory);
+    // logger.info("🔍 Memory type:", memory.type);
+    // logger.info("🔍 Memory ID:", memory.id);
 
     // Check if it's a folder item
     if (memory.type === 'folder') {
       // For folders, use the folderId property (new structure) or fallback to extracting from ID (old structure)
       const folderId = (memory as FolderItem).folderId || memory.id.replace('folder-', '');
-      // console.log("🔍 Folder ID:", folderId);
-      // console.log("🔍 Navigating to folder:", folderId);
+      // logger.info("🔍 Folder ID:", folderId);
+      // logger.info("🔍 Navigating to folder:", folderId);
       router.push(`/${params.lang}/dashboard/folder/${folderId}`);
     } else {
       // For individual memories, navigate to the memory detail page
-      // console.log("🔍 Navigating to memory:", memory.id);
+      // logger.info("🔍 Navigating to memory:", memory.id);
       router.push(`/${params.lang}/dashboard/${memory.id}`);
     }
   };
@@ -219,7 +219,7 @@ export default function VaultPage() {
   };
 
   const handleFilteredMemoriesChange = useCallback((filtered: ExtendedMemory[]) => {
-    console.log('🔍 handleFilteredMemoriesChange called:', {
+    logger.info('🔍 handleFilteredMemoriesChange called:', {
       filteredCount: filtered.length,
       filtered: filtered.map(f => ({ id: f.id, type: f.type, title: f.title })),
     });
@@ -240,7 +240,7 @@ export default function VaultPage() {
         description: `Successfully deleted ${result.deletedCount} memories.`,
       });
     } catch (error) {
-      console.error('Error clearing all memories:', error);
+      logger.error('Error clearing all memories', undefined, { data: error as Error });
       toast({
         title: 'Error',
         description: 'Failed to clear all memories. Please try again.',
@@ -314,7 +314,7 @@ export default function VaultPage() {
         </div>
       ) : (
         <>
-          {console.log('🔍 Rendering MemoryGrid with filteredMemories:', {
+          {logger.info('🔍 Rendering MemoryGrid with filteredMemories:', {
             filteredMemoriesCount: filteredMemories.length,
             filteredMemories: filteredMemories.map(f => ({ id: f.id, type: f.type, title: f.title })),
           })}

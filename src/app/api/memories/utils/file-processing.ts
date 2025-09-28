@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 /**
  * FILE PROCESSING UTILITIES
  *
@@ -158,22 +160,22 @@ export async function validateFileWithErrorHandling(
 }> {
   let validationResult;
   try {
-    // console.log("🔍 Starting file validation...");
+    // logger.info("🔍 Starting file validation...");
     validationResult = await validateFile(file);
     if (!validationResult.isValid) {
-      console.error('❌ File validation failed:', validationResult.error);
+      logger.error('❌ File validation failed:', undefined, { data: validationResult.error });
       return {
         validationResult: null,
         error: validationResult.error || 'File validation failed',
       };
     }
-    // console.log("✅ File validation successful:", {
+    // logger.info("✅ File validation successful:", {
     //   type: file.type,
     //   size: file.size,
     // });
     return { validationResult, error: null };
   } catch (validationError) {
-    console.error('❌ Validation error:', validationError);
+    logger.error('❌ Validation error:', undefined, { data: validationError });
     return {
       validationResult: null,
       error: validationError instanceof Error ? validationError.message : String(validationError),
@@ -187,7 +189,7 @@ export async function validateFileWithErrorHandling(
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function logFileDetails(file: File): void {
-  // console.log("📄 File details:", {
+  // logger.info("📄 File details:", {
   //   name: file.name,
   //   type: file.type,
   //   size: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
@@ -199,10 +201,10 @@ export function logFileDetails(file: File): void {
  * Used for folder uploads
  */
 export function logMultipleFileDetails(files: File[]): void {
-  // console.log(`📁 Folder contains ${files.length} files:`);
+  // logger.info(`📁 Folder contains ${files.length} files:`);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   files.forEach((_file, _index) => {
-    // console.log(`  ${_index + 1}. `);
+    // logger.info(`  ${_index + 1}. `);
   });
 }
 

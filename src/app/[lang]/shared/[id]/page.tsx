@@ -7,6 +7,7 @@ import { MemoryViewer } from '@/components/memory/memory-viewer';
 import { Card } from '@/components/ui/card';
 import { auth } from '@/auth';
 
+import { logger } from '@/lib/logger';
 interface SharedMemoryPageProps {
   params: Promise<{
     id: string;
@@ -17,7 +18,7 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
   const { id } = await params;
   const session = await auth();
 
-  console.log('🔍 DEBUG SharedMemoryPage - Auth Check:', {
+  logger.info('🔍 DEBUG SharedMemoryPage - Auth Check:', {
     id,
     hasSession: !!session,
     userId: session?.user?.id,
@@ -25,7 +26,7 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
   });
 
   if (!session?.user?.id) {
-    console.log('❌ DEBUG SharedMemoryPage - No authenticated user');
+    logger.info('❌ DEBUG SharedMemoryPage - No authenticated user');
     notFound();
   }
 
@@ -35,7 +36,7 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
       where: eq(allUsers.userId, session.user.id),
     });
 
-    console.log('🔍 DEBUG SharedMemoryPage - AllUser Lookup:', {
+    logger.info('🔍 DEBUG SharedMemoryPage - AllUser Lookup:', {
       found: !!allUserRecord,
       userId: session.user.id,
       allUserId: allUserRecord?.id,
@@ -43,13 +44,13 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
     });
 
     if (!allUserRecord) {
-      console.log('❌ DEBUG SharedMemoryPage - No allUser record found');
+      logger.info('❌ DEBUG SharedMemoryPage - No allUser record found');
       notFound();
     }
 
     // First try to find the memory
     const memory = await findMemory(id);
-    console.log('🔍 DEBUG SharedMemoryPage - Memory Lookup:', {
+    logger.info('🔍 DEBUG SharedMemoryPage - Memory Lookup:', {
       memoryFound: !!memory,
       memoryId: id,
       ownerId: memory?.ownerId,
@@ -57,12 +58,12 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
     });
 
     if (!memory) {
-      console.log('❌ DEBUG SharedMemoryPage - Memory not found');
+      logger.info('❌ DEBUG SharedMemoryPage - Memory not found');
       notFound();
     }
 
     const isOwner = memory.ownerId === allUserRecord.id;
-    console.log('🔍 DEBUG SharedMemoryPage - Ownership Check:', {
+    logger.info('🔍 DEBUG SharedMemoryPage - Ownership Check:', {
       isOwner,
       memoryOwnerId: memory.ownerId,
       currentUserAllId: allUserRecord.id,
@@ -74,7 +75,7 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
       where: and(eq(memoryShares.memoryId, id), eq(memoryShares.sharedWithId, allUserRecord.id)),
     });
 
-    console.log('🔍 DEBUG SharedMemoryPage - Share Check:', {
+    logger.info('🔍 DEBUG SharedMemoryPage - Share Check:', {
       hasShare: !!share,
       shareDetails: share
         ? {
@@ -90,7 +91,7 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
     // 1. The owner of the memory OR
     // 2. Have a share record
     if (!isOwner && !share) {
-      console.log('❌ DEBUG SharedMemoryPage - Access Denied:', {
+      logger.info('❌ DEBUG SharedMemoryPage - Access Denied:', {
         reason: 'User is not owner and has no share record',
         isOwner,
         hasShare: !!share,
@@ -101,7 +102,7 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
       notFound();
     }
 
-    console.log('✅ DEBUG SharedMemoryPage - Access Granted:', {
+    logger.info('✅ DEBUG SharedMemoryPage - Access Granted:', {
       reason: isOwner ? 'User is owner' : 'User has share record',
       accessLevel: isOwner ? 'write' : share?.accessLevel || 'read',
       timestamp: new Date().toISOString(),
@@ -124,7 +125,7 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
       </div>
     );
   } catch (error) {
-    console.error('Error accessing shared memory:', error);
+    logger.error('Error accessing shared memory', undefined, { data: error as Error });
     notFound();
   }
 }

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import request from 'supertest';
 
+import { logger } from '@/lib/logger';
 // 🎯 LEARNING GOOGLE AUTHENTICATION MOCKING
 // This file is specifically for learning how to fake Google authentication in tests
 // We'll test different approaches to simulate authenticated users
@@ -11,7 +12,7 @@ describe('Learning Google Authentication Mocking with Supertest', () => {
 
   describe('Understanding the Challenge', () => {
     it('should explain why we need to fake authentication', () => {
-      console.log(`
+      logger.info(`
 🔍 WHY WE NEED TO FAKE GOOGLE AUTHENTICATION:
 
 1. **OAuth Flow Limitation**: Google OAuth requires browser interaction
@@ -40,7 +41,7 @@ describe('Learning Google Authentication Mocking with Supertest', () => {
 
   describe('Approaches to Fake Google Authentication', () => {
     it('should document different methods we can try', () => {
-      console.log(`
+      logger.info(`
 🎯 DIFFERENT APPROACHES TO FAKE GOOGLE AUTH:
 
 1. **JWT Token Manipulation**: Create fake JWT tokens with user data
@@ -66,7 +67,7 @@ describe('Learning Google Authentication Mocking with Supertest', () => {
         .set('Authorization', `Bearer ${fakeToken}`)
         .expect(401); // Expected to fail
 
-      console.log(`
+      logger.info(`
 🔍 RESULT: Authorization header approach failed (expected)
    - Fake Bearer token not accepted
    - NextAuth requires valid JWT signature
@@ -87,7 +88,7 @@ describe('Learning Google Authentication Mocking with Supertest', () => {
         .set('Cookie', `next-auth.session-token=${fakeSessionCookie}`)
         .expect(401); // Expected to fail
 
-      console.log(`
+      logger.info(`
 🔍 RESULT: Session cookie approach failed (expected)
    - Fake session cookie not accepted
    - NextAuth validates session tokens against database
@@ -100,7 +101,7 @@ describe('Learning Google Authentication Mocking with Supertest', () => {
 
   describe('Next Steps for Authentication Mocking', () => {
     it('should outline what we need to learn next', () => {
-      console.log(`
+      logger.info(`
 🎯 NEXT LEARNING STEPS FOR AUTHENTICATION MOCKING:
 
 1. **Understand NextAuth Session Structure**: How are sessions stored and validated?

@@ -37,6 +37,7 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import RequireAuth from '@/components/auth/require-auth';
 
+import { logger } from '@/lib/logger';
 export default function SharedMemoriesPage({ params }: { params: Promise<{ lang: string }> }) {
   // Unwrap params using React.use()
   const { lang } = use(params);
@@ -80,12 +81,12 @@ export default function SharedMemoriesPage({ params }: { params: Promise<{ lang:
   }, [memories]);
 
   // Log route parameters for debugging
-  // console.log("Rendering SharedMemoriesPage", { lang, isAuthorized, userId });
+  // logger.info("Rendering SharedMemoriesPage", { lang, isAuthorized, userId });
 
   const fetchMemories = useCallback(async () => {
     const timestamp = new Date().toISOString();
     try {
-      // console.log("🔄 FETCH SHARED MEMORIES - Starting fetch:", {
+      // logger.info("🔄 FETCH SHARED MEMORIES - Starting fetch:", {
       //   page: currentPage,
       //   timestamp,
       //   lang,
@@ -97,7 +98,7 @@ export default function SharedMemoriesPage({ params }: { params: Promise<{ lang:
       }
 
       const data = await response.json();
-      // console.log("✅ FETCH SHARED MEMORIES - Success:", {
+      // logger.info("✅ FETCH SHARED MEMORIES - Success:", {
       //   memoriesCount: data.data.length,
       //   hasMore: data.hasMore,
       //   timestamp,
@@ -117,8 +118,7 @@ export default function SharedMemoriesPage({ params }: { params: Promise<{ lang:
       });
       setHasMore(data.hasMore);
     } catch (error) {
-      console.error('❌ FETCH SHARED MEMORIES ERROR:', {
-        error,
+      logger.error('FETCH SHARED MEMORIES ERROR', error as Error, {
         message: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
         timestamp,
@@ -185,7 +185,7 @@ export default function SharedMemoriesPage({ params }: { params: Promise<{ lang:
         });
       }
     } catch (error) {
-      console.error('Error deleting memory:', error);
+      logger.error('Error deleting memory', undefined, { data: error as Error });
       toast({
         title: 'Error',
         description: 'Failed to delete memory. Please try again.',

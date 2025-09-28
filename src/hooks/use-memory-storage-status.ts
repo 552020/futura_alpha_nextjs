@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 
+import { logger } from '@/lib/logger';
 export type MemoryStorageStatus = 'stored_forever' | 'partially_stored' | 'web2_only' | 'loading' | 'error';
 
 interface MemoryPresenceData {
@@ -71,7 +72,7 @@ export function useMemoryStorageStatus(memoryId: string, memoryType: string) {
           setStatus('error');
         }
       } catch (error) {
-        console.error('Error fetching memory storage status:', error);
+        logger.error('Error fetching memory storage status:', undefined, { data: error instanceof Error ? error : undefined });
         setStatus('error');
       }
     }
@@ -150,7 +151,7 @@ export function useBatchMemoryStorageStatus(memories: Array<{ id: string; type: 
               return { key, status: 'error' as MemoryStorageStatus, data: null };
             }
           } catch (error) {
-            console.error(`Error fetching status for memory ${memory.id}:`, error);
+            logger.error(`Error fetching status for memory ${memory.id}:`, undefined, { data: error instanceof Error ? error : undefined });
             return { key, status: 'error' as MemoryStorageStatus, data: null };
           }
         });
@@ -169,7 +170,7 @@ export function useBatchMemoryStorageStatus(memories: Array<{ id: string; type: 
           return newMap;
         });
       } catch (error) {
-        console.error('Error in batch memory status fetch:', error);
+        logger.error('Error in batch memory status fetch:', undefined, { data: error instanceof Error ? error : undefined });
         // Set all to error state
         setStatusMap(prevMap => {
           const newMap = { ...prevMap };

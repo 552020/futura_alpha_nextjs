@@ -4,6 +4,7 @@ import { db } from '@/db/db';
 import { allUsers, memories, memoryShares } from '@/db/schema';
 import { eq, desc, sql } from 'drizzle-orm';
 
+import { logger } from '@/lib/logger';
 /**
  * GET /api/memories/shared
  *
@@ -152,7 +153,7 @@ export async function GET(request: NextRequest) {
       total: memoriesWithShareInfo.length,
     });
   } catch (error) {
-    console.error('Error fetching shared memories:', error);
+    logger.error('Error fetching shared memories:', undefined, { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to fetch shared memories' }, { status: 500 });
   }
 }
@@ -176,7 +177,7 @@ async function getOwnerName(ownerId: string): Promise<string> {
 
     return 'Unknown';
   } catch (error) {
-    console.error('Error getting owner name:', error);
+    logger.error('Error getting owner name:', undefined, { data: error instanceof Error ? error : undefined });
     return 'Unknown';
   }
 }

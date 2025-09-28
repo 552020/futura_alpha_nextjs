@@ -5,6 +5,7 @@ import { eq, desc, and, inArray } from 'drizzle-orm';
 import { galleries, allUsers, memories as memoriesTable, folders, galleryItems } from '@/db/schema';
 import { addStorageStatusToGalleries } from './utils';
 
+import { logger } from '@/lib/logger';
 export async function GET(request: NextRequest) {
   // Returns all galleries owned by the authenticated user
   // A gallery is a collection of memories (images, videos, documents, notes, audio)
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!allUserRecord) {
-      console.error('No allUsers record found for user:', session.user.id);
+      logger.error('No allUsers record found for user:', undefined, { data: session.user.id });
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '12');
     const offset = (page - 1) * limit;
 
-    // console.log("Fetching galleries for:", {
+    // logger.info("Fetching galleries for:", {
     //   sessionUserId: session.user.id,
     //   allUserId: allUserRecord.id,
     //   page,
@@ -51,7 +52,7 @@ export async function GET(request: NextRequest) {
     // Add computed storage status to galleries
     const galleriesWithStorageStatus = await addStorageStatusToGalleries(userGalleries);
 
-    // console.log("Fetched galleries:", {
+    // logger.info("Fetched galleries:", {
     //   page,
     //   limit,
     //   offset,
@@ -63,7 +64,7 @@ export async function GET(request: NextRequest) {
       hasMore: userGalleries.length === limit,
     });
   } catch (error) {
-    console.error('Error listing galleries:', error);
+    logger.error('Error listing galleries:', undefined, { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to list galleries' }, { status: 500 });
   }
 }
@@ -82,14 +83,14 @@ export async function POST(request: NextRequest) {
     });
 
     if (!allUserRecord) {
-      console.error('No allUsers record found for user:', session.user.id);
+      logger.error('No allUsers record found for user:', undefined, { data: session.user.id });
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
     const body = await request.json();
     const { type, folderName, memories, title, description, isPublic = false } = body;
 
-    console.log('🔍 Gallery Creation Request:', {
+    logger.info('🔍 Gallery Creation Request:', {
       type,
       folderName,
       title,
@@ -116,7 +117,7 @@ export async function POST(request: NextRequest) {
         orderBy: desc(folders.createdAt), // Get the most recent one
       });
 
-      console.log('🔍 All folders with name:', {
+      logger.info('🔍 All folders with name:', {
         folderName,
         count: allFoldersWithName.length,
         folders: allFoldersWithName.map(f => ({ id: f.id, name: f.name, createdAt: f.createdAt })),
@@ -130,7 +131,7 @@ export async function POST(request: NextRequest) {
       const folder = allFoldersWithName[0];
 
       // Find all memories that belong to this folder using the unified memories table
-      console.log('🔍 Gallery Creation Debug:', {
+      logger.info('🔍 Gallery Creation Debug:', {
         folderName,
         folderId: folder.id,
         ownerId: allUserRecord.id,
@@ -140,7 +141,7 @@ export async function POST(request: NextRequest) {
         where: and(eq(memoriesTable.ownerId, allUserRecord.id), eq(memoriesTable.parentFolderId, folder.id)),
       });
 
-      console.log('🔍 Found folder memories:', {
+      logger.info('🔍 Found folder memories:', {
         count: folderMemories.length,
         memories: folderMemories.map(m => ({ id: m.id, title: m.title, parentFolderId: m.parentFolderId })),
       });
@@ -233,7 +234,7 @@ export async function POST(request: NextRequest) {
       })
       .where(eq(galleries.id, gallery.id));
 
-    // console.log("Created gallery:", {
+    // logger.info("Created gallery:", {
     //   type,
     //   folderName,
     //   galleryId: gallery.id,
@@ -250,7 +251,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    console.error('Error creating gallery:', error);
+    logger.error('Error creating gallery:', undefined, { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to create gallery' }, { status: 500 });
   }
 }

@@ -1,16 +1,17 @@
 import { seedTenenbaum } from './fixtures/tenenbaum';
 
+import { logger } from '@/lib/logger';
 export async function seed() {
-  // console.log("🌱 Starting database seeding...");
+  // logger.info("🌱 Starting database seeding...");
 
   try {
     // Seed Tenenbaum family data
     await seedTenenbaum();
 
-    // console.log("✅ Database seeding completed successfully");
+    // logger.info("✅ Database seeding completed successfully");
     process.exit(0);
   } catch (error) {
-    console.error('❌ Error seeding database:', error);
+    logger.error('❌ Error seeding database:', undefined, { data: error instanceof Error ? error : undefined });
     process.exit(1);
   }
 }

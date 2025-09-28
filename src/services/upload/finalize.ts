@@ -7,6 +7,7 @@
 
 import type { AssetType, ProcessingStatus } from '@/db/schema';
 
+import { logger } from '@/lib/logger';
 export interface FinalizeAsset {
   assetType: AssetType;
   assetLocation?: 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs' | 'neon';
@@ -48,7 +49,7 @@ export async function finalizeAllAssets(
   const memoryId = laneAResult.status === 'fulfilled' ? laneAResult.value.data.id : null;
 
   if (!memoryId) {
-    console.error('❌ Cannot finalize: Lane A failed, no memoryId available');
+    logger.error('❌ Cannot finalize: Lane A failed', undefined, { data: 'no memoryId available' });
     return;
   }
 
@@ -70,7 +71,7 @@ export async function finalizeAllAssets(
     if (placeholder) assets.push(placeholder);
   } else {
     // Lane B failed or was skipped - mark derivatives as failed/pending
-    console.warn('⚠️ Lane B failed or was skipped, marking derivatives as failed');
+    logger.warn('⚠️ Lane B failed or was skipped, marking derivatives as failed');
     assets.push(
       { assetType: 'display', processingStatus: 'failed' },
       { assetType: 'thumb', processingStatus: 'failed' },
@@ -79,7 +80,7 @@ export async function finalizeAllAssets(
   }
 
   // Single finalize call
-  console.log(`🔍 DEBUG: Finalizing assets for memory ${memoryId} with parentFolderId:`, parentFolderId);
+  logger.info(`🔍 DEBUG: Finalizing assets for memory ${memoryId} with parentFolderId:`, { parentFolderId });
   await finalizeAssets({ memoryId, assets, parentFolderId });
 }
 
@@ -87,8 +88,10 @@ export async function finalizeAllAssets(
  * Make the actual API call to finalize assets
  */
 async function finalizeAssets(request: FinalizeRequest): Promise<void> {
-  console.log(`💾 Finalizing ${request.assets.length} assets for memory: ${request.memoryId}`);
-  console.log(`📋 Assets to finalize:`, request.assets.map(a => `${a.assetType}=${a.processingStatus}`).join(', '));
+  logger.info(`💾 Finalizing ${request.assets.length} assets for memory: ${request.memoryId}`);
+  logger.info(`📋 Assets to finalize:`, {
+    assets: request.assets.map(a => `${a.assetType}=${a.processingStatus}`).join(', '),
+  });
 
   const response = await fetch('/api/upload/complete', {
     method: 'POST',
@@ -103,5 +106,5 @@ async function finalizeAssets(request: FinalizeRequest): Promise<void> {
     throw new Error(error.error || 'Failed to finalize assets');
   }
 
-  console.log(`✅ Assets finalized for memory: ${request.memoryId}`);
+  logger.info(`✅ Assets finalized for memory: ${request.memoryId}`);
 }

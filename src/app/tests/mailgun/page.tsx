@@ -43,12 +43,12 @@ export default function MailgunTest() {
   };
 
   // Show unauthorized message if not admin/dev
-  // console.log("--------------------------------");
-  // console.log("MailgunTest status:", status);
-  // console.log("MailgunTest session:", session);
-  // console.log("MailgunTest user:", session?.user);
-  // console.log("MailgunTest user role:", session?.user?.role);
-  // console.log("--------------------------------");
+  // icpLogger.info("--------------------------------");
+  // icpLogger.info("MailgunTest status:", status);
+  // icpLogger.info("MailgunTest session:", session);
+  // icpLogger.info("MailgunTest user:", session?.user);
+  // icpLogger.info("MailgunTest user role:", session?.user?.role);
+  // icpLogger.info("--------------------------------");
 
   if (
     status === 'authenticated' &&

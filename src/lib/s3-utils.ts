@@ -1,14 +1,15 @@
 import { S3Client, DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 
+import { logger } from '@/lib/logger';
 // Get bucket name from environment variables
 const BUCKET_NAME = process.env.NEXT_PUBLIC_AWS_S3_BUCKET || 'futura0';
 
 if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
-  console.warn('⚠️ AWS credentials not found. S3 operations will fail.');
+  logger.warn('⚠️ AWS credentials not found. S3 operations will fail.');
 }
 
 if (!process.env.AWS_S3_REGION) {
-  console.warn('⚠️ AWS_S3_REGION not set. Defaulting to eu-central-1');
+  logger.warn('⚠️ AWS_S3_REGION not set. Defaulting to eu-central-1');
 }
 
 // Initialize S3 client with explicit credentials and region
@@ -40,7 +41,7 @@ async function objectExists(key: string): Promise<boolean> {
     if (err.name === 'NotFound') {
       return false;
     }
-    console.error(`❌ Unexpected error checking if S3 object exists (${key}):`, err);
+    logger.error(`❌ Unexpected error checking if S3 object exists (${key}):`, undefined, { data: err });
     return false;
   }
 }
@@ -49,26 +50,26 @@ async function objectExists(key: string): Promise<boolean> {
  * Delete an object from S3 with enhanced error handling and logging
  */
 export async function deleteS3Object(key: string): Promise<boolean> {
-  console.log('🔧 deleteS3Object called with key:', key);
+  logger.info('🔧 deleteS3Object called with key:', { key });
 
   if (!key) {
-    console.warn('⚠️ Attempted to delete S3 object with empty key');
+    logger.warn('⚠️ Attempted to delete S3 object with empty key');
     return false;
   }
 
   const bucket = BUCKET_NAME;
 
   try {
-    console.log('🔍 Checking if object exists before deletion...');
+    logger.info('🔍 Checking if object exists before deletion...');
     const exists = await objectExists(key);
-    console.log(`🔍 Object ${exists ? 'exists' : 'does not exist'}: ${key}`);
+    logger.info(`🔍 Object ${exists ? 'exists' : 'does not exist'}: ${key}`);
 
     if (!exists) {
-      console.warn(`⚠️ S3 object does not exist: ${key}`);
+      logger.warn(`⚠️ S3 object does not exist: ${key}`);
       return true; // Safe to treat as success
     }
 
-    console.log(`🗑️ Attempting to delete S3 object: ${key} from bucket: ${bucket}`);
+    logger.info(`🗑️ Attempting to delete S3 object: ${key} from bucket: ${bucket}`);
 
     const command = new DeleteObjectCommand({
       Bucket: bucket,
@@ -76,7 +77,7 @@ export async function deleteS3Object(key: string): Promise<boolean> {
     });
 
     const result = await s3Client.send(command);
-    console.log(`✅ DeleteObjectCommand sent successfully`, {
+    logger.info(`✅ DeleteObjectCommand sent successfully`, {
       deleteMarker: result.DeleteMarker,
       versionId: result.VersionId,
       requestId: result.$metadata.requestId,
@@ -88,7 +89,7 @@ export async function deleteS3Object(key: string): Promise<boolean> {
       const stillExists = await objectExists(key);
       if (stillExists) {
         const objectUrl = `https://${bucket}.s3.${process.env.AWS_S3_REGION || 'eu-central-1'}.amazonaws.com/${key}`;
-        console.error(`❌ S3 object still exists after deletion attempt`, {
+        logger.error(`❌ S3 object still exists after deletion attempt`, undefined, {
           key,
           bucket,
           region: process.env.AWS_S3_REGION || 'eu-central-1',
@@ -97,7 +98,7 @@ export async function deleteS3Object(key: string): Promise<boolean> {
         });
         return false;
       }
-      console.log('✅ Deletion verified', {
+      logger.info('✅ Deletion verified', {
         key,
         bucket,
         region: process.env.AWS_S3_REGION || 'eu-central-1',
@@ -116,7 +117,7 @@ export async function deleteS3Object(key: string): Promise<boolean> {
   } catch (error) {
     const fullUrl = `https://${bucket}.s3.${process.env.AWS_S3_REGION || 'eu-central-1'}.amazonaws.com/${key}`;
     const errorMsg = `Unexpected error deleting S3 object: ${error instanceof Error ? error.message : String(error)}`;
-    console.error(errorMsg, {
+    logger.error(errorMsg, undefined, {
       key,
       url: fullUrl,
       error:

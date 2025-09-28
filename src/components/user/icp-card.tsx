@@ -19,6 +19,7 @@ import { useIICoAuth } from '@/hooks/use-ii-coauth';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 
+import { logger } from '@/lib/logger';
 interface ICPCardProps {
   className?: string;
 }
@@ -56,7 +57,7 @@ export function ICPCard({ className = '' }: ICPCardProps) {
         description: 'Principal ID copied to clipboard',
       });
     } catch (error) {
-      console.error('Failed to copy:', error);
+      logger.error('Failed to copy:', undefined, { data: error instanceof Error ? error : undefined });
       toast({
         title: 'Copy Failed',
         description: 'Failed to copy principal ID to clipboard',
@@ -74,7 +75,7 @@ export function ICPCard({ className = '' }: ICPCardProps) {
       const signinUrl = `/en/sign-ii-only?callbackUrl=${encodeURIComponent(currentUrl)}`;
       window.location.href = signinUrl;
     } catch (error) {
-      console.error('Failed to redirect to II signin page:', error);
+      logger.error('Failed to redirect to II signin page:', undefined, { data: error instanceof Error ? error : undefined });
       toast({
         title: 'Redirect Failed',
         description: 'Failed to redirect to Internet Identity linking page',
@@ -91,7 +92,7 @@ export function ICPCard({ className = '' }: ICPCardProps) {
       const signinUrl = `/en/sign-ii-only?callbackUrl=${encodeURIComponent(currentUrl)}`;
       window.location.href = signinUrl;
     } catch (error) {
-      console.error('Failed to redirect to II signin page:', error);
+      logger.error('Failed to redirect to II signin page:', undefined, { data: error instanceof Error ? error : undefined });
       toast({
         title: 'Redirect Failed',
         description: 'Failed to redirect to Internet Identity sign-in page',
@@ -110,7 +111,7 @@ export function ICPCard({ className = '' }: ICPCardProps) {
         description: 'Your Internet Identity is no longer active for this session',
       });
     } catch (error) {
-      console.error('Failed to disconnect II:', error);
+      logger.error('Failed to disconnect II:', undefined, { data: error instanceof Error ? error : undefined });
       toast({
         title: 'Disconnect Failed',
         description: 'Failed to disconnect Internet Identity. Please try again.',
@@ -131,7 +132,7 @@ export function ICPCard({ className = '' }: ICPCardProps) {
         description: 'Your Internet Identity session has been extended',
       });
     } catch (error) {
-      console.error('Failed to refresh II TTL:', error);
+      logger.error('Failed to refresh II TTL:', undefined, { data: error instanceof Error ? error : undefined });
       toast({
         title: 'Refresh Failed',
         description: 'Failed to refresh Internet Identity session. Please try again.',

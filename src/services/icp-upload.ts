@@ -3,6 +3,7 @@
 import { HttpAgent } from '@dfinity/agent';
 import type { MemoryData, MemoryMeta, _SERVICE } from '@/ic/declarations/backend/backend.did';
 
+import { logger } from '@/lib/logger';
 // Types for ICP upload - compatible with existing UploadStorage
 export interface UploadStorage {
   database: 'neon' | 'icp';
@@ -59,7 +60,7 @@ export class ICPUploadService {
       const { AuthClient } = await import('@dfinity/auth-client');
       this.authClient = await AuthClient.create();
     } catch (error) {
-      console.error('Failed to initialize ICP auth client:', error);
+      logger.error('Failed to initialize ICP auth client:', undefined, { data: error instanceof Error ? error : undefined });
       throw new Error('ICP authentication not available');
     }
   }
@@ -161,7 +162,7 @@ export class ICPUploadService {
 
         results.push(result);
       } catch (error) {
-        console.error(`Failed to upload file ${file.name}:`, error);
+        logger.error(`Failed to upload file ${file.name}:`, undefined, { data: error instanceof Error ? error : undefined });
         // Continue with other files, but log the error
         throw new Error(`Failed to upload ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
@@ -218,7 +219,7 @@ export class ICPUploadService {
         remote_id: memoryId,
       };
     } catch (error) {
-      console.error('Inline upload failed:', error);
+      logger.error('Inline upload failed:', undefined, { data: error instanceof Error ? error : undefined });
       throw new Error(`Inline upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -297,7 +298,7 @@ export class ICPUploadService {
         remote_id: memoryId,
       };
     } catch (error) {
-      console.error('Chunked upload failed:', error);
+      logger.error('Chunked upload failed:', undefined, { data: error instanceof Error ? error : undefined });
       throw new Error(`Chunked upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }

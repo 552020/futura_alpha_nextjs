@@ -3,6 +3,7 @@ import { GalleryWithItems } from '@/types/gallery';
 import { BaseGrid } from '@/components/common/base-grid';
 import { GalleryCard } from './gallery-card';
 
+import { logger } from '@/lib/logger';
 interface GalleryGridProps {
   galleries: GalleryWithItems[];
   onGalleryClick: (gallery: GalleryWithItems) => void;
@@ -24,21 +25,21 @@ export function GalleryGrid({
   const handleEdit =
     onGalleryEdit ||
     ((gallery: GalleryWithItems) => {
-      console.log('Edit gallery:', gallery.id);
+      logger.info('Edit gallery:', { galleryId: gallery.id });
       // TODO: Implement gallery editing
     });
 
   const handleShare =
     onGalleryShare ||
     ((gallery: GalleryWithItems) => {
-      console.log('Share gallery:', gallery.id);
+      logger.info('Share gallery:', { galleryId: gallery.id });
       // TODO: Implement gallery sharing
     });
 
   const handleDelete =
     onGalleryDelete ||
     ((gallery: GalleryWithItems) => {
-      console.log('Delete gallery:', gallery.id);
+      logger.info('Delete gallery:', { galleryId: gallery.id });
       // TODO: Implement gallery deletion
     });
   // Create empty state component

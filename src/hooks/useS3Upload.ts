@@ -134,8 +134,8 @@ export function useS3Upload({ onComplete, onError }: Omit<UploadOptions, 'onProg
 /*
 function UploadComponent() {
   const { upload, progress, isUploading, error } = useS3Upload({
-    onComplete: (url) => console.log('Upload complete:', url),
-    onError: (error) => console.error('Upload error:', error),
+    onComplete: (url) => icpLogger.info('Upload complete:', url),
+    onError: (error) => icpLogger.error('Upload error:', error as Error),
   });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

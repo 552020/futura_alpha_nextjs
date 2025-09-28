@@ -35,7 +35,7 @@ export function ShareStep({ onNext, onBack }: ShareStepProps) {
   const validateEmail = (email: string) => {
     const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
     const isValid = emailRegex.test(email);
-    // console.log("Recipient email validation:", { email, isValid });
+    // icpLogger.info("Recipient email validation:", { email, isValid });
     return isValid;
   };
 
@@ -47,7 +47,7 @@ export function ShareStep({ onNext, onBack }: ShareStepProps) {
 
   const handleRecipientEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
-    // console.log("Recipient email changed:", newValue);
+    // icpLogger.info("Recipient email changed:", newValue);
     setLocalRecipientEmail(newValue);
     updateUserData({ recipientEmail: newValue });
   };
@@ -61,7 +61,7 @@ export function ShareStep({ onNext, onBack }: ShareStepProps) {
 
   // Add debug log for button state
   const isNextDisabled = !validateEmail(localRecipientEmail);
-  // console.log("Share step button state:", {
+  // icpLogger.info("Share step button state:", {
   //   localRecipientEmail,
   //   isValid: validateEmail(localRecipientEmail),
   //   isNextDisabled,

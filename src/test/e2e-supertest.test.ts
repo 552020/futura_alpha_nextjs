@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import request from 'supertest';
 
+import { logger } from '@/lib/logger';
 // 🎯 E2E TESTING APPROACH - Testing your running dev server directly
 // This is NOT mocking or replicating endpoints - it's real integration testing
 
@@ -66,7 +67,7 @@ describe('E2E Testing with Supertest - Real Dev Server', () => {
       // This test documents what we need to learn next
       expect(true).toBe(true);
 
-      console.log(`
+      logger.info(`
 🎯 NEXT LEARNING STEPS - AUTHENTICATION MOCKING:
 1. Learn how to "fake" Google authentication in tests
 2. Learn how to "fake" Internet Identity authentication in tests  

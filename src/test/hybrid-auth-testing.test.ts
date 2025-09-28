@@ -3,6 +3,7 @@ import request from 'supertest';
 import { testDb } from '@/db/test-db';
 import { users, allUsers } from '@/db/schema';
 import { eq } from 'drizzle-orm';
+import { logger } from '@/lib/logger';
 import {
   generateGoogleUserJWT,
   generateIIUserJWT,
@@ -18,7 +19,7 @@ describe('Hybrid Authentication Testing - Database + JWT', () => {
   let testUser3Id: string;
 
   beforeAll(async () => {
-    console.log(`
+    logger.info(`
 🎯 SETTING UP HYBRID AUTHENTICATION TESTING
 
 We're combining:
@@ -85,7 +86,7 @@ This should give us realistic authentication testing!
       testUser2Id = testUser2.id;
       testUser3Id = testUser3.id;
 
-      console.log(`
+      logger.info(`
 ✅ TEST USERS CREATED SUCCESSFULLY:
 - User 1: ${testUser1.email} (ID: ${testUser1.id}) - Role: ${testUser1.role}
 - User 2: ${testUser2.email} (ID: ${testUser2.id}) - Role: ${testUser2.role}
@@ -94,7 +95,7 @@ This should give us realistic authentication testing!
 Now let's test authentication with JWT tokens!
       `);
     } catch (error) {
-      console.error('❌ Error creating test users:', error);
+      logger.error('❌ Error creating test users:', undefined, { data: error instanceof Error ? error : undefined });
       throw error;
     }
   });
@@ -105,9 +106,9 @@ Now let's test authentication with JWT tokens!
       await testDb.delete(users).where(eq(users.id, testUser1Id));
       await testDb.delete(users).where(eq(users.id, testUser2Id));
       await testDb.delete(users).where(eq(users.id, testUser3Id));
-      console.log('🧹 Test users cleaned up successfully');
+      logger.info('🧹 Test users cleaned up successfully');
     } catch (error) {
-      console.error('❌ Error cleaning up test users:', error);
+      logger.error('❌ Error cleaning up test users:', undefined, { data: error instanceof Error ? error : undefined });
     }
   });
 
@@ -267,7 +268,7 @@ Now let's test authentication with JWT tokens!
 
   describe('Next Steps: Testing Real ICP Endpoints', () => {
     it('should outline how to test ICP endpoints', () => {
-      console.log(`
+      logger.info(`
 🎯 NEXT STEPS: TESTING REAL ICP ENDPOINTS WITH HYBRID AUTH
 
 Now that we have hybrid authentication working, we can test:

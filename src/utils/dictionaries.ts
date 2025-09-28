@@ -1,5 +1,6 @@
 import { locales } from '@/middleware';
 
+import { logger } from '@/lib/logger';
 /**
  * Dictionary type definition for internationalization.
  *
@@ -293,7 +294,7 @@ export const getDictionary = async (
   try {
     // Check if the locale is supported
     if (!locales.includes(locale)) {
-      console.warn(`Locale ${locale} not supported, falling back to English`);
+      logger.warn(`Locale ${locale} not supported, falling back to English`);
       locale = 'en';
     }
 
@@ -312,7 +313,7 @@ export const getDictionary = async (
           result = { ...result, ...onboardingDict };
         }
       } catch (error) {
-        console.error(`Error loading onboarding dictionary:`, error);
+        logger.error(`Error loading onboarding dictionary:`, undefined, { data: error instanceof Error ? error : undefined });
       }
     }
 
@@ -332,7 +333,7 @@ export const getDictionary = async (
           result = { ...result, ...segmentDict };
         }
       } catch (error) {
-        console.error(`Error loading segment dictionary for ${options.segment}:`, error);
+        logger.error(`Error loading segment dictionary for ${options.segment}:`, undefined, { data: error instanceof Error ? error : undefined });
         // Continue with just the base dictionary if there's an error
       }
     }
@@ -353,7 +354,7 @@ export const getDictionary = async (
           result = { ...result, ...aboutDict };
         }
       } catch (error) {
-        console.error(`Error loading about dictionary for ${locale}:`, error);
+        logger.error(`Error loading about dictionary for ${locale}:`, undefined, { data: error instanceof Error ? error : undefined });
         // Continue without about content if there's an error
       }
     }
@@ -374,14 +375,14 @@ export const getDictionary = async (
           result = { ...result, ...faqDict };
         }
       } catch (error) {
-        console.error(`Error loading FAQ dictionary for ${locale}:`, error);
+        logger.error(`Error loading FAQ dictionary for ${locale}:`, undefined, { data: error instanceof Error ? error : undefined });
         // Continue without FAQ content if there's an error
       }
     }
 
     return result;
   } catch (error) {
-    console.error(`Error loading dictionaries:`, error);
+    logger.error(`Error loading dictionaries:`, undefined, { data: error instanceof Error ? error : undefined });
     throw error;
   }
 };

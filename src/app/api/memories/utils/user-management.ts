@@ -17,6 +17,7 @@ import { allUsers, users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { auth } from '@/auth';
 
+import { logger } from '@/lib/logger';
 /**
  * Helper function to get allUserId for both authenticated and temporary users
  * This centralizes the user lookup logic used across multiple endpoints
@@ -26,23 +27,19 @@ export async function getAllUserId(request: NextRequest): Promise<{ allUserId: s
 
   if (session?.user?.id) {
     // Handle authenticated user
-    console.log('👤 Looking up authenticated user in users table...');
-
     // First get the user from users table
     const [permanentUser] = await db.select().from(users).where(eq(users.id, session.user.id));
-    console.log('Found permanent user:', { userId: permanentUser?.id });
 
     if (!permanentUser) {
-      console.error('❌ Permanent user not found');
+      logger.error('❌ Permanent user not found');
       return { allUserId: '', error: NextResponse.json({ error: 'User not found' }, { status: 404 }) };
     }
 
     // Then get their allUserId
     const [allUserRecord] = await db.select().from(allUsers).where(eq(allUsers.userId, permanentUser.id));
-    console.log('Found all_users record:', { allUserId: allUserRecord?.id });
 
     if (!allUserRecord) {
-      console.error('❌ No all_users record found for permanent user');
+      logger.error('❌ No all_users record found for permanent user');
       return { allUserId: '', error: NextResponse.json({ error: 'User record not found' }, { status: 404 }) };
     }
 
@@ -54,24 +51,24 @@ export async function getAllUserId(request: NextRequest): Promise<{ allUserId: s
       const providedAllUserId = formData.get('userId') as string;
 
       if (providedAllUserId) {
-        console.log('👤 Using provided allUserId for temporary user...');
+        logger.info('👤 Using provided allUserId for temporary user...');
         // For temporary users, directly check the allUsers table
         const [tempUser] = await db.select().from(allUsers).where(eq(allUsers.id, providedAllUserId));
-        console.log('Found temporary user:', { allUserId: tempUser?.id, type: tempUser?.type });
+        logger.info('Found temporary user:', { allUserId: tempUser?.id, type: tempUser?.type });
 
         if (!tempUser || tempUser.type !== 'temporary') {
-          console.error('❌ Valid temporary user not found');
+          logger.error('❌ Valid temporary user not found');
           return { allUserId: '', error: NextResponse.json({ error: 'Invalid temporary user' }, { status: 404 }) };
         }
 
         return { allUserId: tempUser.id };
       } else {
-        console.error('❌ No valid user identification provided');
+        logger.error('❌ No valid user identification provided');
         return { allUserId: '', error: NextResponse.json({ error: 'User identification required' }, { status: 401 }) };
       }
     } catch {
       // If form parsing fails, it might be a JSON request - return auth error
-      console.error('❌ No valid user identification provided');
+      logger.error('❌ No valid user identification provided');
       return { allUserId: '', error: NextResponse.json({ error: 'User identification required' }, { status: 401 }) };
     }
   }
@@ -88,22 +85,22 @@ export async function getUserIdForUpload(params: {
 
   try {
     const session = await auth();
-    console.log('🔍 Auth session data:', JSON.stringify(session, null, 2));
+    logger.info('🔍 Auth session data:', { session: JSON.stringify(session, null, 2) });
 
     if (session?.user?.id) {
-      console.log('👤 Looking up authenticated user in users table...');
+      logger.info('👤 Looking up authenticated user in users table...');
       // First get the user from users table
       const [permanentUser] = await db.select().from(users).where(eq(users.id, session.user.id));
-      console.log('Found permanent user:', { userId: permanentUser?.id });
+      logger.info('Found permanent user:', { userId: permanentUser?.id });
 
       if (!permanentUser) {
-        console.error('❌ Permanent user not found in database');
-        console.error('Session user ID:', session.user.id);
-        console.error('User email:', session.user.email);
+        logger.error('❌ Permanent user not found in database');
+        logger.error('Session user ID:', undefined, { data: session.user.id });
+        logger.error('User email:', undefined, { data: session.user.email });
 
         // Try to create the user if they don't exist
         try {
-          console.log('Attempting to create user from session data...');
+          logger.info('Attempting to create user from session data...');
           const [newUser] = await db
             .insert(users)
             .values({
@@ -115,7 +112,7 @@ export async function getUserIdForUpload(params: {
             .returning();
 
           if (newUser) {
-            console.log('✅ Successfully created user from session:', newUser.id);
+            logger.info('✅ Successfully created user from session:', { userId: newUser.id });
             // Create corresponding all_users entry
             const [allUserRecord] = await db
               .insert(allUsers)
@@ -131,7 +128,7 @@ export async function getUserIdForUpload(params: {
             }
           }
         } catch (createError) {
-          console.error('Failed to create user:', createError);
+          logger.error('Failed to create user:', undefined, { data: createError });
         }
 
         return {
@@ -149,10 +146,10 @@ export async function getUserIdForUpload(params: {
 
       // Then get their allUserId
       const [allUserRecord] = await db.select().from(allUsers).where(eq(allUsers.userId, permanentUser.id));
-      console.log('Found all_users record:', { allUserId: allUserRecord?.id });
+      logger.info('Found all_users record:', { allUserId: allUserRecord?.id });
 
       if (!allUserRecord) {
-        console.error('❌ No all_users record found for permanent user');
+        logger.error('❌ No all_users record found for permanent user');
         return {
           allUserId: '',
           error: NextResponse.json({ error: 'User record not found' }, { status: 404 }),
@@ -161,13 +158,13 @@ export async function getUserIdForUpload(params: {
 
       return { allUserId: allUserRecord.id, error: null };
     } else if (providedUserId) {
-      console.log('👤 Using provided allUserId for temporary user...');
+      logger.info('👤 Using provided allUserId for temporary user...');
       // For temporary users, directly check the allUsers table
       const [tempUser] = await db.select().from(allUsers).where(eq(allUsers.id, providedUserId));
-      console.log('Found temporary user:', { allUserId: tempUser?.id, type: tempUser?.type });
+      logger.info('Found temporary user:', { allUserId: tempUser?.id, type: tempUser?.type });
 
       if (!tempUser || tempUser.type !== 'temporary') {
-        console.error('❌ Valid temporary user not found');
+        logger.error('❌ Valid temporary user not found');
         return {
           allUserId: '',
           error: NextResponse.json({ error: 'Invalid temporary user' }, { status: 404 }),
@@ -176,14 +173,16 @@ export async function getUserIdForUpload(params: {
 
       return { allUserId: tempUser.id, error: null };
     } else {
-      console.error('❌ No valid user identification provided');
+      logger.error('❌ No valid user identification provided');
       return {
         allUserId: '',
         error: NextResponse.json({ error: 'User identification required' }, { status: 401 }),
       };
     }
   } catch (error) {
-    console.error('❌ Error getting user ID for upload:', error);
+    logger.error('❌ Error getting user ID for upload:', undefined, {
+      data: error instanceof Error ? error : undefined,
+    });
     return {
       allUserId: '',
       error: NextResponse.json(
@@ -202,12 +201,12 @@ export async function createTemporaryUserWithErrorHandling(
   createTemporaryUserBase: (role: 'inviter' | 'invitee') => Promise<{ allUser: { id: string } }>
 ): Promise<{ allUser: { id: string }; error: string | null }> {
   try {
-    // console.log("👤 Creating temporary user...");
+    // logger.info("👤 Creating temporary user...");
     const { allUser } = await createTemporaryUserBase('inviter');
-    // console.log("✅ Temporary user created:", { userId: allUser.id });
+    // logger.info("✅ Temporary user created:", { userId: allUser.id });
     return { allUser, error: null };
   } catch (userError) {
-    console.error('❌ User creation error:', userError);
+    logger.error('❌ User creation error:', undefined, { data: userError });
     return {
       allUser: { id: '' },
       error: userError instanceof Error ? userError.message : String(userError),

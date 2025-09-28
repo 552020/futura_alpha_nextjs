@@ -3,6 +3,7 @@ import { db } from '@/db/db';
 import { allUsers, temporaryUsers, users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
+import { logger } from '@/lib/logger';
 export async function PATCH(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   try {
@@ -52,7 +53,7 @@ export async function PATCH(_request: NextRequest, { params }: { params: Promise
       });
     }
   } catch (error) {
-    console.error('Error updating user:', error);
+    logger.error('Error updating user:', undefined, { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to update user' }, { status: 500 });
   }
 }
@@ -82,7 +83,7 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting user:', error);
+    logger.error('Error deleting user:', undefined, { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 });
   }
 }

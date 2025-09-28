@@ -13,6 +13,7 @@ import { LoadingSpinner } from '@/components/common/loading-spinner';
 import { ErrorState } from '@/components/common/error-state';
 import { GalleryGrid } from '@/components/galleries/gallery-grid';
 
+import { logger } from '@/lib/logger';
 // Mock data flag for development
 // 📝 Sample data generation script: scripts/mock-data/create-gallery-sample-data.ts
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_GALLERY === 'true';
@@ -44,7 +45,7 @@ export default function GalleryPage() {
       setGalleries(result.galleries);
       setFilteredGalleries(result.galleries);
     } catch (err) {
-      console.error('Error loading galleries:', err);
+      logger.error('Error loading galleries', undefined, { data: err as Error });
       setError('Failed to load galleries');
     } finally {
       setIsLoading(false);

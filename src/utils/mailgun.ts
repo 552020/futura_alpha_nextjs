@@ -2,6 +2,7 @@ import formData from 'form-data';
 import Mailgun from 'mailgun.js';
 import { MailgunClientOptions, MessagesSendResult } from 'mailgun.js/definitions';
 
+import { logger } from '@/lib/logger';
 const mailgun = new Mailgun(formData);
 
 // Environment variables
@@ -117,10 +118,10 @@ export const sendEmail = async ({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const response = await mg.messages.create(DOMAIN, data as any);
 
-    // console.log(`Email sent to ${Array.isArray(to) ? to.join(", ") : to} with subject: ${subject}`);
+    // logger.info(`Email sent to ${Array.isArray(to) ? to.join(", ") : to} with subject: ${subject}`);
     return response;
   } catch (error) {
-    console.error('Mailgun Error:', error);
+    logger.error('Mailgun Error', undefined, { data: error as Error });
     throw error;
   }
 };

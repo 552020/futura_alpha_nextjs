@@ -12,6 +12,7 @@ import { getAllUserId } from '@/app/api/memories/utils/user-management';
 import { createMemoryFromBlob } from '@/app/api/memories/utils/memory-creation';
 import { enqueueImageProcessing } from '@/app/api/memories/utils/image-processing-workflow';
 
+import { logger } from '@/lib/logger';
 // optional: centralize your allowlist
 const ALLOWED = [
   'image/*',
@@ -25,7 +26,7 @@ const ALLOWED = [
 
 export async function POST(req: NextRequest) {
   // Log deprecation warning
-  console.warn(
+  logger.warn(
     '⚠️  DEPRECATED: /api/upload/vercel-blob/grant is deprecated. Use /api/upload/vercel-blob + /api/upload/complete instead.'
   );
 
@@ -36,12 +37,12 @@ export async function POST(req: NextRequest) {
   }
 
   const body = (await req.json()) as HandleUploadBody & { clientPayload?: string };
-  console.log('🔍 Raw request body keys:', Object.keys(body));
-  console.log('🔍 Raw clientPayload value:', body.clientPayload);
+  logger.info('🔍 Raw request body keys:', { keys: Object.keys(body) });
+  logger.info('🔍 Raw clientPayload value:', { clientPayload: body.clientPayload });
 
   // Extract client payload from the request body
   const clientPayload = body.clientPayload ? JSON.parse(body.clientPayload) : {};
-  console.log('📦 Client payload received:', clientPayload);
+  logger.info('📦 Client payload received:', clientPayload);
 
   // Store memory ID to return to client
   let createdMemoryId: string | undefined;
@@ -63,11 +64,11 @@ export async function POST(req: NextRequest) {
       };
     },
     onUploadCompleted: async ({ blob, tokenPayload }) => {
-      console.log('🎉 onUploadCompleted callback triggered!', { blob: blob.url, tokenPayload });
+      logger.info('🎉 onUploadCompleted callback triggered!', { blob: blob.url, tokenPayload });
       // persist in DB
       try {
         const payload = tokenPayload ? JSON.parse(tokenPayload as string) : {};
-        console.log('📦 Parsed token payload:', payload);
+        logger.info('📦 Parsed token payload:', payload);
 
         const result = await createMemoryFromBlob(
           {
@@ -83,7 +84,7 @@ export async function POST(req: NextRequest) {
           }
         );
 
-        console.log('📝 Memory creation result:', result);
+        logger.info('📝 Memory creation result:', result);
 
         // Store the memory ID to return to client
         if (result.success && result.memoryId) {
@@ -92,7 +93,7 @@ export async function POST(req: NextRequest) {
 
         // If this is an image and memory creation was successful, enqueue image processing
         if (result.success && result.memoryId && blob.contentType?.startsWith('image/')) {
-          console.log(`🖼️ Enqueueing image processing for memory ${result.memoryId}`);
+          logger.info(`🖼️ Enqueueing image processing for memory ${result.memoryId}`);
           enqueueImageProcessing({
             memoryId: result.memoryId,
             originalBlobUrl: blob.url,
@@ -103,7 +104,7 @@ export async function POST(req: NextRequest) {
         }
       } catch (e) {
         // don't throw; upload already succeeded. Log & alert.
-        console.error('❌ post-upload DB create failed', e);
+        logger.error('❌ post-upload DB create failed', undefined, { data: e });
       }
     },
   });

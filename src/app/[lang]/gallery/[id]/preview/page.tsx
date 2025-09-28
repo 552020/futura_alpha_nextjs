@@ -13,6 +13,7 @@ import { MemoryStorageBadge } from '@/components/common/memory-storage-badge';
 import { useToast } from '@/hooks/use-toast';
 import { getBlurPlaceholder, IMAGE_SIZES } from '@/utils/image-utils';
 
+import { logger } from '@/lib/logger';
 // Gallery Hero Cover Component
 function GalleryHeroCover({
   gallery,
@@ -279,7 +280,7 @@ function GalleryPreviewContent() {
       const result = await galleryService.getGallery(id as string, USE_MOCK_DATA);
       setGallery(result.gallery);
     } catch (err) {
-      console.error('Error loading gallery:', err);
+      logger.error('Error loading gallery', undefined, { data: err as Error });
       setError('Failed to load gallery');
     } finally {
       setIsLoading(false);
@@ -343,13 +344,13 @@ function GalleryPreviewContent() {
       setGallery(prev => (prev ? { ...prev, isPublic: !prev.isPublic } : null));
 
       // Show success message (you can add toast notification here)
-      // console.log(`Gallery ${gallery.isPublic ? "hidden" : "published"} successfully`);
+      // logger.info(`Gallery ${gallery.isPublic ? "hidden" : "published"} successfully`);
       toast({
         title: 'Success',
         description: `Gallery ${gallery.isPublic ? 'hidden' : 'published'} successfully`,
       });
     } catch (error) {
-      console.error('Failed to update gallery:', error);
+      logger.error('Failed to update gallery', undefined, { data: error as Error });
       // Show error message (you can add toast notification here)
     } finally {
       setIsPublishing(false);
@@ -372,7 +373,7 @@ function GalleryPreviewContent() {
         document.body.removeChild(link);
       }
     } catch (error) {
-      console.error('Failed to download image:', error);
+      logger.error('Failed to download image', undefined, { data: error as Error });
     } finally {
       setIsDownloading(false);
     }
@@ -389,13 +390,13 @@ function GalleryPreviewContent() {
       });
 
       // Show success message (you can add toast notification here)
-      // console.log("Gallery shared successfully");
+      // logger.info("Gallery shared successfully");
       toast({
         title: 'Success',
         description: 'Gallery shared successfully',
       });
     } catch (error) {
-      console.error('Failed to share gallery:', error);
+      logger.error('Failed to share gallery', undefined, { data: error as Error });
       // Show error message (you can add toast notification here)
     } finally {
       setIsSharing(false);
@@ -416,7 +417,7 @@ function GalleryPreviewContent() {
   };
 
   const handleForeverStorageError = (error: Error) => {
-    console.error('Error storing gallery forever:', error);
+    logger.error('Error storing gallery forever', undefined, { data: error as Error });
     setError('Failed to store gallery forever');
   };
 

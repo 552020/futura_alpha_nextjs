@@ -15,6 +15,7 @@ import { MemoryStorageBadge } from '@/components/common/memory-storage-badge';
 import { GalleryStorageSummary } from '@/components/galleries/gallery-storage-summary';
 import { getBlurPlaceholder, IMAGE_SIZES } from '@/utils/image-utils';
 
+import { logger } from '@/lib/logger';
 // Mock data flag for development - same pattern as dashboard
 // const USE_MOCK_DATA = true;
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_GALLERY === 'true';
@@ -39,7 +40,7 @@ function GalleryViewContent() {
       const result = await galleryService.getGallery(id as string, USE_MOCK_DATA);
       setGallery(result.gallery);
     } catch (err) {
-      console.error('Error loading gallery:', err);
+      logger.error('Error loading gallery', undefined, { data: err as Error });
       setError('Failed to load gallery');
     } finally {
       setIsLoading(false);
@@ -87,7 +88,7 @@ function GalleryViewContent() {
       await galleryService.deleteGallery(gallery.id, USE_MOCK_DATA);
       router.push('/gallery');
     } catch (err) {
-      console.error('Error deleting gallery:', err);
+      logger.error('Error deleting gallery', undefined, { data: err as Error });
       setError('Failed to delete gallery');
     } finally {
       setIsDeleting(false);
@@ -110,7 +111,7 @@ function GalleryViewContent() {
       );
       setGallery(updatedGallery);
     } catch (err) {
-      console.error('Error updating gallery privacy:', err);
+      logger.error('Error updating gallery privacy', undefined, { data: err as Error });
       setError('Failed to update gallery privacy');
     } finally {
       setIsUpdating(false);
@@ -119,7 +120,7 @@ function GalleryViewContent() {
 
   const handleEditGallery = () => {
     // TODO: Navigate to edit page or open edit modal
-    // console.log("Edit gallery:", gallery?.id);
+    // logger.info("Edit gallery:", gallery?.id);
   };
 
   const getStoreForeverButtonState = () => {
@@ -176,13 +177,13 @@ function GalleryViewContent() {
   };
 
   const handleForeverStorageError = (error: Error) => {
-    console.error('Error storing gallery forever:', error);
+    logger.error('Error storing gallery forever', undefined, { data: error as Error });
     setError('Failed to store gallery forever');
   };
 
   const handleShareGallery = () => {
     // TODO: Implement share functionality
-    // console.log("Share gallery:", gallery?.id);
+    // logger.info("Share gallery:", gallery?.id);
   };
 
   if (authLoading || isLoading) {
@@ -315,7 +316,7 @@ function GalleryViewContent() {
                         size="sm"
                         onClick={() => {
                           // TODO: Open ICP explorer or gallery viewer
-                          // console.log("View gallery on ICP:", gallery.id);
+                          // logger.info("View gallery on ICP:", gallery.id);
                         }}
                         className="border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-300 dark:hover:bg-purple-950"
                       >

@@ -7,7 +7,7 @@
 
 import type { GrantResponse } from './s3-grant';
 import type { ProcessedAssets } from './finalize';
-
+import { logger } from '@/lib/logger';
 // Web Worker types
 interface ProcessMessage {
   kind: 'process';
@@ -61,12 +61,9 @@ export async function processImageDerivativesPure(file: File): Promise<Processed
   const supportedFormats = ['image/jpeg', 'image/png', 'image/webp'];
 
   if (!supportedFormats.includes(file.type)) {
-    console.log(`⏭️ Skipping derivatives for unsupported format: ${file.type}`);
     // Return empty results for unsupported formats
     return {};
   }
-
-  console.log(`🖼️ Processing derivatives for supported format: ${file.type}`);
   // Process supported formats using Web Worker
   return await processImageDerivativesWithWorkerPure(file);
 }
@@ -80,7 +77,7 @@ export async function processImageDerivatives(file: File, grant: GrantResponse):
   const supportedFormats = ['image/jpeg', 'image/png', 'image/webp'];
 
   if (!supportedFormats.includes(file.type)) {
-    console.log(`⏭️ Skipping derivatives for unsupported format: ${file.type}`);
+    logger.info(`⏭️ Skipping derivatives for unsupported format: ${file.type}`);
     // Return skipped status for unsupported formats
     return {
       display: { assetType: 'display', processingStatus: 'skipped' },
@@ -89,7 +86,7 @@ export async function processImageDerivatives(file: File, grant: GrantResponse):
     };
   }
 
-  console.log(`🖼️ Processing derivatives for supported format: ${file.type}`);
+  logger.info(`🖼️ Processing derivatives for supported format: ${file.type}`);
   // Process supported formats using Web Worker
   return await processImageDerivativesWithWorker(file, grant);
 }
@@ -98,8 +95,6 @@ export async function processImageDerivatives(file: File, grant: GrantResponse):
  * Pure image processing using Web Worker - returns blobs only, no uploads
  */
 export async function processImageDerivativesWithWorkerPure(file: File): Promise<ProcessedBlobs> {
-  console.log(`🖼️ Pure processing for: ${file.name} (${file.size} bytes, ${file.type})`);
-
   try {
     // Create Web Worker
     const worker = new Worker(new URL('../../workers/image-processor.worker.ts', import.meta.url), {
@@ -177,7 +172,11 @@ export async function processImageDerivativesWithWorkerPure(file: File): Promise
 
     return processedBlobs;
   } catch (error) {
-    console.error(`❌ Failed to process derivatives for ${file.name}:`, error);
+    logger.error(`Failed to process derivatives for ${file.name}`, error as Error, {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+    });
     return {}; // Return empty results on failure
   }
 }
@@ -187,8 +186,6 @@ export async function processImageDerivativesWithWorkerPure(file: File): Promise
  * @deprecated Use processImageDerivativesWithWorkerPure + uploadProcessedAssetsToS3 instead
  */
 export async function processImageDerivativesWithWorker(file: File, grant: GrantResponse): Promise<ProcessedAssets> {
-  console.log(`🖼️ Phase 1 real processing for: ${file.name} (${file.size} bytes, ${file.type})`);
-  console.log(`📋 Grant includes: original=${!!grant.original}, display=${!!grant.display}, thumb=${!!grant.thumb}`);
 
   try {
     // Create Web Worker
@@ -237,7 +234,7 @@ export async function processImageDerivativesWithWorker(file: File, grant: Grant
 
     return processedAssets;
   } catch (error) {
-    console.error(`❌ Failed to process derivatives for ${file.name}:`, error);
+    logger.error(`❌ Failed to process derivatives for ${file.name}:`, undefined, { data: error instanceof Error ? error : undefined });
 
     // Return failed status for all derivatives
     return {
@@ -257,7 +254,6 @@ async function handleProcessedAssets(response: ProcessResponse, grant: GrantResp
   // Upload display asset to S3
   if (response.display && grant.display) {
     try {
-      console.log(`📤 Uploading display asset to S3: ${grant.display.fileKey} (${response.display.bytes} bytes)`);
       await uploadAssetToS3(response.display.blob, grant.display.uploadUrl);
       const displayUrl = generateS3Url(grant.display.fileKey);
       results.display = {
@@ -271,11 +267,11 @@ async function handleProcessedAssets(response: ProcessResponse, grant: GrantResp
         mimeType: response.display.mimeType,
         url: displayUrl,
       };
-      console.log(
-        `✅ Display asset uploaded to S3: ${response.display.width}x${response.display.height} → ${displayUrl}`
-      );
     } catch (error) {
-      console.error('❌ Failed to upload display asset to S3:', error);
+      logger.error('Failed to upload display asset to S3', error as Error, {
+        fileKey: grant.display.fileKey,
+        bytes: response.display.bytes,
+      });
       results.display = { assetType: 'display', processingStatus: 'failed' };
     }
   }
@@ -283,7 +279,6 @@ async function handleProcessedAssets(response: ProcessResponse, grant: GrantResp
   // Upload thumb asset to S3
   if (response.thumb && grant.thumb) {
     try {
-      console.log(`📤 Uploading thumb asset to S3: ${grant.thumb.fileKey} (${response.thumb.bytes} bytes)`);
       await uploadAssetToS3(response.thumb.blob, grant.thumb.uploadUrl);
       const thumbUrl = generateS3Url(grant.thumb.fileKey);
       results.thumb = {
@@ -297,9 +292,8 @@ async function handleProcessedAssets(response: ProcessResponse, grant: GrantResp
         mimeType: response.thumb.mimeType,
         url: thumbUrl,
       };
-      console.log(`✅ Thumb asset uploaded to S3: ${response.thumb.width}x${response.thumb.height} → ${thumbUrl}`);
     } catch (error) {
-      console.error('❌ Failed to upload thumb asset to S3:', error);
+      logger.error('Failed to upload thumb asset to S3:', undefined, { data: error instanceof Error ? error : undefined });
       results.thumb = { assetType: 'thumb', processingStatus: 'failed' };
     }
   }
@@ -320,7 +314,7 @@ async function handleProcessedAssets(response: ProcessResponse, grant: GrantResp
       height: 24, // Standard placeholder dimensions
       mimeType: 'image/webp', // Consistent with decision
     };
-    console.log(`✅ Generated placeholder data URL (${dataUrlBytes} bytes)`);
+    logger.info(`✅ Generated placeholder data URL (${dataUrlBytes} bytes)`);
   }
 
   return results;
@@ -330,7 +324,7 @@ async function handleProcessedAssets(response: ProcessResponse, grant: GrantResp
  * Upload asset blob to S3 using presigned URL
  */
 async function uploadAssetToS3(blob: Blob, uploadUrl: string): Promise<void> {
-  console.log(`🔄 S3 PUT request: ${blob.size} bytes, ${blob.type}`);
+  logger.info(`🔄 S3 PUT request: ${blob.size} bytes, ${blob.type}`);
 
   const response = await fetch(uploadUrl, {
     method: 'PUT',
@@ -341,11 +335,11 @@ async function uploadAssetToS3(blob: Blob, uploadUrl: string): Promise<void> {
   });
 
   if (!response.ok) {
-    console.error(`❌ S3 upload failed: ${response.status} ${response.statusText}`);
+    logger.error(`❌ S3 upload failed: ${response.status} ${response.statusText}`);
     throw new Error(`S3 upload failed: ${response.status} ${response.statusText}`);
   }
 
-  console.log(`✅ S3 upload successful: ${response.status} ${response.statusText}`);
+  logger.info(`✅ S3 upload successful: ${response.status} ${response.statusText}`);
 }
 
 /**
@@ -371,7 +365,6 @@ export async function uploadProcessedAssetsToS3(
   // Upload display asset to S3
   if (processedBlobs.display && grant.display) {
     try {
-      console.log(`📤 Uploading display asset to S3: ${grant.display.fileKey} (${processedBlobs.display.bytes} bytes)`);
       await uploadAssetToS3(processedBlobs.display.blob, grant.display.uploadUrl);
       const displayUrl = generateS3Url(grant.display.fileKey);
       results.display = {
@@ -385,11 +378,8 @@ export async function uploadProcessedAssetsToS3(
         mimeType: processedBlobs.display.mimeType,
         url: displayUrl,
       };
-      console.log(
-        `✅ Display asset uploaded to S3: ${processedBlobs.display.width}x${processedBlobs.display.height} → ${displayUrl}`
-      );
     } catch (error) {
-      console.error('❌ Failed to upload display asset:', error);
+      logger.error('Failed to upload display asset:', undefined, { data: error instanceof Error ? error : undefined });
       results.display = {
         assetType: 'display',
         processingStatus: 'failed',
@@ -407,7 +397,6 @@ export async function uploadProcessedAssetsToS3(
   // Upload thumb asset to S3
   if (processedBlobs.thumb && grant.thumb) {
     try {
-      console.log(`📤 Uploading thumb asset to S3: ${grant.thumb.fileKey} (${processedBlobs.thumb.bytes} bytes)`);
       await uploadAssetToS3(processedBlobs.thumb.blob, grant.thumb.uploadUrl);
       const thumbUrl = generateS3Url(grant.thumb.fileKey);
       results.thumb = {
@@ -421,11 +410,8 @@ export async function uploadProcessedAssetsToS3(
         mimeType: processedBlobs.thumb.mimeType,
         url: thumbUrl,
       };
-      console.log(
-        `✅ Thumb asset uploaded to S3: ${processedBlobs.thumb.width}x${processedBlobs.thumb.height} → ${thumbUrl}`
-      );
     } catch (error) {
-      console.error('❌ Failed to upload thumb asset:', error);
+      logger.error('Failed to upload thumb asset:', undefined, { data: error instanceof Error ? error : undefined });
       results.thumb = {
         assetType: 'thumb',
         processingStatus: 'failed',
@@ -453,9 +439,6 @@ export async function uploadProcessedAssetsToS3(
       mimeType: 'image/jpeg',
       url: processedBlobs.placeholder.dataUrl,
     };
-    console.log(
-      `✅ Placeholder prepared for database storage: ${processedBlobs.placeholder.width}x${processedBlobs.placeholder.height}`
-    );
   }
 
   return results;

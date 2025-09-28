@@ -3,6 +3,7 @@ import request from 'supertest';
 import { testDb } from '@/db/test-db';
 import { users, allUsers } from '@/db/schema';
 import { eq } from 'drizzle-orm';
+import { logger } from '@/lib/logger';
 import {
   generateGoogleSessionCookie,
   generateIISessionCookie,
@@ -23,7 +24,7 @@ describe('Hybrid Authentication Testing - Session Cookies', () => {
   let testUser3Id: string;
 
   beforeAll(async () => {
-    console.log(`
+    logger.info(`
 🎯 SETTING UP HYBRID AUTHENTICATION TESTING WITH SESSION COOKIES
 
 We're combining:
@@ -90,7 +91,7 @@ This approach works WITH NextAuth's session system!
       testUser2Id = testUser2.id;
       testUser3Id = testUser3.id;
 
-      console.log(`
+      logger.info(`
 ✅ TEST USERS CREATED SUCCESSFULLY:
 - User 1: ${testUser1.email} (ID: ${testUser1.id}) - Role: ${testUser1.role}
 - User 2: ${testUser2.email} (ID: ${testUser2.id}) - Role: ${testUser2.role}
@@ -99,7 +100,7 @@ This approach works WITH NextAuth's session system!
 Now let's test authentication with session cookies!
       `);
     } catch (error) {
-      console.error('❌ Error creating test users:', error);
+      logger.error('❌ Error creating test users:', undefined, { data: error instanceof Error ? error : undefined });
       throw error;
     }
   });
@@ -110,9 +111,9 @@ Now let's test authentication with session cookies!
       await testDb.delete(users).where(eq(users.id, testUser1Id));
       await testDb.delete(users).where(eq(users.id, testUser2Id));
       await testDb.delete(users).where(eq(users.id, testUser3Id));
-      console.log('🧹 Test users cleaned up successfully');
+      logger.info('🧹 Test users cleaned up successfully');
     } catch (error) {
-      console.error('❌ Error cleaning up test users:', error);
+      logger.error('❌ Error cleaning up test users:', undefined, { data: error instanceof Error ? error : undefined });
     }
   });
 
@@ -129,7 +130,7 @@ Now let's test authentication with session cookies!
       // Generate a valid session cookie for this user
       const sessionCookie = generateGoogleSessionCookie(testUser);
 
-      console.log(`
+      logger.info(`
 🔍 TESTING BASIC GOOGLE AUTHENTICATION WITH SESSION COOKIE:
 - User: ${testUser.email}
 - Role: ${testUser.role}
@@ -152,7 +153,7 @@ Now testing authenticated endpoint with session cookie...
         status: 'success',
       });
 
-      console.log(`
+      logger.info(`
 ✅ BASIC AUTHENTICATION WITH SESSION COOKIE PASSED!
 - Endpoint returned 200 (authenticated)
 - User data correctly returned
@@ -174,7 +175,7 @@ Now testing authenticated endpoint with session cookie...
       // Generate session cookie for user with linked II Principal
       const sessionCookie = generateIISessionCookie(testUser, linkedPrincipal);
 
-      console.log(`
+      logger.info(`
 🔍 TESTING II USER WITH LINKED PRINCIPAL (SESSION COOKIE):
 - User: ${testUser.email}
 - Linked Principal: ${linkedPrincipal}
@@ -196,7 +197,7 @@ Testing authenticated endpoint with II user session...
         status: 'success',
       });
 
-      console.log(`
+      logger.info(`
 ✅ II USER AUTHENTICATION WITH SESSION COOKIE PASSED!
 - Endpoint returned 200 (authenticated)
 - II user data correctly returned
@@ -215,7 +216,7 @@ Testing authenticated endpoint with II user session...
 
       const sessionCookie = generateGoogleSessionCookie(testUser);
 
-      console.log(`
+      logger.info(`
 🔍 TESTING ADMIN USER AUTHENTICATION (SESSION COOKIE):
 - User: ${testUser.email}
 - Role: ${testUser.role}
@@ -237,7 +238,7 @@ Testing authenticated endpoint with admin user session...
         status: 'success',
       });
 
-      console.log(`
+      logger.info(`
 ✅ ADMIN USER AUTHENTICATION WITH SESSION COOKIE PASSED!
 - Endpoint returned 200 (authenticated)
 - Admin user data correctly returned
@@ -260,7 +261,7 @@ Testing authenticated endpoint with admin user session...
       // Generate session cookie for user with active II co-auth
       const sessionCookie = generateActiveIISessionCookie(testUser, activePrincipal);
 
-      console.log(`
+      logger.info(`
 🔍 TESTING ACTIVE II CO-AUTHENTICATION (SESSION COOKIE):
 - User: ${testUser.email}
 - Active Principal: ${activePrincipal}
@@ -283,7 +284,7 @@ Testing authenticated endpoint with active co-auth session...
         status: 'success',
       });
 
-      console.log(`
+      logger.info(`
 ✅ ACTIVE II CO-AUTHENTICATION WITH SESSION COOKIE PASSED!
 - Endpoint returned 200 (authenticated)
 - Active co-auth user data correctly returned
@@ -294,7 +295,7 @@ Testing authenticated endpoint with active co-auth session...
 
   describe('Next Steps: Testing Real ICP Endpoints', () => {
     it('should outline how to test your real ICP endpoints', () => {
-      console.log(`
+      logger.info(`
 🎯 NEXT STEPS: TESTING REAL ICP ENDPOINTS WITH SESSION COOKIES
 
 Now that we have session cookie authentication working, we can test:

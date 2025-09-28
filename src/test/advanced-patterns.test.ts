@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
 
+import { logger } from '@/lib/logger';
 // ============================================================================
 // 1. MOCKING - Replacing real functions with fake ones for testing
 // ============================================================================
@@ -40,12 +41,12 @@ function updateUserStatus(userId: string, status: string) {
 describe('Advanced Testing Patterns', () => {
   // Runs once before ALL tests in this suite
   beforeAll(() => {
-    console.log('🚀 Setting up test environment...');
+    logger.info('🚀 Setting up test environment...');
   });
 
   // Runs before EACH test
   beforeEach(() => {
-    console.log('📝 Starting new test...');
+    logger.info('📝 Starting new test...');
     // Clear all mocks before each test
     vi.clearAllMocks();
 
@@ -60,12 +61,12 @@ describe('Advanced Testing Patterns', () => {
 
   // Runs after EACH test
   afterEach(() => {
-    console.log('✅ Test completed');
+    logger.info('✅ Test completed');
   });
 
   // Runs once after ALL tests in this suite
   afterAll(() => {
-    console.log('🏁 All tests completed, cleaning up...');
+    logger.info('🏁 All tests completed, cleaning up...');
   });
 
   // ============================================================================
