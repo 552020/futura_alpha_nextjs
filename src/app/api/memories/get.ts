@@ -138,7 +138,7 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
         folderName: m.folder?.name,
       })),
     });
-    logger.info('🔍 API: Sample memory:', undefined, { sampleMemory: userMemories[0] });
+    logger.info('🔍 API: Sample memory:', userMemories[0]);
 
     // Calculate share counts for each memory (like the old implementation)
     const memoriesWithShareInfo = await Promise.all(
@@ -229,7 +229,7 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
     }
 
     logger.info('🔍 API: Returning memories:', { count: memoriesWithShareInfo.length });
-    logger.info('🔍 API: Sample returned memory:', undefined, { sampleReturnedMemory: memoriesWithShareInfo[0] });
+    logger.info('🔍 API: Sample returned memory:', memoriesWithShareInfo[0]);
 
     return NextResponse.json({
       success: true,
