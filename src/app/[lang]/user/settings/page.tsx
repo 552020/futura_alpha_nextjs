@@ -10,8 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useInterface } from '@/contexts/interface-context';
 import { HostingSinglePreferenceCard } from '@/components/user/hosting-single-preference-card';
-import { HostingWeb2Web3ToggleCard } from '@/components/user/hosting-web2-web3-toggle-card';
-import { useHostingPreferences, useUpdateHostingPreferences, type BlobHosting } from '@/hooks/use-hosting-preferences';
+import { HostingToggleCard } from '@/components/user/hosting-toggle-card';
+import { useHostingPreferences, useUpdateHostingPreferences } from '@/hooks/use-hosting-preferences';
 import { Skeleton } from '@/components/ui/skeleton';
 
 function TemporaryUserCard() {
@@ -239,28 +239,6 @@ function UserRolesCard({
   );
 }
 
-// Helper function to handle shared canister toggle logic
-function handleSharedCanisterChange(
-  enabled: boolean,
-  currentBlobHosting: BlobHosting[],
-  updatePreferences: ReturnType<typeof useUpdateHostingPreferences>
-) {
-  if (enabled) {
-    // Add ICP to the list if not already present
-    const newBlobHosting: BlobHosting[] = currentBlobHosting.includes('icp')
-      ? currentBlobHosting
-      : ['icp', ...currentBlobHosting.filter(h => h !== 'icp')];
-    updatePreferences.mutate({
-      blobHosting: newBlobHosting,
-    });
-  } else {
-    // Remove ICP from the list
-    const newBlobHosting: BlobHosting[] = currentBlobHosting.filter(h => h !== 'icp');
-    updatePreferences.mutate({
-      blobHosting: newBlobHosting.length > 0 ? newBlobHosting : ['s3'],
-    });
-  }
-}
 
 export default function SettingsPage() {
   const { isAuthorized, isTemporaryUser, userId, isLoading } = useAuthGuard();
@@ -334,61 +312,136 @@ export default function SettingsPage() {
         {isTemporaryUser && <TemporaryUserCard />}
 
         {/* Hosting Cards */}
-        <HostingWeb2Web3ToggleCard
+        <HostingToggleCard
           title="Frontend"
-          web2Label="Web2"
-          web2Description="Vercel"
-          web3Label="Web3"
-          web3Description="ICP"
-          web2Default={preferences?.frontendHosting === 'vercel'}
-          web3Default={preferences?.frontendHosting === 'icp'}
-          onWeb2Change={() => updatePreferences.mutate({ frontendHosting: 'vercel' })}
-          onWeb3Change={() => updatePreferences.mutate({ frontendHosting: 'icp' })}
+          items={[
+            {
+              id: 'frontend-web2-vercel',
+              label: 'Web2',
+              description: 'Vercel',
+              checked: preferences?.frontendHosting === 'vercel',
+              onCheckedChange: () => updatePreferences.mutate({ frontendHosting: 'vercel' }),
+            },
+            {
+              id: 'frontend-web3-icp',
+              label: 'Web3',
+              description: 'ICP',
+              checked: preferences?.frontendHosting === 'icp',
+              onCheckedChange: () => updatePreferences.mutate({ frontendHosting: 'icp' }),
+            },
+          ]}
           isLoading={updatePreferences.isPending}
         />
 
-        <HostingWeb2Web3ToggleCard
+        <HostingToggleCard
           title="Backend"
-          web2Label="Web2"
-          web2Description="Vercel"
-          web3Label="Web3"
-          web3Description="ICP"
-          web2Default={preferences?.backendHosting === 'vercel'}
-          web3Default={preferences?.backendHosting === 'icp'}
-          onWeb2Change={() => updatePreferences.mutate({ backendHosting: 'vercel' })}
-          onWeb3Change={() => updatePreferences.mutate({ backendHosting: 'icp' })}
+          items={[
+            {
+              id: 'backend-web2-vercel',
+              label: 'Web2',
+              description: 'Vercel',
+              checked: preferences?.backendHosting === 'vercel',
+              onCheckedChange: () => updatePreferences.mutate({ backendHosting: 'vercel' }),
+            },
+            {
+              id: 'backend-web3-icp',
+              label: 'Web3',
+              description: 'ICP',
+              checked: preferences?.backendHosting === 'icp',
+              onCheckedChange: () => updatePreferences.mutate({ backendHosting: 'icp' }),
+            },
+          ]}
           isLoading={updatePreferences.isPending}
         />
 
-        <HostingWeb2Web3ToggleCard
+        <HostingToggleCard
           title="Database"
-          web2Label="Web2"
-          web2Description="Neon"
-          web3Label="Web3"
-          web3Description="ICP"
-          web2Default={preferences?.databaseHosting?.[0] === 'neon'}
-          web3Default={preferences?.databaseHosting?.[0] === 'icp'}
-          onWeb2Change={() => updatePreferences.mutate({ databaseHosting: ['neon'] })}
-          onWeb3Change={() => updatePreferences.mutate({ databaseHosting: ['icp'] })}
+          items={[
+            {
+              id: 'database-web2-neon',
+              label: 'Web2',
+              description: 'Neon',
+              checked: preferences?.databaseHosting?.[0] === 'neon',
+              onCheckedChange: () => updatePreferences.mutate({ databaseHosting: ['neon'] }),
+            },
+            {
+              id: 'database-web3-icp',
+              label: 'Web3',
+              description: 'ICP',
+              checked: preferences?.databaseHosting?.[0] === 'icp',
+              onCheckedChange: () => updatePreferences.mutate({ databaseHosting: ['icp'] }),
+            },
+          ]}
           isLoading={updatePreferences.isPending}
         />
 
-        <HostingWeb2Web3ToggleCard
+        <HostingToggleCard
           title="Blob"
-          web2Label="Web2"
-          web2Description="S3"
-          web3Label="Web3"
-          web3Description="ICP"
-          web2Default={preferences?.blobHosting?.[0] === 's3'}
-          web3Default={preferences?.blobHosting?.[0] === 'icp'}
-          showSharedCanister={true}
-          sharedCanisterDefault={preferences?.blobHosting?.includes('icp')}
-          onWeb2Change={() => updatePreferences.mutate({ blobHosting: ['s3'] })}
-          onWeb3Change={() => updatePreferences.mutate({ blobHosting: ['icp'] })}
-          onSharedCanisterChange={(enabled: boolean) => {
-            const currentBlobHosting = preferences?.blobHosting || ['s3'];
-            handleSharedCanisterChange(enabled, currentBlobHosting, updatePreferences);
-          }}
+          items={[
+            {
+              id: 'blob-aws-s3',
+              label: 'AWS S3',
+              description: 'Amazon Web Services - Reliable cloud storage',
+              checked: preferences?.blobHosting?.includes('s3') ?? false,
+              onCheckedChange: checked => {
+                const currentBlobHosting = preferences?.blobHosting || [];
+                if (checked) {
+                  // Add S3 if not already present
+                  if (!currentBlobHosting.includes('s3')) {
+                    updatePreferences.mutate({ blobHosting: [...currentBlobHosting, 's3'] });
+                  }
+                } else {
+                  // Remove S3, but ensure at least one provider remains
+                  const newBlobHosting = currentBlobHosting.filter(provider => provider !== 's3');
+                  if (newBlobHosting.length > 0) {
+                    updatePreferences.mutate({ blobHosting: newBlobHosting });
+                  }
+                }
+              },
+            },
+            {
+              id: 'blob-vercel',
+              label: 'Vercel Blob',
+              description: 'Vercel - Fast edge storage',
+              checked: preferences?.blobHosting?.includes('vercel_blob') ?? false,
+              onCheckedChange: checked => {
+                const currentBlobHosting = preferences?.blobHosting || [];
+                if (checked) {
+                  // Add Vercel Blob if not already present
+                  if (!currentBlobHosting.includes('vercel_blob')) {
+                    updatePreferences.mutate({ blobHosting: [...currentBlobHosting, 'vercel_blob'] });
+                  }
+                } else {
+                  // Remove Vercel Blob, but ensure at least one provider remains
+                  const newBlobHosting = currentBlobHosting.filter(provider => provider !== 'vercel_blob');
+                  if (newBlobHosting.length > 0) {
+                    updatePreferences.mutate({ blobHosting: newBlobHosting });
+                  }
+                }
+              },
+            },
+            {
+              id: 'blob-icp',
+              label: 'ICP',
+              description: 'Internet Computer - Decentralized storage',
+              checked: preferences?.blobHosting?.includes('icp') ?? false,
+              onCheckedChange: checked => {
+                const currentBlobHosting = preferences?.blobHosting || [];
+                if (checked) {
+                  // Add ICP if not already present
+                  if (!currentBlobHosting.includes('icp')) {
+                    updatePreferences.mutate({ blobHosting: [...currentBlobHosting, 'icp'] });
+                  }
+                } else {
+                  // Remove ICP, but ensure at least one provider remains
+                  const newBlobHosting = currentBlobHosting.filter(provider => provider !== 'icp');
+                  if (newBlobHosting.length > 0) {
+                    updatePreferences.mutate({ blobHosting: newBlobHosting });
+                  }
+                }
+              },
+            },
+          ]}
           isLoading={updatePreferences.isPending}
         />
 
