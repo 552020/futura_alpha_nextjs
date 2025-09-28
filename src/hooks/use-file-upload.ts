@@ -5,8 +5,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useOnboarding } from '@/contexts/onboarding-context';
 import { useSession } from 'next-auth/react';
 import { useHostingPreferences } from '@/hooks/use-hosting-preferences';
-import { processSingleFile as processSingleFileService } from '@/services/upload/single-file-processor';
-import { processMultipleFiles as processMultipleFilesService } from '@/services/upload/multiple-files-processor';
+import { processSingleFile } from '@/services/upload/single-file-processor';
+import { processMultipleFiles } from '@/services/upload/multiple-files-processor';
 import type { UseFileUploadProps } from '@/types/upload';
 
 export function useFileUpload({ isOnboarding = false, mode = 'directory', onSuccess, onError }: UseFileUploadProps) {
@@ -46,34 +46,6 @@ export function useFileUpload({ isOnboarding = false, mode = 'directory', onSucc
     }
   };
 
-  const processSingleFile = async (file: File, skipSuccess = false, existingUserId?: string) => {
-    await processSingleFileService({
-      file,
-      isOnboarding,
-      mode,
-      existingUserId,
-      preferences,
-      onSuccess: skipSuccess ? undefined : onSuccess,
-      onError,
-      updateOnboardingContext,
-      showToast: toast,
-    });
-  };
-
-  const processMultipleFiles = async (files: File[], mode: 'directory' | 'multiple-files') => {
-    await processMultipleFilesService({
-      files,
-      mode,
-      isOnboarding,
-      preferences,
-      onSuccess,
-      onError,
-      updateOnboardingContext,
-      session,
-      showToast: toast,
-    });
-  };
-
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = event.target.files;
 
@@ -87,14 +59,25 @@ export function useFileUpload({ isOnboarding = false, mode = 'directory', onSucc
     // Reset input value to allow selecting the same files again
     event.target.value = '';
 
+    // Get the authenticated user's ID from the session (extract once)
+    const userId = session?.user?.id;
+
     if (mode === 'single' || files.length === 1) {
       // Single file: use existing single file logic
       const file = files[0];
       setIsLoading(true);
       try {
-        // Get the authenticated user's ID from the session
-        const userId = session?.user?.id;
-        await processSingleFile(file, false, userId);
+        await processSingleFile({
+          file,
+          isOnboarding,
+          mode,
+          existingUserId: userId,
+          preferences,
+          onSuccess,
+          onError,
+          updateOnboardingContext,
+          showToast: toast,
+        });
       } finally {
         setIsLoading(false);
       }
@@ -102,7 +85,17 @@ export function useFileUpload({ isOnboarding = false, mode = 'directory', onSucc
       // Multiple files: handles both 'directory' and 'multiple-files' modes
       setIsLoading(true);
       try {
-        await processMultipleFiles(files, mode);
+        await processMultipleFiles({
+          files,
+          mode,
+          isOnboarding,
+          preferences,
+          onSuccess,
+          onError,
+          updateOnboardingContext,
+          existingUserId: userId,
+          showToast: toast,
+        });
       } finally {
         setIsLoading(false);
       }

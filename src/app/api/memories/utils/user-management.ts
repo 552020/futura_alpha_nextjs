@@ -11,11 +11,71 @@
  * - Handle user authentication for uploads
  */
 
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { db } from '@/db/db';
 import { allUsers, users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { auth } from '@/auth';
+
+/**
+ * Helper function to get allUserId for both authenticated and temporary users
+ * This centralizes the user lookup logic used across multiple endpoints
+ */
+export async function getAllUserId(request: NextRequest): Promise<{ allUserId: string; error?: NextResponse }> {
+  const session = await auth();
+
+  if (session?.user?.id) {
+    // Handle authenticated user
+    console.log('👤 Looking up authenticated user in users table...');
+
+    // First get the user from users table
+    const [permanentUser] = await db.select().from(users).where(eq(users.id, session.user.id));
+    console.log('Found permanent user:', { userId: permanentUser?.id });
+
+    if (!permanentUser) {
+      console.error('❌ Permanent user not found');
+      return { allUserId: '', error: NextResponse.json({ error: 'User not found' }, { status: 404 }) };
+    }
+
+    // Then get their allUserId
+    const [allUserRecord] = await db.select().from(allUsers).where(eq(allUsers.userId, permanentUser.id));
+    console.log('Found all_users record:', { allUserId: allUserRecord?.id });
+
+    if (!allUserRecord) {
+      console.error('❌ No all_users record found for permanent user');
+      return { allUserId: '', error: NextResponse.json({ error: 'User record not found' }, { status: 404 }) };
+    }
+
+    return { allUserId: allUserRecord.id };
+  } else {
+    // Handle temporary user - check for provided allUserId in form data
+    try {
+      const formData = await request.formData();
+      const providedAllUserId = formData.get('userId') as string;
+
+      if (providedAllUserId) {
+        console.log('👤 Using provided allUserId for temporary user...');
+        // For temporary users, directly check the allUsers table
+        const [tempUser] = await db.select().from(allUsers).where(eq(allUsers.id, providedAllUserId));
+        console.log('Found temporary user:', { allUserId: tempUser?.id, type: tempUser?.type });
+
+        if (!tempUser || tempUser.type !== 'temporary') {
+          console.error('❌ Valid temporary user not found');
+          return { allUserId: '', error: NextResponse.json({ error: 'Invalid temporary user' }, { status: 404 }) };
+        }
+
+        return { allUserId: tempUser.id };
+      } else {
+        console.error('❌ No valid user identification provided');
+        return { allUserId: '', error: NextResponse.json({ error: 'User identification required' }, { status: 401 }) };
+      }
+    } catch {
+      // If form parsing fails, it might be a JSON request - return auth error
+      console.error('❌ No valid user identification provided');
+      return { allUserId: '', error: NextResponse.json({ error: 'User identification required' }, { status: 401 }) };
+    }
+  }
+}
 
 /**
  * Get user ID for uploads (authenticated or temporary)

@@ -8,7 +8,7 @@
  */
 
 import { getGrants, type GrantResponse } from './s3-grant';
-import { processImageDerivatives } from './image-derivatives';
+import { processImageDerivativesPure, uploadProcessedAssetsToS3 } from './image-derivatives';
 import { finalizeAllAssets, type ProcessedAssets } from './finalize';
 import {
   uploadFileWithProgress,
@@ -18,10 +18,10 @@ import {
 } from './shared-utils';
 
 /**
- * Upload original file to S3 using grant (Lane A)
+ * Upload original files to S3 using grants (Lane A)
  * STEP 2.1 of the upload pipeline (uploadMultipleToS3WithProcessing in s3-with-processing.ts)
  */
-async function uploadToS3WithGrants(
+async function uploadOriginalToS3(
   files: File[],
   grants: GrantResponse[],
   onProgress?: (progress: number) => void
@@ -93,12 +93,14 @@ export async function uploadToS3WithProcessing(
     const grant = grants[0];
 
     // 2. Start both lanes simultaneously
-    const laneAPromise = uploadToS3WithGrants([file], [grant], onProgress).then(results => results[0]);
+    const laneAPromise = uploadOriginalToS3([file], [grant], onProgress).then(results => results[0]);
 
     let laneBPromise: Promise<ProcessedAssets> | null = null;
     if (file.type.startsWith('image/')) {
       // Lane B processes original File object immediately
-      laneBPromise = processImageDerivatives(file, grant);
+      laneBPromise = processImageDerivativesPure(file).then(processedBlobs =>
+        uploadProcessedAssetsToS3(processedBlobs, grant)
+      );
     }
 
     // 3. Wait for both lanes to complete
@@ -143,7 +145,7 @@ export async function uploadMultipleToS3WithProcessing(
     const grants = await getGrants(files);
 
     // 2.1. Start Lane A: Upload original files to S3
-    const laneAPromise = uploadToS3WithGrants(files, grants, progress => {
+    const laneAPromise = uploadOriginalToS3(files, grants, progress => {
       // Convert overall progress to per-file progress for compatibility
       onProgress?.(files[0], progress);
     });
@@ -153,7 +155,7 @@ export async function uploadMultipleToS3WithProcessing(
     let laneBPromise: Promise<ProcessedAssets[]> | null = null;
 
     if (imageFiles.length > 0) {
-      laneBPromise = processMultipleImageDerivativesWithGrants(imageFiles, grants);
+      laneBPromise = processMultipleImageDerivativesPure(imageFiles, grants);
     }
 
     // 3. Wait for both lanes to complete
@@ -195,6 +197,7 @@ export async function uploadMultipleToS3WithProcessing(
 
 /**
  * Lane A: Upload all original files to S3 using batch presigned URLs
+ * (This function is now called uploadOriginalToS3)
  */
 
 /**
@@ -226,10 +229,10 @@ async function createFolderIfNeeded(mode: 'directory' | 'multiple-files', files:
 }
 
 /**
- * Process image derivatives for multiple files using grants
+ * Process image derivatives for multiple files using pure processing + S3 upload
  * STEP 2.2 of the upload pipeline (uploadMultipleToS3WithProcessing in s3-with-processing.ts)
  */
-async function processMultipleImageDerivativesWithGrants(
+async function processMultipleImageDerivativesPure(
   imageFiles: File[],
   grants: GrantResponse[]
 ): Promise<ProcessedAssets[]> {
@@ -240,7 +243,9 @@ async function processMultipleImageDerivativesWithGrants(
         throw new Error(`No grant found for file: ${file.name}`);
       }
 
-      return await processImageDerivatives(file, grant);
+      // Pure processing first, then S3 upload
+      const processedBlobs = await processImageDerivativesPure(file);
+      return await uploadProcessedAssetsToS3(processedBlobs, grant);
     } catch (_error) {
       return {
         display: { assetType: 'display' as const, processingStatus: 'failed' as const },

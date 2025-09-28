@@ -1,7 +1,15 @@
 // src/nextjs/src/app/api/memories/grant/route.ts
+//
+// ⚠️  DEPRECATED: This endpoint is deprecated in favor of the new unified architecture:
+// - Use /api/upload/vercel-blob for uploads only
+// - Use /api/upload/complete for database operations
+//
+// This endpoint will be removed in a future version.
+//
 import { NextResponse, NextRequest } from 'next/server';
 import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
-import { getAllUserId, createMemoryFromBlob } from '@/app/api/memories/utils';
+import { getAllUserId } from '@/app/api/memories/utils/user-management';
+import { createMemoryFromBlob } from '@/app/api/memories/utils/memory-creation';
 import { enqueueImageProcessing } from '@/app/api/memories/utils/image-processing-workflow';
 
 // optional: centralize your allowlist
@@ -16,6 +24,11 @@ const ALLOWED = [
 ];
 
 export async function POST(req: NextRequest) {
+  // Log deprecation warning
+  console.warn(
+    '⚠️  DEPRECATED: /api/upload/vercel-blob/grant is deprecated. Use /api/upload/vercel-blob + /api/upload/complete instead.'
+  );
+
   // who's uploading?
   const user = await getAllUserId(req);
   if (!user?.allUserId) {

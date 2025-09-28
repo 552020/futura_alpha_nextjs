@@ -24,7 +24,7 @@ export interface ProcessMultipleFilesOptions {
   onSuccess?: () => void;
   onError?: (error: Error) => void;
   updateOnboardingContext?: (data: { data: { ownerId: string; id: string } }, files: File[]) => void;
-  session?: { user?: { id?: string } } | null;
+  existingUserId?: string;
   showToast: (toast: { variant: 'destructive'; title: string; description: string }) => void;
   onProgress?: (file: File, progress: number) => void;
 }
@@ -42,12 +42,10 @@ export async function processMultipleFiles(options: ProcessMultipleFilesOptions)
     onSuccess,
     onError,
     updateOnboardingContext,
-    session,
+    existingUserId,
     showToast,
     onProgress,
   } = options;
-
-  const existingUserId = session?.user?.id;
 
   // Validate files using shared validation function
   if (!validateUploadFiles(files, showToast)) {
