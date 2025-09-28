@@ -86,7 +86,10 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
           total: memoriesWithGalleries.length,
         });
       } catch (error) {
-        logger.error('Error with optimized query:', undefined, { data: error instanceof Error ? error : undefined });
+        logger.error('Error with optimized query:', error instanceof Error ? error : undefined, { 
+          errorMessage: error instanceof Error ? error.message : String(error),
+          errorStack: error instanceof Error ? error.stack : undefined 
+        });
         // Fall back to original implementation
       }
     }
@@ -235,7 +238,10 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
       total: memoriesWithShareInfo.length,
     });
   } catch (error) {
-    logger.error('Error listing memories:', undefined, { data: error instanceof Error ? error : undefined });
+    logger.error('Error listing memories:', error instanceof Error ? error : undefined, { 
+      errorMessage: error instanceof Error ? error.message : String(error),
+      errorStack: error instanceof Error ? error.stack : undefined 
+    });
     return NextResponse.json({ error: 'Failed to list memories' }, { status: 500 });
   }
 }
