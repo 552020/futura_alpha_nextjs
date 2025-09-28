@@ -17,7 +17,7 @@ import { logger } from '@/lib/logger';
  * @returns Promise<string> - The presigned URL
  */
 export async function generatePresignedUrlDirect(key: string, bucket?: string, region?: string): Promise<string> {
-  logger.info('🔑 generatePresignedUrlDirect called with:', {
+  logger.info('🔑 generatePresignedUrlDirect called with:', undefined, {
     key,
     bucket,
     region,
@@ -46,7 +46,7 @@ export async function generatePresignedUrlDirect(key: string, bucket?: string, r
   });
 
   const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
-  logger.info('✅ Generated presigned URL directly:', { url: url.substring(0, 100) + '...' });
+  logger.info('✅ Generated presigned URL directly:', undefined, { url: url.substring(0, 100) + '...' });
   return url;
 }
 
@@ -56,13 +56,13 @@ export async function generatePresignedUrlDirect(key: string, bucket?: string, r
  * @returns Promise<string> - The presigned URL
  */
 export async function generatePresignedUrl(key: string): Promise<string> {
-  logger.info('🔑 Requesting presigned URL for key:', { key });
+  logger.info('🔑 Requesting presigned URL for key:', undefined, { key });
   try {
     // Use absolute URL for server-side fetch
     const baseUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL || 'http://localhost:3000';
     const apiUrl = `${baseUrl}/api/upload/s3/download`;
-    logger.info('🌐 Using API URL:', { apiUrl });
-    logger.info('🌐 Environment check:', {
+    logger.info('🌐 Using API URL:', undefined, { apiUrl });
+    logger.info('🌐 Environment check:', undefined, {
       hasNextAuthUrl: !!process.env.NEXTAUTH_URL,
       hasVercelUrl: !!process.env.VERCEL_URL,
       baseUrl,
@@ -153,7 +153,7 @@ export async function generatePresignedUrlFromStorageKey(
     throw new Error('Storage key is required');
   }
 
-  logger.info('🔑 generatePresignedUrlFromStorageKey called with:', {
+  logger.info('🔑 generatePresignedUrlFromStorageKey called with:', undefined, {
     storageKey,
     bucket,
     region,
@@ -162,7 +162,7 @@ export async function generatePresignedUrlFromStorageKey(
   });
 
   try {
-    logger.info('🔑 Attempting to get presigned URL for:', { storageKey });
+    logger.info('🔑 Attempting to get presigned URL for:', undefined, { storageKey });
     const presignedUrl = await generatePresignedUrl(storageKey);
     logger.s3().info('✅ Successfully generated presigned URL:', { presignedUrl });
     return presignedUrl;
@@ -188,7 +188,7 @@ export async function generatePresignedUrlFromStorageKey(
       const regionName = region || process.env.NEXT_PUBLIC_AWS_S3_REGION || 'eu-central-1';
       const directUrl = `https://${bucketName}.s3.${regionName}.amazonaws.com/${storageKey}`;
 
-      logger.info('🔄 Using direct URL as final fallback:', { directUrl });
+      logger.info('🔄 Using direct URL as final fallback:', undefined, { directUrl });
       logger.info('⚠️ WARNING: Direct S3 URLs may not work for private buckets. All presigning methods failed.');
       return directUrl;
     }
@@ -206,7 +206,7 @@ export async function generateBestAssetUrl(asset: {
   storageKey?: string;
   bucket?: string | null;
 }): Promise<string> {
-  logger.info('🔍 generateBestAssetUrl called with:', {
+  logger.info('🔍 generateBestAssetUrl called with:', undefined, {
     url: asset.url,
     assetLocation: asset.assetLocation,
     storageKey: asset.storageKey,
@@ -216,7 +216,7 @@ export async function generateBestAssetUrl(asset: {
   // For S3 assets, try to presign using storageKey
   if (asset.assetLocation === 's3' && asset.storageKey) {
     try {
-      logger.info('🔑 Attempting to presign S3 URL for storageKey:', { storageKey: asset.storageKey });
+      logger.info('🔑 Attempting to presign S3 URL for storageKey:', undefined, { storageKey: asset.storageKey });
       const presignedUrl = await generatePresignedUrlFromStorageKey(asset.storageKey, asset.bucket || undefined);
       logger.s3().info('✅ Successfully generated presigned URL:', { presignedUrl });
       return presignedUrl;
@@ -224,12 +224,12 @@ export async function generateBestAssetUrl(asset: {
       logger.warn('Failed to presign S3 URL, using direct URL', {
         error: error instanceof Error ? error.message : String(error),
       });
-      logger.info('🔄 Falling back to direct URL:', { url: asset.url });
+      logger.info('🔄 Falling back to direct URL:', undefined, { url: asset.url });
       return asset.url;
     }
   }
 
   // For other backends (vercel_blob, icp, etc.), use the stored URL directly
-  logger.info('🌐 Using direct URL for non-S3 asset:', { url: asset.url });
+  logger.info('🌐 Using direct URL for non-S3 asset:', undefined, { url: asset.url });
   return asset.url;
 }

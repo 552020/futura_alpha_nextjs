@@ -18,8 +18,8 @@ const s3Client = new S3Client(s3Config);
 export const S3_BUCKET = process.env.AWS_S3_BUCKET || '';
 export const S3_REGION = process.env.AWS_S3_REGION || 'eu-central-1';
 
-logger.info('S3 Bucket:', { bucket: S3_BUCKET });
-logger.info('S3 Region:', { region: S3_REGION });
+logger.info('S3 Bucket:', undefined, { bucket: S3_BUCKET });
+logger.info('S3 Region:', undefined, { region: S3_REGION });
 
 // Check if S3 is properly configured
 export function isS3Configured(): boolean {
@@ -28,7 +28,7 @@ export function isS3Configured(): boolean {
     process.env.AWS_SECRET_ACCESS_KEY &&
     process.env.AWS_S3_BUCKET
   );
-  logger.info('Is S3 Configured?', { configured });
+  logger.info('Is S3 Configured?', undefined, { configured });
   return configured;
 }
 
@@ -38,7 +38,7 @@ function generateSafeFileName(originalName: string, userId: string = 'anonymous'
   const safeFileName = originalName.replace(/[^a-zA-Z0-9-_\.]/g, '_');
   // Include user ID in the path: uploads/{userId}/{timestamp}-{filename}
   const fullName = `uploads/${userId}/${timestamp}-${safeFileName}`;
-  logger.info('Generated file name:', { fullName });
+  logger.info('Generated file name:', undefined, { fullName });
   return fullName;
 }
 
@@ -61,14 +61,14 @@ export async function uploadToS3(file: File, buffer?: Buffer, userId?: string): 
     // ACL: 'public-read', // Make the object publicly readable
   };
 
-  logger.info('Uploading to S3 with params:', { uploadParams });
+  logger.info('Uploading to S3 with params:', undefined, { uploadParams });
 
   try {
     const command = new PutObjectCommand(uploadParams);
     await s3Client.send(command);
 
     const publicUrl = `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/${fileName}`;
-    logger.info('Uploaded file public URL:', { publicUrl });
+    logger.info('Uploaded file public URL:', undefined, { publicUrl });
     return publicUrl;
   } catch (error) {
     logger.error('Error uploading to S3:', undefined, { data: error instanceof Error ? error : undefined });
@@ -138,7 +138,7 @@ export function extractS3KeyFromUrl(url: string): string | null {
     const urlObj = new URL(url);
     if (urlObj.hostname.includes('s3') || urlObj.hostname.includes('amazonaws.com')) {
       const key = urlObj.pathname.slice(1);
-      logger.info('Extracted S3 key from URL:', { key });
+      logger.info('Extracted S3 key from URL:', undefined, { key });
       return key;
     }
     return null;

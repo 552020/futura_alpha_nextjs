@@ -90,7 +90,7 @@ export async function checkICPAuthentication(): Promise<void> {
 // 413 Solution: Extract folder name from files
 export function extractFolderName(file: File): string {
   const fileWithPath = file as File & { webkitRelativePath?: string };
-  logger.info(`🔍 DEBUG: extractFolderName for file:`, {
+  logger.info(`🔍 DEBUG: extractFolderName for file:`, undefined, {
     name: file.name,
     webkitRelativePath: fileWithPath.webkitRelativePath,
     hasWebkitRelativePath: !!fileWithPath.webkitRelativePath,
@@ -99,7 +99,7 @@ export function extractFolderName(file: File): string {
   if (fileWithPath.webkitRelativePath) {
     const pathParts = fileWithPath.webkitRelativePath.split('/');
     const folderName = pathParts.length > 1 ? pathParts[0] : 'Ungrouped';
-    logger.info(`🔍 DEBUG: Extracted folder name from webkitRelativePath:`, { folderName });
+    logger.info(`🔍 DEBUG: Extracted folder name from webkitRelativePath:`, undefined, { folderName });
     return folderName;
   }
 

@@ -80,7 +80,7 @@ export async function finalizeAllAssets(
   }
 
   // Single finalize call
-  logger.info(`🔍 DEBUG: Finalizing assets for memory ${memoryId} with parentFolderId:`, { parentFolderId });
+  logger.info(`🔍 DEBUG: Finalizing assets for memory ${memoryId} with parentFolderId:`, undefined, { parentFolderId });
   await finalizeAssets({ memoryId, assets, parentFolderId });
 }
 

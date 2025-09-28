@@ -76,7 +76,7 @@ export const fetchMemories = async (page: number): Promise<FetchMemoriesResult> 
   }
 
   const data = await response.json();
-  logger.info(`🔍 API response data:`, {
+  logger.info(`🔍 API response data:`, undefined, {
     memoriesCount: data.data?.length || 0,
     hasMore: data.hasMore,
     total: data.total,

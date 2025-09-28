@@ -50,7 +50,7 @@ async function objectExists(key: string): Promise<boolean> {
  * Delete an object from S3 with enhanced error handling and logging
  */
 export async function deleteS3Object(key: string): Promise<boolean> {
-  logger.info('🔧 deleteS3Object called with key:', { key });
+  logger.info('🔧 deleteS3Object called with key:', undefined, { key });
 
   if (!key) {
     logger.warn('⚠️ Attempted to delete S3 object with empty key');
@@ -77,7 +77,7 @@ export async function deleteS3Object(key: string): Promise<boolean> {
     });
 
     const result = await s3Client.send(command);
-    logger.info(`✅ DeleteObjectCommand sent successfully`, {
+    logger.info(`✅ DeleteObjectCommand sent successfully`, undefined, {
       deleteMarker: result.DeleteMarker,
       versionId: result.VersionId,
       requestId: result.$metadata.requestId,
@@ -98,7 +98,7 @@ export async function deleteS3Object(key: string): Promise<boolean> {
         });
         return false;
       }
-      logger.info('✅ Deletion verified', {
+      logger.info('✅ Deletion verified', undefined, {
         key,
         bucket,
         region: process.env.AWS_S3_REGION || 'eu-central-1',

@@ -46,7 +46,7 @@ export async function registerWithNonce(nonce: string, identity: Identity) {
     // logger.info("DEBUG: registerWithNonce called with nonce length:", nonce.length);
     // logger.info("DEBUG: registerWithNonce nonce preview:", nonce.substring(0, 10) + "...");
   } catch (error) {
-    logger.warn('registerWithNonce error:', { error: error instanceof Error ? error : undefined });
+    logger.warn('registerWithNonce error:', undefined, { error: error instanceof Error ? error : undefined });
   }
 
   const actor = await backendActor(identity);

@@ -52,7 +52,7 @@ export class StorageManager {
     this.providers.set('vercel_blob', vercelBlobGrantProvider);
 
     logger.info('🔍 Checking Vercel Blob Grant provider availability...');
-    logger.info('🔍 Vercel Blob Grant isAvailable:', { available: vercelBlobGrantProvider.isAvailable() });
+    logger.info('🔍 Vercel Blob Grant isAvailable:', undefined, { available: vercelBlobGrantProvider.isAvailable() });
 
     // Note: S3, Arweave, IPFS, Cloudinary, ICP are not fully implemented yet
     // Only register them if they have proper implementations
@@ -175,7 +175,7 @@ export class StorageManager {
           try {
             return await this.uploadWithRetry(file, provider, options);
           } catch (error) {
-            logger.warn(`⚠️ Fallback provider ${backend} failed:`, {
+            logger.warn(`⚠️ Fallback provider ${backend} failed:`, undefined, {
               error: error instanceof Error ? error : undefined,
             });
             continue;
@@ -195,7 +195,7 @@ export class StorageManager {
           try {
             return await this.uploadWithRetry(file, provider, options);
           } catch (error) {
-            logger.warn(`⚠️ Provider ${backend} failed:`, { error: error instanceof Error ? error : undefined });
+            logger.warn(`⚠️ Provider ${backend} failed:`, undefined, { error: error instanceof Error ? error : undefined });
             continue;
           }
         }
@@ -223,7 +223,7 @@ export class StorageManager {
         return await provider.upload(file, options);
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
-        logger.warn(`⚠️ Upload attempt ${attempt} failed:`, { message: lastError.message });
+        logger.warn(`⚠️ Upload attempt ${attempt} failed:`, undefined, { message: lastError.message });
 
         if (attempt < this.config.maxRetries) {
           const delay = this.config.retryDelay * Math.pow(2, attempt - 1);

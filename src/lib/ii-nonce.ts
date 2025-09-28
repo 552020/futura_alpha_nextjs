@@ -342,7 +342,7 @@ export async function opportunisticCleanup(): Promise<void> {
       await cleanupExpiredNonces();
     } catch (error) {
       // Don't let cleanup failures affect the main operation
-      logger.warn('Opportunistic nonce cleanup failed:', { error: error instanceof Error ? error : undefined });
+      logger.warn('Opportunistic nonce cleanup failed:', undefined, { error: error instanceof Error ? error : undefined });
     }
   }
 }
