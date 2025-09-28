@@ -78,9 +78,6 @@ function GalleryViewContent() {
       console.log('Gallery data received:', result);
       setGallery(result.gallery);
       
-      // Log the environment variable for debugging
-      console.log('NEXT_PUBLIC_PHOTOGRAPHER_EMAIL from env:', process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL);
-      
       // Get the current user's ID from the session
       const sessionResponse = await fetch('/api/auth/session');
       const session = await sessionResponse.json();
@@ -110,16 +107,8 @@ function GalleryViewContent() {
             setBusinessEmail(data.businessEmail);
           } else if (data.isBusiness) {
             console.log('ℹ️ User is a business. No business email to use from relationship.');
-            if (process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL) {
-              console.log(`ℹ️ Using fallback email from environment: ${process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL}`);
-            }
           } else {
             console.log('ℹ️ No business relationship found.');
-            if (process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL) {
-              console.log(`ℹ️ Using fallback email from environment: ${process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL}`);
-            } else {
-              console.warn('⚠️ No fallback email available in environment variables');
-            }
           }
         } else {
           const error = await response.json().catch(() => ({}));
@@ -128,19 +117,9 @@ function GalleryViewContent() {
             statusText: response.statusText,
             error
           });
-          if (process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL) {
-            console.log(`ℹ️ Using fallback email from environment due to API error: ${process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL}`);
-          } else {
-            console.warn('⚠️ No fallback email available in environment variables');
-          }
         }
       } catch (error) {
         console.error('❌ Error fetching business relationship:', error);
-        if (process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL) {
-          console.log(`ℹ️ Using fallback email from environment due to error: ${process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL}`);
-        } else {
-          console.warn('⚠️ No fallback email available in environment variables');
-        }
       }
     } catch (err) {
       console.error('Error loading gallery:', err);
