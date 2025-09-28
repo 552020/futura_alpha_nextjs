@@ -40,7 +40,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
 
   try {
     const body = (await request.json()) as ShareRequest;
-    logger.info('📨 Share request body:', body);
+    logger.info('📨 Share request body:', undefined, { body });
 
     const {
       target,

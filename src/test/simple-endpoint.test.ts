@@ -133,7 +133,7 @@ beforeAll(async () => {
             parsedBody = {};
           }
 
-          logger.info(`🔍 Request body:`, parsedBody);
+          logger.info(`🔍 Request body:`, undefined, { body: parsedBody });
           const result = (
             endpoint as { POST: (body: Record<string, unknown>) => { status: number; body: Record<string, unknown> } }
           ).POST(parsedBody);
