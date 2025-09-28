@@ -239,7 +239,6 @@ function UserRolesCard({
   );
 }
 
-
 export default function SettingsPage() {
   const { isAuthorized, isTemporaryUser, userId, isLoading } = useAuthGuard();
   const { isAdmin, devMode, setDevMode, isAtLeastDeveloper } = useInterface();
