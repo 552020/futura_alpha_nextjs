@@ -276,7 +276,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           logger.warn(`Memory not found for item: ${item.memoryId} (type: ${item.memoryType})`);
         }
       } catch (itemError) {
-        logger.error(`Error fetching memory for item ${item.memoryId}:`, undefined, { data: itemError instanceof Error ? itemError : undefined });
+        logger.error(`Error fetching memory for item ${item.memoryId}:`, undefined, {
+          data: itemError instanceof Error ? itemError : undefined,
+        });
       }
     }
 

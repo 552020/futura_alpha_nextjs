@@ -60,7 +60,9 @@ export class ICPUploadService {
       const { AuthClient } = await import('@dfinity/auth-client');
       this.authClient = await AuthClient.create();
     } catch (error) {
-      logger.error('Failed to initialize ICP auth client:', undefined, { data: error instanceof Error ? error : undefined });
+      logger.error('Failed to initialize ICP auth client:', undefined, {
+        data: error instanceof Error ? error : undefined,
+      });
       throw new Error('ICP authentication not available');
     }
   }
@@ -162,7 +164,9 @@ export class ICPUploadService {
 
         results.push(result);
       } catch (error) {
-        logger.error(`Failed to upload file ${file.name}:`, undefined, { data: error instanceof Error ? error : undefined });
+        logger.error(`Failed to upload file ${file.name}:`, undefined, {
+          data: error instanceof Error ? error : undefined,
+        });
         // Continue with other files, but log the error
         throw new Error(`Failed to upload ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }

@@ -15,6 +15,7 @@ import type { HostingPreferences } from '@/hooks/use-hosting-preferences';
 import { getDefaultHostingPreferences } from '@/hooks/use-hosting-preferences';
 import { validateUploadFiles } from './shared-utils';
 import { uploadToS3WithProcessing } from './s3-with-processing';
+import { logger } from '@/lib/logger';
 
 export interface ProcessSingleFileOptions {
   file: File;
@@ -50,6 +51,17 @@ export async function processSingleFile(options: ProcessSingleFileOptions): Prom
   try {
     // Route to appropriate upload service based on user preferences
     const userBlobHostingPreferences = preferences?.blobHosting || ['s3']; // Default to S3 (413 solution)
+
+    // Log upload routing decision
+    logger.upload().info('📤 Single file upload routing decision', {
+      selectedProvider: userBlobHostingPreferences[0],
+      availableProviders: userBlobHostingPreferences,
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+      isOnboarding,
+      mode,
+    });
 
     let data: {
       data: { id: string };

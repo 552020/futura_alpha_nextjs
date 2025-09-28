@@ -76,8 +76,8 @@ export async function generatePresignedUrl(key: string): Promise<string> {
       body: JSON.stringify({ key }),
     });
 
-    logger.info('📡 Presigned URL response status:', { status: response.status });
-    logger.info('📡 Presigned URL response headers:', Object.fromEntries(response.headers.entries()));
+    logger.s3().info('📡 Presigned URL response status:', { status: response.status });
+    logger.s3().info('📡 Presigned URL response headers:', Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -91,7 +91,7 @@ export async function generatePresignedUrl(key: string): Promise<string> {
     }
 
     const data = await response.json();
-    logger.info('✅ Received presigned URL response:', {
+    logger.s3().info('✅ Received presigned URL response:', {
       hasUrl: !!data.url,
       urlLength: data.url?.length || 0,
       urlPreview: data.url ? data.url.substring(0, 100) + '...' : 'No URL',
@@ -164,7 +164,7 @@ export async function generatePresignedUrlFromStorageKey(
   try {
     logger.info('🔑 Attempting to get presigned URL for:', { storageKey });
     const presignedUrl = await generatePresignedUrl(storageKey);
-    logger.info('✅ Successfully generated presigned URL:', { presignedUrl });
+    logger.s3().info('✅ Successfully generated presigned URL:', { presignedUrl });
     return presignedUrl;
   } catch (error) {
     logger.warn('⚠️ Server-side fetch failed, trying direct AWS SDK method:', {
@@ -218,7 +218,7 @@ export async function generateBestAssetUrl(asset: {
     try {
       logger.info('🔑 Attempting to presign S3 URL for storageKey:', { storageKey: asset.storageKey });
       const presignedUrl = await generatePresignedUrlFromStorageKey(asset.storageKey, asset.bucket || undefined);
-      logger.info('✅ Successfully generated presigned URL:', { presignedUrl });
+      logger.s3().info('✅ Successfully generated presigned URL:', { presignedUrl });
       return presignedUrl;
     } catch (error) {
       logger.warn('Failed to presign S3 URL, using direct URL', {

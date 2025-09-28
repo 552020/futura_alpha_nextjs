@@ -186,7 +186,6 @@ export async function processImageDerivativesWithWorkerPure(file: File): Promise
  * @deprecated Use processImageDerivativesWithWorkerPure + uploadProcessedAssetsToS3 instead
  */
 export async function processImageDerivativesWithWorker(file: File, grant: GrantResponse): Promise<ProcessedAssets> {
-
   try {
     // Create Web Worker
     const worker = new Worker(new URL('../../workers/image-processor.worker.ts', import.meta.url), {
@@ -234,7 +233,9 @@ export async function processImageDerivativesWithWorker(file: File, grant: Grant
 
     return processedAssets;
   } catch (error) {
-    logger.error(`❌ Failed to process derivatives for ${file.name}:`, undefined, { data: error instanceof Error ? error : undefined });
+    logger.error(`❌ Failed to process derivatives for ${file.name}:`, undefined, {
+      data: error instanceof Error ? error : undefined,
+    });
 
     // Return failed status for all derivatives
     return {
@@ -293,7 +294,9 @@ async function handleProcessedAssets(response: ProcessResponse, grant: GrantResp
         url: thumbUrl,
       };
     } catch (error) {
-      logger.error('Failed to upload thumb asset to S3:', undefined, { data: error instanceof Error ? error : undefined });
+      logger.error('Failed to upload thumb asset to S3:', undefined, {
+        data: error instanceof Error ? error : undefined,
+      });
       results.thumb = { assetType: 'thumb', processingStatus: 'failed' };
     }
   }

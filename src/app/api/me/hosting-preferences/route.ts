@@ -45,7 +45,9 @@ export async function GET(): Promise<NextResponse> {
 
     return NextResponse.json(response);
   } catch (error) {
-    logger.error('Error fetching hosting preferences:', undefined, { data: error instanceof Error ? error : undefined });
+    logger.error('Error fetching hosting preferences:', undefined, {
+      data: error instanceof Error ? error : undefined,
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -93,6 +95,14 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
         .returning();
 
       updatedPreferences = updated;
+
+      // Log preference update
+      logger.hostingPreferences().info('🔄 Hosting preferences updated in database', {
+        userId: session.user.id,
+        changes: updates,
+        previousValues: existingPreferences,
+        newValues: updated,
+      });
     } else {
       // Create new preferences with defaults + updates
       const [created] = await db
@@ -107,6 +117,12 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
         .returning();
 
       updatedPreferences = created;
+
+      // Log preference creation
+      logger.hostingPreferences().info('🆕 Hosting preferences created in database', {
+        userId: session.user.id,
+        initialValues: created,
+      });
     }
 
     // Return updated preferences directly
@@ -120,7 +136,9 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json(response);
   } catch (error) {
-    logger.error('Error updating hosting preferences:', undefined, { data: error instanceof Error ? error : undefined });
+    logger.error('Error updating hosting preferences:', undefined, {
+      data: error instanceof Error ? error : undefined,
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

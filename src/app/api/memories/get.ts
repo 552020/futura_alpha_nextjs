@@ -198,7 +198,7 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
           if (thumbOrFallback) {
             try {
               thumbnailUrl = await generateBestAssetUrl(thumbOrFallback);
-              logger.info(`🎯 Generated thumbnail URL for memory ${memory.id}:`, { thumbnailUrl });
+              logger.s3().info(`🎯 Generated thumbnail URL for memory ${memory.id}:`, { thumbnailUrl });
             } catch (error) {
               logger.warn(`Failed to generate thumbnail URL for memory ${memory.id}:`, {
                 error: error instanceof Error ? error : undefined,

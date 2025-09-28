@@ -156,7 +156,7 @@ export default function VaultPage() {
 
   // Initialize filtered memories when memories are loaded
   useEffect(() => {
-    logger.info('🔍 Dashboard useEffect - memories changed:', {
+    logger.dashboard().info('🔍 Dashboard useEffect - memories changed:', {
       memoriesCount: memories.length,
       memories: memories.map(m => ({ id: m.id, type: m.type, title: m.title })),
     });
@@ -314,7 +314,7 @@ export default function VaultPage() {
         </div>
       ) : (
         <>
-          {logger.info('🔍 Rendering MemoryGrid with filteredMemories:', {
+          {logger.rendering().info('🔍 Rendering MemoryGrid with filteredMemories:', {
             filteredMemoriesCount: filteredMemories.length,
             filteredMemories: filteredMemories.map(f => ({ id: f.id, type: f.type, title: f.title })),
           })}

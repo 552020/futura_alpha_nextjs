@@ -15,6 +15,7 @@ import type { HostingPreferences } from '@/hooks/use-hosting-preferences';
 import { getDefaultHostingPreferences } from '@/hooks/use-hosting-preferences';
 import { validateUploadFiles } from './shared-utils';
 import { uploadMultipleToS3WithProcessing } from './s3-with-processing';
+import { logger } from '@/lib/logger';
 
 export interface ProcessMultipleFilesOptions {
   files: File[];
@@ -55,6 +56,16 @@ export async function processMultipleFiles(options: ProcessMultipleFilesOptions)
   try {
     // Route to appropriate upload service based on user preferences
     const userBlobHostingPreference = preferences?.blobHosting[0] || 's3'; // Default to S3 (413 solution)
+
+    // Log upload routing decision
+    logger.upload().info('📤 Multiple files upload routing decision', {
+      selectedProvider: userBlobHostingPreference,
+      availableProviders: preferences?.blobHosting || ['s3'],
+      fileCount: files.length,
+      totalSize: files.reduce((sum, file) => sum + file.size, 0),
+      mode,
+      isOnboarding,
+    });
 
     let data: {
       results?: Array<{

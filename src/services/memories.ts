@@ -45,9 +45,9 @@ export interface FetchMemoriesResult {
 }
 
 export const fetchMemories = async (page: number): Promise<FetchMemoriesResult> => {
-  logger.info(`🔍 Fetching memories for page ${page}...`);
+  logger.dashboard().info(`🔍 Fetching memories for page ${page}...`);
   const response = await fetch(`/api/memories?page=${page}`);
-  logger.info(`🔍 API response status: ${response.status} ${response.statusText}`);
+  logger.apiResponse().info(`🔍 API response status: ${response.status} ${response.statusText}`);
 
   if (!response.ok) {
     // Try to get error details from the response
@@ -135,9 +135,9 @@ export const deleteAllMemories = async (options?: {
 };
 
 export const processDashboardItems = (memories: MemoryWithFolder[]): DashboardItem[] => {
-  logger.info('🚀 LINE 129: ENTERING processDashboardItems');
-  logger.info('🔍 processDashboardItems - Received memories:', { count: memories.length });
-  logger.info('🔍 All memories with folder info:', {
+  logger.memoryProcessing().info('🚀 LINE 129: ENTERING processDashboardItems');
+  logger.memoryProcessing().info('🔍 processDashboardItems - Received memories:', { count: memories.length });
+  logger.memoryProcessing().info('🔍 All memories with folder info:', {
     memories: memories.map(m => ({
       id: m.id,
       title: m.title,
@@ -150,25 +150,27 @@ export const processDashboardItems = (memories: MemoryWithFolder[]): DashboardIt
   const folderGroups = memories.reduce(
     (groups, memory) => {
       const parentFolderId = memory.parentFolderId;
-      logger.info(`🔍 Processing memory "${memory.title}" with parentFolderId: ${parentFolderId}`);
+      logger.memoryProcessing().info(`🔍 Processing memory "${memory.title}" with parentFolderId: ${parentFolderId}`);
       if (parentFolderId) {
         if (!groups[parentFolderId]) {
           groups[parentFolderId] = [];
-          logger.info(`📁 Created new folder group for: ${parentFolderId}`);
+          logger.memoryProcessing().info(`📁 Created new folder group for: ${parentFolderId}`);
         }
         groups[parentFolderId].push(memory);
-        logger.info(
-          `📁 Added "${memory.title}" to folder ${parentFolderId}. Group now has ${groups[parentFolderId].length} items`
-        );
+        logger
+          .memoryProcessing()
+          .info(
+            `📁 Added "${memory.title}" to folder ${parentFolderId}. Group now has ${groups[parentFolderId].length} items`
+          );
       } else {
-        logger.info(`🔍 Memory "${memory.title}" has no parentFolderId - will be individual`);
+        logger.memoryProcessing().info(`🔍 Memory "${memory.title}" has no parentFolderId - will be individual`);
       }
       return groups;
     },
     {} as Record<string, MemoryWithFolder[]>
   );
 
-  logger.info('🔍 Final folder groups:', {
+  logger.memoryProcessing().info('🔍 Final folder groups:', {
     folderGroups: Object.entries(folderGroups).map(([folderId, memories]) => ({
       folderId,
       folderName: memories[0]?.folder?.name || 'Unknown',
@@ -205,7 +207,7 @@ export const processDashboardItems = (memories: MemoryWithFolder[]): DashboardIt
     sharedWithCount: 0,
   }));
 
-  logger.info('🔍 Created folder items:', { folderItems });
+  logger.memoryProcessing().info('🔍 Created folder items:', { folderItems });
 
   // Step 3: Get individual memories (not in folders)
   const individualMemories = memories.filter(memory => !memory.parentFolderId);
@@ -214,11 +216,11 @@ export const processDashboardItems = (memories: MemoryWithFolder[]): DashboardIt
 
   // Step 4: Combine and return
   const result = [...individualMemories, ...folderItems];
-  logger.info('🔍 Final result:', { count: result.length, type: 'items' });
-  logger.info('🔍 Individual memories count:', { count: individualMemories.length });
-  logger.info('🔍 Folder items count:', { count: folderItems.length });
+  logger.memoryProcessing().info('🔍 Final result:', { count: result.length, type: 'items' });
+  logger.memoryProcessing().info('🔍 Individual memories count:', { count: individualMemories.length });
+  logger.memoryProcessing().info('🔍 Folder items count:', { count: folderItems.length });
 
-  logger.info('✅ LINE 180: EXITING processDashboardItems');
+  logger.memoryProcessing().info('✅ LINE 180: EXITING processDashboardItems');
   return result;
 };
 

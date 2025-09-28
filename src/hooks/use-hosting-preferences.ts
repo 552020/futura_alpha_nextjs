@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { parseApiError, normalizeError, type NormalizedError } from '@/lib/error-handling';
+import { logger } from '@/lib/logger';
 
 // Hosting preference types matching the database schema
 export type FrontendHosting = 'vercel' | 'icp';
@@ -53,7 +54,15 @@ export function useHostingPreferences() {
         headers: { 'Content-Type': 'application/json' },
       });
       if (!res.ok) throw await parseError(res);
-      return res.json();
+      const data = await res.json();
+
+      // Log when preferences are loaded
+      logger.hostingPreferences().info('🚀 Hosting preferences loaded', {
+        preferences: data,
+        isDefault: JSON.stringify(data) === JSON.stringify(getDefaultHostingPreferences()),
+      });
+
+      return data;
     },
     staleTime: Infinity, // Never consider data stale - fetch only once per session
     gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes after component unmounts
@@ -107,6 +116,11 @@ export function useUpdateHostingPreferences() {
     onSuccess: data => {
       // Push authoritative server state; avoids a double flicker
       qc.setQueryData<HostingPreferences>(['me', 'hosting-preferences'], data);
+
+      // Log successful preference update
+      logger.hostingPreferences().info('✅ Hosting preferences updated successfully', {
+        updatedPreferences: data,
+      });
     },
 
     onSettled: () => {

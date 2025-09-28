@@ -125,10 +125,7 @@ async function createMemoryRecord(
 
     const [createdMemory] = await db.insert(memories).values(newMemory).returning();
 
-    logger.memoryCreated(createdMemory.id || 'unknown', createdMemory.title || 'Untitled', {
-      ownerId: ownerId,
-      type: createdMemory.type,
-    });
+    logger.memoryCreated(createdMemory.id || 'unknown', createdMemory.title || 'Untitled', createdMemory.type);
     return { success: true, memory: createdMemory };
   } catch (error) {
     logger.error('Failed to create memory record', error as Error, {
