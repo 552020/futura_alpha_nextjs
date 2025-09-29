@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
-import { GalleryPhotoItem } from './gallery-photo-item';
+import { BaseGrid } from '@/components/common/base-grid';
+import { ContentCard } from '@/components/common/content-card';
 
 interface GalleryPhotoGridProps {
   items: Array<{
@@ -20,7 +21,7 @@ interface GalleryPhotoGridProps {
   activeTab: 'all' | 'hidden';
   failedImages: Set<string>;
   _maxSelection: number;
-onImageClick: (item: {
+  onImageClick: (item: {
     id: string;
     memory: {
       id: string;
@@ -46,7 +47,7 @@ export function GalleryPhotoGrid({
   ratings,
   hiddenImages,
   activeTab,
-  failedImages,
+  failedImages: _failedImages,
   _maxSelection,
   onImageClick,
   onSelectionToggle,
@@ -86,27 +87,55 @@ export function GalleryPhotoGrid({
     );
   }
 
+  // Create empty state component
+  const emptyState = (
+    <div className="text-center py-16">
+      <div className="mx-auto w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-6">
+        <svg className="h-12 w-12 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      </div>
+      <h3 className="text-xl font-semibold mb-2">No photos in this gallery yet</h3>
+      <p className="text-muted-foreground mb-6">Add photos to this gallery to see them here.</p>
+    </div>
+  );
+
   return (
-    <div className="flex-1 grid min-w-0 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-      {items.map((item, index) => (
-        <GalleryPhotoItem
+    <BaseGrid
+      items={items}
+      renderItem={(item, index) => (
+        <ContentCard
           key={item.id}
           item={item}
-          index={index}
-          isSelecting={isSelecting}
+          onClick={() => onImageClick(item, index)}
+          contentType="gallery-photo"
+          selectionMode={isSelecting}
           isSelected={selectedImages.includes(item.memory.id)}
-          _isHidden={hiddenImages.includes(item.memory.id)}
+          onSelectionToggle={(checked) => onSelectionToggle(item.memory.id, checked)}
           rating={ratings[item.memory.id] || 0}
-          activeTab={activeTab}
-          failedImages={failedImages}
-          onImageClick={() => onImageClick(item, index)}
-          onSelectionToggle={checked => onSelectionToggle(item.memory.id, checked)}
-          onRate={rating => onRate(item.memory.id, rating)}
+          onRate={(rating) => onRate(item.memory.id, rating)}
+          isHidden={activeTab === 'hidden'}
           onHide={() => onHide(item.memory.id)}
           onUnhide={() => onUnhide(item.memory.id)}
           onImageError={onImageError}
         />
-      ))}
-    </div>
+      )}
+      emptyState={emptyState}
+      gap="sm"
+      gridCols={{
+        sm: 1,
+        md: 2,
+        lg: 3,
+        xl: 4,
+      }}
+      selectionMode={isSelecting}
+      selectedItems={new Set(selectedImages)}
+      ratings={ratings}
+      hiddenItems={new Set(hiddenImages)}
+      onSelectionToggle={onSelectionToggle}
+      onRate={onRate}
+      onHide={onHide}
+      onUnhide={onUnhide}
+    />
   );
 }

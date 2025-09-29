@@ -59,7 +59,7 @@ export default function VaultPage() {
 
   // Dashboard items are already processed by processDashboardItems
   const dashboardItems = memories;
-  const { ref } = useInView();
+  const { ref: _ref } = useInView();
   const params = useParams();
 
   const fetchDashboardMemories = useCallback(async () => {
@@ -304,7 +304,14 @@ export default function VaultPage() {
         onClearAllMemories={handleClearAllMemories}
       />
 
-      {dashboardItems.length === 0 ? (
+      {/* Show loading state while fetching */}
+      {isLoadingMemories ? (
+        <div className="flex justify-center items-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin mr-2" />
+          <span>Loading memories...</span>
+        </div>
+      ) : /* Show empty state if no memories */
+      dashboardItems.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border-2 border-gray-300 p-16 text-center bg-gray-50 shadow-lg">
           <h3 className="text-4xl font-bold text-gray-800 mb-4">No memories yet</h3>
           <p className="mt-2 text-base text-gray-600 mb-6 max-w-md">
@@ -313,11 +320,8 @@ export default function VaultPage() {
           <ItemUploadButton variant="large-icon" onSuccess={handleUploadSuccess} onError={handleUploadError} />
         </div>
       ) : (
+        /* Show memories grid */
         <>
-          {console.log('🔍 Rendering MemoryGrid with filteredMemories:', {
-            filteredMemoriesCount: filteredMemories.length,
-            filteredMemories: filteredMemories.map(f => ({ id: f.id, type: f.type, title: f.title })),
-          })}
           <MemoryGrid
             memories={filteredMemories}
             onDelete={handleDelete}
@@ -326,13 +330,6 @@ export default function VaultPage() {
             viewMode={viewMode}
           />
         </>
-      )}
-
-      {/* Loading indicator */}
-      {isLoadingMemories && (
-        <div className="mt-8 flex justify-center" ref={ref}>
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
       )}
 
       {/* Tawk.to Chat */}

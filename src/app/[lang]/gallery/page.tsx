@@ -110,7 +110,7 @@ export default function GalleryPage() {
 
       {/* Gallery Grid */}
       <div className="container mx-auto px-6">
-        <GalleryGrid galleries={filteredGalleries} onGalleryClick={handleGalleryClick} viewMode={viewMode} />
+        <GalleryGrid galleries={filteredGalleries} onGalleryClick={handleGalleryClick} />
       </div>
 
       {/* Create Gallery Modal */}
