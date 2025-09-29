@@ -11,6 +11,11 @@ interface BaseCardProps<T> {
   onShare?: (item: T) => void;
   onDelete?: (item: T) => void;
 
+  // Selection support
+  isSelectable?: boolean;
+  isSelected?: boolean;
+  onSelectionToggle?: (item: T, selected: boolean) => void;
+
   // Content renderers
   renderPreview: (item: T) => React.ReactNode;
   renderTitle: (item: T) => React.ReactNode;
@@ -18,8 +23,13 @@ interface BaseCardProps<T> {
   renderStorageBadge?: (item: T) => React.ReactNode;
   renderLeftStatus: (item: T) => React.ReactNode;
 
+  // Selection mode UI renderers
+  renderSelectionOverlay?: (item: T) => React.ReactNode;
+  renderSelectionActions?: (item: T) => React.ReactNode;
+
   // Styling
   className?: string;
+  selectionClassName?: string;
 }
 
 export function BaseCard<T>({
@@ -28,22 +38,37 @@ export function BaseCard<T>({
   onEdit,
   onShare,
   onDelete,
+  isSelectable = false,
+  isSelected = false,
+  onSelectionToggle: _onSelectionToggle,
   renderPreview,
   renderTitle,
   renderDescription,
   renderStorageBadge,
   renderLeftStatus,
+  renderSelectionOverlay,
+  renderSelectionActions,
   className = '',
+  selectionClassName = '',
 }: BaseCardProps<T>) {
   return (
     <Card
-      className={`cursor-pointer transition-all hover:shadow-md flex flex-col h-full ${className}`}
+      className={`cursor-pointer transition-all hover:shadow-md flex flex-col h-full ${className} ${
+        isSelected ? 'ring-2 ring-primary' : ''
+      }`}
       onClick={() => onClick(item)}
     >
       <CardContent className="px-2 pt-4 pb-2 flex-1">
         {/* Preview section */}
         <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-muted flex items-center justify-center">
           {renderPreview(item)}
+
+          {/* Selection overlay */}
+          {isSelectable && renderSelectionOverlay && (
+            <div className={`absolute inset-0 ${selectionClassName}`}>
+              {renderSelectionOverlay(item)}
+            </div>
+          )}
         </div>
 
         {/* Title */}
@@ -109,6 +134,9 @@ export function BaseCard<T>({
                 <Trash2 className="h-4 w-4" />
               </Button>
             )}
+
+            {/* Selection actions */}
+            {isSelectable && renderSelectionActions && renderSelectionActions(item)}
           </div>
         </div>
       </CardFooter>

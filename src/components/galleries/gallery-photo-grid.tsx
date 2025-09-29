@@ -1,5 +1,5 @@
-import { Button } from '@/components/ui/button';
-import { GalleryPhotoItem } from './gallery-photo-item';
+import { BaseGrid } from '@/components/common/base-grid';
+import { GalleryMemoryCard } from './gallery-memory-card';
 
 interface GalleryPhotoGridProps {
   items: Array<{
@@ -8,7 +8,7 @@ interface GalleryPhotoGridProps {
       id: string;
       url?: string;
       title?: string;
-      type: string;
+      type: 'image' | 'video' | 'note' | 'audio' | 'document' | 'folder';
     };
   }>;
   isLoading: boolean;
@@ -17,16 +17,16 @@ interface GalleryPhotoGridProps {
   selectedImages: string[];
   ratings: { [imageId: string]: number };
   hiddenImages: string[];
-  activeTab: 'all' | 'hidden';
-  failedImages: Set<string>;
+  _activeTab: 'all' | 'hidden';
+  _failedImages: Set<string>;
   _maxSelection: number;
-onImageClick: (item: {
+  onImageClick: (item: {
     id: string;
     memory: {
       id: string;
       url?: string;
       title?: string;
-      type: string;
+      type: 'image' | 'video' | 'note' | 'audio' | 'document' | 'folder';
     };
   }, index: number) => void;
   onSelectionToggle: (imageId: string, checked: boolean) => void;
@@ -35,6 +35,9 @@ onImageClick: (item: {
   onUnhide: (imageId: string) => void;
   onImageError: (url: string) => void;
   onRetry: () => void;
+  onDelete?: (memoryId: string) => void;
+  onShare?: (memoryId: string) => void;
+  onEdit?: (memoryId: string) => void;
 }
 
 export function GalleryPhotoGrid({
@@ -45,15 +48,17 @@ export function GalleryPhotoGrid({
   selectedImages,
   ratings,
   hiddenImages,
-  activeTab,
-  failedImages,
+  _activeTab,
+  _failedImages,
   _maxSelection,
   onImageClick,
   onSelectionToggle,
   onRate,
   onHide,
   onUnhide,
-  onImageError,
+  onDelete,
+  onShare,
+  onEdit,
   onRetry,
 }: GalleryPhotoGridProps) {
   if (isLoading) {
@@ -69,7 +74,9 @@ export function GalleryPhotoGrid({
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center">
           <p className="text-destructive mb-4">{error}</p>
-          <Button onClick={onRetry}>Retry</Button>
+          <button onClick={onRetry} className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90">
+            Retry
+          </button>
         </div>
       </div>
     );
@@ -87,26 +94,46 @@ export function GalleryPhotoGrid({
   }
 
   return (
-    <div className="flex-1 grid min-w-0 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-      {items.map((item, index) => (
-        <GalleryPhotoItem
+    <BaseGrid
+      items={items}
+      renderItem={(item, index) => (
+        <GalleryMemoryCard
           key={item.id}
-          item={item}
-          index={index}
+          memory={{
+            ...item.memory,
+            title: item.memory.title || `Photo ${index + 1}`, // Ensure title is always a string
+            status: 'private', // Default status for gallery items
+            sharedWithCount: 0,
+            createdAt: new Date().toISOString(), // Add required createdAt
+          }}
           isSelecting={isSelecting}
           isSelected={selectedImages.includes(item.memory.id)}
-          _isHidden={hiddenImages.includes(item.memory.id)}
           rating={ratings[item.memory.id] || 0}
-          activeTab={activeTab}
-          failedImages={failedImages}
-          onImageClick={() => onImageClick(item, index)}
-          onSelectionToggle={checked => onSelectionToggle(item.memory.id, checked)}
-          onRate={rating => onRate(item.memory.id, rating)}
-          onHide={() => onHide(item.memory.id)}
-          onUnhide={() => onUnhide(item.memory.id)}
-          onImageError={onImageError}
+          isHidden={hiddenImages.includes(item.memory.id)}
+          onClick={() => onImageClick(item, index)}
+          onSelectionToggle={(memory, selected) => onSelectionToggle(memory.id, selected)}
+          onRate={onRate ? (memory, rating) => onRate(memory.id, rating) : undefined}
+          onToggleHidden={
+            onHide && onUnhide
+              ? (memory) => {
+                  if (hiddenImages.includes(memory.id)) {
+                    onUnhide(memory.id);
+                  } else {
+                    onHide(memory.id);
+                  }
+                }
+              : undefined
+          }
+          onDelete={onDelete || (() => {})}
+          onShare={onShare || (() => {})}
+          onEdit={onEdit || (() => {})}
+          viewMode="grid"
         />
-      ))}
-    </div>
+      )}
+      viewMode="grid"
+      gridCols={{ sm: 1, md: 2, lg: 3, xl: 4 }}
+      gap="sm"
+      className="flex-1 min-w-0"
+    />
   );
 }

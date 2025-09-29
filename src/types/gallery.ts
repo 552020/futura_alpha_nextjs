@@ -90,14 +90,6 @@ export interface MockGalleryConfig {
   descriptions: string[];
 }
 
-export interface GalleryListState {
-  ownGalleries: Gallery[];
-  sharedGalleries: Gallery[];
-  isLoading: boolean;
-  error: string | null;
-  useMockData: boolean;
-}
-
 export interface GalleryViewProps {
   galleryId: string;
   isPublic?: boolean;

@@ -587,8 +587,8 @@ type: 'image', // Default to 'image' as the selection panel doesn't pass the typ
                 selectedImages={selectedImages}
                 ratings={ratings}
                 hiddenImages={hiddenImages}
-                activeTab={activeTab}
-                failedImages={failedImages}
+                _activeTab={activeTab}
+                _failedImages={failedImages}
                 _maxSelection={MAX_SELECTION}
                 onImageClick={handleImageClick}
                 onSelectionToggle={(imageId, checked) => {
