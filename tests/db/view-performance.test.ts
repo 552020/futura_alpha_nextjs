@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
 import { eq, sql } from 'drizzle-orm';
-import { storageEdges } from '../../src/db/schema';
+import { storageEdges } from '../../src/db/db';
 import { config } from 'dotenv';
 
 // Load environment variables
@@ -68,7 +68,7 @@ describe('View Performance Tests', () => {
     const startTime = Date.now();
 
     // Test basic query performance
-    const result = await db.execute(sql`SELECT COUNT(*) FROM sync_status`);
+    const _result = await db.execute(sql`SELECT COUNT(*) FROM sync_status`);
     const basicQueryTime = Date.now() - startTime;
 
     expect(basicQueryTime).toBeLessThan(1000); // Should complete in under 1 second
@@ -79,7 +79,7 @@ describe('View Performance Tests', () => {
     const startTime = Date.now();
 
     // Test filtering by sync state
-    const migratingResult = await db.execute(sql`SELECT COUNT(*) FROM sync_status WHERE sync_state = 'migrating'`);
+    const _migratingResult = await db.execute(sql`SELECT COUNT(*) FROM sync_status WHERE sync_state = 'migrating'`);
     const filteringTime = Date.now() - startTime;
 
     expect(filteringTime).toBeLessThan(1000); // Should complete in under 1 second
@@ -90,7 +90,7 @@ describe('View Performance Tests', () => {
     const startTime = Date.now();
 
     // Test stuck sync detection
-    const stuckResult = await db.execute(sql`SELECT COUNT(*) FROM sync_status WHERE is_stuck = true`);
+    const _stuckResult = await db.execute(sql`SELECT COUNT(*) FROM sync_status WHERE is_stuck = true`);
     const stuckQueryTime = Date.now() - startTime;
 
     expect(stuckQueryTime).toBeLessThan(1000); // Should complete in under 1 second
@@ -101,7 +101,7 @@ describe('View Performance Tests', () => {
     const startTime = Date.now();
 
     // Test ordered query (most expensive operation)
-    const orderedResult = await db.execute(sql`SELECT * FROM sync_status ORDER BY sync_duration_seconds DESC LIMIT 10`);
+    const _orderedResult = await db.execute(sql`SELECT * FROM sync_status ORDER BY sync_duration_seconds DESC LIMIT 10`);
     const orderingTime = Date.now() - startTime;
 
     expect(orderingTime).toBeLessThan(1000); // Should complete in under 1 second
@@ -134,9 +134,13 @@ describe('View Performance Tests', () => {
     const failedResult = await db.execute(sql`SELECT COUNT(*) FROM sync_status WHERE sync_state = 'failed'`);
 
     // The view should only show migrating and failed syncs
-    const totalInView = parseInt((allResult as any)[0]?.count || '0');
-    const migratingInView = parseInt((migratingResult as any)[0]?.count || '0');
-    const failedInView = parseInt((failedResult as any)[0]?.count || '0');
+    const allResultRows = (allResult as any).rows || [];
+    const migratingResultRows = (migratingResult as any).rows || [];
+    const failedResultRows = (failedResult as any).rows || [];
+
+    const totalInView = parseInt(allResultRows[0]?.count || '0');
+    const migratingInView = parseInt(migratingResultRows[0]?.count || '0');
+    const failedInView = parseInt(failedResultRows[0]?.count || '0');
 
     expect(totalInView).toBe(migratingInView + failedInView);
     console.log(

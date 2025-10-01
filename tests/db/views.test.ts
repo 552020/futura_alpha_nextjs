@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
 import { eq, sql } from 'drizzle-orm';
-import { storageEdges } from '../../src/db/schema';
+import { storageEdges } from '../../src/db/db';
 import { config } from 'dotenv';
 
 // Load environment variables

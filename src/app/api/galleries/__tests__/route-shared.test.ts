@@ -116,9 +116,9 @@ describe('GET /api/galleries/shared - Shared Galleries Logic', () => {
     const result = filterValidGalleries(mockGalleries);
 
     expect(result).toHaveLength(3);
-    expect(result[0]?.title).toBe('Valid Gallery 1');
-    expect(result[1]?.title).toBe('Valid Gallery 2');
-    expect(result[2]?.title).toBe('Valid Gallery 3');
+    expect(result[0]!.title).toBe('Valid Gallery 1');
+    expect(result[1]!.title).toBe('Valid Gallery 2');
+    expect(result[2]!.title).toBe('Valid Gallery 3');
   });
 
   it('should validate user authentication', () => {

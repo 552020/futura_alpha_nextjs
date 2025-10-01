@@ -97,13 +97,18 @@ const ToastDescription = React.forwardRef<
 ));
 ToastDescription.displayName = ToastPrimitives.Description.displayName;
 
-type ToastProps = React.ComponentPropsWithoutRef<typeof Toast>;
+type ToastVariant = 'default' | 'destructive' | 'success';
+
+type ToastProps = React.ComponentPropsWithoutRef<typeof Toast> & {
+  variant?: ToastVariant;
+};
 
 type ToastActionElement = React.ReactElement<typeof ToastAction>;
 
 export {
   type ToastProps,
   type ToastActionElement,
+  type ToastVariant,
   ToastProvider,
   ToastViewport,
   Toast,

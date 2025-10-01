@@ -12,7 +12,6 @@ import { Principal } from '@dfinity/principal';
 
 import { logger } from '@/lib/logger';
 // Analytics tracking shim for future implementation
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const trackGalleryEvent = (event: string, _properties: Record<string, unknown> = {}) => {
   // logger.info("Gallery Analytics:", undefined, { event, properties: _properties, timestamp: new Date().toISOString() });
   // TODO: Implement actual analytics tracking

@@ -3,6 +3,18 @@ import request from 'supertest';
 import { createServer, IncomingMessage, ServerResponse } from 'http';
 
 import { logger } from '@/lib/logger';
+
+type EndpointResponse = {
+  status: number;
+  body: Record<string, unknown>;
+};
+
+type EndpointHandler = {
+  GET?: () => EndpointResponse;
+  POST?: (body: Record<string, unknown>) => EndpointResponse;
+};
+
+type SimpleEndpoints = Record<string, EndpointHandler>;
 // ============================================================================
 // SIMPLE ENDPOINT FOR SUPERTEST EXPERIMENTATION
 // ============================================================================
@@ -13,7 +25,7 @@ import { logger } from '@/lib/logger';
 let server: ReturnType<typeof createServer>;
 
 // Simple mock endpoints for experimentation
-const simpleEndpoints = {
+const simpleEndpoints: SimpleEndpoints = {
   // Basic GET endpoint
   '/api/hello': {
     GET: () => ({
@@ -109,7 +121,7 @@ beforeAll(async () => {
     if (url && simpleEndpoints[url as keyof typeof simpleEndpoints]) {
       const endpoint = simpleEndpoints[url as keyof typeof simpleEndpoints];
 
-      if (method === 'GET' && endpoint && 'GET' in endpoint) {
+      if (method === 'GET' && endpoint && 'GET' in endpoint && endpoint.GET) {
         const result = endpoint.GET();
         res.writeHead(result.status, undefined, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(result.body));
@@ -133,12 +145,15 @@ beforeAll(async () => {
             parsedBody = {};
           }
 
-          logger.info(`🔍 Request body:`, parsedBody);
-          const result = (
-            endpoint as { POST: (body: Record<string, unknown>) => { status: number; body: Record<string, unknown> } }
-          ).POST(parsedBody);
-          res.writeHead(result.status, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify(result.body));
+          logger.info(`🔍 Request body:`, undefined, { parsedBody });
+          if (endpoint.POST) {
+            const result = endpoint.POST(parsedBody);
+            res.writeHead(result.status, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(result.body));
+          } else {
+            res.writeHead(405, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Method not allowed' }));
+          }
         });
         return;
       }
