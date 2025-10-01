@@ -2,10 +2,10 @@
 
 /**
  * GALLERY LIST COMPONENT
- * 
+ *
  * This component displays a list of galleries in a responsive grid layout.
  * It handles pagination, loading states, error handling, and gallery creation.
- * 
+ *
  * Features:
  * - Responsive grid display (1-4 columns based on screen size)
  * - Pagination with "Load More" functionality
@@ -13,7 +13,7 @@
  * - Error handling with retry functionality
  * - Empty state with create gallery option
  * - Create gallery button integration
- * 
+ *
  * Note: This component depends on GalleryCard which was deleted in main branch.
  * The component may need to be updated to work with the new gallery structure.
  */

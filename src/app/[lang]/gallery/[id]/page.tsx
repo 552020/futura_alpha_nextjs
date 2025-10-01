@@ -379,7 +379,7 @@ function GalleryViewContent() {
       variant: 'default' as const,
       disabled: false,
       className: '',
-      text: 'Store Forever'
+      text: 'Store Forever',
     };
   };
 
