@@ -192,14 +192,14 @@ describe('Gallery Logic Tests', () => {
       const addResult = processItemOperation('add', existingItems, newMemories);
       expect(addResult.action).toBe('add');
       expect(addResult.count).toBe(1);
-      expect(addResult.newItems?.[0]?.position).toBe(2);
+      expect(addResult.newItems![0].position).toBe(2);
 
       // Test remove operation
       const removeResult = processItemOperation('remove', existingItems, [{ id: 'mem1' }]);
       expect(removeResult.action).toBe('remove');
       expect(removeResult.count).toBe(1);
       expect(removeResult.remainingItems).toHaveLength(1);
-      expect(removeResult.remainingItems?.[0]?.memoryId).toBe('mem2');
+      expect(removeResult.remainingItems![0].memoryId).toBe('mem2');
     });
   });
 });

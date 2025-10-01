@@ -2,26 +2,40 @@
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import Image from 'next/image';
 import { useAuthGuard } from '@/utils/authentication';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Share2, Edit, Globe, Lock, ImageIcon, Trash2, Eye, EyeOff, Maximize2, HardDrive } from 'lucide-react';
+import { Globe, Lock, Trash2, Maximize2, HardDrive, Eye } from 'lucide-react';
 import { galleryService } from '@/services/gallery';
 import { GalleryWithItems } from '@/types/gallery';
+import { Memory } from '@/types/memory';
 import { ForeverStorageProgressModal } from '@/components/galleries/forever-storage-progress-modal';
+
+interface MemoryAsset {
+  assetType: string;
+  url: string;
+  mimeType?: string;
+}
+
+interface GalleryItemMemory extends Memory {
+  assets?: MemoryAsset[];
+}
 import { StorageStatusBadge, getGalleryStorageStatus } from '@/components/common/storage-status-badge';
-import { MemoryStorageBadge } from '@/components/common/memory-storage-badge';
 import { GalleryStorageSummary } from '@/components/galleries/gallery-storage-summary';
-import { getBlurPlaceholder, IMAGE_SIZES } from '@/utils/image-utils';
+import { GalleryImageModal } from '@/components/galleries/gallery-image-modal';
+import { GallerySelectionBar } from '@/components/galleries/gallery-selection-bar';
+import { GalleryPhotoGrid } from '@/components/galleries/gallery-photo-grid';
+import { GallerySelectionPanel } from '@/components/galleries/gallery-selection-panel';
+import { SendSelectionModal } from '@/components/galleries/send-selection-modal';
+import { toast } from '@/components/ui/use-toast';
+import { ToastContainer } from '@/components/ui/toast-container';
 
 import { logger } from '@/lib/logger';
 // Mock data flag for development - same pattern as dashboard
-// const USE_MOCK_DATA = true;
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_GALLERY === 'true';
 
 function GalleryViewContent() {
-  const { id, lang } = useParams();
+  const { id } = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
   const { isAuthorized, isLoading: authLoading } = useAuthGuard();
@@ -31,14 +45,83 @@ function GalleryViewContent() {
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Selection state
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [ratings, setRatings] = useState<{ [imageId: string]: number }>({});
+  const [hiddenImages, setHiddenImages] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState<'all' | 'hidden'>('all');
+  const [showSidePanel, setShowSidePanel] = useState(false);
   const [showForeverStorageModal, setShowForeverStorageModal] = useState(false);
+  const [businessEmail, setBusinessEmail] = useState<string | null>(null);
+
+  // Image modal state
+  const [selectedImage, setSelectedImage] = useState<{
+    url: string;
+    title: string;
+    id: string;
+    type?: string;
+    assets?: Array<{ assetType: string; url: string; mimeType?: string }>;
+  } | null>(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(-1);
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  const [showMessageModal, setShowMessageModal] = useState(false);
+
+  const MAX_SELECTION = 35;
 
   const loadGallery = useCallback(async () => {
     try {
+      console.log('Loading gallery with ID:', id);
       setIsLoading(true);
       setError(null);
       const result = await galleryService.getGallery(id as string, USE_MOCK_DATA);
+      console.log('Gallery data received:', result);
       setGallery(result.gallery);
+
+      // Get the current user's ID from the session
+      const sessionResponse = await fetch('/api/auth/session');
+      const session = await sessionResponse.json();
+      const userId = session?.user?.id;
+
+      if (!userId) {
+        console.log('No user session found, skipping business relationship check');
+        return;
+      }
+
+      // Fetch business relationship to get the business email
+      try {
+        console.log('Fetching business relationship for user ID:', userId);
+        const response = await fetch(`/api/users/${userId}/business-relationship`);
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Business relationship API response:', {
+            status: 'success',
+            isClient: data.isClient,
+            isBusiness: data.isBusiness,
+            businessEmail: data.businessEmail,
+            relationships: data.relationships || [],
+          });
+
+          if (data.isClient && data.businessEmail) {
+            console.log(`✅ Using business email from relationship: ${data.businessEmail}`);
+            setBusinessEmail(data.businessEmail);
+          } else if (data.isBusiness) {
+            console.log('ℹ️ User is a business. No business email to use from relationship.');
+          } else {
+            console.log('ℹ️ No business relationship found.');
+          }
+        } else {
+          const error = await response.json().catch(() => ({}));
+          console.error('❌ Error response from business-relationship API:', {
+            status: response.status,
+            statusText: response.statusText,
+            error,
+          });
+        }
+      } catch (error) {
+        console.error('❌ Error fetching business relationship:', error);
+      }
     } catch (err) {
       logger.error('Error loading gallery', undefined, { data: err as Error });
       setError('Failed to load gallery');
@@ -66,11 +149,173 @@ function GalleryViewContent() {
     }
   }, [searchParams]);
 
-  const handleImageClick = (index: number) => {
-    // Navigate to individual memory page (same as dashboard/folder behavior)
-    if (gallery?.items?.[index]?.memory) {
-      const memory = gallery.items[index].memory;
-      router.push(`/${lang}/dashboard/${memory.id}`);
+  const _toggleSelectionMode = () => {
+    if (isSelecting) {
+      // Exit selection mode
+      setSelectedImages([]);
+      setActiveTab('all');
+      setShowSidePanel(false);
+    } else {
+      // Enter selection mode
+      setShowSidePanel(true);
+    }
+    setIsSelecting(!isSelecting);
+  };
+
+  // Filter items based on active tab and hidden state
+  const filteredItems =
+    gallery?.items.filter(item => {
+      if (activeTab === 'hidden') {
+        return hiddenImages.includes(item.memory.id);
+      }
+      // Always hide images that are in the hidden list when viewing 'all' tab
+      if (hiddenImages.includes(item.memory.id)) {
+        return false;
+      }
+      return true;
+    }) || [];
+
+  const handleRateImage = (imageId: string, rating: number) => {
+    setRatings(prev => ({ ...prev, [imageId]: rating }));
+
+    // Auto-select the image when rating it
+    if (isSelecting && !selectedImages.includes(imageId) && selectedImages.length < MAX_SELECTION) {
+      setSelectedImages(prev => [...prev, imageId]);
+    }
+  };
+
+  const handleHideImage = (imageId: string) => {
+    console.log('Hiding image:', imageId);
+    setHiddenImages(prev => {
+      const newHidden = [...prev, imageId];
+      console.log('New hidden images:', newHidden);
+      return newHidden;
+    });
+    // Remove from selected images if hidden
+    setSelectedImages(prev => {
+      const filtered = prev.filter(id => id !== imageId);
+      console.log('Removed from selection, new selection:', filtered);
+      return filtered;
+    });
+  };
+
+  const handleUnhideImage = (imageId: string) => {
+    console.log('Unhiding image:', imageId);
+    setHiddenImages(prev => {
+      const newHidden = prev.filter(id => id !== imageId);
+      console.log('New hidden images:', newHidden);
+      return newHidden;
+    });
+    // Remove from selected images if unhidden
+    setSelectedImages(prev => {
+      const filtered = prev.filter(id => id !== imageId);
+      console.log('Removed from selection, new selection:', filtered);
+      return filtered;
+    });
+  };
+
+  const handleSendClick = () => {
+    if (selectedImages.length === 0) return;
+    setShowMessageModal(true);
+  };
+
+  const handleSendSelection = async (message: string): Promise<void> => {
+    if (selectedImages.length === 0) return;
+
+    const selectedItems =
+      gallery?.items
+        .filter(item => selectedImages.includes(item.memory.id) && item.memory.url)
+        .map(item => ({
+          url: item.memory.url!, // We know it's defined due to the filter above
+          name: item.memory.title || `Photo ${item.memory.id}`,
+          rating: ratings[item.memory.id] || 0,
+        })) || [];
+
+    try {
+      // Get user info for the email
+      const session = await fetch('/api/auth/session').then(res => res.json());
+      const userName = session?.user?.name || 'a user';
+      const userEmail = session?.user?.email || 'unknown@example.com';
+
+      // Generate email content
+      const { subject, html, text } = await import('@/utils/email/gallerySelectionTemplate').then(m =>
+        m.renderGallerySelectionEmail({
+          userName,
+          images: selectedItems,
+          message,
+          timestamp: new Date().toISOString(),
+          requestId: Math.random().toString(36).substring(2, 9),
+        })
+      );
+
+      // Determine recipient email - use business email if available, otherwise fall back to env var
+      const recipientEmail = businessEmail || process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL;
+
+      console.log('📧 Email sending details:', {
+        source: businessEmail ? 'business-relationship' : 'NEXT_PUBLIC_PHOTOGRAPHER_EMAIL',
+        recipientEmail,
+        hasBusinessEmail: !!businessEmail,
+        hasEnvEmail: !!process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL,
+      });
+
+      if (!recipientEmail) {
+        const errorMsg =
+          'No recipient email address available. Tried:' +
+          `\n- Business email from relationship: ${businessEmail || 'Not available'}` +
+          `\n- Environment variable: ${process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL || 'Not set'}`;
+        console.error('❌', errorMsg);
+        throw new Error(errorMsg);
+      }
+
+      // Send using the generic email endpoint
+      const response = await fetch('/api/email/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to: recipientEmail,
+          subject,
+          text,
+          html,
+          templateName: 'gallery-selection',
+          templateVars: {
+            userName,
+            userEmail,
+            imageCount: selectedItems.length,
+            message,
+            galleryId: id,
+            images: selectedItems.map(img => ({
+              ...img,
+              ratingStars: '★'.repeat(Math.round(img.rating || 0)) + '☆'.repeat(5 - Math.round(img.rating || 0)),
+            })),
+            appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://futura.now',
+          },
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to send selection');
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Your selection has been sent successfully!',
+        variant: 'default',
+      });
+
+      // Clear selection after successful send
+      setSelectedImages([]);
+    } catch (error) {
+      console.error('Error sending selection:', error);
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to send selection',
+        variant: 'destructive',
+      });
+      throw error;
     }
   };
 
@@ -118,80 +363,116 @@ function GalleryViewContent() {
     }
   };
 
-  const handleEditGallery = () => {
+  const _handleEditGallery = () => {
     // TODO: Navigate to edit page or open edit modal
     // logger.info("Edit gallery:", gallery?.id);
   };
 
-  const getStoreForeverButtonState = () => {
-    if (!gallery) return { text: 'Store Forever', disabled: true, variant: 'outline' as const };
-
-    // Check if gallery has storage status
-    if (gallery.storageStatus) {
-      switch (gallery.storageStatus.status) {
-        case 'stored_forever':
-          return {
-            text: 'Already Stored',
-            disabled: true,
-            variant: 'secondary' as const,
-            className:
-              'border-green-200 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-300 dark:hover:bg-green-950',
-          };
-        case 'partially_stored':
-          return {
-            text: 'Continue Storing',
-            disabled: false,
-            variant: 'outline' as const,
-            className:
-              'border-orange-200 text-orange-700 hover:bg-orange-50 dark:border-orange-800 dark:text-orange-300 dark:hover:bg-orange-950',
-          };
-        case 'web2_only':
-        default:
-          return {
-            text: 'Store Forever',
-            disabled: false,
-            variant: 'outline' as const,
-            className:
-              'border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950',
-          };
-      }
-    }
-
-    // Fallback for galleries without storage status
-    return {
-      text: 'Store Forever',
-      disabled: false,
-      variant: 'outline' as const,
-      className:
-        'border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950',
-    };
-  };
-
   const handleStoreForever = () => {
+    // TODO: Implement store forever functionality
     setShowForeverStorageModal(true);
   };
 
-  const handleForeverStorageSuccess = async () => {
-    // Refresh gallery data to show updated storage status
-    await loadGallery();
+  const getStoreForeverButtonState = () => {
+    // TODO: Implement button state logic
+    return {
+      variant: 'default' as const,
+      disabled: false,
+      className: '',
+      text: 'Store Forever',
+    };
   };
 
-  const handleForeverStorageError = (error: Error) => {
-    logger.error('Error storing gallery forever', undefined, { data: error as Error });
-    setError('Failed to store gallery forever');
+  const handleImageClick = (
+    item: {
+      id: string;
+      memory: {
+        id: string;
+        url?: string;
+        title?: string;
+        type?: string;
+        assets?: { assetType: string; url: string; mimeType?: string }[];
+      };
+    },
+    _index: number
+  ) => {
+    // Extract assets from the memory object if they exist
+    const assets: MemoryAsset[] = (item.memory.assets || []).map(asset => ({
+      assetType: asset.assetType,
+      url: asset.url,
+      mimeType: asset.mimeType,
+    }));
+
+    setSelectedImage({
+      url: item.memory.url || '',
+      title: item.memory.title || 'Image',
+      id: item.memory.id,
+      type: 'image', // Default to 'image' as the selection panel doesn't pass the type
+      assets, // Pass the assets array
+    });
+
+    // Find the index of the item in the filtered items array
+    const itemIndex = filteredItems.findIndex(i => i.memory.id === item.memory.id);
+    setCurrentImageIndex(itemIndex);
+    setIsImageModalOpen(true);
   };
 
-  const handleShareGallery = () => {
-    // TODO: Implement share functionality
-    // logger.info("Share gallery:", gallery?.id);
+  const handleNextImage = () => {
+    if (currentImageIndex < filteredItems.length - 1) {
+      const nextIndex = currentImageIndex + 1;
+      const nextItem = filteredItems[nextIndex];
+      // Extract assets from the memory object if they exist
+      const assets: MemoryAsset[] =
+        (nextItem.memory as GalleryItemMemory).assets?.map(asset => ({
+          assetType: asset.assetType,
+          url: asset.url,
+          mimeType: asset.mimeType,
+        })) || [];
+
+      setSelectedImage({
+        url: nextItem.memory.url || '',
+        title: nextItem.memory.title || 'Image',
+        id: nextItem.memory.id,
+        type: nextItem.memory.type || 'image', // Default to 'image' if not specified
+        assets, // Pass the assets array
+      });
+      setCurrentImageIndex(nextIndex);
+    }
   };
 
-  if (authLoading || isLoading) {
+  const handlePreviousImage = () => {
+    if (currentImageIndex > 0) {
+      const prevIndex = currentImageIndex - 1;
+      const prevItem = filteredItems[prevIndex];
+      // Extract assets from the memory object if they exist
+      const assets: MemoryAsset[] =
+        (prevItem.memory as GalleryItemMemory).assets?.map(asset => ({
+          assetType: asset.assetType,
+          url: asset.url,
+          mimeType: asset.mimeType,
+        })) || [];
+
+      setSelectedImage({
+        url: prevItem.memory.url || '',
+        title: prevItem.memory.title || 'Image',
+        id: prevItem.memory.id,
+        type: prevItem.memory.type || 'image', // Default to 'image' if not specified
+        assets, // Pass the assets array
+      });
+      setCurrentImageIndex(prevIndex);
+    }
+  };
+
+  const hasNextImage = currentImageIndex < filteredItems.length - 1;
+  const hasPreviousImage = currentImageIndex > 0;
+
+  // Early returns for loading states
+  if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Loading gallery...</p>
+          <p>Loading...</p>
         </div>
       </div>
     );
@@ -208,12 +489,38 @@ function GalleryViewContent() {
     );
   }
 
-  if (error || !gallery) {
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Loading gallery...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h2 className="text-2xl font-semibold mb-4">Error</h2>
+          <p className="text-muted-foreground mb-6">{error}</p>
+          <Button onClick={loadGallery}>Retry</Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!gallery) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <h2 className="text-2xl font-semibold mb-4">Gallery not found</h2>
-          <p className="text-muted-foreground mb-6">{error || "This gallery doesn't exist"}</p>
+          <p className="text-muted-foreground mb-6">
+            This gallery doesn&apos;t exist or you don&apos;t have access to it
+          </p>
+          <Button onClick={() => router.back()}>Go Back</Button>
         </div>
       </div>
     );
@@ -222,70 +529,48 @@ function GalleryViewContent() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40">
-        <div className="container mx-auto px-6 py-4 min-w-0">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 min-w-0">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between min-w-0">
-                <h1 className="text-2xl font-light">{gallery.title}</h1>
-                <div className="flex items-center gap-2">
-                  <div className="relative group">
-                    <StorageStatusBadge status={getGalleryStorageStatus(gallery)} />
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                      {gallery.storageStatus?.status === 'stored_forever'
-                        ? 'Gallery stored permanently on Internet Computer'
-                        : gallery.storageStatus?.status === 'partially_stored'
-                          ? 'Gallery partially stored on Internet Computer'
-                          : 'Gallery stored in standard database'}
-                    </div>
-                  </div>
-                  <Badge variant="outline" className="text-xs font-normal">
-                    {gallery.isPublic ? (
-                      <>
-                        <Globe className="h-3 w-3 mr-1" />
-                        Public
-                      </>
-                    ) : (
-                      <>
-                        <Lock className="h-3 w-3 mr-1" />
-                        Private
-                      </>
-                    )}
-                  </Badge>
-                </div>
+      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" size="sm" onClick={() => router.back()} className="flex items-center gap-2">
+                ← Back
+              </Button>
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-bold">{gallery.title}</h1>
+                <StorageStatusBadge status={getGalleryStorageStatus(gallery)} />
               </div>
-              {gallery.description && <p className="text-muted-foreground text-sm mt-1">{gallery.description}</p>}
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0 min-w-0">
-              <Button variant="outline" size="sm" onClick={handleFullScreenView}>
-                <Maximize2 className="h-4 w-4 mr-2" />
-                Preview
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleShareGallery}>
-                <Share2 className="h-4 w-4 mr-2" />
-                Share
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleTogglePrivacy} disabled={isUpdating}>
-                {isUpdating ? (
+
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs font-normal">
+                {gallery.isPublic ? (
                   <>
-                    <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                    Updating...
-                  </>
-                ) : gallery.isPublic ? (
-                  <>
-                    <EyeOff className="h-4 w-4 mr-2" />
-                    Hide
+                    <Globe className="h-3 w-3 mr-1" />
+                    Public
                   </>
                 ) : (
                   <>
-                    <Eye className="h-4 w-4 mr-2" />
-                    Publish
+                    <Lock className="h-3 w-3 mr-1" />
+                    Private
                   </>
                 )}
+              </Badge>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleTogglePrivacy}
+                disabled={isUpdating}
+                className="flex items-center gap-2"
+              >
+                {gallery.isPublic ? <Globe className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+                {gallery.isPublic ? 'Make Private' : 'Make Public'}
               </Button>
-              <Button variant="outline" size="sm" onClick={handleEditGallery}>
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
+
+              <Button variant="outline" size="sm" onClick={handleFullScreenView} className="flex items-center gap-2">
+                <Maximize2 className="h-4 w-4" />
+                Full Screen
               </Button>
               {(() => {
                 const buttonState = getStoreForeverButtonState();
@@ -345,81 +630,136 @@ function GalleryViewContent() {
         </div>
       </div>
 
-      {/* Gallery Storage Summary */}
-      <GalleryStorageSummary gallery={gallery} onStoreForever={handleStoreForever} />
+      {/* Storage Summary */}
+      <div className="border-b bg-muted/50">
+        <div className="container mx-auto px-4 py-2">
+          <GalleryStorageSummary gallery={gallery} />
+        </div>
+      </div>
 
-      {/* Photo Grid */}
-      <div className="container mx-auto px-6 py-8 min-w-0">
-        {gallery.items && gallery.items.length > 0 ? (
-          <div className="grid min-w-0 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {gallery.items.map((item, index) => (
-              <div
-                key={item.id}
-                className="min-w-0 aspect-square bg-muted rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity relative"
-                onClick={() => handleImageClick(index)}
-              >
-                {item.memory.url && !failedImages.has(item.memory.url) ? (
-                  <div className="w-full h-full relative min-w-0">
-                    <Image
-                      src={item.memory.url}
-                      alt={item.memory.title || `Photo ${index + 1}`}
-                      fill
-                      className="object-cover"
-                      onError={() => handleImageError(item.memory.url!)}
-                      sizes={IMAGE_SIZES.gallery}
-                      placeholder="blur"
-                      blurDataURL={getBlurPlaceholder()}
-                    />
-                  </div>
-                ) : (
-                  <div className="w-full h-full bg-muted flex items-center justify-center min-w-0">
-                    <div className="flex flex-col items-center justify-center text-muted-foreground">
-                      <ImageIcon className="h-16 w-16 mb-2" />
-                      <span className="text-sm break-words">Photo {index + 1}</span>
-                      {failedImages.has(item.memory.url!) && (
-                        <span className="text-xs text-muted-foreground/70 mt-1 break-words">Failed to load</span>
-                      )}
-                    </div>
-                  </div>
-                )}
+      {/* Selection Bar */}
+      <GallerySelectionBar
+        isSelecting={isSelecting}
+        selectedCount={selectedImages.length}
+        maxSelection={MAX_SELECTION}
+        hiddenCount={hiddenImages.length}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onSendPhotos={handleSendClick}
+      />
 
-                {/* Memory Storage Status Badge */}
-                <div className="absolute top-2 right-2 z-10">
-                  <MemoryStorageBadge
-                    memoryId={item.memory.id}
-                    memoryType={item.memory.type}
-                    size="xs"
-                    showTooltip={true}
-                  />
-                </div>
-              </div>
-            ))}
+      {/* Main content area with side panel */}
+      <div className="relative flex-1 overflow-hidden min-h-0 h-full">
+        <div className={`flex h-full ${showSidePanel ? '' : 'justify-end'}`}>
+          {/* Photo Grid */}
+          <div className={`overflow-y-auto h-full ${showSidePanel ? 'flex-1' : 'w-full'}`}>
+            <div className="container min-w-0 px-6 py-8 mx-auto h-full flex flex-col">
+              <GalleryPhotoGrid
+                items={filteredItems}
+                isLoading={isLoading}
+                error={error}
+                isSelecting={isSelecting}
+                selectedImages={selectedImages}
+                ratings={ratings}
+                hiddenImages={hiddenImages}
+                activeTab={activeTab}
+                failedImages={failedImages}
+                _maxSelection={MAX_SELECTION}
+                onImageClick={handleImageClick}
+                onSelectionToggle={(imageId, checked) => {
+                  if (checked) {
+                    setSelectedImages(prev => (prev.length < MAX_SELECTION ? [...prev, imageId] : prev));
+                  } else {
+                    setSelectedImages(prev => prev.filter(id => id !== imageId));
+                  }
+                }}
+                onRate={handleRateImage}
+                onHide={handleHideImage}
+                onUnhide={handleUnhideImage}
+                onImageError={handleImageError}
+                onRetry={loadGallery}
+              />
+            </div>
           </div>
-        ) : (
-          <div className="text-center py-16">
-            <h3 className="text-xl font-semibold mb-2">No photos in this gallery yet</h3>
-            <p className="text-muted-foreground mb-6">Add photos to this gallery to see them here.</p>
-          </div>
-        )}
+
+          {/* Selection Panel */}
+          {isSelecting && (
+            <GallerySelectionPanel
+              isOpen={showSidePanel}
+              selectedItems={gallery?.items.filter(item => selectedImages.includes(item.memory.id)) || []}
+              ratings={ratings}
+              failedImages={failedImages}
+              onImageClick={(item, index) => {
+                handleImageClick(item, index);
+              }}
+              onRemoveFromSelection={imageId => {
+                setSelectedImages(prev => prev.filter(id => id !== imageId));
+              }}
+            />
+          )}
+        </div>
       </div>
 
       {/* Forever Storage Modal */}
-      {gallery && (
+      {showForeverStorageModal && (
         <ForeverStorageProgressModal
           isOpen={showForeverStorageModal}
           onClose={() => setShowForeverStorageModal(false)}
           gallery={gallery}
-          onSuccess={handleForeverStorageSuccess}
-          onError={handleForeverStorageError}
+          onSuccess={result => {
+            console.log('Gallery stored successfully:', result);
+            setShowForeverStorageModal(false);
+          }}
+          onError={error => {
+            console.error('Error storing gallery:', error);
+          }}
         />
       )}
+
+      {/* Image Modal */}
+      {isImageModalOpen && selectedImage && (
+        <GalleryImageModal
+          isOpen={isImageModalOpen}
+          image={selectedImage}
+          assets={selectedImage?.assets || []}
+          onClose={() => {
+            setIsImageModalOpen(false);
+            setSelectedImage(null);
+            setCurrentImageIndex(-1);
+          }}
+          onNext={handleNextImage}
+          onPrevious={handlePreviousImage}
+          hasNext={hasNextImage}
+          hasPrevious={hasPreviousImage}
+        />
+      )}
+
+      {/* Send Selection Modal */}
+      <SendSelectionModal
+        isOpen={showMessageModal}
+        onClose={() => setShowMessageModal(false)}
+        selectedCount={selectedImages.length}
+        onSend={handleSendSelection}
+      />
+
+      {/* Toast Notifications */}
+      <ToastContainer />
     </div>
   );
 }
 
-export default function GalleryViewPage() {
+export default function GalleryPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p>Loading...</p>
+          </div>
+        </div>
+      }
+    >
       <GalleryViewContent />
     </Suspense>
   );

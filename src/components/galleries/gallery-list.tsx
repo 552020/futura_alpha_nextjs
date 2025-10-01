@@ -1,5 +1,23 @@
 'use client';
 
+/**
+ * GALLERY LIST COMPONENT
+ *
+ * This component displays a list of galleries in a responsive grid layout.
+ * It handles pagination, loading states, error handling, and gallery creation.
+ *
+ * Features:
+ * - Responsive grid display (1-4 columns based on screen size)
+ * - Pagination with "Load More" functionality
+ * - Loading states with skeleton components
+ * - Error handling with retry functionality
+ * - Empty state with create gallery option
+ * - Create gallery button integration
+ *
+ * Note: This component depends on GalleryCard which was deleted in main branch.
+ * The component may need to be updated to work with the new gallery structure.
+ */
+
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';

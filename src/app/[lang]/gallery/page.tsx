@@ -57,7 +57,6 @@ export default function GalleryPage() {
     window.location.href = `/${lang}/gallery/${gallery.id}`;
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleGalleryCreated = (_galleryId: string) => {
     // Reload galleries to show the new one
     loadGalleries();
@@ -112,7 +111,7 @@ export default function GalleryPage() {
 
       {/* Gallery Grid */}
       <div className="container mx-auto px-6">
-        <GalleryGrid galleries={filteredGalleries} onGalleryClick={handleGalleryClick} viewMode={viewMode} />
+        <GalleryGrid galleries={filteredGalleries} onGalleryClick={handleGalleryClick} />
       </div>
 
       {/* Create Gallery Modal */}
