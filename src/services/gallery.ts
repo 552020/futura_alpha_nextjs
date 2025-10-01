@@ -11,7 +11,6 @@ import { icpGalleryService, type GalleryData, type StoreGalleryResponse } from '
 import { Principal } from '@dfinity/principal';
 
 // Analytics tracking shim for future implementation
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const trackGalleryEvent = (event: string, _properties: Record<string, unknown> = {}) => {
   // console.log("Gallery Analytics:", { event, properties: _properties, timestamp: new Date().toISOString() });
   // TODO: Implement actual analytics tracking

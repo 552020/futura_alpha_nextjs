@@ -216,17 +216,52 @@ export async function generateBestAssetUrl(asset: {
     bucket: asset.bucket,
   });
 
-  // For S3 assets, try to presign using storageKey
-  if (asset.assetLocation === 's3' && asset.storageKey) {
+  // Clean up the storage key if it's a full URL
+  const cleanStorageKey = (key?: string) => {
+    if (!key) return key;
+    
+    // If it's already a full URL, extract just the path
     try {
-      console.log('🔑 Attempting to presign S3 URL for storageKey:', asset.storageKey);
-      const presignedUrl = await generatePresignedUrlFromStorageKey(asset.storageKey, asset.bucket || undefined);
-      console.log('✅ Successfully generated presigned URL:', presignedUrl);
+      const url = new URL(key);
+      return url.pathname.startsWith('/') ? url.pathname.substring(1) : url.pathname;
+    } catch (_error) {
+      // If it's not a valid URL, return as is but clean up any double slashes
+      return key.replace(/^\/+/, '');
+    }
+  };
+
+  // For S3 assets, try to presign using storageKey
+  if (asset.assetLocation === 's3') {
+    const storageKey = cleanStorageKey(asset.storageKey || asset.url);
+    
+    if (!storageKey) {
+      console.warn('⚠️ No storage key available for S3 asset, using direct URL');
+      return asset.url;
+    }
+
+    try {
+      console.log('🔑 Attempting to presign S3 URL for storageKey:', storageKey);
+      const presignedUrl = await generatePresignedUrlFromStorageKey(
+        storageKey, 
+        asset.bucket || undefined
+      );
+      
+      console.log('✅ Successfully generated presigned URL');
       return presignedUrl;
     } catch (error) {
       console.warn('⚠️ Failed to presign S3 URL, using direct URL:', error);
-      console.log('🔄 Falling back to direct URL:', asset.url);
-      return asset.url;
+      
+      // As a last resort, try to construct a direct URL
+      try {
+        const bucketName = asset.bucket || process.env.NEXT_PUBLIC_AWS_S3_BUCKET || process.env.AWS_S3_BUCKET || 'futura0';
+        const region = process.env.NEXT_PUBLIC_AWS_S3_REGION || 'eu-central-1';
+        const directUrl = `https://${bucketName}.s3.${region}.amazonaws.com/${storageKey}`;
+        console.log('🔄 Falling back to direct S3 URL:', directUrl);
+        return directUrl;
+      } catch (fallbackError) {
+        console.error('❌ Failed to construct direct S3 URL, using original URL:', fallbackError);
+        return asset.url;
+      }
     }
   }
 

@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server';
 import { handleApiMemoryPost } from '@/app/api/memories/post';
 import { db } from '@/db/db';
-import { memories } from '@/db/schema';
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 
 // Mock the auth function
@@ -21,7 +20,14 @@ describe('Memory Creation API', () => {
   
   beforeAll(() => {
     // Mock the auth function to return a user ID
-    const { auth } = require('@clerk/nextjs');
+    const { auth } = vi.hoisted(() => ({
+      auth: vi.fn(),
+    }));
+
+    vi.mock('@clerk/nextjs', () => ({
+      auth,
+    }));
+
     auth.mockImplementation(() => ({ userId: mockUserId }));
     
     // Mock the database insertion
@@ -36,7 +42,8 @@ describe('Memory Creation API', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       }]),
-    }));
+      select: vi.fn(),
+    } as any));
   });
   
   afterAll(() => {
@@ -111,7 +118,14 @@ describe('Memory Creation API', () => {
   
   it('should return 401 for unauthenticated requests', async () => {
     // Mock auth to return no user
-    const { auth } = require('@clerk/nextjs');
+    const { auth } = vi.hoisted(() => ({
+      auth: vi.fn(),
+    }));
+
+    vi.mock('@clerk/nextjs', () => ({
+      auth,
+    }));
+
     auth.mockImplementationOnce(() => ({ userId: null }));
     
     const request = new NextRequest('http://localhost:3000/api/memories', {

@@ -285,7 +285,6 @@ export class ICPGalleryService {
   /**
    * Get a specific gallery by ID
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async getGalleryById(_galleryId: string): Promise<Gallery | null> {
     try {
       // const actor = await backendActor(this.identity);
@@ -306,7 +305,6 @@ export class ICPGalleryService {
   /**
    * Update a gallery in the ICP canister
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async updateGallery(_galleryId: string, _updateData: GalleryUpdateData): Promise<UpdateGalleryResponse> {
     try {
       // const actor = await backendActor(this.identity);
@@ -333,7 +331,6 @@ export class ICPGalleryService {
   /**
    * Delete a gallery from the ICP canister
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async deleteGallery(_galleryId: string): Promise<DeleteGalleryResponse> {
     try {
       // const actor = await backendActor(this.identity);
@@ -364,7 +361,6 @@ export class ICPGalleryService {
   /**
    * Create a new memory
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async createMemory(_memoryData: MemoryData): Promise<MemoryOperationResponse> {
     try {
       // const actor = await backendActor(this.identity);
@@ -392,7 +388,6 @@ export class ICPGalleryService {
   /**
    * Get a memory by ID
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async getMemory(_memoryId: string): Promise<Memory | null> {
     try {
       // const actor = await backendActor(this.identity);
@@ -413,7 +408,6 @@ export class ICPGalleryService {
   /**
    * Update a memory by ID
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async updateMemory(_memoryId: string, _updates: Record<string, unknown>): Promise<MemoryOperationResponse> {
     try {
       // const actor = await backendActor(this.identity);
@@ -440,7 +434,6 @@ export class ICPGalleryService {
   /**
    * Delete a memory by ID
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async deleteMemory(_memoryId: string): Promise<MemoryOperationResponse> {
     try {
       // const actor = await backendActor(this.identity);
@@ -467,8 +460,7 @@ export class ICPGalleryService {
   /**
    * List all memories in a specific capsule
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async listMemories(capsuleId: string): Promise<MemoryListResponse> {
+  async listMemories(_capsuleId: string): Promise<MemoryListResponse> {
     // TODO: Implement when backend is ready
     // Currently placeholder - capsuleId will be used when implemented
     try {
