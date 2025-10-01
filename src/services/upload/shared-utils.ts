@@ -165,7 +165,7 @@ export function handleUploadError(
  * @param showToast - Toast function to show error messages
  * @returns true if validation passes, false if validation fails
  */
-import { UPLOAD_LIMITS } from '@/config/upload-limits';
+import { UPLOAD_LIMITS_S3 } from '@/config/upload-limits';
 
 import { logger } from '@/lib/logger';
 export function validateUploadFiles(
@@ -173,22 +173,22 @@ export function validateUploadFiles(
   showToast: (toast: { variant: 'destructive'; title: string; description: string }) => void
 ): boolean {
   // Validate file count limit
-  if (!UPLOAD_LIMITS.isFileCountValid(files.length)) {
+  if (!UPLOAD_LIMITS_S3.isFileCountValid(files.length)) {
     showToast({
       variant: 'destructive',
       title: 'Too many files',
-      description: UPLOAD_LIMITS.getFileCountErrorMessage(files.length),
+      description: UPLOAD_LIMITS_S3.getFileCountErrorMessage(files.length),
     });
     return false;
   }
 
   // Validate individual file sizes
   for (const file of files) {
-    if (!UPLOAD_LIMITS.isFileSizeValid(file.size)) {
+    if (!UPLOAD_LIMITS_S3.isFileSizeValid(file.size)) {
       showToast({
         variant: 'destructive',
         title: 'File too large',
-        description: UPLOAD_LIMITS.getFileSizeErrorMessage(file.size),
+        description: UPLOAD_LIMITS_S3.getFileSizeErrorMessage(file.size),
       });
       return false;
     }
@@ -196,11 +196,11 @@ export function validateUploadFiles(
 
   // Validate total size limit
   const totalSize = files.reduce((sum, file) => sum + file.size, 0);
-  if (!UPLOAD_LIMITS.isTotalSizeValid(totalSize)) {
+  if (!UPLOAD_LIMITS_S3.isTotalSizeValid(totalSize)) {
     showToast({
       variant: 'destructive',
       title: 'Upload too large',
-      description: UPLOAD_LIMITS.getTotalSizeErrorMessage(totalSize),
+      description: UPLOAD_LIMITS_S3.getTotalSizeErrorMessage(totalSize),
     });
     return false;
   }

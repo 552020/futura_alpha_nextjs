@@ -84,10 +84,15 @@ export async function processMultipleFiles(options: ProcessMultipleFilesOptions)
       // NOTE: For ICP users, isOnboarding is ignored because ICP always requires Internet Identity auth
       // Even "onboarding" users must authenticate with II to interact with ICP canister
       const { uploadToICP } = await import('./icp-upload');
-      const results = await uploadToICP(files, preferences || getDefaultHostingPreferences(), progress => {
-        // Convert overall progress to per-file progress for compatibility
-        onProgress?.(files[0], progress);
-      });
+      const results = await uploadToICP(
+        files,
+        preferences || getDefaultHostingPreferences(),
+        existingUserId || '',
+        progress => {
+          // Convert overall progress to per-file progress for compatibility
+          onProgress?.(files[0], progress.percentage);
+        }
+      );
 
       // Convert results to expected format
       data = {

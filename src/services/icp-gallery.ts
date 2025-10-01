@@ -526,7 +526,7 @@ export class ICPGalleryService {
       updated_at: BigInt((web2Gallery.updated_at as number) || Date.now()),
       storage_location: { Web2Only: null },
       memory_entries: memoryEntries,
-      bound_to_neon: false, // Default to false for Web2 galleries
+      bound_to_neon: false, // Default to false for web2 galleries
     };
 
     return {

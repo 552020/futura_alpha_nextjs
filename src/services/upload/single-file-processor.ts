@@ -74,7 +74,12 @@ export async function processSingleFile(options: ProcessSingleFileOptions): Prom
       // NOTE: For ICP users, isOnboarding is ignored because ICP always requires Internet Identity auth
       // Even "onboarding" users must authenticate with II to interact with ICP canister
       const { uploadToICP } = await import('./icp-upload');
-      const results = await uploadToICP([file], preferences || getDefaultHostingPreferences(), onProgress);
+      const results = await uploadToICP(
+        [file],
+        preferences || getDefaultHostingPreferences(),
+        existingUserId || '',
+        onProgress ? progress => onProgress(progress.percentage) : undefined
+      );
       data = results[0]; // Get first (and only) result
     } else if (userBlobHostingPreferences.includes('vercel_blob')) {
       const { uploadToVercelBlob } = await import('./vercel-blob-upload');

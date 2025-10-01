@@ -4,4 +4,4 @@ export * from './file-picker';
 export * from './single-file-processor';
 export * from './multiple-files-processor';
 export * from './shared-utils';
-export { icpUploadService } from './icp-upload';
+export * from './icp-upload';

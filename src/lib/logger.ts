@@ -23,6 +23,7 @@ const ENABLE_DATABASE_LOGGING = false; // Database operations
 const ENABLE_AUTH_LOGGING = false; // Authentication flows
 const ENABLE_ASSET_LOGGING = false; // Asset processing and thumbnails
 const ENABLE_S3_LOGGING = false; // S3 presigned URLs and storage
+const ENABLE_ICP_UPLOAD_LOGGING = true; // ICP upload and canister interactions
 
 // Feature flags (cross-cutting concerns)
 const ENABLE_HOSTING_PREFERENCES = true; // Hosting preference changes and routing
@@ -137,6 +138,9 @@ class SimpleLogger {
             break;
           case 's3':
             serviceEnabled = ENABLE_S3_LOGGING;
+            break;
+          case 'icp-upload':
+            serviceEnabled = ENABLE_ICP_UPLOAD_LOGGING;
             break;
           case 'dashboard':
             serviceEnabled = ENABLE_DASHBOARD_LOGGING;
@@ -296,6 +300,10 @@ class SimpleLogger {
 
   useEffect(context: 'be' | 'fe' = 'fe'): ServiceLogger {
     return new ServiceLogger('use-effect', context, this);
+  }
+
+  icpUpload(context: 'be' | 'fe' = 'fe'): ServiceLogger {
+    return new ServiceLogger('icp-upload', context, this);
   }
 }
 

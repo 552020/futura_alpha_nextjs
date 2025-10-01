@@ -10,19 +10,50 @@ export type AccessEvent = { 'CapsuleMaturity' : number } |
   { 'Custom' : string } |
   { 'ConnectionCount' : number } |
   { 'Anniversary' : number };
-export interface AudioMetadata {
-  'duration' : [] | [number],
-  'base' : MemoryMetadataBase,
+export type AssetMetadata = { 'Note' : NoteAssetMetadata } |
+  { 'Image' : ImageAssetMetadata } |
+  { 'Document' : DocumentAssetMetadata } |
+  { 'Audio' : AudioAssetMetadata } |
+  { 'Video' : VideoAssetMetadata };
+export interface AssetMetadataBase {
+  'url' : [] | [string],
+  'height' : [] | [number],
+  'updated_at' : bigint,
+  'asset_type' : AssetType,
+  'sha256' : [] | [Uint8Array | number[]],
+  'name' : string,
+  'storage_key' : [] | [string],
+  'tags' : Array<string>,
+  'processing_error' : [] | [string],
+  'mime_type' : string,
+  'description' : [] | [string],
+  'created_at' : bigint,
+  'deleted_at' : [] | [bigint],
+  'bytes' : bigint,
+  'asset_location' : [] | [string],
+  'width' : [] | [number],
+  'processing_status' : [] | [string],
+  'bucket' : [] | [string],
+}
+export type AssetType = { 'Preview' : null } |
+  { 'Metadata' : null } |
+  { 'Derivative' : null } |
+  { 'Original' : null } |
+  { 'Thumbnail' : null };
+export interface AudioAssetMetadata {
+  'duration' : [] | [bigint],
+  'base' : AssetMetadataBase,
+  'codec' : [] | [string],
   'channels' : [] | [number],
   'sample_rate' : [] | [number],
-  'bitrate' : [] | [number],
-  'format' : [] | [string],
+  'bit_depth' : [] | [number],
+  'bitrate' : [] | [bigint],
 }
+export interface BlobMeta { 'size' : bigint, 'chunk_count' : number }
 export interface BlobRef {
   'len' : bigint,
   'locator' : string,
   'hash' : [] | [Uint8Array | number[]],
-  'kind' : MemoryBlobKind,
 }
 export interface CanisterSizeStats {
   'remaining_capacity_bytes' : bigint,
@@ -48,21 +79,21 @@ export interface CapsuleHeader {
   'id' : string,
   'updated_at' : bigint,
   'subject' : PersonRef,
-  'owner_count' : number,
+  'owner_count' : bigint,
   'created_at' : bigint,
-  'controller_count' : number,
-  'memory_count' : number,
+  'controller_count' : bigint,
+  'memory_count' : bigint,
 }
 export interface CapsuleInfo {
   'updated_at' : bigint,
-  'gallery_count' : number,
+  'gallery_count' : bigint,
   'subject' : PersonRef,
   'capsule_id' : string,
   'is_owner' : boolean,
   'created_at' : bigint,
   'bound_to_neon' : boolean,
-  'memory_count' : number,
-  'connection_count' : number,
+  'memory_count' : bigint,
+  'connection_count' : bigint,
   'is_self_capsule' : boolean,
   'is_controller' : boolean,
 }
@@ -111,12 +142,19 @@ export interface DetailedCreationStatus {
   'cycles_consumed' : bigint,
   'completed_at' : [] | [bigint],
 }
-export interface DocumentMetadata { 'base' : MemoryMetadataBase }
+export interface DocumentAssetMetadata {
+  'document_type' : [] | [string],
+  'base' : AssetMetadataBase,
+  'language' : [] | [string],
+  'page_count' : [] | [number],
+  'word_count' : [] | [number],
+}
 export type Error = { 'Internal' : string } |
   { 'NotFound' : null } |
   { 'Unauthorized' : null } |
   { 'InvalidArgument' : string } |
   { 'ResourceExhausted' : null } |
+  { 'NotImplemented' : string } |
   { 'Conflict' : string };
 export interface Gallery {
   'id' : string,
@@ -140,7 +178,7 @@ export interface GalleryHeader {
   'storage_location' : GalleryStorageLocation,
   'name' : string,
   'created_at' : bigint,
-  'memory_count' : number,
+  'memory_count' : bigint,
 }
 export interface GalleryMemoryEntry {
   'memory_id' : string,
@@ -168,36 +206,59 @@ export interface GalleryUpdateData {
   'memory_entries' : [] | [Array<GalleryMemoryEntry>],
   'description' : [] | [string],
 }
-export interface ImageMetadata {
-  'base' : MemoryMetadataBase,
-  'dimensions' : [] | [[number, number]],
+export interface ImageAssetMetadata {
+  'dpi' : [] | [number],
+  'color_space' : [] | [string],
+  'base' : AssetMetadataBase,
+  'exif_data' : [] | [string],
+  'compression_ratio' : [] | [number],
+  'orientation' : [] | [number],
 }
 export interface Memory {
   'id' : string,
+  'inline_assets' : Array<MemoryAssetInline>,
   'access' : MemoryAccess,
   'metadata' : MemoryMetadata,
-  'data' : MemoryData,
-  'info' : MemoryInfo,
-  'idempotency_key' : [] | [string],
+  'blob_internal_assets' : Array<MemoryAssetBlobInternal>,
+  'blob_external_assets' : Array<MemoryAssetBlobExternal>,
 }
-export type MemoryAccess = { 'Private' : null } |
+export type MemoryAccess = { 'Private' : { 'owner_secure_code' : string } } |
   {
-    'Custom' : { 'groups' : Array<string>, 'individuals' : Array<PersonRef> }
+    'Custom' : {
+      'groups' : Array<string>,
+      'individuals' : Array<PersonRef>,
+      'owner_secure_code' : string,
+    }
   } |
   {
     'EventTriggered' : {
       'access' : MemoryAccess,
       'trigger_event' : AccessEvent,
+      'owner_secure_code' : string,
     }
   } |
-  { 'Public' : null } |
-  { 'Scheduled' : { 'access' : MemoryAccess, 'accessible_after' : bigint } };
-export type MemoryBlobKind = { 'MemoryBlobKindExternal' : null } |
-  { 'ICPCapsule' : null };
-export type MemoryData = {
-    'BlobRef' : { 'blob' : BlobRef, 'meta' : MemoryMeta }
-  } |
-  { 'Inline' : { 'meta' : MemoryMeta, 'bytes' : Uint8Array | number[] } };
+  { 'Public' : { 'owner_secure_code' : string } } |
+  {
+    'Scheduled' : {
+      'access' : MemoryAccess,
+      'accessible_after' : bigint,
+      'owner_secure_code' : string,
+    }
+  };
+export interface MemoryAssetBlobExternal {
+  'url' : [] | [string],
+  'metadata' : AssetMetadata,
+  'storage_key' : string,
+  'location' : StorageEdgeBlobType,
+}
+export interface MemoryAssetBlobInternal {
+  'metadata' : AssetMetadata,
+  'blob_ref' : BlobRef,
+}
+export interface MemoryAssetInline {
+  'metadata' : AssetMetadata,
+  'bytes' : Uint8Array | number[],
+}
 export interface MemoryHeader {
   'id' : string,
   'access' : MemoryAccess,
@@ -207,39 +268,29 @@ export interface MemoryHeader {
   'size' : bigint,
   'created_at' : bigint,
 }
-export interface MemoryInfo {
-  'updated_at' : bigint,
-  'date_of_memory' : [] | [bigint],
-  'memory_type' : MemoryType,
-  'name' : string,
-  'content_type' : string,
-  'created_at' : bigint,
-  'uploaded_at' : bigint,
-}
 export interface MemoryListResponse {
   'memories' : Array<MemoryHeader>,
   'message' : string,
   'success' : boolean,
 }
-export interface MemoryMeta {
-  'name' : string,
+export interface MemoryMetadata {
+  'title' : [] | [string],
+  'updated_at' : bigint,
+  'date_of_memory' : [] | [bigint],
+  'memory_type' : MemoryType,
   'tags' : Array<string>,
-  'description' : [] | [string],
-}
-export type MemoryMetadata = { 'Note' : NoteMetadata } |
-  { 'Image' : ImageMetadata } |
-  { 'Document' : DocumentMetadata } |
-  { 'Audio' : AudioMetadata } |
-  { 'Video' : VideoMetadata };
-export interface MemoryMetadataBase {
-  'date_of_memory' : [] | [string],
-  'size' : bigint,
+  'content_type' : string,
   'people_in_memory' : [] | [Array<string>],
-  'mime_type' : string,
-  'bound_to_neon' : boolean,
-  'original_name' : string,
-  'uploaded_at' : string,
-  'format' : [] | [string],
+  'database_storage_edges' : Array<StorageEdgeDatabaseType>,
+  'description' : [] | [string],
+  'created_at' : bigint,
+  'created_by' : [] | [string],
+  'parent_folder_id' : [] | [string],
+  'deleted_at' : [] | [bigint],
+  'file_created_at' : [] | [bigint],
+  'location' : [] | [string],
+  'memory_notes' : [] | [string],
+  'uploaded_at' : bigint,
 }
 export interface MemoryOperationResponse {
   'memory_id' : [] | [string],
@@ -261,9 +312,11 @@ export interface MemoryUpdateData {
   'metadata' : [] | [MemoryMetadata],
   'name' : [] | [string],
 }
-export interface NoteMetadata {
-  'base' : MemoryMetadataBase,
-  'tags' : [] | [Array<string>],
+export interface NoteAssetMetadata {
+  'base' : AssetMetadataBase,
+  'language' : [] | [string],
+  'word_count' : [] | [number],
+  'format' : [] | [string],
 }
 export interface OwnerState { 'last_activity_at' : bigint, 'since' : bigint }
 export type PersonRef = { 'Opaque' : string } |
@@ -284,77 +337,95 @@ export type ResourceType = { 'Memory' : null } |
   { 'Gallery' : null };
 export type Result = { 'Ok' : null } |
   { 'Err' : Error };
-export type Result_1 = { 'Ok' : Uint8Array | number[] } |
+export type Result_1 = { 'Ok' : BlobMeta } |
   { 'Err' : Error };
-export type Result_10 = { 'Ok' : Array<MemoryPresenceResult> } |
+export type Result_10 = { 'Ok' : [] | [DetailedCreationStatus] } |
   { 'Err' : Error };
-export type Result_11 = { 'Ok' : Memory } |
+export type Result_11 = { 'Ok' : Array<MemoryPresenceResult> } |
   { 'Err' : Error };
-export type Result_12 = { 'Ok' : bigint } |
+export type Result_12 = { 'Ok' : Memory } |
   { 'Err' : Error };
-export type Result_13 = { 'Ok' : Principal } |
+export type Result_13 = { 'Ok' : bigint } |
   { 'Err' : Error };
-export type Result_2 = { 'Ok' : Capsule } |
+export type Result_14 = { 'Ok' : Principal } |
   { 'Err' : Error };
-export type Result_3 = { 'Ok' : CapsuleInfo } |
+export type Result_2 = { 'Ok' : Uint8Array | number[] } |
   { 'Err' : Error };
-export type Result_4 = { 'Ok' : boolean } |
+export type Result_3 = { 'Ok' : Capsule } |
   { 'Err' : Error };
-export type Result_5 = { 'Ok' : string } |
+export type Result_4 = { 'Ok' : CapsuleInfo } |
   { 'Err' : Error };
-export type Result_6 = { 'Ok' : Gallery } |
+export type Result_5 = { 'Ok' : boolean } |
   { 'Err' : Error };
-export type Result_7 = { 'Ok' : Array<[Principal, DetailedCreationStatus]> } |
+export type Result_6 = { 'Ok' : string } |
   { 'Err' : Error };
-export type Result_8 = { 'Ok' : PersonalCanisterCreationStats } |
+export type Result_7 = { 'Ok' : Gallery } |
   { 'Err' : Error };
-export type Result_9 = { 'Ok' : [] | [DetailedCreationStatus] } |
+export type Result_8 = { 'Ok' : Array<[Principal, DetailedCreationStatus]> } |
   { 'Err' : Error };
+export type Result_9 = { 'Ok' : PersonalCanisterCreationStats } |
+  { 'Err' : Error };
+export type StorageEdgeBlobType = { 'S3' : null } |
+  { 'Icp' : null } |
+  { 'VercelBlob' : null } |
+  { 'Ipfs' : null } |
+  { 'Neon' : null } |
+  { 'Arweave' : null };
+export type StorageEdgeDatabaseType = { 'Icp' : null } |
+  { 'Neon' : null };
 export interface UploadConfig {
   'inline_max' : number,
   'chunk_size' : number,
   'inline_budget_per_capsule' : number,
 }
-export interface VideoMetadata {
-  'height' : [] | [number],
-  'duration' : [] | [number],
-  'thumbnail' : [] | [string],
-  'base' : MemoryMetadataBase,
-  'width' : [] | [number],
+export interface VideoAssetMetadata {
+  'duration' : [] | [bigint],
+  'base' : AssetMetadataBase,
+  'codec' : [] | [string],
+  'frame_rate' : [] | [number],
+  'resolution' : [] | [string],
+  'bitrate' : [] | [bigint],
+  'aspect_ratio' : [] | [number],
 }
 export interface _SERVICE {
+  '_probe_inline_len' : ActorMethod<
+    [[] | [Uint8Array | number[]]],
+    [bigint, Uint8Array | number[]]
+  >,
   'add_admin' : ActorMethod<[Principal], Result>,
-  'blob_read' : ActorMethod<[string], Result_1>,
+  'blob_get_meta' : ActorMethod<[string], Result_1>,
+  'blob_read' : ActorMethod<[string], Result_2>,
+  'blob_read_chunk' : ActorMethod<[string, number], Result_2>,
   'calculate_gallery_capsule_size' : ActorMethod<[Gallery], bigint>,
   'calculate_gallery_size' : ActorMethod<[Gallery], bigint>,
   'capsules_bind_neon' : ActorMethod<[ResourceType, string, boolean], Result>,
-  'capsules_create' : ActorMethod<[[] | [PersonRef]], Result_2>,
+  'capsules_create' : ActorMethod<[[] | [PersonRef]], Result_3>,
   'capsules_delete' : ActorMethod<[string], Result>,
   'capsules_list' : ActorMethod<[], Array<CapsuleHeader>>,
-  'capsules_read_basic' : ActorMethod<[[] | [string]], Result_3>,
-  'capsules_read_full' : ActorMethod<[[] | [string]], Result_2>,
-  'capsules_update' : ActorMethod<[string, CapsuleUpdateData], Result_2>,
+  'capsules_read_basic' : ActorMethod<[[] | [string]], Result_4>,
+  'capsules_read_full' : ActorMethod<[[] | [string]], Result_3>,
+  'capsules_update' : ActorMethod<[string, CapsuleUpdateData], Result_3>,
   'clear_all_stable_memory' : ActorMethod<[], Result>,
-  'clear_creation_state' : ActorMethod<[Principal], Result_4>,
-  'clear_migration_state' : ActorMethod<[Principal], Result_4>,
+  'clear_creation_state' : ActorMethod<[Principal], Result_5>,
+  'clear_migration_state' : ActorMethod<[Principal], Result_5>,
   'create_personal_canister' : ActorMethod<
     [],
     PersonalCanisterCreationResponse
   >,
-  'debug_finish_hex' : ActorMethod<[bigint, string, bigint], Result_5>,
+  'debug_finish_hex' : ActorMethod<[bigint, string, bigint], Result_6>,
   'debug_put_chunk_b64' : ActorMethod<[bigint, number, string], Result>,
   'debug_sha256' : ActorMethod<[Uint8Array | number[]], string>,
-  'galleries_create' : ActorMethod<[GalleryData], Result_6>,
+  'galleries_create' : ActorMethod<[GalleryData], Result_7>,
   'galleries_create_with_memories' : ActorMethod<
     [GalleryData, boolean],
-    Result_6
+    Result_7
   >,
   'galleries_delete' : ActorMethod<[string], Result>,
   'galleries_list' : ActorMethod<[], Array<GalleryHeader>>,
-  'galleries_read' : ActorMethod<[string], Result_6>,
-  'galleries_update' : ActorMethod<[string, GalleryUpdateData], Result_6>,
+  'galleries_read' : ActorMethod<[string], Result_7>,
+  'galleries_update' : ActorMethod<[string, GalleryUpdateData], Result_7>,
   'get_canister_size_stats' : ActorMethod<[], CanisterSizeStats>,
-  'get_creation_states_by_status' : ActorMethod<[CreationStatus], Result_7>,
+  'get_creation_states_by_status' : ActorMethod<[CreationStatus], Result_8>,
   'get_creation_status' : ActorMethod<[], [] | [CreationStatusResponse]>,
   'get_detailed_creation_status' : ActorMethod<
     [],
@@ -366,26 +437,42 @@ export interface _SERVICE {
   >,
   'get_gallery_size_breakdown' : ActorMethod<[Gallery], GallerySizeInfo>,
   'get_gallery_size_info' : ActorMethod<[Gallery], string>,
-  'get_migration_states_by_status' : ActorMethod<[CreationStatus], Result_7>,
-  'get_migration_stats' : ActorMethod<[], Result_8>,
+  'get_migration_states_by_status' : ActorMethod<[CreationStatus], Result_8>,
+  'get_migration_stats' : ActorMethod<[], Result_9>,
   'get_migration_status' : ActorMethod<[], [] | [CreationStatusResponse]>,
   'get_my_personal_canister_id' : ActorMethod<[], [] | [Principal]>,
-  'get_personal_canister_creation_stats' : ActorMethod<[], Result_8>,
+  'get_personal_canister_creation_stats' : ActorMethod<[], Result_9>,
   'get_personal_canister_id' : ActorMethod<[Principal], [] | [Principal]>,
-  'get_user_creation_status' : ActorMethod<[Principal], Result_9>,
-  'get_user_migration_status' : ActorMethod<[Principal], Result_9>,
+  'get_user_creation_status' : ActorMethod<[Principal], Result_10>,
+  'get_user_migration_status' : ActorMethod<[Principal], Result_10>,
   'greet' : ActorMethod<[string], string>,
-  'is_migration_enabled' : ActorMethod<[], Result_4>,
-  'is_personal_canister_creation_enabled' : ActorMethod<[], Result_4>,
+  'is_migration_enabled' : ActorMethod<[], Result_5>,
+  'is_personal_canister_creation_enabled' : ActorMethod<[], Result_5>,
   'list_admins' : ActorMethod<[], Array<Principal>>,
-  'list_all_creation_states' : ActorMethod<[], Result_7>,
-  'list_all_migration_states' : ActorMethod<[], Result_7>,
+  'list_all_creation_states' : ActorMethod<[], Result_8>,
+  'list_all_migration_states' : ActorMethod<[], Result_8>,
   'list_superadmins' : ActorMethod<[], Array<Principal>>,
-  'memories_create' : ActorMethod<[string, MemoryData, string], Result_5>,
+  'memories_create' : ActorMethod<
+    [
+      string,
+      [] | [Uint8Array | number[]],
+      [] | [BlobRef],
+      [] | [StorageEdgeBlobType],
+      [] | [string],
+      [] | [string],
+      [] | [bigint],
+      [] | [Uint8Array | number[]],
+      AssetMetadata,
+      string,
+    ],
+    Result_6
+  >,
   'memories_delete' : ActorMethod<[string], MemoryOperationResponse>,
   'memories_list' : ActorMethod<[string], MemoryListResponse>,
-  'memories_ping' : ActorMethod<[Array<string>], Result_10>,
-  'memories_read' : ActorMethod<[string], Result_11>,
+  'memories_ping' : ActorMethod<[Array<string>], Result_11>,
+  'memories_read' : ActorMethod<[string], Result_12>,
+  'memories_read_asset' : ActorMethod<[string, number], Result_2>,
+  'memories_read_with_assets' : ActorMethod<[string], Result_12>,
   'memories_update' : ActorMethod<
     [string, MemoryUpdateData],
     MemoryOperationResponse
@@ -402,18 +489,18 @@ export interface _SERVICE {
   'upload_config' : ActorMethod<[], UploadConfig>,
   'uploads_abort' : ActorMethod<[bigint], Result>,
   'uploads_begin' : ActorMethod<
-    [string, MemoryMeta, number, string],
-    Result_12
+    [string, AssetMetadata, number, string],
+    Result_13
   >,
   'uploads_finish' : ActorMethod<
     [bigint, Uint8Array | number[], bigint],
-    Result_5
+    Result_6
   >,
   'uploads_put_chunk' : ActorMethod<
     [bigint, number, Uint8Array | number[]],
     Result
   >,
-  'verify_nonce' : ActorMethod<[string], Result_13>,
+  'verify_nonce' : ActorMethod<[string], Result_14>,
   'whoami' : ActorMethod<[], Principal>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;
