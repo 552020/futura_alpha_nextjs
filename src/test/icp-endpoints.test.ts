@@ -157,8 +157,7 @@ beforeAll(async () => {
     const url = req.url;
     const method = req.method;
 
-    logger.info(`🔍 Mock Server: ${method} ${url}`);
-    logger.info(`🔍 Request headers:`, req.headers);
+    logger.info('Mock Server request', { method, url, headers: req.headers });
 
     // Handle POST requests to our mock endpoints
     if (method === 'POST') {

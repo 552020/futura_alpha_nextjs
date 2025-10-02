@@ -72,7 +72,7 @@ export const galleryService = {
       const response = await fetch(`/api/galleries?page=${page}&limit=${limit}`);
       return await handleApiResponse(response);
     } catch (error) {
-      logger.error('Error listing galleries:', undefined, { data: error instanceof Error ? error : undefined });
+      logger.error('Error listing galleries', 'gallery:be', { error });
       throw new Error('Failed to load galleries');
     }
   },
@@ -98,7 +98,7 @@ export const galleryService = {
       const response = await fetch(`/api/galleries/${id}`);
       return await handleApiResponse(response);
     } catch (error) {
-      logger.error('Error getting gallery:', undefined, { data: error instanceof Error ? error : undefined });
+      logger.error('Error getting gallery', 'gallery:be', { error });
       throw new Error('Failed to load gallery');
     }
   },
@@ -156,7 +156,7 @@ export const galleryService = {
       // logger.info("Gallery items count:", result.gallery?.items?.length || 0);
       return result.gallery;
     } catch (error) {
-      logger.error('Error creating gallery from folder:', undefined, { data: error instanceof Error ? error : undefined });
+      logger.error('Error creating gallery from folder', 'gallery:be', { error });
       throw new Error('Failed to create gallery from folder');
     }
   },
@@ -208,7 +208,7 @@ export const galleryService = {
       const result = await handleApiResponse(response);
       return result.gallery;
     } catch (error) {
-      logger.error('Error creating gallery from memories:', undefined, { data: error instanceof Error ? error : undefined });
+      logger.error('Error creating gallery from memories', 'gallery:be', { error });
       throw new Error('Failed to create gallery from memories');
     }
   },
@@ -246,7 +246,7 @@ export const galleryService = {
       const result = await handleApiResponse(response);
       return result.gallery;
     } catch (error) {
-      logger.error('Error creating gallery:', undefined, { data: error instanceof Error ? error : undefined });
+      logger.error('Error creating gallery', 'gallery:be', { error });
       throw new Error('Failed to create gallery');
     }
   },
@@ -282,7 +282,7 @@ export const galleryService = {
       const result = await handleApiResponse(response);
       return result.gallery;
     } catch (error) {
-      logger.error('Error updating gallery:', undefined, { data: error instanceof Error ? error : undefined });
+      logger.error('Error updating gallery', 'gallery:be', { error });
       throw new Error('Failed to update gallery');
     }
   },
@@ -306,7 +306,7 @@ export const galleryService = {
         throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
     } catch (error) {
-      logger.error('Error deleting gallery:', undefined, { data: error instanceof Error ? error : undefined });
+      logger.error('Error deleting gallery', 'gallery:be', { error });
       throw new Error('Failed to delete gallery');
     }
   },
@@ -336,7 +336,7 @@ export const galleryService = {
         throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
     } catch (error) {
-      logger.error('Error sharing gallery:', undefined, { data: error instanceof Error ? error : undefined });
+      logger.error('Error sharing gallery', 'gallery:be', { error });
       throw new Error('Failed to share gallery');
     }
   },
@@ -356,7 +356,7 @@ export const galleryService = {
       const response = await fetch('/api/galleries/folders');
       return await handleApiResponse(response);
     } catch (error) {
-      logger.error('Error getting folders:', undefined, { data: error instanceof Error ? error : undefined });
+      logger.error('Error getting folders', 'gallery:be', { error });
       // Return empty array instead of throwing for now
       return [];
     }
@@ -397,7 +397,7 @@ export const galleryService = {
 
       return result;
     } catch (error) {
-      logger.error('Error storing gallery forever:', undefined, { data: error instanceof Error ? error : undefined });
+      logger.error('Error storing gallery forever', 'gallery:be', { error });
       trackGalleryEvent('gallery_store_forever_failed', {
         galleryId: gallery.id,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -451,7 +451,7 @@ export const galleryService = {
       trackGalleryEvent('icp_galleries_retrieved', { count: web2Galleries.length });
       return web2Galleries;
     } catch (error) {
-      logger.error('Error getting ICP galleries:', undefined, { data: error instanceof Error ? error : undefined });
+      logger.error('Error getting ICP galleries', 'gallery:be', { error });
       trackGalleryEvent('icp_galleries_failed', {
         error: error instanceof Error ? error.message : 'Unknown error',
       });
@@ -466,7 +466,7 @@ export const galleryService = {
     try {
       return await icpGalleryService.checkCapsuleStatus();
     } catch (error) {
-      logger.error('Error checking ICP capsule status:', undefined, { data: error instanceof Error ? error : undefined });
+      logger.error('Error checking ICP capsule status', 'gallery:be', { error });
       return false;
     }
   },
@@ -515,7 +515,7 @@ async function updateStorageEdgesAfterICPSuccess(gallery: GalleryWithItems): Pro
 
     // logger.info(`Updated storage edges for ${gallery.items?.length || 0} memories in gallery ${gallery.id}`);
   } catch (error) {
-    logger.error('Error updating storage edges after ICP success:', undefined, { data: error instanceof Error ? error : undefined });
+    logger.error('Error updating storage edges after ICP success', 'gallery:be', { error });
     // Don't throw - this is a side effect, not critical to the main operation
   }
 }

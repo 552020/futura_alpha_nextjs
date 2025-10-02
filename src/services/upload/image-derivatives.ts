@@ -77,7 +77,7 @@ export async function processImageDerivatives(file: File, grant: GrantResponse):
   const supportedFormats = ['image/jpeg', 'image/png', 'image/webp'];
 
   if (!supportedFormats.includes(file.type)) {
-    logger.info(`⏭️ Skipping derivatives for unsupported format: ${file.type}`);
+    logger.asset('be').info(`Skipping derivatives for unsupported format: ${file.type}`);
     // Return skipped status for unsupported formats
     return {
       display: { assetType: 'display', processingStatus: 'skipped' },
@@ -86,7 +86,7 @@ export async function processImageDerivatives(file: File, grant: GrantResponse):
     };
   }
 
-  logger.info(`🖼️ Processing derivatives for supported format: ${file.type}`);
+  logger.asset('be').info(`Processing derivatives for supported format: ${file.type}`);
   // Process supported formats using Web Worker
   return await processImageDerivativesWithWorker(file, grant);
 }
@@ -172,7 +172,7 @@ export async function processImageDerivativesWithWorkerPure(file: File): Promise
 
     return processedBlobs;
   } catch (error) {
-    logger.error(`Failed to process derivatives for ${file.name}`, error as Error, {
+    logger.asset('be').error(`Failed to process derivatives for ${file.name}`, error as Error, {
       fileName: file.name,
       fileSize: file.size,
       fileType: file.type,
@@ -233,9 +233,7 @@ export async function processImageDerivativesWithWorker(file: File, grant: Grant
 
     return processedAssets;
   } catch (error) {
-    logger.error(`❌ Failed to process derivatives for ${file.name}:`, undefined, {
-      data: error instanceof Error ? error : undefined,
-    });
+    logger.asset('be').error(`Failed to process derivatives for ${file.name}`, error instanceof Error ? error : new Error(String(error)));
 
     // Return failed status for all derivatives
     return {
@@ -269,7 +267,7 @@ async function handleProcessedAssets(response: ProcessResponse, grant: GrantResp
         url: displayUrl,
       };
     } catch (error) {
-      logger.error('Failed to upload display asset to S3', error as Error, {
+      logger.s3('be').error('Failed to upload display asset to S3', error as Error, {
         fileKey: grant.display.fileKey,
         bytes: response.display.bytes,
       });
@@ -294,9 +292,7 @@ async function handleProcessedAssets(response: ProcessResponse, grant: GrantResp
         url: thumbUrl,
       };
     } catch (error) {
-      logger.error('Failed to upload thumb asset to S3:', undefined, {
-        data: error instanceof Error ? error : undefined,
-      });
+      logger.s3('be').error('Failed to upload thumb asset to S3', error instanceof Error ? error : new Error(String(error)));
       results.thumb = { assetType: 'thumb', processingStatus: 'failed' };
     }
   }
@@ -317,7 +313,7 @@ async function handleProcessedAssets(response: ProcessResponse, grant: GrantResp
       height: 24, // Standard placeholder dimensions
       mimeType: 'image/webp', // Consistent with decision
     };
-    logger.info(`✅ Generated placeholder data URL (${dataUrlBytes} bytes)`);
+    logger.asset('be').info(`Generated placeholder data URL (${dataUrlBytes} bytes)`);
   }
 
   return results;
@@ -327,7 +323,7 @@ async function handleProcessedAssets(response: ProcessResponse, grant: GrantResp
  * Upload asset blob to S3 using presigned URL
  */
 async function uploadAssetToS3(blob: Blob, uploadUrl: string): Promise<void> {
-  logger.info(`🔄 S3 PUT request: ${blob.size} bytes, ${blob.type}`);
+  logger.s3('be').info(`S3 PUT request: ${blob.size} bytes, ${blob.type}`);
 
   const response = await fetch(uploadUrl, {
     method: 'PUT',
@@ -338,11 +334,11 @@ async function uploadAssetToS3(blob: Blob, uploadUrl: string): Promise<void> {
   });
 
   if (!response.ok) {
-    logger.error(`❌ S3 upload failed: ${response.status} ${response.statusText}`);
+    logger.s3('be').error(`S3 upload failed: ${response.status} ${response.statusText}`);
     throw new Error(`S3 upload failed: ${response.status} ${response.statusText}`);
   }
 
-  logger.info(`✅ S3 upload successful: ${response.status} ${response.statusText}`);
+  logger.s3('be').info(`S3 upload successful: ${response.status} ${response.statusText}`);
 }
 
 /**
@@ -382,7 +378,7 @@ export async function uploadProcessedAssetsToS3(
         url: displayUrl,
       };
     } catch (error) {
-      logger.error('Failed to upload display asset:', undefined, { data: error instanceof Error ? error : undefined });
+      logger.s3('be').error('Failed to upload display asset', error instanceof Error ? error : new Error(String(error)));
       results.display = {
         assetType: 'display',
         processingStatus: 'failed',
@@ -414,7 +410,7 @@ export async function uploadProcessedAssetsToS3(
         url: thumbUrl,
       };
     } catch (error) {
-      logger.error('Failed to upload thumb asset:', undefined, { data: error instanceof Error ? error : undefined });
+      logger.s3('be').error('Failed to upload thumb asset', error instanceof Error ? error : new Error(String(error)));
       results.thumb = {
         assetType: 'thumb',
         processingStatus: 'failed',

@@ -86,7 +86,7 @@ async function resolveOwnerId(
 
     return { success: true, ownerId: temporaryOwnerId };
   } catch (error) {
-    logger.error('Failed to create temporary user for onboarding', error as Error, {
+    logger.database('be').error('Failed to create temporary user for onboarding', error, {
       operation: 'create_temporary_user',
       isOnboarding: true,
     });
@@ -122,13 +122,17 @@ async function createMemoryRecord(
       metadata: params.metadata || {},
       storageDuration: params.storageDuration || null,
     };
-
     const [createdMemory] = await db.insert(memories).values(newMemory).returning();
 
-    logger.memoryCreated(createdMemory.id || 'unknown', createdMemory.title || 'Untitled', createdMemory.type);
+    logger.database('be').info('Memory created', {
+      memoryId: createdMemory.id || 'unknown',
+      title: createdMemory.title || 'Untitled',
+      type: createdMemory.type,
+      operation: 'memory_created'
+    });
     return { success: true, memory: createdMemory };
   } catch (error) {
-    logger.error('Failed to create memory record', error as Error, {
+    logger.database('be').error('Failed to create memory record', error, {
       operation: 'create_memory_record',
       ownerId: ownerId,
     });
@@ -168,14 +172,14 @@ async function createMemoryAssets(
 
     const createdAssets = await db.insert(memoryAssets).values(assetData).returning();
 
-    logger.info(`Created ${createdAssets.length} assets for memory ${memoryId}`, undefined, {
+    logger.database('be').info('Created assets for memory', {
       operation: 'create_memory_assets',
       memoryId,
-      assetCount: createdAssets.length,
+      count: createdAssets.length,
     });
     return { success: true, assets: createdAssets };
   } catch (error) {
-    logger.error('Failed to create memory assets', error as Error, {
+    logger.database('be').error('Failed to create memory assets', error, {
       operation: 'create_memory_assets',
       memoryId,
     });
@@ -227,7 +231,7 @@ export async function createMemory(params: CreateMemoryParams): Promise<CreateMe
       memoryId: createdMemory.id || '',
     };
   } catch (error) {
-    logger.error('Failed to create memory', error as Error, {
+    logger.database('be').error('Failed to create memory', error, {
       operation: 'create_memory',
       ownerId: params.ownerId,
       type: params.type,
@@ -312,11 +316,12 @@ export async function createMemoryFromBlob(
     // Use the unified createMemory function
     return await createMemory(params);
   } catch (error) {
-    logger.error('Failed to create memory from blob', error as Error, {
+    logger.database('be').error('Failed to create memory from blob', {
       operation: 'create_memory_from_blob',
       url: blob.url,
       size: blob.size,
       contentType: blob.contentType,
+      error: error instanceof Error ? error.message : String(error)
     });
     return {
       success: false,

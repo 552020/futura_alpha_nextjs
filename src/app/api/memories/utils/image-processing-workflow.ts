@@ -28,8 +28,8 @@ export interface ImageProcessingWorkflowInput {
  */
 export async function processImageDerivatives(input: ImageProcessingWorkflowInput): Promise<void> {
   try {
-    logger.info(`🖼️ Starting image processing workflow for memory ${input.memoryId}`);
-    logger.info(`📥 Original blob URL: ${input.originalBlobUrl}`);
+    logger.info(`Starting image processing workflow for memory ${input.memoryId}`, 'asset:be');
+    logger.info('Original blob URL', 'asset:be', { url: input.originalBlobUrl });
 
     // Download the original image from blob storage
     const originalResponse = await fetch(input.originalBlobUrl);
@@ -38,28 +38,30 @@ export async function processImageDerivatives(input: ImageProcessingWorkflowInpu
     }
 
     const originalBuffer = await originalResponse.arrayBuffer();
-    logger.info(`📥 Downloaded original image: ${originalBuffer.byteLength} bytes`);
+    logger.info('Downloaded original image', 'asset:be', {
+      size: originalBuffer.byteLength
+    });
     
     const originalFile = new File([originalBuffer], input.originalPathname, {
       type: input.originalContentType,
     });
 
     // Process the image to create derivatives
-    logger.info(`🔄 Processing image derivatives...`);
+    logger.info('Processing image derivatives', 'asset:be');
     const processedAssets = await processImageForMultipleAssetsBackend(originalFile);
-    logger.info(`✅ Image processing complete:`, undefined, {
+    logger.info('Image processing complete', 'asset:be', {
       display: `${processedAssets.display.width}x${processedAssets.display.height} (${processedAssets.display.size} bytes)`,
       thumb: `${processedAssets.thumb.width}x${processedAssets.thumb.height} (${processedAssets.thumb.size} bytes)`,
     });
 
     // Upload derivatives to blob storage
-    logger.info(`📤 Uploading derivatives to blob storage...`);
+    logger.info('Uploading derivatives to blob storage', 'asset:be');
     const [displayResult, thumbResult] = await Promise.all([
       uploadDerivativeToBlob(processedAssets.display, 'display'),
       uploadDerivativeToBlob(processedAssets.thumb, 'thumb'),
     ]);
 
-    logger.info(`📤 Uploaded derivatives:`, undefined, {
+    logger.info('Uploaded derivatives', 'asset:be', {
       display: displayResult.url,
       thumb: thumbResult.url,
     });
@@ -99,9 +101,11 @@ export async function processImageDerivatives(input: ImageProcessingWorkflowInpu
     ];
 
     await db.insert(memoryAssets).values(assetData);
-    logger.info(`✅ Created ${assetData.length} derivative asset records for memory ${input.memoryId}`);
+    logger.info(`Created ${assetData.length} derivative asset records for memory ${input.memoryId}`, 'asset:be');
   } catch (error) {
-    logger.error(`❌ Image processing workflow failed for memory ${input.memoryId}:`, undefined, { data: error instanceof Error ? error : undefined });
+    logger.error(`Image processing workflow failed for memory ${input.memoryId}`, 'asset:be', {
+      error: error instanceof Error ? error : undefined
+    });
 
     // Update the original asset with processing error
     try {
@@ -112,9 +116,11 @@ export async function processImageDerivatives(input: ImageProcessingWorkflowInpu
           processingError: error instanceof Error ? error.message : 'Unknown error',
         })
         .where(eq(memoryAssets.memoryId, input.memoryId));
-      logger.info(`📝 Updated original asset with processing error for memory ${input.memoryId}`);
+      logger.info(`Updated original asset with processing error for memory ${input.memoryId}`, 'asset:be');
     } catch (updateError) {
-      logger.error('Failed to update asset with processing error:', undefined, { data: updateError });
+      logger.error('Failed to update asset with processing error', 'asset:be', {
+        error: updateError
+      });
     }
   }
 }
@@ -150,11 +156,13 @@ export function enqueueImageProcessing(input: ImageProcessingWorkflowInput): voi
   // This is more reliable than process.nextTick for serverless environments
   setTimeout(async () => {
     try {
-      logger.info(`🚀 Starting async image processing for memory ${input.memoryId}`);
+      logger.info(`Starting async image processing for memory ${input.memoryId}`, 'asset:be');
       await processImageDerivatives(input);
-      logger.info(`✅ Completed async image processing for memory ${input.memoryId}`);
+      logger.info(`Completed async image processing for memory ${input.memoryId}`, 'asset:be');
     } catch (error) {
-      logger.error(`❌ Async image processing failed for memory ${input.memoryId}:`, undefined, { data: error instanceof Error ? error : undefined });
+      logger.error(`Async image processing failed for memory ${input.memoryId}`, 'asset:be', {
+        error: error instanceof Error ? error : undefined
+      });
     }
   }, 0);
 }

@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 import { db } from '@/db/db';
 import { businessRelationship, users } from '@/db/schema';
 import { eq, or } from 'drizzle-orm';
+import { logger } from '@/lib/logger';
 
 export async function GET(
   request: NextRequest,
@@ -19,7 +20,7 @@ export async function GET(
       );
     }
 
-    console.log('Fetching business relationships for user ID:', userId);
+    logger.info('Fetching business relationships for user', { userId });
     
     // Get all relationships where the user is either a business or a client
     const relationships = await db
@@ -32,7 +33,7 @@ export async function GET(
         )
       );
 
-    console.log('Raw relationships from database:', relationships);
+    logger.debug('Retrieved business relationships from database', { relationships });
 
     // Check if the user is a client (has a business)
     const clientRelationships = relationships.filter(rel => rel.clientId === userId);
@@ -45,34 +46,34 @@ export async function GET(
     // If user is a client, get the business email
     let businessEmail = null;
     if (isClient) {
-      console.log('Client relationships found:', clientRelationships);
+      logger.debug('Client relationships found', { clientRelationships });
       
       // Get all business emails for this client
       const businessEmails = await Promise.all(
         clientRelationships.map(async (rel) => {
           try {
-            console.log(`Looking up business user with ID: ${rel.businessId}`);
+            logger.debug('Looking up business user', { businessId: rel.businessId });
             
             // First, verify the business user exists in the users table
             const businessUser = await db.query.users.findFirst({
               where: eq(users.id, rel.businessId)
             });
             
-            console.log('Found business user:', businessUser);
+            logger.debug('Found business user', { businessUser });
             
             if (!businessUser) {
-              console.error(`Business user ${rel.businessId} not found in users table`);
+              logger.warn(`Business user not found in users table`, { businessId: rel.businessId });
               return null;
             }
             
             if (!businessUser.email) {
-              console.error(`Business user ${rel.businessId} has no email set`);
+              logger.warn('Business user has no email set', { businessId: rel.businessId });
               return null;
             }
             
             return businessUser.email;
           } catch (error) {
-            console.error(`Error fetching business user ${rel.businessId}:`, error);
+            logger.error('Error fetching business user', { businessId: rel.businessId, error });
             return null;
           }
         })
@@ -80,13 +81,13 @@ export async function GET(
       
       // Use the first valid business email
       businessEmail = businessEmails.find(email => email) || null;
-      console.log('Business emails found for client:', businessEmails, 'Using:', businessEmail);
+      logger.debug('Business emails found for client', { businessEmails, selectedEmail: businessEmail });
       
       // If we still don't have an email, log all users for debugging
       if (!businessEmail) {
-        console.log('No business email found, listing all users for debugging:');
+        logger.warn('No business email found, listing all users for debugging');
         const allUsers = await db.select().from(users);
-        console.log('All users in database:', allUsers);
+        logger.debug('All users in database', { allUsers });
       }
     }
 
@@ -106,7 +107,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('Error in business-relationship endpoint:', error);
+    logger.error('Error in business-relationship endpoint', { error });
     return NextResponse.json(
       { 
         error: 'Failed to fetch business relationship',

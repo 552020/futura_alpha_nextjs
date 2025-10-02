@@ -115,7 +115,7 @@ export function CreateGalleryModal({
       setIsLoading(true);
       setError(null);
 
-      logger.info('Creating gallery with data:', data);
+      logger.info('Creating gallery', { data });
 
       const gallery = await galleryService.createGalleryFromFolder(
         data.folderName,
