@@ -80,7 +80,7 @@ export async function finalizeAllAssets(
   }
 
   // Single finalize call
-  logger.info(`🔍 DEBUG: Finalizing assets for memory ${memoryId} with parentFolderId:`, undefined, { parentFolderId });
+  logger.info('Finalizing assets for memory', { memoryId, parentFolderId });
   await finalizeAssets({ memoryId, assets, parentFolderId });
 }
 
@@ -88,9 +88,14 @@ export async function finalizeAllAssets(
  * Make the actual API call to finalize assets
  */
 async function finalizeAssets(request: FinalizeRequest): Promise<void> {
-  logger.info(`💾 Finalizing ${request.assets.length} assets for memory: ${request.memoryId}`);
-  logger.info(`📋 Assets to finalize:`, {
-    assets: request.assets.map(a => `${a.assetType}=${a.processingStatus}`).join(', '),
+  const assetCount = request.assets.length;
+  const memoryId = request.memoryId;
+  const assetStatuses = request.assets.map(a => `${a.assetType}=${a.processingStatus}`).join(', ');
+  
+  logger.info('Finalizing assets', { 
+    assetCount, 
+    memoryId, 
+    assetStatuses 
   });
 
   const response = await fetch('/api/upload/complete', {

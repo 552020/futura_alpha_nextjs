@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { sendEmail } from '@/utils/mailgun';
-import { createLogger } from '@/utils/logger';
-
-const logger = createLogger('Email Send');
+import { logger } from '@/lib/logger';
 
 type EmailRequest = {
   to: string | string[];

@@ -103,13 +103,14 @@ export default function VaultPage() {
       });
       setHasMore(result.hasMore);
     } catch (error) {
-      logger.dashboard().error('FETCH MEMORIES ERROR', error instanceof Error ? error : undefined, {
+      const errorTimestamp = new Date().toISOString();
+      logger.dashboard('fe').error('Error fetching memories', error instanceof Error ? error : new Error('Unknown error'), {
         message: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
         status: (error as Error & { status?: number })?.status,
         statusText: (error as Error & { statusText?: string })?.statusText,
         details: (error as Error & { details?: Record<string, unknown> })?.details,
-        timestamp,
+        timestamp: errorTimestamp,
       });
 
       // Show more specific error message if available

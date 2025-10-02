@@ -59,7 +59,7 @@ export default function MultipleAssetsUpload({
       try {
         // Calculate upload size info
         const sizeInfo = calculateUploadSize(imageFiles);
-        logger.info('Upload size info:', sizeInfo);
+        logger.info('Upload size info', sizeInfo);
 
         // Upload files
         const results = await uploadMultipleImagesWithAssets(imageFiles, {

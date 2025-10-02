@@ -11,15 +11,15 @@ const s3Config = {
   },
 };
 
-logger.info('S3 Config:', s3Config);
+logger.info('S3 Config', { config: s3Config });
 
 const s3Client = new S3Client(s3Config);
 
 export const S3_BUCKET = process.env.AWS_S3_BUCKET || '';
 export const S3_REGION = process.env.AWS_S3_REGION || 'eu-central-1';
 
-logger.info('S3 Bucket:', undefined, { bucket: S3_BUCKET });
-logger.info('S3 Region:', undefined, { region: S3_REGION });
+logger.info('S3 Bucket', { bucket: S3_BUCKET });
+logger.info('S3 Region', { region: S3_REGION });
 
 // Check if S3 is properly configured
 export function isS3Configured(): boolean {
@@ -28,7 +28,7 @@ export function isS3Configured(): boolean {
     process.env.AWS_SECRET_ACCESS_KEY &&
     process.env.AWS_S3_BUCKET
   );
-  logger.info('Is S3 Configured?', undefined, { configured });
+  logger.info('S3 Configuration Check', { isConfigured: configured });
   return configured;
 }
 
@@ -38,7 +38,7 @@ function generateSafeFileName(originalName: string, userId: string = 'anonymous'
   const safeFileName = originalName.replace(/[^a-zA-Z0-9-_\.]/g, '_');
   // Include user ID in the path: uploads/{userId}/{timestamp}-{filename}
   const fullName = `uploads/${userId}/${timestamp}-${safeFileName}`;
-  logger.info('Generated file name:', undefined, { fullName });
+  logger.info('Generated file name', { fileName: fullName });
   return fullName;
 }
 

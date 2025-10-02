@@ -58,19 +58,19 @@ class ServiceLogger {
   ) {}
 
   debug(message: string, data?: unknown, ...args: unknown[]): void {
-    this.parentLogger.debug(message, `${this.service}:${this.context}`, data, ...args);
+    this.parentLogger.debug(message, data, ...args);
   }
 
   info(message: string, data?: unknown, ...args: unknown[]): void {
-    this.parentLogger.info(message, `${this.service}:${this.context}`, data, ...args);
+    this.parentLogger.info(message, data, ...args);
   }
 
   warn(message: string, data?: unknown, ...args: unknown[]): void {
-    this.parentLogger.warn(message, `${this.service}:${this.context}`, data, ...args);
+    this.parentLogger.warn(message, data, ...args);
   }
 
   error(message: string, data?: unknown, ...args: unknown[]): void {
-    this.parentLogger.error(message, `${this.service}:${this.context}`, data, ...args);
+    this.parentLogger.error(message, data, ...args);
   }
 }
 
@@ -112,155 +112,224 @@ class SimpleLogger {
   }
 
   private shouldLog(level: LogLevel, service?: string): boolean {
+    // If logging is disabled globally, don't log anything
     if (!ENABLE_LOGGING) return false;
+    
+    // If the log level is below the current level, don't log
     if (level < this.level) return false;
 
-    if (service && typeof service === 'string') {
-      // Handle service:context format (e.g., "upload:be", "database:fe")
-      if (service.includes(':')) {
-        const [serviceName, context] = service.split(':');
+    // If no service is specified, allow the log
+    if (!service) return true;
+    
+    // Handle service:context format (e.g., "upload:be", "database:fe")
+    if (service.includes(':')) {
+      const [serviceName, context] = service.split(':');
 
-        // Check service flag
-        let serviceEnabled = false;
-        switch (serviceName) {
-          case 'upload':
-            serviceEnabled = ENABLE_UPLOAD_LOGGING;
-            break;
-          case 'database':
-            serviceEnabled = ENABLE_DATABASE_LOGGING;
-            break;
-          case 'auth':
-            serviceEnabled = ENABLE_AUTH_LOGGING;
-            break;
-          case 'asset':
-            serviceEnabled = ENABLE_ASSET_LOGGING;
-            break;
-          case 's3':
-            serviceEnabled = ENABLE_S3_LOGGING;
-            break;
-          case 'dashboard':
-            serviceEnabled = ENABLE_DASHBOARD_LOGGING;
-            break;
-          case 'memory-processing':
-            serviceEnabled = ENABLE_MEMORY_PROCESSING_LOGGING;
-            break;
-          case 'rendering':
-            serviceEnabled = ENABLE_RENDERING_LOGGING;
-            break;
-          case 'api-response':
-            serviceEnabled = ENABLE_API_RESPONSE_LOGGING;
-            break;
-          case 'folder-grouping':
-            serviceEnabled = ENABLE_FOLDER_GROUPING_LOGGING;
-            break;
-          case 'memory-grid':
-            serviceEnabled = ENABLE_MEMORY_GRID_LOGGING;
-            break;
-          case 'use-effect':
-            serviceEnabled = ENABLE_USE_EFFECT_LOGGING;
-            break;
-          case 'hosting-preferences':
-            serviceEnabled = ENABLE_HOSTING_PREFERENCES;
-            break;
-          default:
-            return false;
-        }
-
-        // Check context flag
-        const contextEnabled = context === 'be' ? ENABLE_BACKEND_LOGGING : ENABLE_UI_LOGGING;
-
-        return serviceEnabled && contextEnabled;
+      // Check if the service is enabled
+      let serviceEnabled = true; // Default to true if service is not explicitly disabled
+      switch (serviceName) {
+        case 'upload':
+          serviceEnabled = ENABLE_UPLOAD_LOGGING;
+          break;
+        case 'database':
+          serviceEnabled = ENABLE_DATABASE_LOGGING;
+          break;
+        case 'auth':
+          serviceEnabled = ENABLE_AUTH_LOGGING;
+          break;
+        case 'asset':
+          serviceEnabled = ENABLE_ASSET_LOGGING;
+          break;
+        case 's3':
+          serviceEnabled = ENABLE_S3_LOGGING;
+          break;
+        case 'dashboard':
+          serviceEnabled = ENABLE_DASHBOARD_LOGGING;
+          break;
+        case 'memory-processing':
+          serviceEnabled = ENABLE_MEMORY_PROCESSING_LOGGING;
+          break;
+        case 'rendering':
+          serviceEnabled = ENABLE_RENDERING_LOGGING;
+          break;
+        case 'api-response':
+          serviceEnabled = ENABLE_API_RESPONSE_LOGGING;
+          break;
+        case 'folder-grouping':
+          serviceEnabled = ENABLE_FOLDER_GROUPING_LOGGING;
+          break;
+        case 'memory-grid':
+          serviceEnabled = ENABLE_MEMORY_GRID_LOGGING;
+          break;
+        case 'use-effect':
+          serviceEnabled = ENABLE_USE_EFFECT_LOGGING;
+          break;
+        case 'hosting-preferences':
+          serviceEnabled = ENABLE_HOSTING_PREFERENCES;
+          break;
+        default:
+          // If the service is not in our list, allow it by default
+          serviceEnabled = true;
       }
 
-      // Fallback for old format without context
-      return false;
+      // Check if the context (be/fe) is enabled
+      const contextEnabled = context === 'be' ? ENABLE_BACKEND_LOGGING : ENABLE_UI_LOGGING;
+
+      return serviceEnabled && contextEnabled;
     }
-    return false; // Only show logs with service parameter
+
+    // If we get here, the service format is not recognized, so allow it by default
+    return true;
   }
 
   private formatPrefix(level: string, service?: string): string {
     const timestamp = new Date().toISOString();
-    // Handle case where service might be an object (fallback to default service)
-    const serviceTag = typeof service === 'string' ? service : this.service;
-    return `[${timestamp}] ${level} [${serviceTag}]`;
+    const serviceTag = service ? `[${service}]` : `[${this.service}]`;
+    return `[${timestamp}] ${level} ${serviceTag}`;
   }
 
-  debug(message: string, service?: string, data?: unknown, ...args: unknown[]): void {
-    if (this.shouldLog(LogLevel.DEBUG, service)) {
-      const prefix = this.formatPrefix('DEBUG', service);
-      if (data !== undefined) {
-        console.debug(prefix, message, data, ...args);
-      } else {
-        console.debug(prefix, message, ...args);
-      }
+  debug(message: string, serviceOrData?: string | Record<string, unknown>, data?: unknown, ...args: unknown[]): void {
+    const service = typeof serviceOrData === 'string' ? serviceOrData : undefined;
+    const logData = typeof serviceOrData === 'string' ? data : serviceOrData;
+    
+    if (!this.shouldLog(LogLevel.DEBUG, service)) return;
+    const prefix = this.formatPrefix('DEBUG', service);
+    
+    if (logData !== undefined) {
+      console.debug(prefix, message, logData, ...args);
+    } else {
+      console.debug(prefix, message);
     }
   }
 
-  info(message: string, service?: string, data?: unknown, ...args: unknown[]): void {
-    if (this.shouldLog(LogLevel.INFO, service)) {
-      const prefix = this.formatPrefix('INFO', service);
-      if (data !== undefined) {
-        console.info(prefix, message, data, ...args);
-      } else {
-        console.info(prefix, message, ...args);
-      }
+  info(message: string, serviceOrData?: string | Record<string, unknown>, data?: unknown, ...args: unknown[]): void {
+    const service = typeof serviceOrData === 'string' ? serviceOrData : undefined;
+    const logData = typeof serviceOrData === 'string' ? data : serviceOrData;
+    
+    if (!this.shouldLog(LogLevel.INFO, service)) return;
+    const prefix = this.formatPrefix('INFO', service);
+    
+    if (logData !== undefined) {
+      console.info(prefix, message, logData, ...args);
+    } else {
+      console.info(prefix, message);
     }
   }
 
-  warn(message: string, service?: string, data?: unknown, ...args: unknown[]): void {
-    if (this.shouldLog(LogLevel.WARN, service)) {
-      const prefix = this.formatPrefix('WARN', service);
-      if (data !== undefined) {
-        console.warn(prefix, message, data, ...args);
-      } else {
-        console.warn(prefix, message, ...args);
-      }
+  warn(message: string, serviceOrData?: string | Record<string, unknown>, data?: unknown, ...args: unknown[]): void {
+    const service = typeof serviceOrData === 'string' ? serviceOrData : undefined;
+    const logData = typeof serviceOrData === 'string' ? data : serviceOrData;
+    
+    if (!this.shouldLog(LogLevel.WARN, service)) return;
+    const prefix = this.formatPrefix('WARN', service);
+    
+    if (logData !== undefined) {
+      console.warn(prefix, message, logData, ...args);
+    } else {
+      console.warn(prefix, message);
     }
   }
 
-  error(message: string, service?: string, data?: unknown, ...args: unknown[]): void {
-    if (this.shouldLog(LogLevel.ERROR, service)) {
-      const prefix = this.formatPrefix('ERROR', service);
-      if (data !== undefined) {
-        console.error(prefix, message, data, ...args);
+  error(message: string, serviceOrData?: string | Record<string, unknown> | Error, data?: unknown, ...args: unknown[]): void {
+    let service: string | undefined;
+    let logData: unknown;
+    
+    if (serviceOrData instanceof Error) {
+      // Handle case where error is passed as second parameter
+      service = undefined;
+      logData = serviceOrData;
+    } else if (typeof serviceOrData === 'string') {
+      // Handle case where service is passed as second parameter
+      service = serviceOrData;
+      logData = data;
+    } else {
+      // Handle case where data object is passed as second parameter
+      service = undefined;
+      logData = serviceOrData;
+    }
+    
+    if (!this.shouldLog(LogLevel.ERROR, service)) return;
+    const prefix = this.formatPrefix('ERROR', service);
+    
+    if (logData !== undefined) {
+      if (logData instanceof Error) {
+        // Special handling for Error objects to ensure stack traces are preserved
+        console.error(prefix, message, logData, ...args);
       } else {
-        console.error(prefix, message, ...args);
+        console.error(prefix, message, logData, ...args);
       }
+    } else {
+      console.error(prefix, message);
     }
   }
-
-  // Convenience methods for common logging patterns
   memoryCreated(memoryId: string, title: string, type: string, service: string = 'app'): void {
-    this.info(`Memory created: ${title} (${type})`, service, { memoryId, title, type });
+    this.info(
+      `Memory created: ${title} (${type})`,
+      `${service}:be`,
+      { memoryId, title, type }
+    );
   }
 
   memoryUpdated(memoryId: string, changes: Record<string, unknown>, service: string = 'app'): void {
-    this.info(`Memory updated: ${memoryId}`, service, { memoryId, changes });
+    this.info(
+      `Memory updated: ${memoryId}`,
+      `${service}:be`,
+      { memoryId, changes }
+    );
   }
 
   memoryDeleted(memoryId: string, service: string = 'app'): void {
-    this.info(`Memory deleted: ${memoryId}`, service, { memoryId });
+    this.info(
+      `Memory deleted: ${memoryId}`,
+      `${service}:be`,
+      { memoryId }
+    );
   }
 
   fileUploaded(fileName: string, size: number, service: string = 'app'): void {
-    this.info(`File uploaded: ${fileName} (${size} bytes)`, service, { fileName, size });
+    this.info(
+      `File uploaded: ${fileName} (${size} bytes)`,
+      `${service}:be`,
+      { fileName, size }
+    );
   }
 
   fileProcessed(fileName: string, url: string, service: string = 'app'): void {
-    this.info(`File processed: ${fileName}`, service, { fileName, url });
+    this.info(
+      `File processed: ${fileName}`,
+      `${service}:be`,
+      { fileName, url }
+    );
   }
 
   // Specialized logging methods
   apiRequest(method: string, url: string, status: number, duration: number, service: string = 'api'): void {
-    this.info(`API ${method} ${url} - ${status} (${duration}ms)`, service, { method, url, status, duration });
+    this.info(
+      `API ${method} ${url} - ${status} (${duration}ms)`,
+      `${service}:be`,
+      { method, url, status, duration }
+    );
   }
 
   authEvent(userId: string, action: string, method: string, service: string = 'auth'): void {
-    this.info(`Auth ${action} for user ${userId} (${method})`, service, { userId, method });
+    this.info(
+      `Auth ${action} for user ${userId} (${method})`,
+      `${service}:be`,
+      { userId, method }
+    );
   }
 
-  authFailed(userId: string, method: string, error: Error, service?: string): void {
-    this.error(`Authentication failed: ${userId} via ${method}`, service, error);
+  authFailed(userId: string, method: string, error: Error, service: string = 'auth'): void {
+    this.error(
+      `Authentication failed: ${userId} via ${method}`,
+      `${service}:be`,
+      {
+        userId,
+        method,
+        error: error.message,
+        stack: error.stack
+      }
+    );
   }
 
   // Service-specific method chaining

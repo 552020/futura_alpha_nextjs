@@ -162,12 +162,12 @@ export async function generatePresignedUrlFromStorageKey(
   });
 
   try {
-    logger.info('🔑 Attempting to get presigned URL for:', undefined, { storageKey });
+    logger.info('Attempting to get presigned URL', { storageKey });
     const presignedUrl = await generatePresignedUrl(storageKey);
     logger.s3().info('✅ Successfully generated presigned URL:', { presignedUrl });
     return presignedUrl;
   } catch (error) {
-    logger.warn('⚠️ Server-side fetch failed, trying direct AWS SDK method:', {
+    logger.warn('Server-side fetch failed, trying direct AWS SDK method', {
       storageKey,
       error: error instanceof Error ? error.message : String(error),
     });
