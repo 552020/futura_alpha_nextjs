@@ -72,11 +72,11 @@ function GalleryViewContent() {
 
   const loadGallery = useCallback(async () => {
     try {
-      console.log('Loading gallery with ID:', id);
+      logger.info('Loading gallery with ID', 'gallery:fe', { galleryId: id });
       setIsLoading(true);
       setError(null);
       const result = await galleryService.getGallery(id as string, USE_MOCK_DATA);
-      console.log('Gallery data received:', result);
+      logger.info('Gallery data received', 'gallery:fe', { galleryId: id, itemCount: result.gallery?.items?.length || 0 });
       setGallery(result.gallery);
 
       // Get the current user's ID from the session
@@ -85,42 +85,41 @@ function GalleryViewContent() {
       const userId = session?.user?.id;
 
       if (!userId) {
-        console.log('No user session found, skipping business relationship check');
+        logger.info('No user session found, skipping business relationship check', 'gallery:fe');
         return;
       }
 
       // Fetch business relationship to get the business email
       try {
-        console.log('Fetching business relationship for user ID:', userId);
+        logger.info('Fetching business relationship for user ID', 'gallery:fe', { userId });
         const response = await fetch(`/api/users/${userId}/business-relationship`);
         if (response.ok) {
           const data = await response.json();
-          console.log('Business relationship API response:', {
+          logger.info('Business relationship API response', 'gallery:fe', {
             status: 'success',
             isClient: data.isClient,
-            isBusiness: data.isBusiness,
             businessEmail: data.businessEmail,
             relationships: data.relationships || [],
           });
 
           if (data.isClient && data.businessEmail) {
-            console.log(`✅ Using business email from relationship: ${data.businessEmail}`);
+            logger.info('Using business email from relationship', 'gallery:fe', { businessEmail: data.businessEmail });
             setBusinessEmail(data.businessEmail);
           } else if (data.isBusiness) {
-            console.log('ℹ️ User is a business. No business email to use from relationship.');
+            logger.info('User is a business. No business email to use from relationship.', 'gallery:fe');
           } else {
-            console.log('ℹ️ No business relationship found.');
+            logger.info('No business relationship found.', 'gallery:fe');
           }
         } else {
           const error = await response.json().catch(() => ({}));
-          console.error('❌ Error response from business-relationship API:', {
+          logger.error('Error response from business-relationship API', 'gallery:fe', {
             status: response.status,
             statusText: response.statusText,
             error,
           });
         }
       } catch (error) {
-        console.error('❌ Error fetching business relationship:', error);
+        logger.error('Error fetching business relationship', 'gallery:fe', { error, userId });
       }
     } catch (err) {
       logger.error('Error loading gallery', undefined, { data: err as Error });
@@ -185,31 +184,31 @@ function GalleryViewContent() {
   };
 
   const handleHideImage = (imageId: string) => {
-    console.log('Hiding image:', imageId);
+    logger.info('Hiding image', 'gallery:fe', { imageId });
     setHiddenImages(prev => {
       const newHidden = [...prev, imageId];
-      console.log('New hidden images:', newHidden);
+      logger.info('New hidden images', 'gallery:fe', { hiddenCount: newHidden.length, imageIds: newHidden });
       return newHidden;
     });
     // Remove from selected images if hidden
     setSelectedImages(prev => {
       const filtered = prev.filter(id => id !== imageId);
-      console.log('Removed from selection, new selection:', filtered);
+      logger.info('Removed from selection, new selection', 'gallery:fe', { selectedCount: filtered.length, imageIds: filtered });
       return filtered;
     });
   };
 
   const handleUnhideImage = (imageId: string) => {
-    console.log('Unhiding image:', imageId);
+    logger.info('Unhiding image', 'gallery:fe', { imageId });
     setHiddenImages(prev => {
       const newHidden = prev.filter(id => id !== imageId);
-      console.log('New hidden images:', newHidden);
+      logger.info('New hidden images', 'gallery:fe', { hiddenCount: newHidden.length, imageIds: newHidden });
       return newHidden;
     });
     // Remove from selected images if unhidden
     setSelectedImages(prev => {
       const filtered = prev.filter(id => id !== imageId);
-      console.log('Removed from selection, new selection:', filtered);
+      logger.info('Removed from selection, new selection', 'gallery:fe', { selectedCount: filtered.length, imageIds: filtered });
       return filtered;
     });
   };
@@ -251,7 +250,7 @@ function GalleryViewContent() {
       // Determine recipient email - use business email if available, otherwise fall back to env var
       const recipientEmail = businessEmail || process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL;
 
-      console.log('📧 Email sending details:', {
+      logger.info('Email sending details', 'gallery:fe', {
         source: businessEmail ? 'business-relationship' : 'NEXT_PUBLIC_PHOTOGRAPHER_EMAIL',
         recipientEmail,
         hasBusinessEmail: !!businessEmail,
@@ -263,7 +262,11 @@ function GalleryViewContent() {
           'No recipient email address available. Tried:' +
           `\n- Business email from relationship: ${businessEmail || 'Not available'}` +
           `\n- Environment variable: ${process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL || 'Not set'}`;
-        console.error('❌', errorMsg);
+        logger.error('No recipient email address available', 'gallery:fe', {
+          businessEmail,
+          envEmail: process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL,
+          errorMsg,
+        });
         throw new Error(errorMsg);
       }
 
@@ -309,7 +312,7 @@ function GalleryViewContent() {
       // Clear selection after successful send
       setSelectedImages([]);
     } catch (error) {
-      console.error('Error sending selection:', error);
+      logger.error('Error sending selection', 'gallery:fe', { error, selectedCount: selectedImages.length });
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to send selection',
@@ -707,11 +710,11 @@ function GalleryViewContent() {
           onClose={() => setShowForeverStorageModal(false)}
           gallery={gallery}
           onSuccess={result => {
-            console.log('Gallery stored successfully:', result);
+            logger.info('Gallery stored successfully', 'gallery:fe', { result, galleryId: gallery?.id });
             setShowForeverStorageModal(false);
           }}
           onError={error => {
-            console.error('Error storing gallery:', error);
+            logger.error('Error storing gallery', 'gallery:fe', { error, galleryId: gallery?.id });
           }}
         />
       )}

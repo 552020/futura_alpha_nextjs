@@ -201,7 +201,6 @@ export function logFileDetails(file: File): void {
  * Used for folder uploads
  */
 export function logMultipleFileDetails(files: File[]): void {
-  // console.log(`📁 Folder contains ${files.length} files:`);
   files.forEach((_file, _index) => {
     // logger.info(`  ${_index + 1}. `);
   });
