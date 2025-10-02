@@ -202,11 +202,20 @@ export async function uploadToVercelBlob(
         results: [
           {
             memoryId: memory.id,
-            size: file.size,
-            checksum_sha256: null,
+            blobId: memory.id,
+            size: BigInt(file.size),
+            checksumSha256: undefined,
+            storageBackend: 'vercel_blob' as const,
+            storageLocation: '', // Will be filled by finalizeAllAssets
+            uploadedAt: BigInt(Date.now()),
           },
         ],
         userId: existingUserId || '',
+        totalFiles: 1,
+        totalSize: file.size,
+        processingTime: 0,
+        storageBackend: 'vercel_blob' as const,
+        databaseBackend: 'neon' as const,
       });
     } else {
       // Handle failed uploads - continue with other files
@@ -479,10 +488,19 @@ async function createMemoryWithUnifiedCompletion(
     results: [
       {
         memoryId: result.memoryId,
-        size: file.size,
-        checksum_sha256: null,
+        blobId: result.memoryId,
+        size: BigInt(file.size),
+        checksumSha256: undefined,
+        storageBackend: 'vercel_blob' as const,
+        storageLocation: '', // Will be filled by finalizeAllAssets
+        uploadedAt: BigInt(Date.now()),
       },
     ],
     userId: existingUserId || '',
+    totalFiles: 1,
+    totalSize: file.size,
+    processingTime: 0,
+    storageBackend: 'vercel_blob' as const,
+    databaseBackend: 'neon' as const,
   };
 }

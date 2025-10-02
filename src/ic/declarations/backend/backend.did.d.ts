@@ -341,13 +341,15 @@ export type Result_1 = { 'Ok' : BlobMeta } |
   { 'Err' : Error };
 export type Result_10 = { 'Ok' : [] | [DetailedCreationStatus] } |
   { 'Err' : Error };
-export type Result_11 = { 'Ok' : Array<MemoryPresenceResult> } |
+export type Result_11 = { 'Ok' : string } |
   { 'Err' : Error };
-export type Result_12 = { 'Ok' : Memory } |
+export type Result_12 = { 'Ok' : Array<MemoryPresenceResult> } |
   { 'Err' : Error };
 export type Result_13 = { 'Ok' : bigint } |
   { 'Err' : Error };
 export type Result_14 = { 'Ok' : Principal } |
+  { 'Err' : Error };
+export type Result_15 = { 'Ok' : UploadFinishResult } |
   { 'Err' : Error };
 export type Result_2 = { 'Ok' : Uint8Array | number[] } |
   { 'Err' : Error };
@@ -357,7 +359,7 @@ export type Result_4 = { 'Ok' : CapsuleInfo } |
   { 'Err' : Error };
 export type Result_5 = { 'Ok' : boolean } |
   { 'Err' : Error };
-export type Result_6 = { 'Ok' : string } |
+export type Result_6 = { 'Ok' : [string, string] } |
   { 'Err' : Error };
 export type Result_7 = { 'Ok' : Gallery } |
   { 'Err' : Error };
@@ -365,6 +367,11 @@ export type Result_8 = { 'Ok' : Array<[Principal, DetailedCreationStatus]> } |
   { 'Err' : Error };
 export type Result_9 = { 'Ok' : PersonalCanisterCreationStats } |
   { 'Err' : Error };
+export type StorageBackend = { 'S3' : null } |
+  { 'Icp' : null } |
+  { 'VercelBlob' : null } |
+  { 'Ipfs' : null } |
+  { 'Arweave' : null };
 export type StorageEdgeBlobType = { 'S3' : null } |
   { 'Icp' : null } |
   { 'VercelBlob' : null } |
@@ -377,6 +384,17 @@ export interface UploadConfig {
   'inline_max' : number,
   'chunk_size' : number,
   'inline_budget_per_capsule' : number,
+}
+export interface UploadFinishResult {
+  'checksum_sha256' : [] | [Uint8Array | number[]],
+  'storage_location' : string,
+  'blob_id' : string,
+  'storage_backend' : StorageBackend,
+  'size' : bigint,
+  'memory_id' : string,
+  'remote_id' : [] | [string],
+  'expires_at' : [] | [bigint],
+  'uploaded_at' : bigint,
 }
 export interface VideoAssetMetadata {
   'duration' : [] | [bigint],
@@ -412,6 +430,8 @@ export interface _SERVICE {
     [],
     PersonalCanisterCreationResponse
   >,
+  'debug_blob_read_canary' : ActorMethod<[string, number], [] | [number]>,
+  'debug_blob_write_canary' : ActorMethod<[string, number, number], undefined>,
   'debug_finish_hex' : ActorMethod<[bigint, string, bigint], Result_6>,
   'debug_put_chunk_b64' : ActorMethod<[bigint, number, string], Result>,
   'debug_sha256' : ActorMethod<[Uint8Array | number[]], string>,
@@ -465,14 +485,14 @@ export interface _SERVICE {
       AssetMetadata,
       string,
     ],
-    Result_6
+    Result_11
   >,
   'memories_delete' : ActorMethod<[string], MemoryOperationResponse>,
   'memories_list' : ActorMethod<[string], MemoryListResponse>,
-  'memories_ping' : ActorMethod<[Array<string>], Result_11>,
-  'memories_read' : ActorMethod<[string], Result_12>,
+  'memories_ping' : ActorMethod<[Array<string>], Result_12>,
+  'memories_read' : ActorMethod<[string], Result_13>,
   'memories_read_asset' : ActorMethod<[string, number], Result_2>,
-  'memories_read_with_assets' : ActorMethod<[string], Result_12>,
+  'memories_read_with_assets' : ActorMethod<[string], Result_13>,
   'memories_update' : ActorMethod<
     [string, MemoryUpdateData],
     MemoryOperationResponse
@@ -480,6 +500,10 @@ export interface _SERVICE {
   'migrate_capsule' : ActorMethod<[], PersonalCanisterCreationResponse>,
   'register_with_nonce' : ActorMethod<[string], Result>,
   'remove_admin' : ActorMethod<[Principal], Result>,
+  'sessions_cleanup_expired' : ActorMethod<[], Result_11>,
+  'sessions_clear_all' : ActorMethod<[], Result_11>,
+  'sessions_list' : ActorMethod<[], Result_11>,
+  'sessions_stats' : ActorMethod<[], Result_11>,
   'set_migration_enabled' : ActorMethod<[boolean], Result>,
   'set_personal_canister_creation_enabled' : ActorMethod<[boolean], Result>,
   'update_gallery_storage_location' : ActorMethod<
@@ -494,7 +518,7 @@ export interface _SERVICE {
   >,
   'uploads_finish' : ActorMethod<
     [bigint, Uint8Array | number[], bigint],
-    Result_6
+    Result_15
   >,
   'uploads_put_chunk' : ActorMethod<
     [bigint, number, Uint8Array | number[]],

@@ -1,5 +1,29 @@
 'use client';
 
+/**
+ * Frontend ICP Upload Service - 2-Lane + 4-Asset System Integration
+ *
+ * This service implements the complete ICP upload functionality with:
+ * - Lane A: Original file upload to ICP canister
+ * - Lane B: Image processing + derivative uploads to ICP canister
+ * - Database integration: All 4 assets saved to Neon database
+ * - Internet Identity authentication
+ * - Chunked upload support for large files
+ *
+ * Reference Implementation:
+ * - Backend Test: tests/backend/shared-capsule/upload/ic-upload.mjs
+ *   This Node.js test file demonstrates the complete ICP upload flow:
+ *   1. Get/create capsule ID
+ *   2. Begin upload session with asset metadata
+ *   3. Stream chunks to ICP canister
+ *   4. Compute file hash for verification
+ *   5. Finish upload and get memory ID
+ *
+ * The backend test shows the core ICP upload API usage that this frontend
+ * service implements with additional features like image processing and
+ * database integration.
+ */
+
 // import { HttpAgent } from '@dfinity/agent';
 import type { AssetMetadata, _SERVICE } from '@/ic/declarations/backend/backend.did';
 import type { HostingPreferences } from '@/hooks/use-hosting-preferences';
@@ -7,9 +31,23 @@ import { UPLOAD_LIMITS_ICP } from '@/config/upload-limits';
 
 import { logger } from '@/lib/logger';
 
+// Generate idempotency key for uploads
+function generateIdempotencyKey(): string {
+  return crypto.randomUUID();
+}
+import { processImageDerivativesPure, type ProcessedBlobs } from './image-derivatives';
+import {
+  type UploadResult,
+  type UploadProgress,
+  type UploadServiceResult,
+  type StorageBackend,
+  type DatabaseBackend,
+} from './types';
+
 // Create ICP upload specific logger
 const icpLogger = logger.icpUpload('fe');
-// Types for ICP upload - compatible with existing UploadStorage
+
+// Legacy types for backward compatibility (deprecated)
 export interface UploadStorage {
   database: 'neon' | 'icp';
   blob_storage: 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs';
@@ -27,21 +65,8 @@ export interface UploadStorage {
   };
 }
 
-export interface UploadResult {
-  memoryId: string;
-  size: number;
-  checksum_sha256: string | null;
-  remote_id: string;
-}
-
-export interface UploadProgress {
-  fileIndex: number;
-  totalFiles: number;
-  currentFile: string;
-  bytesUploaded: number;
-  totalBytes: number;
-  percentage: number;
-}
+// Re-export unified types for backward compatibility
+export type { UploadResult, UploadProgress, UploadServiceResult };
 
 // Use the generated backend types and IDL factory
 type CanisterActor = _SERVICE;
@@ -86,12 +111,174 @@ async function getOrCreateCapsuleId(actor: CanisterActor): Promise<string> {
 }
 
 /**
- * Create Neon database records for ICP upload via the complete endpoint
- * This mirrors the same pattern used for S3 uploads
+ * Process image derivatives for ICP uploads (Lane B)
+ * Reuses existing storage-agnostic image processing infrastructure
+ */
+async function processImageDerivativesForICP(file: File): Promise<ProcessedBlobs> {
+  icpLogger.debug('🖼️ Starting Lane B image processing for ICP', {
+    fileName: file.name,
+    fileSize: file.size,
+    fileType: file.type,
+  });
+
+  try {
+    // Reuse existing storage-agnostic image processing
+    const processedBlobs = await processImageDerivativesPure(file);
+
+    icpLogger.info('✅ Lane B image processing completed for ICP', {
+      fileName: file.name,
+      hasDisplay: !!processedBlobs.display,
+      hasThumb: !!processedBlobs.thumb,
+      hasPlaceholder: !!processedBlobs.placeholder,
+    });
+
+    return processedBlobs;
+  } catch (error) {
+    icpLogger.error('❌ Lane B image processing failed for ICP', {
+      fileName: file.name,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    throw error;
+  }
+}
+
+/**
+ * Upload processed derivatives to ICP canister (Lane B)
+ * Uses chunked upload system for each derivative
+ */
+async function uploadProcessedAssetsToICP(
+  processedBlobs: ProcessedBlobs,
+  originalFileName: string,
+  actor: CanisterActor,
+  capsuleId: string
+): Promise<{
+  display?: { blobId: string; memoryId: string };
+  thumb?: { blobId: string; memoryId: string };
+  placeholder?: { blobId: string; memoryId: string };
+}> {
+  icpLogger.debug('📤 Starting Lane B derivative upload to ICP', {
+    originalFileName,
+    hasDisplay: !!processedBlobs.display,
+    hasThumb: !!processedBlobs.thumb,
+    hasPlaceholder: !!processedBlobs.placeholder,
+  });
+
+  const results: {
+    display?: { blobId: string; memoryId: string };
+    thumb?: { blobId: string; memoryId: string };
+    placeholder?: { blobId: string; memoryId: string };
+  } = {};
+
+  try {
+    // Upload display derivative
+    if (processedBlobs.display) {
+      icpLogger.debug('📤 Uploading display derivative to ICP', {
+        width: processedBlobs.display.width,
+        height: processedBlobs.display.height,
+        bytes: processedBlobs.display.bytes,
+      });
+
+      const displayFile = new File([processedBlobs.display.blob], `${originalFileName}_display`, {
+        type: processedBlobs.display.mimeType,
+      });
+      const displayResult = await uploadChunkedToICP(displayFile, actor, capsuleId, generateIdempotencyKey(), {
+        inline_max: UPLOAD_LIMITS_ICP.INLINE_MAX_BYTES,
+        chunk_size: UPLOAD_LIMITS_ICP.CHUNK_SIZE_BYTES,
+        max_chunks: UPLOAD_LIMITS_ICP.MAX_CHUNKS,
+      });
+      results.display = {
+        blobId: displayResult.blobId,
+        memoryId: displayResult.memoryId,
+      };
+
+      icpLogger.info('✅ Display derivative uploaded to ICP', {
+        blobId: displayResult.blobId,
+        memoryId: displayResult.memoryId,
+      });
+    }
+
+    // Upload thumb derivative
+    if (processedBlobs.thumb) {
+      icpLogger.debug('📤 Uploading thumb derivative to ICP', {
+        width: processedBlobs.thumb.width,
+        height: processedBlobs.thumb.height,
+        bytes: processedBlobs.thumb.bytes,
+      });
+
+      const thumbFile = new File([processedBlobs.thumb.blob], `${originalFileName}_thumb`, {
+        type: processedBlobs.thumb.mimeType,
+      });
+      const thumbResult = await uploadChunkedToICP(thumbFile, actor, capsuleId, generateIdempotencyKey(), {
+        inline_max: UPLOAD_LIMITS_ICP.INLINE_MAX_BYTES,
+        chunk_size: UPLOAD_LIMITS_ICP.CHUNK_SIZE_BYTES,
+        max_chunks: UPLOAD_LIMITS_ICP.MAX_CHUNKS,
+      });
+      results.thumb = {
+        blobId: thumbResult.blobId,
+        memoryId: thumbResult.memoryId,
+      };
+
+      icpLogger.info('✅ Thumb derivative uploaded to ICP', {
+        blobId: thumbResult.blobId,
+        memoryId: thumbResult.memoryId,
+      });
+    }
+
+    // Upload placeholder derivative
+    if (processedBlobs.placeholder) {
+      icpLogger.debug('📤 Uploading placeholder derivative to ICP', {
+        width: processedBlobs.placeholder.width,
+        height: processedBlobs.placeholder.height,
+      });
+
+      // Convert data URL to blob for upload
+      const placeholderBlob = await fetch(processedBlobs.placeholder.dataUrl).then(r => r.blob());
+      const placeholderFile = new File([placeholderBlob], `${originalFileName}_placeholder`, {
+        type: 'image/jpeg',
+      });
+      const placeholderResult = await uploadChunkedToICP(placeholderFile, actor, capsuleId, generateIdempotencyKey(), {
+        inline_max: UPLOAD_LIMITS_ICP.INLINE_MAX_BYTES,
+        chunk_size: UPLOAD_LIMITS_ICP.CHUNK_SIZE_BYTES,
+        max_chunks: UPLOAD_LIMITS_ICP.MAX_CHUNKS,
+      });
+      results.placeholder = {
+        blobId: placeholderResult.blobId,
+        memoryId: placeholderResult.memoryId,
+      };
+
+      icpLogger.info('✅ Placeholder derivative uploaded to ICP', {
+        blobId: placeholderResult.blobId,
+        memoryId: placeholderResult.memoryId,
+      });
+    }
+
+    icpLogger.info('✅ Lane B derivative upload completed for ICP', {
+      originalFileName,
+      results,
+    });
+
+    return results;
+  } catch (error) {
+    icpLogger.error('❌ Lane B derivative upload failed for ICP', {
+      originalFileName,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    throw error;
+  }
+}
+
+/**
+ * Create Neon database records for ICP upload with all 4 assets
+ * This mirrors the same pattern used for S3 uploads but handles derivatives
  */
 async function createNeonDatabaseRecord(
   file: File,
-  icpMemoryId: string
+  icpMemoryId: string,
+  derivativesResult?: {
+    display?: { blobId: string; memoryId: string };
+    thumb?: { blobId: string; memoryId: string };
+    placeholder?: { blobId: string; memoryId: string };
+  }
 ): Promise<{ memoryId: string; assetId: string }> {
   icpLogger.debug('🗄️ Starting Neon database record creation', {
     icpMemoryId,
@@ -101,23 +288,72 @@ async function createNeonDatabaseRecord(
   });
 
   try {
+    // Build assets array with all 4 assets
+    const assets = [
+      {
+        assetType: 'original',
+        variant: 'default',
+        url: `icp://memory/${icpMemoryId}`, // ICP-specific URL format
+        assetLocation: 'icp',
+        storageKey: icpMemoryId, // Use ICP memory ID as storage key
+        bytes: file.size,
+        width: null,
+        height: null,
+        mimeType: file.type,
+        processingStatus: 'completed', // ICP uploads are immediately available
+      },
+    ];
+
+    // Add derivatives if they exist
+    if (derivativesResult?.display) {
+      assets.push({
+        assetType: 'display',
+        variant: 'default',
+        url: `icp://memory/${derivativesResult.display.memoryId}`,
+        assetLocation: 'icp',
+        storageKey: derivativesResult.display.memoryId,
+        bytes: 0, // Will be updated by backend
+        width: null,
+        height: null,
+        mimeType: 'image/jpeg',
+        processingStatus: 'completed',
+      });
+    }
+
+    if (derivativesResult?.thumb) {
+      assets.push({
+        assetType: 'thumb',
+        variant: 'default',
+        url: `icp://memory/${derivativesResult.thumb.memoryId}`,
+        assetLocation: 'icp',
+        storageKey: derivativesResult.thumb.memoryId,
+        bytes: 0, // Will be updated by backend
+        width: null,
+        height: null,
+        mimeType: 'image/jpeg',
+        processingStatus: 'completed',
+      });
+    }
+
+    if (derivativesResult?.placeholder) {
+      assets.push({
+        assetType: 'placeholder',
+        variant: 'default',
+        url: `icp://memory/${derivativesResult.placeholder.memoryId}`,
+        assetLocation: 'icp',
+        storageKey: derivativesResult.placeholder.memoryId,
+        bytes: 0, // Will be updated by backend
+        width: null,
+        height: null,
+        mimeType: 'image/jpeg',
+        processingStatus: 'completed',
+      });
+    }
+
     const requestBody = {
       // Use the new parallel processing format (Format 3)
       memoryId: icpMemoryId,
-      assets: [
-        {
-          assetType: 'original',
-          variant: 'default',
-          url: `icp://memory/${icpMemoryId}`, // ICP-specific URL format
-          assetLocation: 'icp',
-          storageKey: icpMemoryId, // Use ICP memory ID as storage key
-          bytes: file.size,
-          width: null,
-          height: null,
-          mimeType: file.type,
-          processingStatus: 'completed', // ICP uploads are immediately available
-        },
-      ],
+      assets: assets,
     };
 
     icpLogger.debug('📤 Calling /api/upload/complete endpoint', { requestBody });
@@ -149,10 +385,12 @@ async function createNeonDatabaseRecord(
 
     const result = await response.json();
 
-    icpLogger.info('✅ Successfully created Neon database records', {
+    icpLogger.info('✅ Successfully created Neon database records with all 4 assets', {
       memoryId: result.data.memoryId,
       assetId: result.data.assets[0]?.id || 'unknown',
       icpMemoryId: icpMemoryId,
+      totalAssets: assets.length,
+      assetTypes: assets.map(a => a.assetType),
       timestamp: new Date().toISOString(),
     });
 
@@ -178,7 +416,9 @@ export async function uploadFileToICP(
   file: File,
   preferences: HostingPreferences,
   onProgress?: (progress: UploadProgress) => void
-): Promise<UploadResult> {
+): Promise<UploadServiceResult> {
+  const startTime = Date.now();
+
   icpLogger.info('🚀 Starting ICP file upload', {
     fileName: file.name,
     fileSize: file.size,
@@ -223,30 +463,90 @@ export async function uploadFileToICP(
     // Get or create capsule ID
     const capsuleId = await getOrCreateCapsuleId(actor);
 
-    let icpResult: UploadResult;
-    if (isInline) {
-      icpLogger.info('📤 Starting inline upload to ICP');
-      icpResult = await uploadInlineToICP(file, actor, capsuleId, idem, onProgress);
+    // 🚀 PHASE 2: Implement 2-Lane + 4-Asset System
+    icpLogger.info('🚀 Starting 2-lane + 4-asset upload system', {
+      fileName: file.name,
+      fileSize: file.size,
+      isImage: file.type.startsWith('image/'),
+    });
+
+    // Lane A: Upload original file (existing logic)
+    const laneAPromise = isInline
+      ? uploadInlineToICP(file, actor, capsuleId, idem, onProgress)
+      : uploadChunkedToICP(file, actor, capsuleId, idem, limits, onProgress);
+
+    // Lane B: Process image derivatives (if image file)
+    let laneBPromise: Promise<ProcessedBlobs> | null = null;
+    if (file.type.startsWith('image/')) {
+      icpLogger.info('🖼️ Starting Lane B: Image processing', { fileName: file.name });
+      laneBPromise = processImageDerivativesForICP(file);
     } else {
-      icpLogger.info('📤 Starting chunked upload to ICP');
-      icpResult = await uploadChunkedToICP(file, actor, capsuleId, idem, limits, onProgress);
+      icpLogger.info('⏭️ Skipping Lane B: Not an image file', { fileName: file.name, fileType: file.type });
+    }
+
+    // Wait for both lanes to complete
+    icpLogger.info('⏳ Waiting for both lanes to complete...');
+    const [laneAResult, laneBResult] = await Promise.allSettled([laneAPromise, laneBPromise]);
+
+    // Handle Lane A result
+    if (laneAResult.status === 'rejected') {
+      icpLogger.error('❌ Lane A failed: Original file upload failed', {
+        error: laneAResult.reason,
+        fileName: file.name,
+      });
+      throw new Error(`Original file upload failed: ${laneAResult.reason}`);
+    }
+    const icpResult = laneAResult.value;
+
+    // Handle Lane B result and upload derivatives
+    let derivativesResult = null;
+    if (laneBResult && laneBResult.status === 'fulfilled' && laneBResult.value) {
+      icpLogger.info('✅ Lane B completed: Image processing successful', {
+        fileName: file.name,
+        hasDisplay: !!laneBResult.value.display,
+        hasThumb: !!laneBResult.value.thumb,
+        hasPlaceholder: !!laneBResult.value.placeholder,
+      });
+
+      // Upload derivatives to ICP
+      icpLogger.info('📤 Starting derivative uploads to ICP', { fileName: file.name });
+      derivativesResult = await uploadProcessedAssetsToICP(laneBResult.value, file.name, actor, capsuleId);
+
+      icpLogger.info('✅ Lane B completed: All derivatives uploaded to ICP', {
+        fileName: file.name,
+        derivativesResult,
+      });
+    } else if (laneBResult && laneBResult.status === 'rejected') {
+      icpLogger.warn('⚠️ Lane B failed: Image processing failed, continuing with original only', {
+        fileName: file.name,
+        error: laneBResult.reason,
+      });
+      // Continue with original file only - don't fail the entire upload
     }
 
     icpLogger.info('✅ ICP upload completed successfully', {
       memoryId: icpResult.memoryId,
       size: icpResult.size,
-      checksum: icpResult.checksum_sha256,
+      checksum: icpResult.checksumSha256,
     });
 
-    // Create Neon database record after successful ICP upload (only if user has neon/vercel in database preferences)
+    // Create Neon database record with all 4 assets (only if user has neon/vercel in database preferences)
     if (preferences.databaseHosting.includes('neon')) {
-      icpLogger.info('🗄️ User has neon in database preferences, creating Neon database record');
+      icpLogger.info('🗄️ User has neon in database preferences, creating Neon database record with all 4 assets', {
+        hasDerivatives: !!derivativesResult,
+        derivativesCount: derivativesResult ? Object.keys(derivativesResult).length : 0,
+      });
       try {
-        const { memoryId, assetId } = await createNeonDatabaseRecord(file, icpResult.memoryId);
-        icpLogger.info('✅ Successfully created Neon database record for ICP upload', {
+        const { memoryId, assetId } = await createNeonDatabaseRecord(
+          file,
+          icpResult.memoryId,
+          derivativesResult || undefined
+        );
+        icpLogger.info('✅ Successfully created Neon database record with all 4 assets', {
           memoryId,
           assetId,
           icpMemoryId: icpResult.memoryId,
+          derivativesCount: derivativesResult ? Object.keys(derivativesResult).length : 0,
           databaseHosting: preferences.databaseHosting,
         });
       } catch (error) {
@@ -268,11 +568,34 @@ export async function uploadFileToICP(
     icpLogger.info('🎉 ICP upload process completed', {
       fileName: file.name,
       icpMemoryId: icpResult.memoryId,
-      totalSize: icpResult.size,
+      totalSize: Number(icpResult.size),
       databaseRecordCreated: preferences.databaseHosting.includes('neon'),
     });
 
-    return icpResult;
+    // Convert to unified UploadServiceResult format
+    return {
+      data: { id: icpResult.memoryId },
+      results: [
+        {
+          memoryId: icpResult.memoryId,
+          blobId: icpResult.blobId,
+          remoteId: icpResult.remoteId,
+          size: icpResult.size,
+          checksumSha256: icpResult.checksumSha256,
+          storageBackend: 'icp' as StorageBackend,
+          storageLocation: `icp://memory/${icpResult.memoryId}`,
+          uploadedAt: BigInt(Date.now()),
+        },
+      ],
+      userId: '', // TODO: Get userId from session or context
+      totalFiles: 1,
+      totalSize: Number(icpResult.size),
+      processingTime: Date.now() - startTime,
+      storageBackend: 'icp' as StorageBackend,
+      databaseBackend: preferences.databaseHosting.includes('neon')
+        ? ('neon' as DatabaseBackend)
+        : ('icp' as DatabaseBackend),
+    };
   }
 
   if (preferences.blobHosting.includes('s3')) {
@@ -313,8 +636,8 @@ export async function uploadFolderToICP(
   files: File[],
   preferences: HostingPreferences,
   onProgress?: (progress: UploadProgress) => void
-): Promise<UploadResult[]> {
-  const results: UploadResult[] = [];
+): Promise<UploadServiceResult[]> {
+  const results: UploadServiceResult[] = [];
   const totalFiles = files.length;
 
   for (let i = 0; i < files.length; i++) {
@@ -325,9 +648,10 @@ export async function uploadFolderToICP(
       fileIndex: i,
       totalFiles,
       currentFile: file.name,
-      bytesUploaded: 0,
-      totalBytes: file.size,
+      bytesUploaded: BigInt(0),
+      totalBytes: BigInt(file.size),
       percentage: (i / totalFiles) * 100,
+      status: 'uploading' as const,
     });
 
     try {
@@ -341,6 +665,7 @@ export async function uploadFolderToICP(
           bytesUploaded: fileProgress.bytesUploaded,
           totalBytes: fileProgress.totalBytes,
           percentage: overallPercentage,
+          status: 'uploading' as const,
         });
       });
 
@@ -380,14 +705,16 @@ export async function uploadToICP(
 
   // Convert to expected format for processor compatibility
   return results.map(result => ({
-    data: { id: result.memoryId },
-    results: [
-      {
-        memoryId: result.memoryId,
-        size: result.size,
-        checksum_sha256: result.checksum_sha256,
-      },
-    ],
+    data: { id: result.data.id },
+    results: result.results.map(r => ({
+      memoryId: r.memoryId,
+      size: Number(r.size),
+      checksum_sha256: r.checksumSha256
+        ? Array.from(r.checksumSha256)
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('')
+        : null,
+    })),
     userId: userId,
   }));
 }
@@ -421,9 +748,10 @@ export async function uploadInlineToICP(
       fileIndex: 0,
       totalFiles: 1,
       currentFile: file.name,
-      bytesUploaded: file.size,
-      totalBytes: file.size,
+      bytesUploaded: BigInt(file.size),
+      totalBytes: BigInt(file.size),
       percentage: 100,
+      status: 'completed' as const,
     });
 
     // Create asset metadata for the file (simplified like the working script)
@@ -486,9 +814,13 @@ export async function uploadInlineToICP(
 
     return {
       memoryId: memoryId,
-      size: file.size,
-      checksum_sha256: null, // Inline uploads don't provide checksum
-      remote_id: memoryId,
+      blobId: memoryId, // For inline uploads, blobId is same as memoryId
+      remoteId: memoryId,
+      size: BigInt(file.size),
+      checksumSha256: undefined, // Inline uploads don't provide checksum
+      storageBackend: 'icp' as StorageBackend,
+      storageLocation: `icp://memory/${memoryId}`,
+      uploadedAt: BigInt(Date.now()),
     };
   } catch (error) {
     icpLogger.error('❌ Inline upload failed', {
@@ -585,7 +917,7 @@ export async function uploadChunkedToICP(
 
     // Upload chunks
     icpLogger.info('📦 Starting chunk upload process...');
-    let bytesUploaded = 0;
+    let bytesUploaded = BigInt(0);
     for (let i = 0; i < expectedChunks; i++) {
       const start = i * chunkSize;
       const end = Math.min(start + chunkSize, fileSize);
@@ -601,12 +933,12 @@ export async function uploadChunkedToICP(
 
       await actor.uploads_put_chunk(sessionId, i, chunkBytes);
 
-      bytesUploaded += chunk.byteLength;
+      bytesUploaded += BigInt(chunk.byteLength);
 
       icpLogger.debug(`✅ Chunk ${i + 1}/${expectedChunks} uploaded successfully`, {
         bytesUploaded,
         totalBytes: fileSize,
-        percentage: (bytesUploaded / fileSize) * 100,
+        percentage: (Number(bytesUploaded) / fileSize) * 100,
       });
 
       // Update progress
@@ -615,8 +947,9 @@ export async function uploadChunkedToICP(
         totalFiles: 1,
         currentFile: file.name,
         bytesUploaded,
-        totalBytes: fileSize,
-        percentage: (bytesUploaded / fileSize) * 100,
+        totalBytes: BigInt(fileSize),
+        percentage: (Number(bytesUploaded) / fileSize) * 100,
+        status: 'uploading' as const,
       });
     }
 
@@ -647,10 +980,14 @@ export async function uploadChunkedToICP(
       icpLogger.error('❌ Failed to finish upload', { error: finishResult.Err });
       throw new Error(`Failed to finish upload: ${JSON.stringify(finishResult.Err)}`);
     }
-    const memoryId = finishResult.Ok;
+
+    const uploadFinishResult = finishResult.Ok;
+    const memoryId = uploadFinishResult.memory_id;
+    const blobId = uploadFinishResult.blob_id;
 
     icpLogger.info('🎉 Chunked upload completed successfully', {
       memoryId,
+      blobId,
       fileName: file.name,
       fileSize: file.size,
       totalChunks: expectedChunks,
@@ -658,10 +995,14 @@ export async function uploadChunkedToICP(
     });
 
     return {
-      memoryId: memoryId,
-      size: file.size,
-      checksum_sha256: hashHex,
-      remote_id: memoryId,
+      memoryId,
+      blobId,
+      remoteId: memoryId,
+      size: BigInt(file.size),
+      checksumSha256: new Uint8Array(hashHex.match(/.{1,2}/g)!.map(h => parseInt(h, 16))),
+      storageBackend: 'icp' as StorageBackend,
+      storageLocation: `icp://memory/${memoryId}`,
+      uploadedAt: BigInt(Date.now()),
     };
   } catch (error) {
     icpLogger.error('❌ Chunked upload failed', {

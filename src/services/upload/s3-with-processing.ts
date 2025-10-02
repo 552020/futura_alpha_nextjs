@@ -14,8 +14,8 @@ import {
   uploadFileWithProgress,
   extractFolderName,
   // generateS3PublicUrl,
-  type UploadServiceResult,
 } from './shared-utils';
+import { type UploadServiceResult } from './types';
 
 /**
  * Upload original files to S3 using grants (Lane A)
@@ -69,11 +69,20 @@ async function uploadOriginalToS3(
       results: [
         {
           memoryId: commitData.data.id,
-          size: file.size,
-          checksum_sha256: null,
+          blobId: commitData.data.id,
+          size: BigInt(file.size),
+          checksumSha256: undefined,
+          storageBackend: 's3' as const,
+          storageLocation: '', // Will be filled by finalizeAllAssets
+          uploadedAt: BigInt(Date.now()),
         },
       ],
       userId: commitData.data.ownerId || '',
+      totalFiles: 1,
+      totalSize: file.size,
+      processingTime: 0,
+      storageBackend: 's3' as const,
+      databaseBackend: 'neon' as const,
     };
   });
 
@@ -108,7 +117,8 @@ export async function uploadToS3WithProcessing(
     const laneBResult = laneBPromise ? await Promise.allSettled([laneBPromise]).then(results => results[0]) : null;
 
     // 4. Single finalize with all assets and precise statuses
-    await finalizeAllAssets(laneAResult, laneBResult);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await finalizeAllAssets(laneAResult as any, laneBResult);
 
     // Return Lane A result (original upload)
     if (laneAResult.status === 'fulfilled') {
@@ -179,14 +189,26 @@ export async function uploadMultipleToS3WithProcessing(
           value: laneBResult.value[index] || {},
         };
 
-        await finalizeAllAssets(laneAResultForFile, laneBResultForFile, parentFolderId);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await finalizeAllAssets(laneAResultForFile as any, laneBResultForFile, parentFolderId);
       });
 
       await Promise.all(finalizePromises);
     }
 
     return {
-      results: laneAResult.status === 'fulfilled' ? laneAResult.value.map(result => result.results[0]) : [],
+      results:
+        laneAResult.status === 'fulfilled'
+          ? laneAResult.value.map(result => ({
+              memoryId: result.results[0].memoryId,
+              size: Number(result.results[0].size),
+              checksum_sha256: result.results[0].checksumSha256
+                ? Array.from(result.results[0].checksumSha256)
+                    .map(b => b.toString(16).padStart(2, '0'))
+                    .join('')
+                : null,
+            }))
+          : [],
       userId: laneAResult.status === 'fulfilled' ? laneAResult.value[0]?.userId || '' : '',
       successfulUploads: laneAResult.status === 'fulfilled' ? laneAResult.value.length : 0,
     };

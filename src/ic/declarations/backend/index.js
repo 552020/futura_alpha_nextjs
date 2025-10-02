@@ -11,6 +11,7 @@ export { idlFactory } from "./backend.did.js";
  */
 export const canisterId = process.env.NEXT_PUBLIC_CANISTER_ID_BACKEND;
 
+
 export const createActor = (canisterId, options = {}) => {
   const agent = options.agent || new HttpAgent({ ...options.agentOptions });
 

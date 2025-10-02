@@ -66,16 +66,8 @@ export async function uploadFileWithProgress(
   });
 }
 
-// Common return type for all upload functions (based on S3 format)
-export interface UploadServiceResult {
-  data: { id: string };
-  results: Array<{
-    memoryId: string;
-    size: number;
-    checksum_sha256: string | null;
-  }>;
-  userId: string;
-}
+// Re-export unified types for backward compatibility
+export type { UploadServiceResult } from './types';
 
 // 413 Solution: Check ICP authentication using functional approach
 export async function checkICPAuthentication(): Promise<void> {
@@ -158,37 +150,56 @@ export function handleUploadError(
 /**
  * Shared validation function for upload processors
  *
- * Validates file size, file count, and total size limits.
+ * Validates file size, file count, and total size limits based on the hosting platform.
  * Shows appropriate toast messages for validation failures.
  *
  * @param files - Array of files to validate
  * @param showToast - Toast function to show error messages
+ * @param uploadLimits - Upload limits object (S3 or ICP specific)
  * @returns true if validation passes, false if validation fails
  */
-import { UPLOAD_LIMITS_S3 } from '@/config/upload-limits';
+import {
+  UPLOAD_LIMITS_S3,
+  UPLOAD_LIMITS_ICP,
+  UPLOAD_LIMITS_VERCEL_BLOB,
+  UPLOAD_LIMITS_ARWEAVE,
+  UPLOAD_LIMITS_IPFS,
+} from '@/config/upload-limits';
 
 import { logger } from '@/lib/logger';
+
+// Type for upload limits that support file count and total size validation
+type UploadLimitsWithCountAndTotal = {
+  isFileCountValid: (count: number) => boolean;
+  isFileSizeValid: (size: number) => boolean;
+  isTotalSizeValid: (size: number) => boolean;
+  getFileCountErrorMessage: (count: number) => string;
+  getFileSizeErrorMessage: (size: number) => string;
+  getTotalSizeErrorMessage: (size: number) => string;
+};
+
 export function validateUploadFiles(
   files: File[],
-  showToast: (toast: { variant: 'destructive'; title: string; description: string }) => void
+  showToast: (toast: { variant: 'destructive'; title: string; description: string }) => void,
+  uploadLimits: UploadLimitsWithCountAndTotal = UPLOAD_LIMITS_S3
 ): boolean {
   // Validate file count limit
-  if (!UPLOAD_LIMITS_S3.isFileCountValid(files.length)) {
+  if (!uploadLimits.isFileCountValid(files.length)) {
     showToast({
       variant: 'destructive',
       title: 'Too many files',
-      description: UPLOAD_LIMITS_S3.getFileCountErrorMessage(files.length),
+      description: uploadLimits.getFileCountErrorMessage(files.length),
     });
     return false;
   }
 
   // Validate individual file sizes
   for (const file of files) {
-    if (!UPLOAD_LIMITS_S3.isFileSizeValid(file.size)) {
+    if (!uploadLimits.isFileSizeValid(file.size)) {
       showToast({
         variant: 'destructive',
         title: 'File too large',
-        description: UPLOAD_LIMITS_S3.getFileSizeErrorMessage(file.size),
+        description: uploadLimits.getFileSizeErrorMessage(file.size),
       });
       return false;
     }
@@ -196,14 +207,104 @@ export function validateUploadFiles(
 
   // Validate total size limit
   const totalSize = files.reduce((sum, file) => sum + file.size, 0);
-  if (!UPLOAD_LIMITS_S3.isTotalSizeValid(totalSize)) {
+  if (!uploadLimits.isTotalSizeValid(totalSize)) {
     showToast({
       variant: 'destructive',
       title: 'Upload too large',
-      description: UPLOAD_LIMITS_S3.getTotalSizeErrorMessage(totalSize),
+      description: uploadLimits.getTotalSizeErrorMessage(totalSize),
     });
     return false;
   }
 
   return true;
+}
+
+/**
+ * Validate upload files for S3 (default behavior)
+ */
+export function validateUploadFilesS3(
+  files: File[],
+  showToast: (toast: { variant: 'destructive'; title: string; description: string }) => void
+): boolean {
+  return validateUploadFiles(files, showToast, UPLOAD_LIMITS_S3);
+}
+
+/**
+ * Validate upload files for ICP (chunked upload with different limits)
+ */
+export function validateUploadFilesICP(
+  files: File[],
+  showToast: (toast: { variant: 'destructive'; title: string; description: string }) => void
+): boolean {
+  // ICP doesn't have file count or total size limits in the same way as S3
+  // It uses chunking, so we only validate individual file sizes
+  for (const file of files) {
+    if (!UPLOAD_LIMITS_ICP.isFileSizeValid(file.size)) {
+      showToast({
+        variant: 'destructive',
+        title: 'File too large',
+        description: UPLOAD_LIMITS_ICP.getFileSizeErrorMessage(file.size),
+      });
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Validate upload files for Vercel Blob
+ */
+export function validateUploadFilesVercelBlob(
+  files: File[],
+  showToast: (toast: { variant: 'destructive'; title: string; description: string }) => void
+): boolean {
+  return validateUploadFiles(files, showToast, UPLOAD_LIMITS_VERCEL_BLOB);
+}
+
+/**
+ * Validate upload files for Arweave
+ */
+export function validateUploadFilesArweave(
+  files: File[],
+  showToast: (toast: { variant: 'destructive'; title: string; description: string }) => void
+): boolean {
+  return validateUploadFiles(files, showToast, UPLOAD_LIMITS_ARWEAVE);
+}
+
+/**
+ * Validate upload files for IPFS
+ */
+export function validateUploadFilesIPFS(
+  files: File[],
+  showToast: (toast: { variant: 'destructive'; title: string; description: string }) => void
+): boolean {
+  return validateUploadFiles(files, showToast, UPLOAD_LIMITS_IPFS);
+}
+
+/**
+ * Get upload limits for a specific blob hosting service
+ */
+export function getUploadLimitsForBlobService(blobService: string) {
+  switch (blobService) {
+    case 's3':
+      return UPLOAD_LIMITS_S3;
+    case 'icp':
+      return UPLOAD_LIMITS_ICP;
+    case 'vercel-blob':
+      return UPLOAD_LIMITS_VERCEL_BLOB;
+    case 'arweave':
+      return UPLOAD_LIMITS_ARWEAVE;
+    case 'ipfs':
+      return UPLOAD_LIMITS_IPFS;
+    default:
+      return UPLOAD_LIMITS_S3; // Default to S3
+  }
+}
+
+/**
+ * @deprecated Use getUploadLimitsForBlobService instead
+ */
+export function getUploadLimitsForPlatform(platform: string) {
+  return getUploadLimitsForBlobService(platform);
 }

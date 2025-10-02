@@ -7,6 +7,7 @@ import { useSession } from 'next-auth/react';
 import { useHostingPreferences } from '@/hooks/use-hosting-preferences';
 import { processSingleFile } from '@/services/upload/single-file-processor';
 import { processMultipleFiles } from '@/services/upload/multiple-files-processor';
+import { checkICPAuthentication } from '@/services/upload/shared-utils';
 import type { UseFileUploadProps } from '@/types/upload';
 
 export function useFileUpload({ isOnboarding = false, mode = 'directory', onSuccess, onError }: UseFileUploadProps) {
@@ -51,6 +52,21 @@ export function useFileUpload({ isOnboarding = false, mode = 'directory', onSucc
 
     if (!fileList || fileList.length === 0) {
       return;
+    }
+
+    // Check ICP authentication if user has ICP in preferences
+    const userBlobHostingPreferences = preferences?.blobHosting || ['s3'];
+    if (userBlobHostingPreferences.includes('icp')) {
+      try {
+        await checkICPAuthentication();
+      } catch (_error) {
+        toast({
+          variant: 'destructive',
+          title: 'Authentication Required',
+          description: 'Please connect your Internet Identity to upload to ICP',
+        });
+        return;
+      }
     }
 
     // Convert FileList to static Array BEFORE clearing input

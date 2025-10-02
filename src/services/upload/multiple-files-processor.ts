@@ -13,7 +13,7 @@
 
 import type { HostingPreferences } from '@/hooks/use-hosting-preferences';
 import { getDefaultHostingPreferences } from '@/hooks/use-hosting-preferences';
-import { validateUploadFiles } from './shared-utils';
+import { validateUploadFiles, checkICPAuthentication } from './shared-utils';
 import { uploadMultipleToS3WithProcessing } from './s3-with-processing';
 import { logger } from '@/lib/logger';
 
@@ -48,14 +48,14 @@ export async function processMultipleFiles(options: ProcessMultipleFilesOptions)
     onProgress,
   } = options;
 
-  // Validate files using shared validation function
+  // Basic validation using general upload limits
   if (!validateUploadFiles(files, showToast)) {
     return;
   }
 
   try {
     // Route to appropriate upload service based on user preferences
-    const userBlobHostingPreference = preferences?.blobHosting[0] || 's3'; // Default to S3 (413 solution)
+    const userBlobHostingPreference = preferences?.blobHosting?.[0] || 's3';
 
     // Log upload routing decision
     logger.upload().info('📤 Multiple files upload routing decision', {
@@ -81,6 +81,19 @@ export async function processMultipleFiles(options: ProcessMultipleFilesOptions)
 
     // Upload routing based on storage preference
     if (userBlobHostingPreference === 'icp') {
+      // Double-check ICP authentication (safety net for multiple upload flows)
+      try {
+        await checkICPAuthentication();
+      } catch (_error) {
+        showToast({
+          variant: 'destructive',
+          title: 'Authentication Required',
+          description: 'Please connect your Internet Identity to upload to ICP',
+        });
+        return;
+      }
+
+      // ICP upload
       // NOTE: For ICP users, isOnboarding is ignored because ICP always requires Internet Identity auth
       // Even "onboarding" users must authenticate with II to interact with ICP canister
       const { uploadToICP } = await import('./icp-upload');
@@ -98,7 +111,7 @@ export async function processMultipleFiles(options: ProcessMultipleFilesOptions)
       data = {
         results: results.map(result => ({
           memoryId: result.data.id,
-          size: result.results[0]?.size,
+          size: result.results[0]?.size ? Number(result.results[0].size) : undefined,
           checksum_sha256: result.results[0]?.checksum_sha256,
         })),
         successfulUploads: results.length,
@@ -114,8 +127,12 @@ export async function processMultipleFiles(options: ProcessMultipleFilesOptions)
       data = {
         results: results.map(result => ({
           memoryId: result.data.id,
-          size: result.results[0]?.size,
-          checksum_sha256: result.results[0]?.checksum_sha256,
+          size: result.results[0]?.size ? Number(result.results[0].size) : undefined,
+          checksum_sha256: result.results[0]?.checksumSha256
+            ? Array.from(result.results[0].checksumSha256)
+                .map(b => b.toString(16).padStart(2, '0'))
+                .join('')
+            : undefined,
         })),
         successfulUploads: results.length,
       };
