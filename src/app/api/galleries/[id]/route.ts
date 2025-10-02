@@ -95,7 +95,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     });
 
     if (!allUserRecord) {
-      logger.error('No allUsers record found for user:', undefined, { userId: session.user.id });
+      logger.error('No allUsers record found for user', 'gallery:be', {
+        userId: session.user.id
+      });
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
@@ -197,7 +199,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         });
 
         if (memory) {
-          logger.info(`🔍 Found memory for item ${item.memoryId}:`, undefined, {
+          logger.info(`Found memory for item ${item.memoryId}`, 'gallery:be', {
             memoryId: memory.id,
             title: memory.title,
             type: memory.type,
@@ -214,7 +216,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           // Extract best asset URL (prefer thumb for gallery grid, then display, then original)
           const getBestAssetUrl = async (assets: GalleryAsset[] | undefined): Promise<string | undefined> => {
             if (!assets || assets.length === 0) {
-              logger.info(`❌ No assets found for memory ${item.memoryId}`);
+              logger.info(`No assets found for memory ${item.memoryId}`, 'gallery:be');
               return undefined;
             }
 
@@ -223,13 +225,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             for (const assetType of preferredOrder) {
               const asset = assets.find(a => a.assetType === assetType);
               if (asset) {
-                logger.info(`✅ Found ${assetType} asset for memory ${item.memoryId}`);
+                logger.info(`Found ${assetType} asset for memory ${item.memoryId}`, 'gallery:be');
                 return await generateBestAssetUrl(asset);
               }
             }
 
             // Fallback to first available asset
-            logger.info(`⚠️ No preferred asset found for memory ${item.memoryId}, using first asset`);
+            logger.info(`No preferred asset found for memory ${item.memoryId}, using first asset`, 'gallery:be');
             return await generateBestAssetUrl(assets[0]);
           };
           // Define asset type
@@ -262,7 +264,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             mimeType: getAssetMimeType(memory.assets),
           };
 
-          logger.info(`🔗 Generated URL for memory ${item.memoryId}:`, undefined, {
+          logger.info(`Generated URL for memory ${item.memoryId}`, 'gallery:be', {
             finalUrl: finalUrl,
             hasUrl: !!finalUrl,
             urlLength: finalUrl?.length || 0,
@@ -273,11 +275,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             memory: memoryWithUrl,
           });
         } else {
-          logger.warn(`Memory not found for item: ${item.memoryId} (type: ${item.memoryType})`);
+          logger.warn(`Memory not found for item: ${item.memoryId} (type: ${item.memoryType})`, 'gallery:be');
         }
       } catch (itemError) {
-        logger.error(`Error fetching memory for item ${item.memoryId}:`, undefined, {
-          data: itemError instanceof Error ? itemError : undefined,
+        logger.error(`Error fetching memory for item ${item.memoryId}`, 'gallery:be', {
+          error: itemError instanceof Error ? itemError : undefined,
         });
       }
     }
@@ -303,8 +305,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       gallery: galleryWithItems,
     });
   } catch (error) {
-    logger.error('Error fetching gallery:', undefined, { data: error instanceof Error ? error : undefined });
-    logger.error('Error details:', undefined, {
+    logger.error('Error fetching gallery', 'gallery:be', {
+      error: error instanceof Error ? error : undefined
+    });
+    logger.error('Error details', 'gallery:be', {
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
     });
@@ -327,7 +331,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     });
 
     if (!allUserRecord) {
-      logger.error('No allUsers record found for user:', undefined, { userId: session.user.id });
+      logger.error('No allUsers record found for user', 'gallery:be', {
+        userId: session.user.id
+      });
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
@@ -413,7 +419,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       items: itemsResult,
     });
   } catch (error) {
-    logger.error('Error updating gallery:', undefined, { data: error instanceof Error ? error : undefined });
+    logger.error('Error updating gallery', 'gallery:be', {
+      error: error instanceof Error ? error : undefined
+    });
     return NextResponse.json({ error: 'Failed to update gallery' }, { status: 500 });
   }
 }
@@ -433,7 +441,9 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     });
 
     if (!allUserRecord) {
-      logger.error('No allUsers record found for user:', undefined, { userId: session.user.id });
+      logger.error('No allUsers record found for user', 'gallery:be', {
+        userId: session.user.id
+      });
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
@@ -457,7 +467,9 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       message: 'Gallery deleted successfully',
     });
   } catch (error) {
-    logger.error('Error deleting gallery:', undefined, { data: error instanceof Error ? error : undefined });
+    logger.error('Error deleting gallery', 'gallery:be', {
+      error: error instanceof Error ? error : undefined
+    });
     return NextResponse.json({ error: 'Failed to delete gallery' }, { status: 500 });
   }
 }

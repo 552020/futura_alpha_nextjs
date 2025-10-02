@@ -31,7 +31,7 @@ export async function getAllUserId(request: NextRequest): Promise<{ allUserId: s
     const [permanentUser] = await db.select().from(users).where(eq(users.id, session.user.id));
 
     if (!permanentUser) {
-      logger.error('❌ Permanent user not found');
+      logger.error('Permanent user not found', 'auth:be');
       return { allUserId: '', error: NextResponse.json({ error: 'User not found' }, { status: 404 }) };
     }
 
@@ -39,7 +39,7 @@ export async function getAllUserId(request: NextRequest): Promise<{ allUserId: s
     const [allUserRecord] = await db.select().from(allUsers).where(eq(allUsers.userId, permanentUser.id));
 
     if (!allUserRecord) {
-      logger.error('❌ No all_users record found for permanent user');
+      logger.error('No all_users record found for permanent user', 'auth:be');
       return { allUserId: '', error: NextResponse.json({ error: 'User record not found' }, { status: 404 }) };
     }
 
@@ -51,24 +51,27 @@ export async function getAllUserId(request: NextRequest): Promise<{ allUserId: s
       const providedAllUserId = formData.get('userId') as string;
 
       if (providedAllUserId) {
-        logger.info('👤 Using provided allUserId for temporary user...');
+        logger.info('Using provided allUserId for temporary user', 'auth:be');
         // For temporary users, directly check the allUsers table
         const [tempUser] = await db.select().from(allUsers).where(eq(allUsers.id, providedAllUserId));
-        logger.info('Found temporary user:', undefined, { allUserId: tempUser?.id, type: tempUser?.type });
+        logger.info('Found temporary user', 'auth:be', {
+          allUserId: tempUser?.id,
+          type: tempUser?.type
+        });
 
         if (!tempUser || tempUser.type !== 'temporary') {
-          logger.error('❌ Valid temporary user not found');
+          logger.error('Valid temporary user not found', 'auth:be');
           return { allUserId: '', error: NextResponse.json({ error: 'Invalid temporary user' }, { status: 404 }) };
         }
 
         return { allUserId: tempUser.id };
       } else {
-        logger.error('❌ No valid user identification provided');
+        logger.error('No valid user identification provided', 'auth:be');
         return { allUserId: '', error: NextResponse.json({ error: 'User identification required' }, { status: 401 }) };
       }
     } catch {
       // If form parsing fails, it might be a JSON request - return auth error
-      logger.error('❌ No valid user identification provided');
+      logger.error('No valid user identification provided', 'auth:be');
       return { allUserId: '', error: NextResponse.json({ error: 'User identification required' }, { status: 401 }) };
     }
   }
@@ -85,22 +88,26 @@ export async function getUserIdForUpload(params: {
 
   try {
     const session = await auth();
-    logger.info('🔍 Auth session data:', undefined, { session: JSON.stringify(session, null, 2) });
+    logger.info('Auth session data', 'auth:be', {
+      hasUser: !!session?.user,
+      userId: session?.user?.id,
+      userEmail: session?.user?.email
+    });
 
     if (session?.user?.id) {
-      logger.info('👤 Looking up authenticated user in users table...');
+      logger.info('Looking up authenticated user in users table', 'auth:be');
       // First get the user from users table
       const [permanentUser] = await db.select().from(users).where(eq(users.id, session.user.id));
-      logger.info('Found permanent user:', undefined, { userId: permanentUser?.id });
+      logger.info('Found permanent user', 'auth:be', { userId: permanentUser?.id });
 
       if (!permanentUser) {
-        logger.error('❌ Permanent user not found in database');
-        logger.error('Session user ID:', undefined, { data: session.user.id });
-        logger.error('User email:', undefined, { data: session.user.email });
+        logger.error('Permanent user not found in database', 'auth:be');
+        logger.error('Session user ID', 'auth:be', { userId: session.user.id });
+        logger.error('User email', 'auth:be', { email: session.user.email });
 
         // Try to create the user if they don't exist
         try {
-          logger.info('Attempting to create user from session data...');
+          logger.info('Attempting to create user from session data', 'auth:be');
           const [newUser] = await db
             .insert(users)
             .values({
@@ -112,7 +119,9 @@ export async function getUserIdForUpload(params: {
             .returning();
 
           if (newUser) {
-            logger.info('✅ Successfully created user from session:', undefined, { userId: newUser.id });
+            logger.info('Successfully created user from session', 'auth:be', {
+              userId: newUser.id
+            });
             // Create corresponding all_users entry
             const [allUserRecord] = await db
               .insert(allUsers)
@@ -128,7 +137,7 @@ export async function getUserIdForUpload(params: {
             }
           }
         } catch (createError) {
-          logger.error('Failed to create user:', undefined, { data: createError });
+          logger.error('Failed to create user', 'auth:be', { error: createError });
         }
 
         return {
@@ -146,10 +155,10 @@ export async function getUserIdForUpload(params: {
 
       // Then get their allUserId
       const [allUserRecord] = await db.select().from(allUsers).where(eq(allUsers.userId, permanentUser.id));
-      logger.info('Found all_users record:', undefined, { allUserId: allUserRecord?.id });
+      logger.info('Found all_users record', 'auth:be', { allUserId: allUserRecord?.id });
 
       if (!allUserRecord) {
-        logger.error('❌ No all_users record found for permanent user');
+        logger.error('No all_users record found for permanent user', 'auth:be');
         return {
           allUserId: '', error: NextResponse.json({ error: 'User record not found' }, { status: 404 }),
         };
@@ -157,13 +166,16 @@ export async function getUserIdForUpload(params: {
 
       return { allUserId: allUserRecord.id, error: null };
     } else if (providedUserId) {
-      logger.info('👤 Using provided allUserId for temporary user...');
+      logger.info('Using provided allUserId for temporary user', 'auth:be');
       // For temporary users, directly check the allUsers table
       const [tempUser] = await db.select().from(allUsers).where(eq(allUsers.id, providedUserId));
-      logger.info('Found temporary user:', undefined, { allUserId: tempUser?.id, type: tempUser?.type });
+      logger.info('Found temporary user', 'auth:be', {
+        allUserId: tempUser?.id,
+        type: tempUser?.type
+      });
 
       if (!tempUser || tempUser.type !== 'temporary') {
-        logger.error('❌ Valid temporary user not found');
+        logger.error('Valid temporary user not found', 'auth:be');
         return {
           allUserId: '', error: NextResponse.json({ error: 'Invalid temporary user' }, { status: 404 }),
         };
@@ -171,15 +183,13 @@ export async function getUserIdForUpload(params: {
 
       return { allUserId: tempUser.id, error: null };
     } else {
-      logger.error('❌ No valid user identification provided');
+      logger.error('No valid user identification provided', 'auth:be');
       return {
         allUserId: '', error: NextResponse.json({ error: 'User identification required' }, { status: 401 }),
       };
     }
   } catch (error) {
-    logger.error('❌ Error getting user ID for upload:', undefined, {
-      data: error instanceof Error ? error : undefined,
-    });
+    logger.error('Error getting user ID for upload', 'auth:be', { error });
     return {
       allUserId: '',
       error: NextResponse.json(
@@ -203,7 +213,7 @@ export async function createTemporaryUserWithErrorHandling(
     // logger.info("✅ Temporary user created:", undefined, { userId: allUser.id });
     return { allUser, error: null };
   } catch (userError) {
-    logger.error('❌ User creation error:', undefined, { data: userError });
+    logger.error('User creation error', 'auth:be', { error: userError });
     return {
       allUser: { id: '' },
       error: userError instanceof Error ? userError.message : String(userError),
