@@ -18,23 +18,23 @@ const ENABLE_LOGGING = true;
 // Core service flags
 const ENABLE_UI_LOGGING = true; // UI components and interactions
 const ENABLE_BACKEND_LOGGING = true; // Backend API and processing
-const ENABLE_UPLOAD_LOGGING = false; // Upload routing and processing
-const ENABLE_DATABASE_LOGGING = false; // Database operations
-const ENABLE_AUTH_LOGGING = false; // Authentication flows
-const ENABLE_ASSET_LOGGING = false; // Asset processing and thumbnails
-const ENABLE_S3_LOGGING = false; // S3 presigned URLs and storage
+const ENABLE_UPLOAD_LOGGING = true; // Upload routing and processing
+const ENABLE_DATABASE_LOGGING = true; // Database operations
+const ENABLE_AUTH_LOGGING = true; // Authentication flows
+const ENABLE_ASSET_LOGGING = true; // Asset processing and thumbnails
+const ENABLE_S3_LOGGING = true; // S3 presigned URLs and storage
 
 // Feature flags (cross-cutting concerns)
 const ENABLE_HOSTING_PREFERENCES = true; // Hosting preference changes and routing
-const ENABLE_DASHBOARD_LOGGING = false; // Dashboard state and API calls
-const ENABLE_MEMORY_PROCESSING_LOGGING = false; // Memory processing and folder grouping
-const ENABLE_RENDERING_LOGGING = false; // Component rendering logs
+const ENABLE_DASHBOARD_LOGGING = true; // Dashboard state and API calls
+const ENABLE_MEMORY_PROCESSING_LOGGING = true; // Memory processing and folder grouping
+const ENABLE_RENDERING_LOGGING = true; // Component rendering logs
 
 // Additional granular flags for specific log categories
-const ENABLE_API_RESPONSE_LOGGING = false; // API response status and data logs
-const ENABLE_FOLDER_GROUPING_LOGGING = false; // Folder grouping and memory processing logs
-const ENABLE_MEMORY_GRID_LOGGING = false; // MemoryGrid component rendering logs
-const ENABLE_USE_EFFECT_LOGGING = false; // useEffect hook logs
+const ENABLE_API_RESPONSE_LOGGING = true; // API response status and data logs
+const ENABLE_FOLDER_GROUPING_LOGGING = true; // Folder grouping and memory processing logs
+const ENABLE_MEMORY_GRID_LOGGING = true; // MemoryGrid component rendering logs
+const ENABLE_USE_EFFECT_LOGGING = true; // useEffect hook logs
 // ===================================
 
 export enum LogLevel {
@@ -57,20 +57,20 @@ class ServiceLogger {
     private parentLogger: SimpleLogger
   ) {}
 
-  debug(message: string, ...args: unknown[]): void {
-    this.parentLogger.debug(message, `${this.service}:${this.context}`, ...args);
+  debug(message: string, data?: unknown, ...args: unknown[]): void {
+    this.parentLogger.debug(message, `${this.service}:${this.context}`, data, ...args);
   }
 
-  info(message: string, ...args: unknown[]): void {
-    this.parentLogger.info(message, `${this.service}:${this.context}`, ...args);
+  info(message: string, data?: unknown, ...args: unknown[]): void {
+    this.parentLogger.info(message, `${this.service}:${this.context}`, data, ...args);
   }
 
-  warn(message: string, ...args: unknown[]): void {
-    this.parentLogger.warn(message, `${this.service}:${this.context}`, ...args);
+  warn(message: string, data?: unknown, ...args: unknown[]): void {
+    this.parentLogger.warn(message, `${this.service}:${this.context}`, data, ...args);
   }
 
-  error(message: string, ...args: unknown[]): void {
-    this.parentLogger.error(message, `${this.service}:${this.context}`, ...args);
+  error(message: string, data?: unknown, ...args: unknown[]): void {
+    this.parentLogger.error(message, `${this.service}:${this.context}`, data, ...args);
   }
 }
 
@@ -115,7 +115,7 @@ class SimpleLogger {
     if (!ENABLE_LOGGING) return false;
     if (level < this.level) return false;
 
-    if (service) {
+    if (service && typeof service === 'string') {
       // Handle service:context format (e.g., "upload:be", "database:fe")
       if (service.includes(':')) {
         const [serviceName, context] = service.split(':');
@@ -185,64 +185,82 @@ class SimpleLogger {
     return `[${timestamp}] ${level} [${serviceTag}]`;
   }
 
-  debug(message: string, service?: string, ...args: unknown[]): void {
+  debug(message: string, service?: string, data?: unknown, ...args: unknown[]): void {
     if (this.shouldLog(LogLevel.DEBUG, service)) {
-      console.debug(this.formatPrefix('DEBUG', service), message, ...args);
+      const prefix = this.formatPrefix('DEBUG', service);
+      if (data !== undefined) {
+        console.debug(prefix, message, data, ...args);
+      } else {
+        console.debug(prefix, message, ...args);
+      }
     }
   }
 
-  info(message: string, ...args: unknown[]): void {
-    // TODO: Performance optimization - implement lazy evaluation for context objects
-    // Currently context objects are created even when logging is disabled
-    // Consider: info(message: string, contextFactory?: () => unknown) for better performance
-    if (this.shouldLog(LogLevel.INFO)) {
-      console.info(this.formatPrefix('INFO'), message, ...args);
+  info(message: string, service?: string, data?: unknown, ...args: unknown[]): void {
+    if (this.shouldLog(LogLevel.INFO, service)) {
+      const prefix = this.formatPrefix('INFO', service);
+      if (data !== undefined) {
+        console.info(prefix, message, data, ...args);
+      } else {
+        console.info(prefix, message, ...args);
+      }
     }
   }
 
-  warn(message: string, ...args: unknown[]): void {
-    if (this.shouldLog(LogLevel.WARN)) {
-      console.warn(this.formatPrefix('WARN'), message, ...args);
+  warn(message: string, service?: string, data?: unknown, ...args: unknown[]): void {
+    if (this.shouldLog(LogLevel.WARN, service)) {
+      const prefix = this.formatPrefix('WARN', service);
+      if (data !== undefined) {
+        console.warn(prefix, message, data, ...args);
+      } else {
+        console.warn(prefix, message, ...args);
+      }
     }
   }
 
-  error(message: string, ...args: unknown[]): void {
-    if (this.shouldLog(LogLevel.ERROR)) {
-      console.error(this.formatPrefix('ERROR'), message, ...args);
+  error(message: string, service?: string, data?: unknown, ...args: unknown[]): void {
+    if (this.shouldLog(LogLevel.ERROR, service)) {
+      const prefix = this.formatPrefix('ERROR', service);
+      if (data !== undefined) {
+        console.error(prefix, message, data, ...args);
+      } else {
+        console.error(prefix, message, ...args);
+      }
     }
   }
 
   // Convenience methods for common logging patterns
-  memoryCreated(memoryId: string, title: string, type: string): void {
-    this.info(`Memory created: ${title} (${type})`, { memoryId, title, type });
+  memoryCreated(memoryId: string, title: string, type: string, service: string = 'app'): void {
+    this.info(`Memory created: ${title} (${type})`, service, { memoryId, title, type });
   }
 
-  memoryUpdated(memoryId: string, changes: Record<string, unknown>): void {
-    this.info(`Memory updated: ${memoryId}`, { memoryId, changes });
+  memoryUpdated(memoryId: string, changes: Record<string, unknown>, service: string = 'app'): void {
+    this.info(`Memory updated: ${memoryId}`, service, { memoryId, changes });
   }
 
-  memoryDeleted(memoryId: string): void {
-    this.info(`Memory deleted: ${memoryId}`, { memoryId });
+  memoryDeleted(memoryId: string, service: string = 'app'): void {
+    this.info(`Memory deleted: ${memoryId}`, service, { memoryId });
   }
 
-  uploadStarted(fileName: string, size: number): void {
-    this.info(`Upload started: ${fileName} (${size} bytes)`, { fileName, size });
+  fileUploaded(fileName: string, size: number, service: string = 'app'): void {
+    this.info(`File uploaded: ${fileName} (${size} bytes)`, service, { fileName, size });
   }
 
-  uploadCompleted(fileName: string, url: string): void {
-    this.info(`Upload completed: ${fileName}`, { fileName, url });
+  fileProcessed(fileName: string, url: string, service: string = 'app'): void {
+    this.info(`File processed: ${fileName}`, service, { fileName, url });
   }
 
-  uploadFailed(fileName: string, error: Error): void {
-    this.error(`Upload failed: ${fileName}`, error);
+  // Specialized logging methods
+  apiRequest(method: string, url: string, status: number, duration: number, service: string = 'api'): void {
+    this.info(`API ${method} ${url} - ${status} (${duration}ms)`, service, { method, url, status, duration });
   }
 
-  authSuccess(userId: string, method: string): void {
-    this.info(`Authentication successful: ${userId} via ${method}`, { userId, method });
+  authEvent(userId: string, action: string, method: string, service: string = 'auth'): void {
+    this.info(`Auth ${action} for user ${userId} (${method})`, service, { userId, method });
   }
 
-  authFailed(userId: string, method: string, error: Error): void {
-    this.error(`Authentication failed: ${userId} via ${method}`, error);
+  authFailed(userId: string, method: string, error: Error, service?: string): void {
+    this.error(`Authentication failed: ${userId} via ${method}`, service, error);
   }
 
   // Service-specific method chaining
