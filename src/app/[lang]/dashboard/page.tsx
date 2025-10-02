@@ -18,7 +18,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { MemoryGrid } from '@/components/memory/memory-grid';
 import { Loader2 } from 'lucide-react';
-import { useInView } from 'react-intersection-observer';
 import { useAuthGuard } from '@/utils/authentication';
 import { Memory } from '@/types/memory';
 import { useRouter } from 'next/navigation';

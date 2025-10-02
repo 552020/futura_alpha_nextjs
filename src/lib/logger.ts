@@ -57,20 +57,42 @@ class ServiceLogger {
     private parentLogger: SimpleLogger
   ) {}
 
+  private getServiceContext(): string {
+    return `${this.service}:${this.context}`;
+  }
+
   debug(message: string, data?: unknown, ...args: unknown[]): void {
-    this.parentLogger.debug(message, data, ...args);
+    if (data !== undefined) {
+      this.parentLogger.debug(message, this.getServiceContext(), data, ...args);
+    } else {
+      this.parentLogger.debug(message, this.getServiceContext());
+    }
   }
 
   info(message: string, data?: unknown, ...args: unknown[]): void {
-    this.parentLogger.info(message, data, ...args);
+    if (data !== undefined) {
+      this.parentLogger.info(message, this.getServiceContext(), data, ...args);
+    } else {
+      this.parentLogger.info(message, this.getServiceContext());
+    }
   }
 
   warn(message: string, data?: unknown, ...args: unknown[]): void {
-    this.parentLogger.warn(message, data, ...args);
+    if (data !== undefined) {
+      this.parentLogger.warn(message, this.getServiceContext(), data, ...args);
+    } else {
+      this.parentLogger.warn(message, this.getServiceContext());
+    }
   }
 
-  error(message: string, data?: unknown, ...args: unknown[]): void {
-    this.parentLogger.error(message, data, ...args);
+  error(message: string, errorOrData?: unknown, ...args: unknown[]): void {
+    if (errorOrData instanceof Error) {
+      this.parentLogger.error(message, this.getServiceContext(), errorOrData, ...args);
+    } else if (errorOrData !== undefined) {
+      this.parentLogger.error(message, this.getServiceContext(), errorOrData, ...args);
+    } else {
+      this.parentLogger.error(message, this.getServiceContext());
+    }
   }
 }
 
