@@ -49,7 +49,7 @@ export async function finalizeAllAssets(
   const memoryId = laneAResult.status === 'fulfilled' ? laneAResult.value.data.id : null;
 
   if (!memoryId) {
-    logger.error('❌ Cannot finalize: Lane A failed', undefined, { data: 'no memoryId available' });
+    logger.error('Cannot finalize: Lane A failed - no memoryId available', 'upload:be');
     return;
   }
 
@@ -71,7 +71,7 @@ export async function finalizeAllAssets(
     if (placeholder) assets.push(placeholder);
   } else {
     // Lane B failed or was skipped - mark derivatives as failed/pending
-    logger.warn('⚠️ Lane B failed or was skipped, marking derivatives as failed');
+    logger.warn('Lane B failed or skipped, marking derivatives as failed', 'upload:be');
     assets.push(
       { assetType: 'display', processingStatus: 'failed' },
       { assetType: 'thumb', processingStatus: 'failed' },
@@ -80,7 +80,7 @@ export async function finalizeAllAssets(
   }
 
   // Single finalize call
-  logger.info('Finalizing assets for memory', { memoryId, parentFolderId });
+  logger.upload().info('Finalizing assets for memory', { memoryId, parentFolderId });
   await finalizeAssets({ memoryId, assets, parentFolderId });
 }
 
@@ -92,10 +92,10 @@ async function finalizeAssets(request: FinalizeRequest): Promise<void> {
   const memoryId = request.memoryId;
   const assetStatuses = request.assets.map(a => `${a.assetType}=${a.processingStatus}`).join(', ');
   
-  logger.info('Finalizing assets', { 
-    assetCount, 
-    memoryId, 
-    assetStatuses 
+  logger.upload().info('Finalizing assets', {
+    assetCount,
+    memoryId,
+    assetStatuses
   });
 
   const response = await fetch('/api/upload/complete', {
@@ -111,5 +111,5 @@ async function finalizeAssets(request: FinalizeRequest): Promise<void> {
     throw new Error(error.error || 'Failed to finalize assets');
   }
 
-  logger.info(`✅ Assets finalized for memory: ${request.memoryId}`);
+  logger.upload().info(`Assets finalized for memory: ${request.memoryId}`);
 }
