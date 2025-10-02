@@ -45,14 +45,14 @@ export class StorageManager {
    * Initialize all available storage providers
    */
   private initializeProviders(): void {
-    logger.info('🔧 Initializing storage providers...');
+    logger.info('Initializing storage providers', 'storage:be');
 
     // Register grant-based provider for client-side uploads (secure)
     const vercelBlobGrantProvider = new VercelBlobGrantProvider();
     this.providers.set('vercel_blob', vercelBlobGrantProvider);
 
-    logger.info('🔍 Checking Vercel Blob Grant provider availability...');
-    logger.info('🔍 Vercel Blob Grant isAvailable:', undefined, { available: vercelBlobGrantProvider.isAvailable() });
+    logger.info('Checking Vercel Blob Grant provider availability', 'storage:be');
+    logger.info('Vercel Blob Grant provider status', 'storage:be', { available: vercelBlobGrantProvider.isAvailable() });
 
     // Note: S3, Arweave, IPFS, Cloudinary, ICP are not fully implemented yet
     // Only register them if they have proper implementations
@@ -62,15 +62,18 @@ export class StorageManager {
       .filter(([, provider]) => provider.isAvailable())
       .map(([backend]) => backend);
 
-    logger.info(`📦 Storage Manager initialized with providers: ${availableProviders.join(', ')}`);
-    logger.info(`📦 Total registered providers: ${this.providers.size}`);
+    logger.info('Storage Manager initialized', 'storage:be', {
+      availableProviders: availableProviders.join(', '),
+      totalProviders: this.providers.size
+    });
 
     if (availableProviders.length === 0) {
-      logger.error('❌ No storage providers are available! Check your environment variables.');
-      logger.error('❌ Environment check:');
-      logger.error('   - NODE_ENV:', undefined, { data: process.env.NODE_ENV });
-      logger.error('   - BLOB_READ_WRITE_TOKEN:', undefined, {
-        data: process.env.BLOB_READ_WRITE_TOKEN ? 'SET' : 'NOT SET',
+      logger.error('No storage providers available', 'storage:be', {
+        message: 'Check your environment variables'
+      });
+      logger.error('Environment check', 'storage:be', {
+        NODE_ENV: process.env.NODE_ENV,
+        BLOB_READ_WRITE_TOKEN: process.env.BLOB_READ_WRITE_TOKEN ? 'SET' : 'NOT SET'
       });
     }
   }
@@ -104,15 +107,15 @@ export class StorageManager {
     }
 
     if (!provider.isAvailable()) {
-      logger.warn(`⚠️ Provider ${backend} is not available, trying fallback...`);
+      logger.warn(`Provider ${backend} is not available, trying fallback`, 'storage:be');
       return this.uploadWithFallback(file, options);
     }
 
     try {
       return await this.uploadWithRetry(file, provider, options);
     } catch (error) {
-      logger.error(`❌ Provider ${backend} failed:`, undefined, { data: error instanceof Error ? error : undefined });
-      logger.warn(`🔄 Trying fallback providers...`);
+      logger.error(`Provider ${backend} failed`, 'storage:be', { error });
+      logger.warn('Trying fallback providers', 'storage:be');
       return this.uploadWithFallback(file, options);
     }
   }
@@ -134,7 +137,10 @@ export class StorageManager {
       throw new Error('No available storage providers found');
     }
 
-    logger.info(`📤 Uploading to ${availableBackends.length} providers: ${availableBackends.join(', ')}`);
+    logger.info('Uploading to multiple providers', 'storage:be', {
+      count: availableBackends.length,
+      providers: availableBackends.join(', ')
+    });
 
     const uploads = availableBackends.map(backend => this.uploadToSingleProvider(file, backend, options));
 
@@ -152,7 +158,10 @@ export class StorageManager {
       throw new Error(`All uploads failed: ${errors.map(e => e.message).join(', ')}`);
     }
 
-    logger.info(`✅ Successfully uploaded to ${successful.length}/${availableBackends.length} providers`);
+    logger.info('Multi-provider upload completed', 'storage:be', {
+      successful: successful.length,
+      total: availableBackends.length
+    });
     return successful;
   }
 
@@ -163,26 +172,28 @@ export class StorageManager {
     const fallbackBackends = this.config.fallbackBackends;
     const availableProviders = this.getAvailableProviders();
 
-    logger.info(`🔄 Available providers for fallback: ${availableProviders.join(', ')}`);
-    logger.info(`🔄 Configured fallback backends: ${fallbackBackends.join(', ')}`);
+    logger.info('Available providers for fallback', 'storage:be', {
+      providers: availableProviders.join(', ')
+    });
+    logger.info('Configured fallback backends', 'storage:be', {
+      backends: fallbackBackends.join(', ')
+    });
 
     // Try fallback backends that are actually available
     for (const backend of fallbackBackends) {
       if (availableProviders.includes(backend)) {
         const provider = this.providers.get(backend);
         if (provider) {
-          logger.info(`🔄 Trying fallback provider: ${backend}`);
+          logger.info(`Trying fallback provider: ${backend}`, 'storage:be');
           try {
             return await this.uploadWithRetry(file, provider, options);
           } catch (error) {
-            logger.warn(`⚠️ Fallback provider ${backend} failed:`, undefined, {
-              error: error instanceof Error ? error : undefined,
-            });
+            logger.warn(`Fallback provider ${backend} failed`, 'storage:be', { error });
             continue;
           }
         }
       } else {
-        logger.info(`⚠️ Fallback provider ${backend} is not available, skipping`);
+        logger.info(`Fallback provider ${backend} is not available, skipping`, 'storage:be');
       }
     }
 
@@ -191,11 +202,11 @@ export class StorageManager {
       if (!fallbackBackends.includes(backend)) {
         const provider = this.providers.get(backend);
         if (provider) {
-          logger.info(`🔄 Trying any available provider: ${backend}`);
+          logger.info(`Trying any available provider: ${backend}`, 'storage:be');
           try {
             return await this.uploadWithRetry(file, provider, options);
           } catch (error) {
-            logger.warn(`⚠️ Provider ${backend} failed:`, undefined, { error: error instanceof Error ? error : undefined });
+            logger.warn(`Provider ${backend} failed`, 'storage:be', { error });
             continue;
           }
         }
@@ -219,15 +230,18 @@ export class StorageManager {
 
     for (let attempt = 1; attempt <= this.config.maxRetries; attempt++) {
       try {
-        logger.info(`📤 Uploading to ${provider.name} (attempt ${attempt}/${this.config.maxRetries})`);
+        logger.info(`Uploading to ${provider.name}`, 'storage:be', {
+          attempt: attempt,
+          maxRetries: this.config.maxRetries
+        });
         return await provider.upload(file, options);
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
-        logger.warn(`⚠️ Upload attempt ${attempt} failed:`, undefined, { message: lastError.message });
+        logger.warn(`Upload attempt ${attempt} failed`, 'storage:be', { message: lastError.message });
 
         if (attempt < this.config.maxRetries) {
           const delay = this.config.retryDelay * Math.pow(2, attempt - 1);
-          logger.info(`⏳ Retrying in ${delay}ms...`);
+          logger.info(`Retrying upload in ${delay}ms`, 'storage:be');
           await this.sleep(delay);
         }
       }
