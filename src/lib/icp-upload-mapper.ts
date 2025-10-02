@@ -5,7 +5,6 @@
  * Only this file should import wire types from backend.did
  */
 
-// eslint-disable-next-line no-restricted-imports
 import type { UploadFinishResult as Wire, StorageBackend as WireSB } from '@/ic/declarations/backend/backend.did';
 import type { UploadResult, StorageBackend as DomainSB } from '@/types/upload';
 

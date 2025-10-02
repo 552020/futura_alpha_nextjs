@@ -145,11 +145,11 @@ export function useIICoAuth(): IICoAuthState {
       ttlStatus.status === 'active'
         ? `II Active (${ttlStatus.remainingMinutes}m remaining)`
         : ttlStatus.status === 'grace'
-          ? `II Expired (${ttlStatus.remainingMinutes}m grace period)`
+          ? `Internet Identity Session Expired (${ttlStatus.remainingMinutes}m grace period)`
           : ttlStatus.status === 'warning'
             ? `II Expiring Soon (${ttlStatus.remainingMinutes}m remaining)`
             : ttlStatus.status === 'expired'
-              ? 'II Expired - Re-authenticate Required'
+              ? 'Internet Identity Session Expired'
               : 'II Not Active',
     statusClass:
       ttlStatus.status === 'active'

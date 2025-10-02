@@ -12,12 +12,13 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Shield, ShieldCheck, Clock, RefreshCw, LogOut } from 'lucide-react';
+import { User, UserCheck, Clock, RefreshCw, LogOut, Copy } from 'lucide-react';
 import { useIICoAuth } from '@/hooks/use-ii-coauth';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 import { logger } from '@/lib/logger';
 interface IICoAuthControlsProps {
@@ -25,6 +26,8 @@ interface IICoAuthControlsProps {
 }
 
 export function IICoAuthControls({ className = '' }: IICoAuthControlsProps) {
+  const { update } = useSession();
+  const router = useRouter();
   const {
     hasLinkedII,
     isCoAuthActive,
@@ -34,28 +37,69 @@ export function IICoAuthControls({ className = '' }: IICoAuthControlsProps) {
     remainingMinutes,
     disconnectII,
     refreshTTL,
+    isExpired,
+    requiresReAuth,
   } = useIICoAuth();
 
   const { toast } = useToast();
 
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isCopying, setIsCopying] = useState(false);
 
   // Calculate progress percentage for TTL (15 min = 900 seconds)
   const ttlProgress = remainingMinutes > 0 ? Math.max(0, (remainingMinutes / 15) * 100) : 0;
 
   // Handle linking II account (redirect to sign-in page)
-  const handleLinkII = () => {
+  const handleLinkII = (signinPagePath = 'sign-ii-only') => {
     try {
       // Redirect to the II-only signin page with callback back to current page
       const currentUrl = window.location.href;
-      const signinUrl = `/en/sign-ii-only?callbackUrl=${encodeURIComponent(currentUrl)}`;
-      window.location.href = signinUrl;
+      const locale = window.location.pathname.split('/')[1]; // Extract locale from current path
+      const signinUrl = `/${locale}/${signinPagePath}?callbackUrl=${encodeURIComponent(currentUrl)}`;
+      router.push(signinUrl);
     } catch (error) {
-      logger.error('Failed to redirect to II signin page:', undefined, { data: error instanceof Error ? error : undefined });
+      logger.error('Failed to redirect to II signin page:', undefined, {
+        data: error instanceof Error ? error : undefined,
+      });
       toast({
         title: 'Redirect Failed',
         description: 'Failed to redirect to Internet Identity linking page',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Handle linking II account (inline authentication)
+  const _handleLinkIIInline = async () => {
+    try {
+      // Use the unified authentication flow
+      const { handleInternetIdentityAuth } = await import('@/lib/ii-auth-utils');
+
+      await handleInternetIdentityAuth(
+        window.location.href, // callbackUrl
+        _principal => {
+          // Success callback - show success message
+          toast({
+            title: 'II Authentication Successful',
+            description: 'Your Internet Identity is now active for this session',
+          });
+        },
+        errorMessage => {
+          // Error callback - show error
+          toast({
+            title: 'Authentication Failed',
+            description: errorMessage,
+            variant: 'destructive',
+          });
+        },
+        update // Pass the session update function
+      );
+    } catch (error) {
+      logger.error('Failed to authenticate with II:', undefined, { data: error instanceof Error ? error : undefined });
+      toast({
+        title: 'Authentication Failed',
+        description: 'Failed to authenticate with Internet Identity. Please try again.',
         variant: 'destructive',
       });
     }
@@ -79,6 +123,29 @@ export function IICoAuthControls({ className = '' }: IICoAuthControlsProps) {
       });
     } finally {
       setIsDisconnecting(false);
+    }
+  };
+
+  // Handle copying principal to clipboard
+  const copyPrincipalToClipboard = async () => {
+    if (!activeIcPrincipal) return;
+
+    setIsCopying(true);
+    try {
+      await navigator.clipboard.writeText(activeIcPrincipal);
+      toast({
+        title: 'Copied!',
+        description: 'Principal ID copied to clipboard',
+      });
+    } catch (error) {
+      logger.error('Failed to copy:', undefined, { data: error instanceof Error ? error : undefined });
+      toast({
+        title: 'Copy Failed',
+        description: 'Failed to copy principal ID to clipboard',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsCopying(false);
     }
   };
 
@@ -119,11 +186,11 @@ export function IICoAuthControls({ className = '' }: IICoAuthControlsProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           {isCoAuthActive ? (
-            <ShieldCheck className="h-6 w-6 text-slate-600" />
+            <UserCheck className="h-6 w-6 text-slate-600" />
           ) : (
-            <Shield className="h-6 w-6 text-slate-600" />
+            <User className="h-6 w-6 text-slate-600" />
           )}
-          Internet Identity Co-Authentication
+          Internet Identity Controls
         </CardTitle>
       </CardHeader>
 
@@ -133,9 +200,7 @@ export function IICoAuthControls({ className = '' }: IICoAuthControlsProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium">Status:</span>
-              <Badge variant="outline" className={statusClass}>
-                {statusMessage}
-              </Badge>
+              <span className={`text-sm ${statusClass}`}>{statusMessage}</span>
             </div>
 
             {isCoAuthActive && (
@@ -158,29 +223,35 @@ export function IICoAuthControls({ className = '' }: IICoAuthControlsProps) {
           )}
 
           {/* Principal Display */}
-          {activeIcPrincipal && (
-            <div className="bg-muted rounded-md p-3">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-slate-600" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-muted-foreground mb-1">Active Principal</p>
-                  <p className="font-mono text-sm break-all">{activeIcPrincipal}</p>
-                </div>
+          {activeIcPrincipal && !isExpired && !requiresReAuth && (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <span className="text-sm font-medium">Active Principal:</span>
+                <span className="text-sm truncate flex-1">{activeIcPrincipal}</span>
               </div>
+              <Button
+                onClick={copyPrincipalToClipboard}
+                disabled={isCopying}
+                variant="ghost"
+                size="sm"
+                className="ml-2 h-8 w-8 p-0"
+              >
+                {isCopying ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Copy className="h-4 w-4" />}
+              </Button>
             </div>
           )}
         </div>
 
         {/* Action Buttons */}
         <div className="flex flex-wrap gap-2">
-          {!isCoAuthActive ? (
-            // Show Link button when inactive
-            <Button onClick={handleLinkII} className="flex-1">
-              <Shield className="h-4 w-4 mr-2" />
-              Sign in with Internet Identity
+          {!isCoAuthActive || isExpired || requiresReAuth ? (
+            // Show Link button when inactive or expired
+            <Button onClick={() => handleLinkII()} className="flex-1">
+              <User className="h-4 w-4 mr-2" />
+              Connect Internet Identity
             </Button>
           ) : (
-            // Show management buttons when active
+            // Show management buttons when active and not expired
             <>
               <Button onClick={handleRefreshTTL} disabled={isRefreshing} variant="outline" className="flex-1">
                 {isRefreshing ? (
@@ -204,23 +275,6 @@ export function IICoAuthControls({ className = '' }: IICoAuthControlsProps) {
                 )}
                 Disconnect for This Session
               </Button>
-            </>
-          )}
-        </div>
-
-        {/* Status Messages */}
-        <div className="text-xs text-muted-foreground space-y-1">
-          {isCoAuthActive ? (
-            <>
-              <p>✅ Your Internet Identity is active and can perform ICP operations</p>
-              <p>⏰ Session will expire in {remainingMinutes}m</p>
-              <p>🔄 Use &ldquo;Extend Session&rdquo; to refresh your authentication</p>
-            </>
-          ) : (
-            <>
-              <p>⚠️ Your Internet Identity is linked but not active for this session</p>
-              <p>🔒 Click &ldquo;Activate Internet Identity&rdquo; to enable ICP operations</p>
-              <p>⏱️ Activation provides 15 minutes of authenticated access</p>
             </>
           )}
         </div>

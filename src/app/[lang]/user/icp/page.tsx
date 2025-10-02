@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuthGuard } from '@/utils/authentication';
+import { useSession } from 'next-auth/react';
 
 import { useState, useEffect, useRef } from 'react';
 import type { BackendActor } from '@/ic/backend';
@@ -14,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getAuthClient as getIiAuthClient, loginWithII, clearIiSession } from '@/ic/ii';
+import { getAuthClient as getIiAuthClient, clearIiSession } from '@/ic/ii';
 import RequireAuth from '@/components/auth/require-auth';
 import { LinkedAccounts } from '@/components/user/linked-accounts';
 import { IICoAuthControls } from '@/components/user/ii-coauth-controls';
@@ -22,6 +23,7 @@ import { IICoAuthControls } from '@/components/user/ii-coauth-controls';
 import { logger } from '@/lib/logger';
 export default function ICPPage() {
   const { isAuthorized, isLoading } = useAuthGuard();
+  const { data: _session, update } = useSession();
   const [greeting, setGreeting] = useState('');
   const [whoamiResult, setWhoamiResult] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -33,6 +35,18 @@ export default function ICPPage() {
   const [busy, setBusy] = useState(false);
   const [isRehydrating, setIsRehydrating] = useState(true);
   const { toast } = useToast();
+
+  // Sync local state with session changes
+  useEffect(() => {
+    if (_session?.user) {
+      const user = _session.user as { icpPrincipal?: string };
+      if (user.icpPrincipal) {
+        setPrincipalId(user.icpPrincipal);
+        setIsAuthenticated(true);
+        setGreeting('Successfully authenticated with Internet Identity!');
+      }
+    }
+  }, [_session]);
 
   /**
    * AuthClient Persistence Optimization
@@ -160,48 +174,95 @@ export default function ICPPage() {
       setBusy(false);
     }
   }
+  // COMMENT OUT CURRENT IMPLEMENTATION FOR TESTING
+  // async function handleLogin() {
+  //   if (busy) return; // UX safety: prevent double-clicks
+  //   setBusy(true);
+  //   try {
+  //     const { identity, principal } = await loginWithII();
+
+  //     // Create and cache the authenticated actor
+  //     const { backendActor } = await import('@/ic/backend');
+  //     const authenticatedActor: BackendActor = await backendActor(identity);
+  //     authenticatedActorRef.current = authenticatedActor; // Cache it for future use
+  //     setPrincipalId(principal.toString());
+  //     setGreeting('Successfully authenticated with Internet Identity!');
+  //     setIsAuthenticated(true);
+
+  //     // Note: Account linking happens automatically in the authorize function
+  //     // when using signIn("ii") - no manual linking needed
+
+  //     // Automatically fetch capsule info after successful login
+  //     try {
+  //       // logger.info("Fetching capsule info after login...");
+  //       const capsuleResult = (await authenticatedActor.capsules_read_basic([])) as { Ok: any } | { Err: any }; // eslint-disable-line @typescript-eslint/no-explicit-any
+  //       // logger.info("Capsule result received:", capsuleResult);
+
+  //       if ('Ok' in capsuleResult) {
+  //         setCapsuleInfo((capsuleResult as { Ok: any }).Ok); // eslint-disable-line @typescript-eslint/no-explicit-any
+  //         // logger.info("Capsule info set to:", capsuleResult.Ok);
+  //       } else {
+  //         logger.warn('Capsule read failed:', (capsuleResult as { Err: any }).Err); // eslint-disable-line @typescript-eslint/no-explicit-any
+  //         setCapsuleInfo(null);
+  //       }
+  //     } catch (error) {
+  //       logger.warn('Failed to fetch capsule info on login', undefined, {
+  //         error: error instanceof Error ? error.message : String(error),
+  //       });
+  //       // Don't fail the login if capsule info fetch fails
+  //     }
+
+  //     toast({
+  //       title: 'Login Successful',
+  //       description: 'Successfully authenticated with Internet Identity!',
+  //     });
+  //   } catch (error) {
+  //     logger.error('Login failed', undefined, { data: error as Error });
+  //     const errorMessage = error instanceof Error ? error.message : String(error);
+  //     toast({
+  //       title: 'Login Failed',
+  //       description: `Failed to authenticate with Internet Identity: ${errorMessage}`,
+  //       variant: 'destructive',
+  //     });
+  //   } finally {
+  //     setBusy(false);
+  //   }
+  // }
+
+  // NEW: Quick and dirty test - import handleInternetIdentity from shared utility
   async function handleLogin() {
-    if (busy) return; // UX safety: prevent double-clicks
+    if (busy) return;
     setBusy(true);
+
     try {
-      const { identity, principal } = await loginWithII();
+      // Import the shared function
+      const { handleInternetIdentityAuth } = await import('@/lib/ii-auth-utils');
 
-      // Create and cache the authenticated actor
-      const { backendActor } = await import('@/ic/backend');
-      const authenticatedActor: BackendActor = await backendActor(identity);
-      authenticatedActorRef.current = authenticatedActor; // Cache it for future use
-      setPrincipalId(principal.toString());
-      setGreeting('Successfully authenticated with Internet Identity!');
-      setIsAuthenticated(true);
-
-      // Automatically fetch capsule info after successful login
-      try {
-        // logger.info("Fetching capsule info after login...");
-        const capsuleResult = (await authenticatedActor.capsules_read_basic([])) as { Ok: any } | { Err: any }; // eslint-disable-line @typescript-eslint/no-explicit-any
-        // logger.info("Capsule result received:", capsuleResult);
-
-        if ('Ok' in capsuleResult) {
-          setCapsuleInfo((capsuleResult as { Ok: any }).Ok); // eslint-disable-line @typescript-eslint/no-explicit-any
-          // logger.info("Capsule info set to:", capsuleResult.Ok);
-        } else {
-          logger.warn('Capsule read failed:', (capsuleResult as { Err: any }).Err); // eslint-disable-line @typescript-eslint/no-explicit-any
-          setCapsuleInfo(null);
-        }
-      } catch (error) {
-        logger.warn('Failed to fetch capsule info on login', undefined, { error: error instanceof Error ? error.message : String(error) });
-        // Don't fail the login if capsule info fetch fails
-      }
-
-      toast({
-        title: 'Login Successful',
-        description: 'Successfully authenticated with Internet Identity!',
-      });
+      // Call it with success/error callbacks
+      await handleInternetIdentityAuth(
+        window.location.href, // callbackUrl
+        principal => {
+          // Success callback
+          setPrincipalId(principal);
+          setIsAuthenticated(true);
+          setGreeting('Successfully authenticated with Internet Identity!');
+        },
+        errorMessage => {
+          // Error callback
+          console.error('II authentication failed:', errorMessage);
+          toast({
+            title: 'Authentication Failed',
+            description: errorMessage,
+            variant: 'destructive',
+          });
+        },
+        update // Pass the session update function
+      );
     } catch (error) {
-      logger.error('Login failed', undefined, { data: error as Error });
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('II authentication failed:', error);
       toast({
-        title: 'Login Failed',
-        description: `Failed to authenticate with Internet Identity: ${errorMessage}`,
+        title: 'Authentication Failed',
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: 'destructive',
       });
     } finally {
@@ -422,6 +483,19 @@ export default function ICPPage() {
       await clearIiSession();
       // Clear our cached actor
       clearAuthenticatedActor(); // Clear our cached actor
+
+      // Clear II authentication from NextAuth session
+      try {
+        await update({
+          clearActiveIc: true,
+        });
+        logger.info('Successfully cleared II authentication from NextAuth session');
+      } catch (error) {
+        logger.warn('Failed to clear II authentication from session', undefined, {
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // Don't fail the sign out if session update fails
+      }
 
       setIsAuthenticated(false);
       setPrincipalId('');
