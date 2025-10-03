@@ -19,8 +19,10 @@ import { getAuthClient as getIiAuthClient } from '@/ic/ii';
 import { useAuthenticatedActor } from '@/hooks/use-authenticated-actor';
 import RequireAuth from '@/components/auth/require-auth';
 import { InternetIdentityManagement } from '@/components/user/internet-identity-management';
+import { Whoami } from '@/components/icp/whoami';
 
 import { logger } from '@/lib/logger';
+
 export default function ICPPage() {
   const { isAuthorized, isLoading } = useAuthGuard();
   const { data: _session } = useSession();
@@ -359,7 +361,6 @@ export default function ICPPage() {
     return <RequireAuth />;
   }
 
-
   return (
     <div className="container mx-auto px-6 py-8">
       <h1 className="text-3xl font-bold mb-6">Hello ICP</h1>
@@ -369,20 +370,10 @@ export default function ICPPage() {
         <InternetIdentityManagement />
       </div>
 
-      {/* Testing Components - Refactored for Safer Path */}
-      <div className="mb-6 space-y-4">
-        <h2 className="text-xl font-semibold">Testing Components (Refactored)</h2>
-        {/* IICoAuthControls and LinkedAccounts removed - functionality consolidated into InternetIdentityManagement */}
-      </div>
-
-      <div className="mb-6 flex gap-4">
-        <Button onClick={handleWhoami} disabled={busy || !isAuthenticated || isRehydrating}>
-          Test Backend Connection
-        </Button>
-        <Button onClick={handleGetCapsuleInfo} disabled={busy || !isAuthenticated || isRehydrating}>
-          Get Capsule Info
-        </Button>
-      </div>
+      <Whoami />
+      <Button onClick={handleGetCapsuleInfo} disabled={busy || !isAuthenticated || isRehydrating}>
+        Get Capsule Info
+      </Button>
 
       {/* Capsule Reading Section */}
       <div className="mb-6 space-y-4">
