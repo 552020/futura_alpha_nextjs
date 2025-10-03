@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense, useEffect } from 'react';
+import { useState, Suspense, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn, useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
@@ -104,9 +104,9 @@ function SignIIOnlyContent() {
     }
   }
 
-  function closeModal() {
+  const closeModal = useCallback(() => {
     router.back();
-  }
+  }, [router]);
 
   // Handle escape key to close modal
   useEffect(() => {
@@ -117,7 +117,7 @@ function SignIIOnlyContent() {
     };
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
-  }, []);
+  }, [closeModal]);
 
   return (
     <div

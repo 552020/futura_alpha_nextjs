@@ -24,6 +24,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid principal' }, { status: 400 });
     }
 
+    // TODO: CRITICAL - This permanently deletes the account link
+    // Consider data preservation strategies before implementing in production
+    // See linked-accounts.tsx for detailed architectural concerns
+
     // Unlink the principal from the current user
     await db
       .delete(accounts)

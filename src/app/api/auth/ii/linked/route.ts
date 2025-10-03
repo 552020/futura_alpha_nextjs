@@ -8,7 +8,7 @@ import { getLinkedPrincipalsFromDB } from '@/lib/get-linked-principals';
  * Returns the linked Internet Identity principals for the current user.
  * Used by the useIILinks hook to refresh linked principals.
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const session = await auth();
 

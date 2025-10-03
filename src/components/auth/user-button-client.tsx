@@ -14,7 +14,7 @@ import { SignOut } from './auth-components';
 import Link from 'next/link';
 // Removed tooltip to avoid click interception; using native title on button instead
 import { useICPIdentity } from '@/hooks/use-icp-identity';
-import { Badge } from '@/components/ui/badge';
+// import { Badge } from '@/components/ui/badge'; // Removed unused import
 
 export default function UserButtonClient({ lang = 'en' }: { lang?: string }) {
   const { data: session, status } = useSession();

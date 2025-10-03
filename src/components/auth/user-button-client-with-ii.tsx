@@ -16,7 +16,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { useICPIdentity } from '@/hooks/use-icp-identity';
-import { Badge } from '@/components/ui/badge';
+// import { Badge } from '@/components/ui/badge'; // Removed unused import
 
 function UserButtonClientInternal({ lang = 'en' }: { lang?: string }) {
   const { data: session, status } = useSession();

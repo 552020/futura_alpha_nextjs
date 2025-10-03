@@ -19,8 +19,6 @@ import { getAuthClient as getIiAuthClient } from '@/ic/ii';
 import { useAuthenticatedActor } from '@/hooks/use-authenticated-actor';
 import RequireAuth from '@/components/auth/require-auth';
 import { InternetIdentityManagement } from '@/components/user/internet-identity-management';
-import { IICoAuthControls } from '@/components/user/ii-coauth-controls';
-import { LinkedAccounts } from '@/components/user/linked-accounts';
 
 import { logger } from '@/lib/logger';
 export default function ICPPage() {
@@ -112,15 +110,7 @@ export default function ICPPage() {
           setPrincipalId(principal.toString());
           setGreeting('You are signed in!');
 
-          // Rehydrate actor so "Test Backend" works immediately after refresh
-          try {
-            const { backendActor } = await import('@/ic/backend');
-            const actor = await backendActor(identity);
-            authenticatedActorRef.current = actor;
-          } catch (error) {
-            logger.error('Failed to rehydrate actor', undefined, { data: error as Error });
-            // Don't break the flow if actor creation fails
-          }
+          // Note: Actor rehydration is now handled by the global useAuthenticatedActor hook
         }
       } catch (error) {
         logger.error('Failed to check auth state', undefined, { data: error as Error });
@@ -150,60 +140,6 @@ export default function ICPPage() {
       setBusy(false);
     }
   }
-  // COMMENT OUT CURRENT IMPLEMENTATION FOR TESTING
-  // async function handleLogin() {
-  //   if (busy) return; // UX safety: prevent double-clicks
-  //   setBusy(true);
-  //   try {
-  //     const { identity, principal } = await loginWithII();
-
-  //     // Create and cache the authenticated actor
-  //     const { backendActor } = await import('@/ic/backend');
-  //     const authenticatedActor: BackendActor = await backendActor(identity);
-  //     authenticatedActorRef.current = authenticatedActor; // Cache it for future use
-  //     setPrincipalId(principal.toString());
-  //     setGreeting('Successfully authenticated with Internet Identity!');
-  //     setIsAuthenticated(true);
-
-  //     // Note: Account linking happens automatically in the authorize function
-  //     // when using signIn("ii") - no manual linking needed
-
-  //     // Automatically fetch capsule info after successful login
-  //     try {
-  //       // logger.info("Fetching capsule info after login...");
-  //       const capsuleResult = (await authenticatedActor.capsules_read_basic([])) as { Ok: any } | { Err: any }; // eslint-disable-line @typescript-eslint/no-explicit-any
-  //       // logger.info("Capsule result received:", capsuleResult);
-
-  //       if ('Ok' in capsuleResult) {
-  //         setCapsuleInfo((capsuleResult as { Ok: any }).Ok); // eslint-disable-line @typescript-eslint/no-explicit-any
-  //         // logger.info("Capsule info set to:", capsuleResult.Ok);
-  //       } else {
-  //         logger.warn('Capsule read failed:', (capsuleResult as { Err: any }).Err); // eslint-disable-line @typescript-eslint/no-explicit-any
-  //         setCapsuleInfo(null);
-  //       }
-  //     } catch (error) {
-  //       logger.warn('Failed to fetch capsule info on login', undefined, {
-  //         error: error instanceof Error ? error.message : String(error),
-  //       });
-  //       // Don't fail the login if capsule info fetch fails
-  //     }
-
-  //     toast({
-  //       title: 'Login Successful',
-  //       description: 'Successfully authenticated with Internet Identity!',
-  //     });
-  //   } catch (error) {
-  //     logger.error('Login failed', undefined, { data: error as Error });
-  //     const errorMessage = error instanceof Error ? error.message : String(error);
-  //     toast({
-  //       title: 'Login Failed',
-  //       description: `Failed to authenticate with Internet Identity: ${errorMessage}`,
-  //       variant: 'destructive',
-  //     });
-  //   } finally {
-  //     setBusy(false);
-  //   }
-  // }
 
   async function handleWhoami() {
     if (busy) return; // UX safety: prevent double-clicks
@@ -235,7 +171,6 @@ export default function ICPPage() {
         errorMessage.includes('expired') ||
         errorMessage.includes('401')
       ) {
-        // logger.info("Delegation expired, prompting re-login");
         setIsAuthenticated(false);
         setPrincipalId('');
         setGreeting('');
@@ -304,7 +239,6 @@ export default function ICPPage() {
         errorMessage.includes('expired') ||
         errorMessage.includes('401')
       ) {
-        // logger.info("Delegation expired, prompting re-login");
         setIsAuthenticated(false);
         setPrincipalId('');
         setGreeting('');
@@ -425,8 +359,6 @@ export default function ICPPage() {
     return <RequireAuth />;
   }
 
-  // Debug logging
-  // logger.info("Rendering ICP page, capsuleInfo:", capsuleInfo);
 
   return (
     <div className="container mx-auto px-6 py-8">
@@ -440,8 +372,7 @@ export default function ICPPage() {
       {/* Testing Components - Refactored for Safer Path */}
       <div className="mb-6 space-y-4">
         <h2 className="text-xl font-semibold">Testing Components (Refactored)</h2>
-        <IICoAuthControls />
-        <LinkedAccounts />
+        {/* IICoAuthControls and LinkedAccounts removed - functionality consolidated into InternetIdentityManagement */}
       </div>
 
       <div className="mb-6 flex gap-4">

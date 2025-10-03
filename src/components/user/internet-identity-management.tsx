@@ -186,7 +186,7 @@ export function InternetIdentityManagement({ className = '' }: InternetIdentityM
         {/* Linked Accounts Component - Show when there are linked principals */}
         {linkedIcPrincipals.length > 0 && (
           <div className="pt-4 border-t">
-            <LinkedAccounts showActions={true} noCard={true} />
+            <LinkedAccounts />
           </div>
         )}
 
