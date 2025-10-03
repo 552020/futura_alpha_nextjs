@@ -257,11 +257,7 @@ export function CapsuleInfo() {
               placeholder="Enter capsule ID (e.g., capsule_1234567890)"
               className="w-80"
             />
-            <Button
-              onClick={handleReadCapsule}
-              disabled={busy || !capsuleIdInput.trim()}
-              className="w-32"
-            >
+            <Button onClick={handleReadCapsule} disabled={busy || !capsuleIdInput.trim()} className="w-32">
               {busy ? 'Reading...' : 'Read Capsule'}
             </Button>
           </div>

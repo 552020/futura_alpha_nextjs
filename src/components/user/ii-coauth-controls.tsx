@@ -20,7 +20,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { getAuthStatus } from '@/lib/utils/auth-status';
 
 import { logger } from '@/lib/logger';
 interface IICoAuthControlsProps {
@@ -173,18 +172,18 @@ export function IICoAuthControls({ className = '' }: IICoAuthControlsProps) {
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">App Login:</span>
             <Badge variant="outline" className="text-blue-600">
-              {authStatus.providerDisplayName}
+              {isSignedInWithIIInApp ? 'Internet Identity' : isSignedInWithGoogleInApp ? 'Google' : 'Not signed in'}
             </Badge>
           </div>
 
           {/* Principal Display */}
-          {displayPrincipal && (
+          {currentIIPrincipal && (
             <div className="bg-muted rounded-md p-3">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-green-600" />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-muted-foreground mb-1">Current Principal</p>
-                  <p className="font-mono text-sm break-all">{displayPrincipal}</p>
+                  <p className="font-mono text-sm break-all">{currentIIPrincipal}</p>
                 </div>
               </div>
             </div>
