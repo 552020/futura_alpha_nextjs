@@ -400,6 +400,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       console.log('[Auth] 🔗 Account linked:', account);
     },
     async signIn({ user: _user, account: _account, profile: _profile }) {},
-        async signOut(_message) {},
+    async signOut(_message) {},
   },
 });
