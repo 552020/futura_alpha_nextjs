@@ -75,12 +75,16 @@ function SignIIOnlyContent() {
           throw new Error(data.error || data.message || 'Failed to link Internet Identity');
         }
 
-        // Get the principal from the response
+        // Get the principal and linked principals from the response
         const data = await res.json();
         const principal = data.principal;
+        const linkedIcPrincipals = data.linkedIcPrincipals || [];
 
-        // 4) Update NextAuth session to include activeIcPrincipal
-        await update({ activeIcPrincipal: principal });
+        // 4) Update NextAuth session to include activeIcPrincipal and linkedIcPrincipals
+        await update({
+          activeIcPrincipal: principal,
+          linkedIcPrincipals,
+        });
         // 5) Continue flow
         console.log('Redirecting to callback URL:', safeCallbackUrl);
         router.push(safeCallbackUrl);

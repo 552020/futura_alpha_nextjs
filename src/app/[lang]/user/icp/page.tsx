@@ -4,7 +4,6 @@ import { useAuthGuard } from '@/utils/authentication';
 import { useSession } from 'next-auth/react';
 
 import { useState, useEffect } from 'react';
-import type { BackendActor } from '@/ic/backend';
 import type { CapsuleInfo, Capsule } from '@/ic/declarations/backend/backend.did';
 
 // Prevent static generation of this page
@@ -20,14 +19,13 @@ import { useAuthenticatedActor } from '@/hooks/use-authenticated-actor';
 import RequireAuth from '@/components/auth/require-auth';
 import { InternetIdentityManagement } from '@/components/user/internet-identity-management';
 import { Whoami } from '@/components/icp/whoami';
+import { Greeting } from '@/components/icp/greeting';
 
 import { logger } from '@/lib/logger';
 
 export default function ICPPage() {
   const { isAuthorized, isLoading } = useAuthGuard();
   const { data: _session } = useSession();
-  const [greeting, setGreeting] = useState('');
-  const [whoamiResult, setWhoamiResult] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [principalId, setPrincipalId] = useState('');
   const [capsuleInfo, setCapsuleInfo] = useState<CapsuleInfo | null>(null);
@@ -45,7 +43,6 @@ export default function ICPPage() {
       if (user.icpPrincipal) {
         setPrincipalId(user.icpPrincipal);
         setIsAuthenticated(true);
-        setGreeting('Successfully authenticated with Internet Identity!');
       }
     }
   }, [_session]);
@@ -110,7 +107,6 @@ export default function ICPPage() {
           const identity = authClient.getIdentity();
           const principal = identity.getPrincipal();
           setPrincipalId(principal.toString());
-          setGreeting('You are signed in!');
 
           // Note: Actor rehydration is now handled by the global useAuthenticatedActor hook
         }
@@ -124,76 +120,6 @@ export default function ICPPage() {
 
     checkAuthState();
   }, []);
-  async function handleGreetSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (busy) return; // UX safety: prevent double-clicks
-    setBusy(true);
-    try {
-      const formData = new FormData(event.currentTarget);
-      const name = formData.get('name') as string;
-
-      const { backendActor } = await import('@/ic/backend');
-      const actor: BackendActor = await backendActor();
-
-      const greeting = await actor.greet(name);
-
-      setGreeting(greeting);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function handleWhoami() {
-    if (busy) return; // UX safety: prevent double-clicks
-    setBusy(true);
-    try {
-      const authClient = await getAuthClient();
-      const isAuthenticated = await authClient.isAuthenticated();
-
-      if (!isAuthenticated) {
-        toast({
-          title: 'Not Authenticated',
-          description: 'Please login first to call whoami',
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      // Use cached authenticated actor
-      const authenticatedActor = await getAuthenticatedActor();
-      const backendPrincipal = await authenticatedActor.whoami();
-      setWhoamiResult(`Backend whoami result: ${backendPrincipal.toString()}`);
-    } catch (error) {
-      logger.error('Whoami failed', undefined, { data: error as Error });
-      const errorMessage = error instanceof Error ? error.message : String(error);
-
-      // Handle expired/invalid delegation
-      if (
-        errorMessage.includes('Invalid delegation') ||
-        errorMessage.includes('expired') ||
-        errorMessage.includes('401')
-      ) {
-        setIsAuthenticated(false);
-        setPrincipalId('');
-        setGreeting('');
-        clearAuthenticatedActor();
-        toast({
-          title: 'Session Expired',
-          description: 'Your session has expired. Please sign in again.',
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      toast({
-        title: 'Whoami Failed',
-        description: `Failed to get principal from backend: ${errorMessage}`,
-        variant: 'destructive',
-      });
-    } finally {
-      setBusy(false);
-    }
-  }
 
   async function handleGetCapsuleInfo() {
     if (busy) return; // UX safety: prevent double-clicks
@@ -243,7 +169,6 @@ export default function ICPPage() {
       ) {
         setIsAuthenticated(false);
         setPrincipalId('');
-        setGreeting('');
         clearAuthenticatedActor();
         toast({
           title: 'Session Expired',
@@ -327,7 +252,6 @@ export default function ICPPage() {
       ) {
         setIsAuthenticated(false);
         setPrincipalId('');
-        setGreeting('');
         clearAuthenticatedActor();
         toast({
           title: 'Session Expired',
@@ -371,6 +295,11 @@ export default function ICPPage() {
       </div>
 
       <Whoami />
+
+      <div className="my-6">
+        <Greeting />
+      </div>
+
       <Button onClick={handleGetCapsuleInfo} disabled={busy || !isAuthenticated || isRehydrating}>
         Get Capsule Info
       </Button>
@@ -421,34 +350,6 @@ export default function ICPPage() {
                 <Copy className="h-4 w-4" />
               </Button>
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <form onSubmit={handleGreetSubmit} className="mb-6 space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="name">Enter your name:</Label>
-          <div className="flex gap-4">
-            <Input id="name" name="name" type="text" placeholder="Your name" className="w-64" />
-            <Button type="submit" disabled={busy}>
-              Send Greeting
-            </Button>
-          </div>
-        </div>
-      </form>
-
-      {greeting && (
-        <Card className="mb-4">
-          <CardContent className="pt-6">
-            <p>{greeting}</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {whoamiResult && (
-        <Card>
-          <CardContent className="pt-6">
-            <p>{whoamiResult}</p>
           </CardContent>
         </Card>
       )}
