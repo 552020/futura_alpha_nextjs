@@ -76,14 +76,7 @@ export default function UserButtonClient({ lang = 'en' }: { lang?: string }) {
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">{name}</p>
             {session.user.email && <p className="text-muted-foreground text-xs leading-none">{session.user.email}</p>}
-            {principal && (
-              <div className="space-y-1">
-                <p className="text-muted-foreground text-xs leading-none break-all">{principal}</p>
-                <Badge variant="outline" className="text-xs text-green-600">
-                  Active
-                </Badge>
-              </div>
-            )}
+            {principal && <p className="text-muted-foreground text-xs leading-none break-all">{principal}</p>}
           </div>
         </DropdownMenuLabel>
         <div className="p-2">

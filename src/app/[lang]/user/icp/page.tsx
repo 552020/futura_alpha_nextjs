@@ -3,7 +3,7 @@
 import { useAuthGuard } from '@/utils/authentication';
 import { useSession } from 'next-auth/react';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import type { BackendActor } from '@/ic/backend';
 import type { CapsuleInfo, Capsule } from '@/ic/declarations/backend/backend.did';
 
@@ -15,7 +15,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getAuthClient as getIiAuthClient, clearIiSession } from '@/ic/ii';
+import { getAuthClient as getIiAuthClient } from '@/ic/ii';
+import { useAuthenticatedActor } from '@/hooks/use-authenticated-actor';
 import RequireAuth from '@/components/auth/require-auth';
 import { InternetIdentityManagement } from '@/components/user/internet-identity-management';
 import { IICoAuthControls } from '@/components/user/ii-coauth-controls';
@@ -24,7 +25,7 @@ import { LinkedAccounts } from '@/components/user/linked-accounts';
 import { logger } from '@/lib/logger';
 export default function ICPPage() {
   const { isAuthorized, isLoading } = useAuthGuard();
-  const { data: _session, update } = useSession();
+  const { data: _session } = useSession();
   const [greeting, setGreeting] = useState('');
   const [whoamiResult, setWhoamiResult] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -69,37 +70,11 @@ export default function ICPPage() {
    * The AuthClient.create() still reads the stored identity from IndexedDB,
    * but we only do this expensive operation once instead of 4+ times.
    */
-  // Cache authenticated actor to avoid recreating it for each backend call
-  const authenticatedActorRef = useRef<BackendActor | null>(null);
+  // Use global authenticated actor hook
+  const { getActor: getAuthenticatedActor, clearActor: clearAuthenticatedActor } = useAuthenticatedActor();
 
   // Helper to obtain the shared II AuthClient instance
   const getAuthClient = async () => getIiAuthClient();
-
-  // Helper function to get or create authenticated actor
-  const getAuthenticatedActor = async (): Promise<BackendActor> => {
-    const authClient = await getAuthClient();
-    const isAuth = await authClient.isAuthenticated();
-
-    if (!isAuth) {
-      throw new Error('Not authenticated - please login first');
-    }
-
-    // If we have a cached actor, return it
-    if (authenticatedActorRef.current) {
-      return authenticatedActorRef.current;
-    }
-
-    // Create and cache new authenticated actor
-    const identity = authClient.getIdentity();
-    const { backendActor } = await import('@/ic/backend');
-    authenticatedActorRef.current = await backendActor(identity);
-    return authenticatedActorRef.current;
-  };
-
-  // Clear cached actor when user signs out
-  const clearAuthenticatedActor = () => {
-    authenticatedActorRef.current = null;
-  };
 
   // Copy principal ID to clipboard
   const copyPrincipalToClipboard = async () => {
@@ -229,47 +204,6 @@ export default function ICPPage() {
   //     setBusy(false);
   //   }
   // }
-
-  // NEW: Quick and dirty test - import handleInternetIdentity from shared utility
-  async function handleLogin() {
-    if (busy) return;
-    setBusy(true);
-
-    try {
-      // Import the shared function
-      const { handleInternetIdentityAuth } = await import('@/lib/ii-auth-utils');
-
-      // Call it with success/error callbacks
-      await handleInternetIdentityAuth(
-        window.location.href, // callbackUrl
-        principal => {
-          // Success callback
-          setPrincipalId(principal);
-          setIsAuthenticated(true);
-          setGreeting('Successfully authenticated with Internet Identity!');
-        },
-        errorMessage => {
-          // Error callback
-          console.error('II authentication failed:', errorMessage);
-          toast({
-            title: 'Authentication Failed',
-            description: errorMessage,
-            variant: 'destructive',
-          });
-        },
-        update // Pass the session update function
-      );
-    } catch (error) {
-      console.error('II authentication failed:', error);
-      toast({
-        title: 'Authentication Failed',
-        description: error instanceof Error ? error.message : 'Unknown error',
-        variant: 'destructive',
-      });
-    } finally {
-      setBusy(false);
-    }
-  }
 
   async function handleWhoami() {
     if (busy) return; // UX safety: prevent double-clicks
@@ -477,49 +411,6 @@ export default function ICPPage() {
     }
   }
 
-  async function handleSignOut() {
-    if (busy) return;
-    setBusy(true);
-    try {
-      await clearIiSession();
-      // Clear our cached actor
-      clearAuthenticatedActor(); // Clear our cached actor
-
-      // Clear II authentication from NextAuth session
-      try {
-        await update({
-          clearActiveIc: true,
-        });
-        logger.info('Successfully cleared II authentication from NextAuth session');
-      } catch (error) {
-        logger.warn('Failed to clear II authentication from session', undefined, {
-          error: error instanceof Error ? error.message : String(error),
-        });
-        // Don't fail the sign out if session update fails
-      }
-
-      setIsAuthenticated(false);
-      setPrincipalId('');
-      setGreeting('');
-      setWhoamiResult('');
-      setCapsuleInfo(null);
-      toast({
-        title: 'Signed Out',
-        description: 'Successfully signed out',
-      });
-    } catch (error) {
-      logger.error('Sign out failed', undefined, { data: error as Error });
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      toast({
-        title: 'Sign Out Failed',
-        description: `Failed to sign out: ${errorMessage}`,
-        variant: 'destructive',
-      });
-    } finally {
-      setBusy(false);
-    }
-  }
-
   if (!isAuthorized || isLoading) {
     // Show loading spinner only while status is loading
     if (isLoading) {
@@ -554,9 +445,6 @@ export default function ICPPage() {
       </div>
 
       <div className="mb-6 flex gap-4">
-        <Button onClick={isAuthenticated ? handleSignOut : handleLogin} id="login" disabled={busy}>
-          {isAuthenticated ? 'Sign Out' : 'Continue with Internet Identity'}
-        </Button>
         <Button onClick={handleWhoami} disabled={busy || !isAuthenticated || isRehydrating}>
           Test Backend Connection
         </Button>

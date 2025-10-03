@@ -13,9 +13,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { User, Loader2 } from 'lucide-react';
+import { User, Loader2, LogOut } from 'lucide-react';
 import { useICPIdentity } from '@/hooks/use-icp-identity';
 import { useIILinks } from '@/hooks/use-ii-links';
+import { useAuthenticatedActor } from '@/hooks/use-authenticated-actor';
+import { clearIiSession } from '@/ic/ii';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -33,27 +35,30 @@ function shortenPrincipal(principal: string): string {
 }
 
 export function InternetIdentityManagement({ className = '' }: InternetIdentityManagementProps) {
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
   const { principal, isAuthenticated, isLoading: iiLoading } = useICPIdentity();
   const { linkedIcPrincipals } = useIILinks();
+  const { clearActor } = useAuthenticatedActor();
   const { toast } = useToast();
   const router = useRouter();
   const authStatus = getAuthStatus(session);
 
-  // Debug logging
-  console.log('InternetIdentityManagement Debug:', {
-    session: session?.user,
-    linkedIcPrincipals,
-    authStatus,
-  });
-
-  // Handle linking II account (redirect to sign-in page)
-  const handleLinkII = () => {
+  // Handle signing in to Internet Identity (redirect to sign-in page)
+  const handleSignInII = () => {
     try {
       // Redirect to the II-only signin page with callback back to current page
       const currentUrl = window.location.href;
       const locale = window.location.pathname.split('/')[1]; // Extract locale from current path
       const signinUrl = `/${locale}/sign-ii-only?callbackUrl=${encodeURIComponent(currentUrl)}`;
+
+      // Debug logging for callback URL
+      console.log('Management Component Debug:', {
+        currentUrl,
+        locale,
+        signinUrl,
+        encodedCallbackUrl: encodeURIComponent(currentUrl),
+      });
+
       router.push(signinUrl);
     } catch (error) {
       logger.error('Failed to redirect to II signin page:', undefined, {
@@ -62,6 +67,45 @@ export function InternetIdentityManagement({ className = '' }: InternetIdentityM
       toast({
         title: 'Redirect Failed',
         description: 'Failed to redirect to Internet Identity linking page',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Handle signing out from Internet Identity
+  const handleSignOutII = async () => {
+    try {
+      // Clear the Internet Identity session
+      await clearIiSession();
+
+      // Clear cached backend actor (global cleanup)
+      clearActor();
+
+      // Clear II authentication from NextAuth session
+      try {
+        await update({
+          clearActiveIc: true,
+        });
+        logger.info('Successfully cleared II authentication from NextAuth session');
+      } catch (error) {
+        logger.warn('Failed to clear II authentication from session', undefined, {
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // Don't fail the sign out if session update fails
+      }
+
+      toast({
+        title: 'Signed Out',
+        description: 'Successfully signed out from Internet Identity',
+      });
+    } catch (error) {
+      logger.error('Failed to sign out from Internet Identity:', undefined, {
+        data: error instanceof Error ? error : undefined,
+      });
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      toast({
+        title: 'Sign Out Failed',
+        description: `Failed to sign out: ${errorMessage}`,
         variant: 'destructive',
       });
     }
@@ -142,19 +186,28 @@ export function InternetIdentityManagement({ className = '' }: InternetIdentityM
         {/* Linked Accounts Component - Show when there are linked principals */}
         {linkedIcPrincipals.length > 0 && (
           <div className="pt-4 border-t">
-            <LinkedAccounts showActions={true} />
+            <LinkedAccounts showActions={true} noCard={true} />
           </div>
         )}
 
         {/* Action Buttons */}
-        {!isAuthenticated && (
-          <div className="pt-4 border-t">
-            <Button onClick={handleLinkII}>
+        <div className="pt-4 border-t">
+          {!isAuthenticated ? (
+            <Button onClick={handleSignInII}>
               <User className="h-4 w-4 mr-2" />
               Connect Internet Identity
             </Button>
-          </div>
-        )}
+          ) : (
+            <Button
+              onClick={handleSignOutII}
+              variant="outline"
+              className="border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/20"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out from Internet Identity
+            </Button>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

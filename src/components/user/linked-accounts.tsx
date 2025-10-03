@@ -19,12 +19,18 @@ import { useSession } from 'next-auth/react';
 import { getAuthStatus } from '@/lib/utils/auth-status';
 
 import { logger } from '@/lib/logger';
+
+function shortenPrincipal(principal: string): string {
+  return `${principal.slice(0, 5)}…${principal.slice(-5)}`;
+}
+
 interface LinkedAccountsProps {
   showActions?: boolean;
   className?: string;
+  noCard?: boolean; // When true, don't wrap in Card component
 }
 
-export function LinkedAccounts({ showActions = true, className = '' }: LinkedAccountsProps) {
+export function LinkedAccounts({ showActions = true, className = '', noCard = false }: LinkedAccountsProps) {
   const { data: session } = useSession();
 
   // New hooks
@@ -41,12 +47,10 @@ export function LinkedAccounts({ showActions = true, className = '' }: LinkedAcc
   const [isCopying, setIsCopying] = useState(false);
 
   // Copy Principal to clipboard
-  const copyPrincipalToClipboard = async () => {
-    if (!displayPrincipal) return;
-
+  const handleCopyPrincipal = async (principal: string) => {
     setIsCopying(true);
     try {
-      await navigator.clipboard.writeText(displayPrincipal);
+      await navigator.clipboard.writeText(principal);
       toast({
         title: 'Copied!',
         description: 'Principal ID copied to clipboard',
@@ -63,25 +67,6 @@ export function LinkedAccounts({ showActions = true, className = '' }: LinkedAcc
     }
   };
 
-  // Handle linking II account
-  const handleLinkII = () => {
-    try {
-      // Redirect to the II-only signin page with callback back to current page
-      const currentUrl = window.location.href;
-      const signinUrl = `/en/sign-ii-only?callbackUrl=${encodeURIComponent(currentUrl)}`;
-      window.location.href = signinUrl;
-    } catch (error) {
-      logger.error('Failed to redirect to II signin page:', undefined, {
-        data: error instanceof Error ? error : undefined,
-      });
-      toast({
-        title: 'Redirect Failed',
-        description: 'Failed to redirect to Internet Identity linking page',
-        variant: 'destructive',
-      });
-    }
-  };
-
   // Handle unlinking II account
   const handleUnlinkII = () => {
     // This would typically show confirmation dialog
@@ -94,8 +79,8 @@ export function LinkedAccounts({ showActions = true, className = '' }: LinkedAcc
   };
 
   if (!hasLinkedII) {
-    return (
-      <Card className={className}>
+    const content = (
+      <>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <LinkIcon className="h-5 w-5" />
@@ -116,66 +101,49 @@ export function LinkedAccounts({ showActions = true, className = '' }: LinkedAcc
             )}
           </div>
         </CardContent>
-      </Card>
+      </>
     );
+
+    return noCard ? content : <Card className={className}>{content}</Card>;
   }
 
-  return (
-    <Card className={className}>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <LinkIcon className="h-5 w-5" />
-          Linked Accounts
-        </CardTitle>
-      </CardHeader>
+  const content = (
+    <>
       <CardContent className="space-y-4">
-        {/* II Account Information */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="text-xs">
-                Internet Identity
-              </Badge>
-              {isCoAuthActive && (
-                <Badge variant="outline" className={`text-xs ${statusClass}`}>
-                  {statusMessage}
+        {/* Linked Principals Display */}
+        <div className="space-y-2">
+          {_linkedIcPrincipals.map(principal => (
+            <div key={principal} className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground w-2 shrink-0">•</span>
+              <code className="flex-1 bg-muted px-2 py-1 rounded text-sm font-mono truncate min-w-0">{principal}</code>
+              {principal === displayPrincipal && (
+                <Badge variant="outline" className="text-xs text-green-600 shrink-0">
+                  Active
                 </Badge>
               )}
+              <Button
+                onClick={() => handleCopyPrincipal(principal)}
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0 shrink-0"
+                disabled={isCopying}
+              >
+                <Copy className="h-3 w-3" />
+              </Button>
+              <Button
+                onClick={handleUnlinkII}
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 shrink-0"
+              >
+                <Unlink className="h-3 w-3" />
+              </Button>
             </div>
-          </div>
-
-          {/* Principal Display */}
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-muted-foreground whitespace-nowrap flex items-center h-6">
-              Principal ID:
-            </span>
-            <code className="flex-1 bg-muted px-2 py-1 rounded text-sm font-mono break-all">{displayPrincipal}</code>
-          </div>
+          ))}
         </div>
-
-        {/* Action Buttons */}
-        {showActions && (
-          <div className="flex gap-2 pt-2 border-t">
-            <Button onClick={handleLinkII} variant="outline" size="sm">
-              <LinkIcon className="h-4 w-4 mr-2" />
-              Re-link II Account
-            </Button>
-            <Button onClick={copyPrincipalToClipboard} variant="outline" size="sm" disabled={isCopying}>
-              <Copy className="h-4 w-4 mr-2" />
-              Copy Principal
-            </Button>
-            <Button
-              onClick={handleUnlinkII}
-              variant="outline"
-              size="sm"
-              className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 dark:text-red-400 dark:hover:text-red-300"
-            >
-              <Unlink className="h-4 w-4 mr-2" />
-              Unlink
-            </Button>
-          </div>
-        )}
       </CardContent>
-    </Card>
+    </>
   );
+
+  return noCard ? content : <Card className={className}>{content}</Card>;
 }
