@@ -11,6 +11,7 @@ import { compare } from 'bcrypt'; // make sure bcrypt is installed
 import { allUsers, temporaryUsers, users, accounts, iiNonces } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { consumeNonce } from '@/lib/ii-nonce';
+import { getLinkedPrincipalsFromDB } from '@/lib/get-linked-principals';
 
 declare module 'next-auth' {
   interface User {
@@ -295,16 +296,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // On any sign-in, (re)load linked principals once from DB
         const uid = (user?.id as string | undefined) ?? (token.sub as string | undefined);
         if (uid) {
-          try {
-            const iiAccounts = await db.query.accounts.findMany({
-              where: (a, { and, eq }) => and(eq(a.userId, uid), eq(a.provider, 'internet-identity')),
-              columns: { providerAccountId: true },
-            });
-            token.linkedIcPrincipals = iiAccounts.map(account => account.providerAccountId);
-          } catch (error) {
-            console.warn('Failed to fetch linked principals:', error);
-            token.linkedIcPrincipals = [];
-          }
+          token.linkedIcPrincipals = await getLinkedPrincipalsFromDB(uid);
         }
       }
 
@@ -408,6 +400,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       console.log('[Auth] 🔗 Account linked:', account);
     },
     async signIn({ user: _user, account: _account, profile: _profile }) {},
-    async signOut(message) {},
+        async signOut(_message) {},
   },
 });
