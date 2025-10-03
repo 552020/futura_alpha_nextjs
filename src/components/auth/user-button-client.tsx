@@ -13,12 +13,12 @@ import {
 import { SignOut } from './auth-components';
 import Link from 'next/link';
 // Removed tooltip to avoid click interception; using native title on button instead
-import { useIICoAuth } from '@/hooks/use-ii-coauth';
+import { useICPIdentity } from '@/hooks/use-icp-identity';
 import { Badge } from '@/components/ui/badge';
 
 export default function UserButtonClient({ lang = 'en' }: { lang?: string }) {
   const { data: session, status } = useSession();
-  const { isCoAuthActive, activeIcPrincipal, statusMessage, statusClass } = useIICoAuth();
+  const { principal, isAuthenticated } = useICPIdentity();
 
   if (status === 'loading') {
     return (
@@ -36,12 +36,12 @@ export default function UserButtonClient({ lang = 'en' }: { lang?: string }) {
     );
   }
 
-  // Only show Principal when II co-auth is active
-  const principal = isCoAuthActive ? activeIcPrincipal : undefined;
+  // Show principal only when actually signed in with II
+  const showPrincipal = isAuthenticated && !!principal;
   const name =
     session.user.name ||
     session.user.email ||
-    (principal ? `Principal ${principal.slice(0, 8)}…${principal.slice(-6)}` : 'User');
+    (showPrincipal ? `Principal ${principal!.slice(0, 8)}…${principal!.slice(-6)}` : 'User');
   const initials = name
     .split(' ')
     .map(n => n[0])
@@ -79,8 +79,8 @@ export default function UserButtonClient({ lang = 'en' }: { lang?: string }) {
             {principal && (
               <div className="space-y-1">
                 <p className="text-muted-foreground text-xs leading-none break-all">{principal}</p>
-                <Badge variant="outline" className={`text-xs ${statusClass}`}>
-                  {statusMessage}
+                <Badge variant="outline" className="text-xs text-green-600">
+                  Active
                 </Badge>
               </div>
             )}

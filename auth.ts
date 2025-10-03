@@ -13,6 +13,46 @@ import { eq } from 'drizzle-orm';
 import { consumeNonce } from '@/lib/ii-nonce';
 import { getLinkedPrincipalsFromDB } from '@/lib/get-linked-principals';
 
+/**
+ * Links Internet Identity to an existing user session if one exists.
+ *
+ * TODO: Extend this to all authentication providers for complete account linking.
+ *
+ * PROBLEMS TO SOLVE:
+ * - Google/GitHub: Use `profile()` function, not `authorize()` - need custom logic
+ * - Email/Password: Already uses existing user lookup (correct behavior)
+ * - Need to modify OAuth providers to check for active session before creating new user
+ * - DrizzleAdapter handles OAuth linking automatically, but we need session-aware linking
+ *
+ * @param principal - The Internet Identity principal
+ * @returns User data if linking succeeds, null if no active session
+ */
+async function linkInternetIdentityToActiveSession(principal: string) {
+  try {
+    const activeSession = await auth();
+    if (activeSession?.user?.id) {
+      // Link II principal to existing user
+      await db.insert(accounts).values({
+        userId: activeSession.user.id,
+        type: 'oidc',
+        provider: 'internet-identity',
+        providerAccountId: principal,
+      });
+
+      return {
+        id: activeSession.user.id,
+        email: activeSession.user.email,
+        name: activeSession.user.name,
+        role: activeSession.user.role,
+        icpPrincipal: principal,
+      };
+    }
+  } catch (sessionError) {
+    console.warn('Failed to check active session for Internet Identity linking, creating new user:', sessionError);
+  }
+  return null;
+}
+
 declare module 'next-auth' {
   interface User {
     role?: string;
@@ -203,7 +243,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             }
           }
 
-          // Create a new user and account mapping
+          // NEW: Check for active session to link Internet Identity to existing user
+          const linkedUser = await linkInternetIdentityToActiveSession(principal);
+          if (linkedUser) {
+            return linkedUser;
+          }
+
+          // Create a new user and account mapping (fallback)
           const insertedUsers = await db
             .insert(users)
             .values({})

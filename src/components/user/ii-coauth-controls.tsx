@@ -12,13 +12,15 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { User, UserCheck, Clock, RefreshCw, LogOut, Copy } from 'lucide-react';
-import { useIICoAuth } from '@/hooks/use-ii-coauth';
+import { Badge } from '@/components/ui/badge';
+import { Shield, ShieldCheck, RefreshCw, LogOut } from 'lucide-react';
+import { useIILinks } from '@/hooks/use-ii-links';
+import { useICPIdentity } from '@/hooks/use-icp-identity';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { getAuthStatus } from '@/lib/utils/auth-status';
 
 import { logger } from '@/lib/logger';
 interface IICoAuthControlsProps {
@@ -26,29 +28,34 @@ interface IICoAuthControlsProps {
 }
 
 export function IICoAuthControls({ className = '' }: IICoAuthControlsProps) {
-  const { update } = useSession();
+  const { update, data: session } = useSession();
   const router = useRouter();
-  const {
-    hasLinkedII,
-    isCoAuthActive,
-    activeIcPrincipal,
-    statusMessage,
-    statusClass,
-    remainingMinutes,
-    disconnectII,
-    refreshTTL,
-    isExpired,
-    requiresReAuth,
-  } = useIICoAuth();
+
+  // New hooks
+  const { hasLinkedII: _hasLinkedII, linkedIcPrincipals: _linkedIcPrincipals, unlinkII: _unlinkII } = useIILinks();
+  const { principal, isAuthenticated } = useICPIdentity();
+
+  // Check app login status
+  const authStatus = getAuthStatus(session);
+
+  // Clear authentication state
+  const isLoggedInWithII = isAuthenticated; // User is currently logged in with Internet Identity
+  const currentIIPrincipal = principal; // Current Internet Identity principal
+  const statusMessage = isAuthenticated ? 'Connected' : 'Not Connected';
+  const statusClass = isAuthenticated ? 'text-green-600' : 'text-gray-500';
+
+  // Use session principal as fallback if no active II session
+  const displayPrincipal = currentIIPrincipal || authStatus.activeIcPrincipal;
+
+  // Placeholder disconnect function (will be implemented later)
+  const disconnectII = async () => {
+    // TODO: Implement disconnect functionality
+    console.log('Disconnect II - not implemented yet');
+  };
 
   const { toast } = useToast();
 
   const [isDisconnecting, setIsDisconnecting] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isCopying, setIsCopying] = useState(false);
-
-  // Calculate progress percentage for TTL (15 min = 900 seconds)
-  const ttlProgress = remainingMinutes > 0 ? Math.max(0, (remainingMinutes / 15) * 100) : 0;
 
   // Handle linking II account (redirect to sign-in page)
   const handleLinkII = (signinPagePath = 'sign-ii-only') => {
@@ -126,71 +133,27 @@ export function IICoAuthControls({ className = '' }: IICoAuthControlsProps) {
     }
   };
 
-  // Handle copying principal to clipboard
-  const copyPrincipalToClipboard = async () => {
-    if (!activeIcPrincipal) return;
-
-    setIsCopying(true);
-    try {
-      await navigator.clipboard.writeText(activeIcPrincipal);
-      toast({
-        title: 'Copied!',
-        description: 'Principal ID copied to clipboard',
-      });
-    } catch (error) {
-      logger.error('Failed to copy:', undefined, { data: error instanceof Error ? error : undefined });
-      toast({
-        title: 'Copy Failed',
-        description: 'Failed to copy principal ID to clipboard',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsCopying(false);
-    }
-  };
-
-  // Handle TTL refresh
-  const handleRefreshTTL = async () => {
-    setIsRefreshing(true);
-    try {
-      await refreshTTL();
-      toast({
-        title: 'II Co-Auth Refreshed',
-        description: 'Your Internet Identity session has been extended',
-      });
-    } catch (error) {
-      logger.error('Failed to refresh II TTL:', undefined, { data: error instanceof Error ? error : undefined });
-      toast({
-        title: 'Refresh Failed',
-        description: 'Failed to refresh Internet Identity session. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
-  // If no linked II account, show nothing
-  if (!hasLinkedII) {
-    return null;
-  }
+  // Show component even if no linked II account (to show connect button)
+  // if (!hasLinkedII) {
+  //   return null;
+  // }
 
   return (
     <Card
       className={`border-2 ${
-        isCoAuthActive
-          ? 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/20'
+        isLoggedInWithII
+          ? 'border-green-200 bg-green-50 dark:border-green-700 dark:bg-green-900/20'
           : 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/20'
       } ${className}`}
     >
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
-          {isCoAuthActive ? (
-            <UserCheck className="h-6 w-6 text-slate-600" />
+          {isLoggedInWithII ? (
+            <ShieldCheck className="h-6 w-6 text-green-600" />
           ) : (
-            <User className="h-6 w-6 text-slate-600" />
+            <Shield className="h-6 w-6 text-slate-600" />
           )}
-          Internet Identity Controls
+          Internet Identity Connection
         </CardTitle>
       </CardHeader>
 
@@ -199,82 +162,70 @@ export function IICoAuthControls({ className = '' }: IICoAuthControlsProps) {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">Status:</span>
-              <span className={`text-sm ${statusClass}`}>{statusMessage}</span>
+              <span className="text-sm font-medium">II Connection:</span>
+              <Badge variant="outline" className={statusClass}>
+                {statusMessage}
+              </Badge>
             </div>
-
-            {isCoAuthActive && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Clock className="h-4 w-4" />
-                <span>{remainingMinutes}m remaining</span>
-              </div>
-            )}
           </div>
 
-          {/* TTL Progress Bar */}
-          {isCoAuthActive && remainingMinutes > 0 && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Session Time Remaining</span>
-                <span>{remainingMinutes}m</span>
-              </div>
-              <Progress value={ttlProgress} className="h-2" />
-            </div>
-          )}
+          {/* App Login Status */}
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">App Login:</span>
+            <Badge variant="outline" className="text-blue-600">
+              {authStatus.providerDisplayName}
+            </Badge>
+          </div>
 
           {/* Principal Display */}
-          {activeIcPrincipal && !isExpired && !requiresReAuth && (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 min-w-0 flex-1">
-                <span className="text-sm font-medium">Active Principal:</span>
-                <span className="text-sm truncate flex-1">{activeIcPrincipal}</span>
+          {displayPrincipal && (
+            <div className="bg-muted rounded-md p-3">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-green-600" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground mb-1">Current Principal</p>
+                  <p className="font-mono text-sm break-all">{displayPrincipal}</p>
+                </div>
               </div>
-              <Button
-                onClick={copyPrincipalToClipboard}
-                disabled={isCopying}
-                variant="ghost"
-                size="sm"
-                className="ml-2 h-8 w-8 p-0"
-              >
-                {isCopying ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Copy className="h-4 w-4" />}
-              </Button>
             </div>
           )}
         </div>
 
         {/* Action Buttons */}
         <div className="flex flex-wrap gap-2">
-          {!isCoAuthActive || isExpired || requiresReAuth ? (
-            // Show Link button when inactive or expired
+          {!isLoggedInWithII ? (
+            // Show Connect button when not logged in
             <Button onClick={() => handleLinkII()} className="flex-1">
-              <User className="h-4 w-4 mr-2" />
+              <Shield className="h-4 w-4 mr-2" />
               Connect Internet Identity
             </Button>
           ) : (
-            // Show management buttons when active and not expired
-            <>
-              <Button onClick={handleRefreshTTL} disabled={isRefreshing} variant="outline" className="flex-1">
-                {isRefreshing ? (
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                )}
-                Extend Session
-              </Button>
+            // Show disconnect button when logged in
+            <Button
+              onClick={handleDisconnectII}
+              disabled={isDisconnecting}
+              variant="outline"
+              className="flex-1 border-red-200 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/20"
+            >
+              {isDisconnecting ? (
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <LogOut className="h-4 w-4 mr-2" />
+              )}
+              Disconnect
+            </Button>
+          )}
+        </div>
 
-              <Button
-                onClick={handleDisconnectII}
-                disabled={isDisconnecting}
-                variant="outline"
-                className="flex-1 border-red-200 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/20"
-              >
-                {isDisconnecting ? (
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <LogOut className="h-4 w-4 mr-2" />
-                )}
-                Disconnect for This Session
-              </Button>
+        {/* Status Messages */}
+        <div className="text-xs text-muted-foreground space-y-1">
+          {isLoggedInWithII ? (
+            <>
+              <p>✅ Connected to Internet Identity - you can perform ICP operations</p>
+            </>
+          ) : (
+            <>
+              <p>⚠️ Connect your Internet Identity to enable ICP operations</p>
             </>
           )}
         </div>

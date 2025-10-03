@@ -11,9 +11,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Copy, Link as LinkIcon, Unlink } from 'lucide-react';
-import { useIICoAuth } from '@/hooks/use-ii-coauth';
+import { useIILinks } from '@/hooks/use-ii-links';
+import { useICPIdentity } from '@/hooks/use-icp-identity';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
+import { useSession } from 'next-auth/react';
+import { getAuthStatus } from '@/lib/utils/auth-status';
 
 import { logger } from '@/lib/logger';
 interface LinkedAccountsProps {
@@ -22,17 +25,28 @@ interface LinkedAccountsProps {
 }
 
 export function LinkedAccounts({ showActions = true, className = '' }: LinkedAccountsProps) {
-  const { hasLinkedII, linkedIcPrincipal, isCoAuthActive, statusMessage, statusClass } = useIICoAuth();
+  const { data: session } = useSession();
+
+  // New hooks
+  const { hasLinkedII, linkedIcPrincipals: _linkedIcPrincipals, unlinkII: _unlinkII } = useIILinks();
+  const { principal, isAuthenticated } = useICPIdentity();
+  const authStatus = getAuthStatus(session);
+
+  // Use session principal as fallback if no active II session
+  const displayPrincipal = principal || authStatus.activeIcPrincipal;
+  const isCoAuthActive = isAuthenticated || authStatus.hasActiveIcPrincipal;
+  const statusMessage = isCoAuthActive ? 'Active' : 'Not Connected';
+  const statusClass = isCoAuthActive ? 'text-green-600' : 'text-gray-500';
   const { toast } = useToast();
   const [isCopying, setIsCopying] = useState(false);
 
   // Copy Principal to clipboard
   const copyPrincipalToClipboard = async () => {
-    if (!linkedIcPrincipal) return;
+    if (!displayPrincipal) return;
 
     setIsCopying(true);
     try {
-      await navigator.clipboard.writeText(linkedIcPrincipal);
+      await navigator.clipboard.writeText(displayPrincipal);
       toast({
         title: 'Copied!',
         description: 'Principal ID copied to clipboard',
@@ -57,7 +71,9 @@ export function LinkedAccounts({ showActions = true, className = '' }: LinkedAcc
       const signinUrl = `/en/sign-ii-only?callbackUrl=${encodeURIComponent(currentUrl)}`;
       window.location.href = signinUrl;
     } catch (error) {
-      logger.error('Failed to redirect to II signin page:', undefined, { data: error instanceof Error ? error : undefined });
+      logger.error('Failed to redirect to II signin page:', undefined, {
+        data: error instanceof Error ? error : undefined,
+      });
       toast({
         title: 'Redirect Failed',
         description: 'Failed to redirect to Internet Identity linking page',
@@ -133,7 +149,7 @@ export function LinkedAccounts({ showActions = true, className = '' }: LinkedAcc
             <span className="text-sm font-medium text-muted-foreground whitespace-nowrap flex items-center h-6">
               Principal ID:
             </span>
-            <code className="flex-1 bg-muted px-2 py-1 rounded text-sm font-mono break-all">{linkedIcPrincipal}</code>
+            <code className="flex-1 bg-muted px-2 py-1 rounded text-sm font-mono break-all">{displayPrincipal}</code>
           </div>
         </div>
 

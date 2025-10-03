@@ -17,8 +17,9 @@ import { Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getAuthClient as getIiAuthClient, clearIiSession } from '@/ic/ii';
 import RequireAuth from '@/components/auth/require-auth';
-import { LinkedAccounts } from '@/components/user/linked-accounts';
+import { InternetIdentityManagement } from '@/components/user/internet-identity-management';
 import { IICoAuthControls } from '@/components/user/ii-coauth-controls';
+import { LinkedAccounts } from '@/components/user/linked-accounts';
 
 import { logger } from '@/lib/logger';
 export default function ICPPage() {
@@ -540,14 +541,16 @@ export default function ICPPage() {
     <div className="container mx-auto px-6 py-8">
       <h1 className="text-3xl font-bold mb-6">Hello ICP</h1>
 
-      {/* II Co-Auth Controls - PROMINENTLY DISPLAYED FIRST */}
+      {/* Internet Identity Management - Unified Component */}
       <div className="mb-6">
-        <IICoAuthControls />
+        <InternetIdentityManagement />
       </div>
 
-      {/* Linked Accounts Section */}
-      <div className="mb-6">
-        <LinkedAccounts showActions={true} />
+      {/* Testing Components - Refactored for Safer Path */}
+      <div className="mb-6 space-y-4">
+        <h2 className="text-xl font-semibold">Testing Components (Refactored)</h2>
+        <IICoAuthControls />
+        <LinkedAccounts />
       </div>
 
       <div className="mb-6 flex gap-4">
