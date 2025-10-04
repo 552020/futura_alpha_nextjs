@@ -1,6 +1,7 @@
 import { logger } from '@/lib/logger';
 import type { CapsuleInfo, Capsule, PersonRef, CapsuleUpdateData, CapsuleError } from '@/types/capsule';
 import type { BackendActor } from '@/ic/backend';
+import type { Identity } from '@dfinity/agent';
 import {
   isBackendConnectionError,
   isAuthenticationError,
@@ -442,5 +443,75 @@ export async function listCapsules(getActor: () => Promise<BackendActor>, clearA
     }
 
     throw createServiceError(`Failed to list capsules: ${errorMessage}`);
+  }
+}
+
+/**
+ * Ensures a self-capsule exists for the authenticated user.
+ * This function is idempotent - if the capsule already exists, it just returns it.
+ * Used for auto-creation during sign-in flow.
+ */
+export async function ensureSelfCapsule(
+  getActor: () => Promise<BackendActor>,
+  clearActor: () => void
+): Promise<Capsule> {
+  try {
+    logger.info('Ensuring self-capsule exists');
+
+    const actor = await getActor();
+
+    // Try to create a self-capsule (subject = null means self-capsule)
+    const capsuleResult = await actor.capsules_create([]);
+
+    // Handle the Result type
+    if ('Ok' in capsuleResult) {
+      logger.info('Self-capsule ensured successfully');
+      return capsuleResult.Ok;
+    } else {
+      throw createServiceError(`Failed to create capsule: ${JSON.stringify(capsuleResult.Err)}`);
+    }
+  } catch (error) {
+    logger.error('Failed to ensure self-capsule:', undefined, {
+      data: error instanceof Error ? error : undefined,
+    });
+
+    // Clear actor on authentication errors
+    if (isAuthenticationError(error)) {
+      clearActor();
+      throw createAuthenticationExpiredError('Your session has expired. Please sign in again.');
+    }
+
+    throw error;
+  }
+}
+
+/**
+ * Ensures a self-capsule exists using a raw Identity object.
+ * This is a convenience wrapper for the sign-in flow where we have raw Identity.
+ * Used for auto-creation during sign-in flow.
+ */
+export async function ensureSelfCapsuleWithIdentity(identity: Identity): Promise<Capsule> {
+  try {
+    logger.info('Ensuring self-capsule exists with raw identity');
+
+    // Create actor with the provided identity
+    const { backendActor } = await import('@/ic/backend');
+    const actor = await backendActor(identity);
+
+    // Try to create a self-capsule (subject = null means self-capsule)
+    const capsuleResult = await actor.capsules_create([]);
+
+    // Handle the Result type
+    if ('Ok' in capsuleResult) {
+      logger.info('Self-capsule ensured successfully with raw identity');
+      return capsuleResult.Ok;
+    } else {
+      throw createServiceError(`Failed to create capsule: ${JSON.stringify(capsuleResult.Err)}`);
+    }
+  } catch (error) {
+    logger.error('Failed to ensure self-capsule with raw identity:', undefined, {
+      data: error instanceof Error ? error : undefined,
+    });
+    throw error;
   }
 }

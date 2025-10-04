@@ -1,12 +1,12 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import CapsuleDisplay from '@/components/icp/capsule-display';
+import CapsuleList from '@/components/icp/capsule-list';
 import { useToast } from '@/hooks/use-toast';
 import { getAuthClient } from '@/ic/ii';
 import { useAuthenticatedActor } from '@/hooks/use-authenticated-actor';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { CapsuleInfo, CapsuleState, CapsuleError, Capsule } from '@/types/capsule';
 import { getCapsuleFull, createCapsule } from '@/services/capsule';
 
@@ -48,6 +48,26 @@ export function CapsuleInfo() {
   }, [state.capsule]);
   const { getActor, clearActor } = useAuthenticatedActor();
   const { toast } = useToast();
+
+  // Auto-load capsule when component mounts (if authenticated and no capsule loaded)
+  useEffect(() => {
+    const autoLoadCapsule = async () => {
+      try {
+        const authClient = await getAuthClient();
+        const isAuthenticated = await authClient.isAuthenticated();
+
+        if (isAuthenticated && !state.capsule && !state.isLoading) {
+          console.log('Auto-loading capsule on component mount');
+          await handleGetCapsuleInfo();
+        }
+      } catch (error) {
+        console.error('Failed to auto-load capsule:', error);
+        // Don't show toast for auto-load failures - user can manually click "Get Capsule Info"
+      }
+    };
+
+    autoLoadCapsule();
+  }, []); // Only run once on mount
 
   // Shared helper functions to eliminate duplication
   const checkAuthentication = async (): Promise<boolean> => {
@@ -170,68 +190,13 @@ export function CapsuleInfo() {
           </Button>
         </div>
 
+        {/* Capsule List */}
+        <div className="mt-6">
+          <CapsuleList />
+        </div>
+
         {/* Capsule Information Display */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Your Capsule Information</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {capsuleInfo ? (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-sm font-medium">Capsule ID</Label>
-                    <p className="text-sm text-muted-foreground font-mono">{capsuleInfo.capsule_id}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Subject</Label>
-                    <p className="text-sm text-muted-foreground">
-                      {'Principal' in capsuleInfo.subject
-                        ? `Principal: ${capsuleInfo.subject.Principal}`
-                        : `Opaque: ${capsuleInfo.subject.Opaque}`}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Is Owner</Label>
-                    <p className="text-sm text-muted-foreground">{capsuleInfo.is_owner ? 'Yes' : 'No'}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Is Controller</Label>
-                    <p className="text-sm text-muted-foreground">{capsuleInfo.is_controller ? 'Yes' : 'No'}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Is Self Capsule</Label>
-                    <p className="text-sm text-muted-foreground">{capsuleInfo.is_self_capsule ? 'Yes' : 'No'}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Bound to Neon</Label>
-                    <p className="text-sm text-muted-foreground">{capsuleInfo.bound_to_neon ? 'Yes' : 'No'}</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-sm font-medium">Created At</Label>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(Number(capsuleInfo.created_at) / 1000000).toLocaleString('en-US')}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Updated At</Label>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(Number(capsuleInfo.updated_at) / 1000000).toLocaleString('en-US')}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-4">
-                <p className="text-muted-foreground">
-                  No capsule found. Click &quot;Get Capsule Info&quot; to retrieve your capsule information.
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <CapsuleDisplay capsuleInfo={capsuleInfo} isLoading={state.isLoading} onCreateCapsule={handleCreateCapsule} />
       </div>
     </div>
   );

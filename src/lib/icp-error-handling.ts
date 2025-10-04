@@ -50,7 +50,11 @@ export function classifyIcpError(e: unknown): ClassifiedError {
     code &&
     ['NotFound', 'InvalidArgument', 'Conflict', 'ResourceExhausted', 'NotImplemented', 'Internal'].includes(code)
   ) {
-    return { kind: 'business', code: code as "NotFound" | "InvalidArgument" | "Conflict" | "ResourceExhausted" | "NotImplemented" | "Internal", message: errorObj?.message };
+    return {
+      kind: 'business',
+      code: code as 'NotFound' | 'InvalidArgument' | 'Conflict' | 'ResourceExhausted' | 'NotImplemented' | 'Internal',
+      message: errorObj?.message,
+    };
   }
 
   // Unauthorized via canister reject - Tech lead guidance

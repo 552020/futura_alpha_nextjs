@@ -56,5 +56,3 @@ export function useICPIdentity() {
 
   return { principal, isAuthenticated, isLoading, refresh };
 }
-
-

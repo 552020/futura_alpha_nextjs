@@ -48,6 +48,13 @@ function SignIIOnlyContent() {
       const { loginWithII } = await import('@/ic/ii');
       const { identity } = await loginWithII();
 
+      // 1.5) Start non-blocking capsule auto-creation
+      const { ensureSelfCapsuleWithIdentity } = await import('@/services/capsule');
+      ensureSelfCapsuleWithIdentity(identity).catch(error => {
+        console.error('Capsule auto-creation failed:', error);
+        // Could show a toast: "Auto-creation failed, please create manually"
+      });
+
       // 2) Fetch challenge and register (create proof/nonce)
       const { fetchChallenge, registerWithNonce } = await import('@/lib/ii-client');
       const challenge = await fetchChallenge(safeCallbackUrl);
