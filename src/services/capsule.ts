@@ -1,32 +1,81 @@
 import { logger } from '@/lib/logger';
-import type { CapsuleInfo, Capsule } from '@/ic/declarations/backend/backend.did';
+import type { CapsuleInfo, Capsule, PersonRef, CapsuleUpdateData, CapsuleError } from '@/types/capsule';
 import type { BackendActor } from '@/ic/backend';
+import {
+  isBackendConnectionError,
+  isAuthenticationError,
+  createBackendConnectionError,
+  createAuthenticationExpiredError,
+  createServiceError,
+} from '@/lib/icp-error-handling';
 
 /**
- * Custom error types for capsule operations
+ * Create typed capsule errors
  */
-export function createCapsuleNotFoundError(message: string = 'Capsule not found'): Error {
-  const error = new Error(message);
-  error.name = 'CapsuleNotFoundError';
-  return error;
+export function createCapsuleError(kind: CapsuleError['kind'], message: string): CapsuleError {
+  return { kind, message };
 }
 
-export function createCapsuleUnauthorizedError(message: string = 'Unauthorized access to capsule'): Error {
-  const error = new Error(message);
-  error.name = 'CapsuleUnauthorizedError';
-  return error;
-}
+/**
+ * Get full capsule data for the authenticated user
+ * @param getActor - Function to get authenticated actor
+ * @param clearActor - Function to clear cached actor
+ * @returns Promise<Capsule | null> - Full capsule data or null if no capsule exists
+ * @throws CapsuleServiceError - For general service errors
+ * @throws AuthenticationExpiredError - When authentication expires
+ */
+export async function getCapsuleFull(
+  getActor: () => Promise<BackendActor>,
+  clearActor: () => void
+): Promise<Capsule | null> {
+  try {
+    logger.info('Getting full capsule data for authenticated user');
 
-export function createCapsuleServiceError(message: string = 'Capsule service error'): Error {
-  const error = new Error(message);
-  error.name = 'CapsuleServiceError';
-  return error;
-}
+    const authenticatedActor = await getActor();
+    const capsuleResult = await authenticatedActor.capsules_read_full([]);
 
-export function createAuthenticationExpiredError(message: string = 'Authentication expired'): Error {
-  const error = new Error(message);
-  error.name = 'AuthenticationExpiredError';
-  return error;
+    if ('Ok' in capsuleResult) {
+      logger.info('Successfully retrieved full capsule data');
+      return capsuleResult.Ok;
+    } else {
+      logger.info('No capsule found for user');
+      return null;
+    }
+  } catch (error) {
+    logger.error('Failed to get full capsule data', undefined, { data: error as Error });
+
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    // Handle backend connection issues
+    if (isBackendConnectionError(error)) {
+      throw createCapsuleError(
+        'connection',
+        'Cannot connect to the backend service. Please check your internet connection and try again.'
+      );
+    }
+
+    // Handle authentication expiration
+    if (isAuthenticationError(error)) {
+      clearActor();
+      throw createCapsuleError('authExpired', 'Your session has expired. Please sign in again.');
+    }
+
+    // Handle business logic errors
+    if (errorMessage.includes('NotFound') || errorMessage.includes('not found')) {
+      throw createCapsuleError('notFound', 'Capsule not found');
+    }
+
+    if (errorMessage.includes('Unauthorized') || errorMessage.includes('access denied')) {
+      throw createCapsuleError('unauthorized', 'Access denied to capsule');
+    }
+
+    if (errorMessage.includes('InvalidArgument') || errorMessage.includes('invalid')) {
+      throw createCapsuleError('invalid', 'Invalid request parameters');
+    }
+
+    // Fallback to internal error
+    throw createCapsuleError('internal', `Failed to get full capsule data: ${errorMessage}`);
+  }
 }
 
 /**
@@ -59,18 +108,35 @@ export async function getCapsuleInfo(
 
     const errorMessage = error instanceof Error ? error.message : String(error);
 
-    // Handle authentication expiration
-    if (
-      errorMessage.includes('Invalid delegation') ||
-      errorMessage.includes('expired') ||
-      errorMessage.includes('401') ||
-      errorMessage.includes('Not authenticated')
-    ) {
-      clearActor();
-      throw createAuthenticationExpiredError('Your session has expired. Please sign in again.');
+    // Handle backend connection issues
+    if (isBackendConnectionError(error)) {
+      throw createCapsuleError(
+        'connection',
+        'Cannot connect to the backend service. Please check your internet connection and try again.'
+      );
     }
 
-    throw createCapsuleServiceError(`Failed to get capsule info: ${errorMessage}`);
+    // Handle authentication expiration
+    if (isAuthenticationError(error)) {
+      clearActor();
+      throw createCapsuleError('authExpired', 'Your session has expired. Please sign in again.');
+    }
+
+    // Handle business logic errors
+    if (errorMessage.includes('NotFound') || errorMessage.includes('not found')) {
+      throw createCapsuleError('notFound', 'Capsule not found');
+    }
+
+    if (errorMessage.includes('Unauthorized') || errorMessage.includes('access denied')) {
+      throw createCapsuleError('unauthorized', 'Access denied to capsule');
+    }
+
+    if (errorMessage.includes('InvalidArgument') || errorMessage.includes('invalid')) {
+      throw createCapsuleError('invalid', 'Invalid request parameters');
+    }
+
+    // Fallback to internal error
+    throw createCapsuleError('internal', `Failed to get capsule info: ${errorMessage}`);
   }
 }
 
@@ -91,7 +157,7 @@ export async function readCapsule(
   clearActor: () => void
 ): Promise<Capsule | null> {
   if (!capsuleId.trim()) {
-    throw createCapsuleServiceError('Capsule ID is required');
+    throw createServiceError('Capsule ID is required');
   }
 
   try {
@@ -112,27 +178,35 @@ export async function readCapsule(
 
     const errorMessage = error instanceof Error ? error.message : String(error);
 
-    // Handle authentication expiration
-    if (
-      errorMessage.includes('Invalid delegation') ||
-      errorMessage.includes('expired') ||
-      errorMessage.includes('401') ||
-      errorMessage.includes('Not authenticated')
-    ) {
-      clearActor();
-      throw createAuthenticationExpiredError('Your session has expired. Please sign in again.');
+    // Handle backend connection issues
+    if (isBackendConnectionError(error)) {
+      throw createCapsuleError(
+        'connection',
+        'Cannot connect to the backend service. Please check your internet connection and try again.'
+      );
     }
 
-    // Handle specific error types
+    // Handle authentication expiration
+    if (isAuthenticationError(error)) {
+      clearActor();
+      throw createCapsuleError('authExpired', 'Your session has expired. Please sign in again.');
+    }
+
+    // Handle business logic errors
     if (errorMessage.includes('NotFound') || errorMessage.includes('not found')) {
-      throw createCapsuleNotFoundError(`Capsule not found: ${capsuleId}`);
+      throw createCapsuleError('notFound', 'Capsule not found');
     }
 
     if (errorMessage.includes('Unauthorized') || errorMessage.includes('access denied')) {
-      throw createCapsuleUnauthorizedError(`No access to capsule: ${capsuleId}`);
+      throw createCapsuleError('unauthorized', 'Access denied to capsule');
     }
 
-    throw createCapsuleServiceError(`Failed to read capsule: ${errorMessage}`);
+    if (errorMessage.includes('InvalidArgument') || errorMessage.includes('invalid')) {
+      throw createCapsuleError('invalid', 'Invalid request parameters');
+    }
+
+    // Fallback to internal error
+    throw createCapsuleError('internal', `Failed to get capsule info: ${errorMessage}`);
   }
 }
 
@@ -146,39 +220,67 @@ export async function readCapsule(
  * @throws AuthenticationExpiredError - When authentication expires
  */
 export async function createCapsule(
-  subject: unknown,
+  subject: PersonRef | null,
   getActor: () => Promise<BackendActor>,
   clearActor: () => void
 ): Promise<Capsule> {
   try {
     logger.info('Creating new capsule');
+    console.log('🔍 Create Capsule Debug:', {
+      subject,
+      subjectType: subject ? ('Principal' in subject ? 'Principal' : 'Opaque') : 'null',
+    });
 
     const authenticatedActor = await getActor();
+    console.log('🔍 Actor obtained:', {
+      actorType: typeof authenticatedActor,
+      hasCapsulesCreate: typeof authenticatedActor.capsules_create === 'function',
+    });
+
     const capsuleResult = await authenticatedActor.capsules_create(subject ? [subject] : []);
+    console.log('🔍 Capsule creation result:', {
+      resultType: typeof capsuleResult,
+      hasOk: 'Ok' in capsuleResult,
+      hasErr: 'Err' in capsuleResult,
+      result: capsuleResult,
+    });
 
     if ('Ok' in capsuleResult) {
       logger.info('Successfully created capsule');
       return capsuleResult.Ok;
     } else {
-      throw createCapsuleServiceError(`Failed to create capsule: ${JSON.stringify(capsuleResult.Err)}`);
+      throw createServiceError(`Failed to create capsule: ${JSON.stringify(capsuleResult.Err)}`);
     }
   } catch (error) {
+    console.log('🔍 Create Capsule Error Debug:', {
+      error,
+      errorType: typeof error,
+      errorName: error instanceof Error ? error.name : 'unknown',
+      errorMessage: error instanceof Error ? error.message : String(error),
+      errorStack: error instanceof Error ? error.stack : 'no stack',
+    });
+
     logger.error('Failed to create capsule', undefined, { data: error as Error });
 
     const errorMessage = error instanceof Error ? error.message : String(error);
 
+    // Handle backend connection issues
+    if (isBackendConnectionError(error)) {
+      console.log('🔍 Detected backend connection error');
+      throw createBackendConnectionError(
+        'Cannot connect to the backend service. Please check your internet connection and try again.'
+      );
+    }
+
     // Handle authentication expiration
-    if (
-      errorMessage.includes('Invalid delegation') ||
-      errorMessage.includes('expired') ||
-      errorMessage.includes('401') ||
-      errorMessage.includes('Not authenticated')
-    ) {
+    if (isAuthenticationError(error)) {
+      console.log('🔍 Detected authentication error, clearing actor');
       clearActor();
       throw createAuthenticationExpiredError('Your session has expired. Please sign in again.');
     }
 
-    throw createCapsuleServiceError(`Failed to create capsule: ${errorMessage}`);
+    console.log('🔍 Throwing generic service error');
+    throw createServiceError(`Failed to create capsule: ${errorMessage}`);
   }
 }
 
@@ -196,12 +298,12 @@ export async function createCapsule(
  */
 export async function updateCapsule(
   capsuleId: string,
-  updates: any,
+  updates: CapsuleUpdateData,
   getActor: () => Promise<BackendActor>,
   clearActor: () => void
 ): Promise<Capsule> {
   if (!capsuleId.trim()) {
-    throw createCapsuleServiceError('Capsule ID is required');
+    throw createServiceError('Capsule ID is required');
   }
 
   try {
@@ -214,7 +316,7 @@ export async function updateCapsule(
       logger.info(`Successfully updated capsule: ${capsuleId}`);
       return capsuleResult.Ok;
     } else {
-      throw createCapsuleServiceError(`Failed to update capsule: ${JSON.stringify(capsuleResult.Err)}`);
+      throw createServiceError(`Failed to update capsule: ${JSON.stringify(capsuleResult.Err)}`);
     }
   } catch (error) {
     logger.error(`Failed to update capsule: ${capsuleId}`, undefined, { data: error as Error });
@@ -234,14 +336,14 @@ export async function updateCapsule(
 
     // Handle specific error types
     if (errorMessage.includes('NotFound') || errorMessage.includes('not found')) {
-      throw createCapsuleNotFoundError(`Capsule not found: ${capsuleId}`);
+      throw createCapsuleError('notFound', `Capsule not found: ${capsuleId}`);
     }
 
     if (errorMessage.includes('Unauthorized') || errorMessage.includes('access denied')) {
-      throw createCapsuleUnauthorizedError(`No access to capsule: ${capsuleId}`);
+      throw createCapsuleError('unauthorized', `No access to capsule: ${capsuleId}`);
     }
 
-    throw createCapsuleServiceError(`Failed to update capsule: ${errorMessage}`);
+    throw createServiceError(`Failed to update capsule: ${errorMessage}`);
   }
 }
 
@@ -262,7 +364,7 @@ export async function deleteCapsule(
   clearActor: () => void
 ): Promise<void> {
   if (!capsuleId.trim()) {
-    throw createCapsuleServiceError('Capsule ID is required');
+    throw createServiceError('Capsule ID is required');
   }
 
   try {
@@ -275,7 +377,7 @@ export async function deleteCapsule(
       logger.info(`Successfully deleted capsule: ${capsuleId}`);
       return;
     } else {
-      throw createCapsuleServiceError(`Failed to delete capsule: ${JSON.stringify(result.Err)}`);
+      throw createServiceError(`Failed to delete capsule: ${JSON.stringify(result.Err)}`);
     }
   } catch (error) {
     logger.error(`Failed to delete capsule: ${capsuleId}`, undefined, { data: error as Error });
@@ -295,14 +397,14 @@ export async function deleteCapsule(
 
     // Handle specific error types
     if (errorMessage.includes('NotFound') || errorMessage.includes('not found')) {
-      throw createCapsuleNotFoundError(`Capsule not found: ${capsuleId}`);
+      throw createCapsuleError('notFound', `Capsule not found: ${capsuleId}`);
     }
 
     if (errorMessage.includes('Unauthorized') || errorMessage.includes('access denied')) {
-      throw createCapsuleUnauthorizedError(`No access to capsule: ${capsuleId}`);
+      throw createCapsuleError('unauthorized', `No access to capsule: ${capsuleId}`);
     }
 
-    throw createCapsuleServiceError(`Failed to delete capsule: ${errorMessage}`);
+    throw createServiceError(`Failed to delete capsule: ${errorMessage}`);
   }
 }
 
@@ -314,7 +416,7 @@ export async function deleteCapsule(
  * @throws CapsuleServiceError - For general service errors
  * @throws AuthenticationExpiredError - When authentication expires
  */
-export async function listCapsules(getActor: () => Promise<any>, clearActor: () => void): Promise<any[]> {
+export async function listCapsules(getActor: () => Promise<BackendActor>, clearActor: () => void): Promise<unknown[]> {
   try {
     logger.info('Listing capsules for authenticated user');
 
@@ -339,6 +441,6 @@ export async function listCapsules(getActor: () => Promise<any>, clearActor: () 
       throw createAuthenticationExpiredError('Your session has expired. Please sign in again.');
     }
 
-    throw createCapsuleServiceError(`Failed to list capsules: ${errorMessage}`);
+    throw createServiceError(`Failed to list capsules: ${errorMessage}`);
   }
 }
