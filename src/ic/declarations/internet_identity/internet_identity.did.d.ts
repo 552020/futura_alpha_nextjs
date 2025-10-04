@@ -409,7 +409,7 @@ export type SetDefaultAccountError = {
   { 'Unauthorized' : Principal } |
   {
     'NoSuchAccount' : {
-      'account_number' : [] | [AccountNumber],
+      'origin' : FrontendHostname,
       'anchor_number' : UserNumber,
     }
   };
