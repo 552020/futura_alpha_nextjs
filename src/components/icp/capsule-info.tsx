@@ -1,14 +1,14 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import CapsuleDisplay from '@/components/icp/capsule-display';
 import CapsuleList from '@/components/icp/capsule-list';
+import { CreateCapsuleModal } from '@/components/icp/create-capsule-modal';
 import { useToast } from '@/hooks/use-toast';
 import { getAuthClient } from '@/ic/ii';
 import { useAuthenticatedActor } from '@/hooks/use-authenticated-actor';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import type { CapsuleInfo, CapsuleState, CapsuleError, Capsule } from '@/types/capsule';
-import { getCapsuleFull, createCapsule } from '@/services/capsule';
+import { getCapsuleFull } from '@/services/capsule';
 
 /**
  * CapsuleInfo Component
@@ -25,49 +25,17 @@ export function CapsuleInfo() {
     isLoading: false,
   });
 
-  // Derive CapsuleInfo from Capsule when needed
-  const capsuleInfo = useMemo<CapsuleInfo | null>(() => {
-    if (!state.capsule) return null;
+  // Modal state
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-    const c = state.capsule; // Single source of truth
+  // Track if user has a self-capsule
+  const [hasSelfCapsule, setHasSelfCapsule] = useState(false);
+  
+  // Refresh trigger for capsule list
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-    // Derive CapsuleInfo from Capsule
-    return {
-      capsule_id: c.id,
-      subject: c.subject,
-      is_owner: c.owners.length > 0,
-      is_controller: c.controllers.length > 0,
-      is_self_capsule: true, // Compare subject to caller principal
-      updated_at: c.updated_at,
-      created_at: c.created_at,
-      bound_to_neon: c.bound_to_neon,
-      gallery_count: BigInt(c.galleries.length),
-      memory_count: BigInt(c.memories.length),
-      connection_count: BigInt(c.connections.length),
-    };
-  }, [state.capsule]);
   const { getActor, clearActor } = useAuthenticatedActor();
   const { toast } = useToast();
-
-  // Auto-load capsule when component mounts (if authenticated and no capsule loaded)
-  useEffect(() => {
-    const autoLoadCapsule = async () => {
-      try {
-        const authClient = await getAuthClient();
-        const isAuthenticated = await authClient.isAuthenticated();
-
-        if (isAuthenticated && !state.capsule && !state.isLoading) {
-          console.log('Auto-loading capsule on component mount');
-          await handleGetCapsuleInfo();
-        }
-      } catch (error) {
-        console.error('Failed to auto-load capsule:', error);
-        // Don't show toast for auto-load failures - user can manually click "Get Capsule Info"
-      }
-    };
-
-    autoLoadCapsule();
-  }, []); // Only run once on mount
 
   // Shared helper functions to eliminate duplication
   const checkAuthentication = async (): Promise<boolean> => {
@@ -160,7 +128,13 @@ export function CapsuleInfo() {
       'Capsule Info Retrieved'
     );
 
-    if (!result) {
+    if (result && typeof result === 'object' && 'id' in result) {
+      // Check if this is a self-capsule by comparing subject to caller
+      // For now, we'll assume it's a self-capsule if it exists
+      // In a real implementation, we'd compare the subject to the caller's principal
+      setHasSelfCapsule(true);
+    } else {
+      setHasSelfCapsule(false);
       toast({
         title: 'No Capsule Found',
         description: "You don't have a capsule yet. Click 'Create Capsule' to create one.",
@@ -169,34 +143,50 @@ export function CapsuleInfo() {
     }
   };
 
-  const handleCreateCapsule = async () => {
-    await handleCapsuleOperation(
-      () => createCapsule(null, getActor, clearActor),
-      'Successfully created new capsule',
-      'Capsule Created'
-    );
-  };
+  // Auto-load capsule when component mounts (if authenticated and no capsule loaded)
+  useEffect(() => {
+    const autoLoadCapsule = async () => {
+      try {
+        const authClient = await getAuthClient();
+        const isAuthenticated = await authClient.isAuthenticated();
+
+        if (isAuthenticated && !state.capsule && !state.isLoading) {
+          console.log('Auto-loading capsule on component mount');
+          await handleGetCapsuleInfo();
+        }
+      } catch (error) {
+        console.error('Failed to auto-load capsule:', error);
+        // Don't show toast for auto-load failures - user can manually click "Get Capsule Info"
+      }
+    };
+
+    autoLoadCapsule();
+  }, [handleGetCapsuleInfo, state.capsule, state.isLoading]); // Include all dependencies
 
   return (
     <div className="space-y-6">
       {/* Basic Capsule Info Section */}
       <div className="space-y-4">
         <div className="flex gap-4">
-          <Button onClick={handleGetCapsuleInfo} disabled={state.isLoading} className="w-40">
-            {state.isLoading ? 'Loading...' : 'Get Capsule Info'}
+          <Button onClick={() => setIsCreateModalOpen(true)} variant="outline" className="w-40">
+            Create Capsule
           </Button>
-          <Button onClick={handleCreateCapsule} disabled={state.isLoading} variant="outline" className="w-40">
-            {state.isLoading ? 'Loading...' : 'Create Capsule'}
-          </Button>
+          <CreateCapsuleModal
+            isOpen={isCreateModalOpen}
+            onClose={() => setIsCreateModalOpen(false)}
+            onCapsuleCreated={() => {
+              setIsCreateModalOpen(false);
+              setHasSelfCapsule(true); // Update state after creation
+              setRefreshTrigger(prev => prev + 1); // Trigger refresh of capsule list
+            }}
+            hasSelfCapsule={hasSelfCapsule}
+          />
         </div>
 
         {/* Capsule List */}
         <div className="mt-6">
-          <CapsuleList />
+          <CapsuleList refreshTrigger={refreshTrigger} />
         </div>
-
-        {/* Capsule Information Display */}
-        <CapsuleDisplay capsuleInfo={capsuleInfo} isLoading={state.isLoading} onCreateCapsule={handleCreateCapsule} />
       </div>
     </div>
   );

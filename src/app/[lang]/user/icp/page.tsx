@@ -38,14 +38,16 @@ export default function ICPPage() {
         <InternetIdentityManagement />
       </div>
 
-      <Whoami />
-
       <div className="my-6">
-        <Greeting />
+        <CapsuleInfo />
       </div>
 
       <div className="my-6">
-        <CapsuleInfo />
+        <Whoami />
+      </div>
+
+      <div className="my-6">
+        <Greeting />
       </div>
     </div>
   );

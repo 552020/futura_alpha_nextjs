@@ -29,11 +29,17 @@ interface CreateCapsuleModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCapsuleCreated?: () => void;
+  hasSelfCapsule?: boolean;
 }
 
-export function CreateCapsuleModal({ isOpen, onClose, onCapsuleCreated }: CreateCapsuleModalProps) {
+export function CreateCapsuleModal({
+  isOpen,
+  onClose,
+  onCapsuleCreated,
+  hasSelfCapsule = false,
+}: CreateCapsuleModalProps) {
   const [formData, setFormData] = useState<CreateCapsuleFormData>({
-    subjectType: 'self',
+    subjectType: hasSelfCapsule ? 'opaque' : 'self',
     subjectValue: '',
     description: '',
   });
@@ -111,7 +117,7 @@ export function CreateCapsuleModal({ isOpen, onClose, onCapsuleCreated }: Create
 
       // Reset form
       setFormData({
-        subjectType: 'self',
+        subjectType: hasSelfCapsule ? 'opaque' : 'self',
         subjectValue: '',
         description: '',
       });
@@ -135,7 +141,7 @@ export function CreateCapsuleModal({ isOpen, onClose, onCapsuleCreated }: Create
   const handleClose = () => {
     if (!isLoading) {
       setFormData({
-        subjectType: 'self',
+        subjectType: hasSelfCapsule ? 'opaque' : 'self',
         subjectValue: '',
         description: '',
       });
@@ -161,9 +167,9 @@ export function CreateCapsuleModal({ isOpen, onClose, onCapsuleCreated }: Create
             <Label className="text-sm font-medium">Subject Type</Label>
             <RadioGroup value={formData.subjectType} onValueChange={handleSubjectTypeChange} className="space-y-2">
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="self" id="self" />
-                <Label htmlFor="self" className="text-sm">
-                  Self (Your own capsule)
+                <RadioGroupItem value="self" id="self" disabled={hasSelfCapsule} />
+                <Label htmlFor="self" className={`text-sm ${hasSelfCapsule ? 'text-muted-foreground' : ''}`}>
+                  Self (Your own capsule) {hasSelfCapsule && '(Already exists)'}
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
@@ -173,6 +179,11 @@ export function CreateCapsuleModal({ isOpen, onClose, onCapsuleCreated }: Create
                 </Label>
               </div>
             </RadioGroup>
+            {hasSelfCapsule && (
+              <p className="text-sm text-muted-foreground">
+                You already have a self-capsule. You can only create capsules for other subjects.
+              </p>
+            )}
           </div>
 
           {/* Subject Value Input */}

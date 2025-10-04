@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useAuthenticatedActor } from '@/hooks/use-authenticated-actor';
-import { CapsuleInfo, Capsule } from '@/types/capsule';
+import { CapsuleInfo, Capsule, CapsuleListItem, adaptCapsuleHeader } from '@/types/capsule';
 import CapsuleDisplay from '@/components/icp/capsule-display';
 import { getCapsuleFull } from '@/services/capsule';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,7 @@ import { Loader2, Eye, Edit, Trash2 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 
 interface CapsuleListState {
-  capsules: CapsuleInfo[];
+  capsules: CapsuleListItem[];
   isLoading: boolean;
   error: string | null;
   selectedCapsuleId: string | null;
@@ -22,7 +22,11 @@ interface CapsuleListState {
   isViewingCapsule: boolean;
 }
 
-export default function CapsuleList() {
+interface CapsuleListProps {
+  refreshTrigger?: number; // When this changes, refresh the list
+}
+
+export default function CapsuleList({ refreshTrigger }: CapsuleListProps = {}) {
   const { data: session } = useSession();
   const { getActor, clearActor } = useAuthenticatedActor();
 
@@ -40,17 +44,16 @@ export default function CapsuleList() {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
       const actor = await getActor();
-      const result = await actor.capsules_read_basic([]);
+      const capsuleHeaders = await actor.capsules_list();
 
-      if ('Ok' in result) {
-        setState(prev => ({
-          ...prev,
-          capsules: [result.Ok], // Convert single capsule to array
-          isLoading: false,
-        }));
-      } else {
-        throw new Error(`Failed to load capsules: ${JSON.stringify(result.Err)}`);
-      }
+      // Convert CapsuleHeader[] to CapsuleListItem[] using adapter
+      const capsules = capsuleHeaders.map(adaptCapsuleHeader);
+
+      setState(prev => ({
+        ...prev,
+        capsules: capsules,
+        isLoading: false,
+      }));
     } catch (error) {
       console.error('Failed to load capsules:', error);
       setState(prev => ({
@@ -68,6 +71,13 @@ export default function CapsuleList() {
       loadCapsules();
     }
   }, [session, loadCapsules]);
+
+  // Refresh when refreshTrigger changes
+  useEffect(() => {
+    if (refreshTrigger && session?.user) {
+      loadCapsules();
+    }
+  }, [refreshTrigger, session, loadCapsules]);
 
   const handleViewCapsule = async (capsuleId: string) => {
     try {
@@ -120,17 +130,6 @@ export default function CapsuleList() {
   const formatLifetime = (_expiresAt: bigint) => {
     // TODO: Implement proper lifetime formatting
     return '2029'; // Placeholder
-  };
-
-  const getRoleText = (isOwner: boolean, isController: boolean) => {
-    if (isOwner && isController) return 'Both';
-    if (isOwner) return 'Owner';
-    if (isController) return 'Controller';
-    return 'None';
-  };
-
-  const getWeb2LinkText = (boundToNeon: boolean) => {
-    return boundToNeon ? 'Connected' : 'ICP Only';
   };
 
   const convertCapsuleToCapsuleInfo = (capsule: Capsule): CapsuleInfo => {
@@ -225,37 +224,41 @@ export default function CapsuleList() {
           </TableHeader>
           <TableBody>
             {state.capsules.map(capsule => (
-              <TableRow key={capsule.capsule_id}>
-                <TableCell>{capsule.is_self_capsule ? 'You' : 'Other'}</TableCell>
+              <TableRow key={capsule.id}>
                 <TableCell>
-                  <Badge variant="secondary">{getRoleText(capsule.is_owner, capsule.is_controller)}</Badge>
+                  {capsule.isSelfCapsule
+                    ? 'You'
+                    : `Other: ${'Opaque' in capsule.subject ? capsule.subject.Opaque : 'Unknown'}`}
                 </TableCell>
                 <TableCell>
-                  <Badge variant={capsule.bound_to_neon ? 'default' : 'outline'}>
-                    {getWeb2LinkText(capsule.bound_to_neon)}
+                  <Badge variant="secondary">
+                    {capsule.isOwner ? 'Owner' : capsule.isController ? 'Controller' : 'None'}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={capsule.boundToNeon ? 'default' : 'outline'}>
+                    {capsule.boundToNeon ? 'Connected' : 'ICP Only'}
                   </Badge>
                 </TableCell>
                 <TableCell>Shared</TableCell>
-                <TableCell>{capsule.memory_count.toString()}</TableCell>
-                <TableCell>{capsule.gallery_count.toString()}</TableCell>
-                <TableCell>{capsule.connection_count.toString()}</TableCell>
+                <TableCell>{capsule.memoryCount.toString()}</TableCell>
+                <TableCell>{capsule.galleryCount.toString()}</TableCell>
+                <TableCell>{capsule.connectionCount.toString()}</TableCell>
                 <TableCell>{formatStorage(BigInt(0), BigInt(0))}</TableCell>
                 <TableCell>{formatLifetime(BigInt(0))}</TableCell>
                 <TableCell>
                   <div className="flex gap-2">
                     <Button
                       size="sm"
-                      variant={
-                        state.selectedCapsuleId === capsule.capsule_id && state.isViewingCapsule ? 'default' : 'outline'
-                      }
-                      onClick={() => handleViewCapsule(capsule.capsule_id)}
+                      variant={state.selectedCapsuleId === capsule.id && state.isViewingCapsule ? 'default' : 'outline'}
+                      onClick={() => handleViewCapsule(capsule.id)}
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => handleEditCapsule(capsule.capsule_id)}>
+                    <Button size="sm" variant="outline" onClick={() => handleEditCapsule(capsule.id)}>
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => handleDeleteCapsule(capsule.capsule_id)}>
+                    <Button size="sm" variant="outline" onClick={() => handleDeleteCapsule(capsule.id)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>

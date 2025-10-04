@@ -14,11 +14,11 @@ interface CapsuleDisplayProps {
 
 export default function CapsuleDisplay({ capsuleInfo, isLoading, onCreateCapsule }: CapsuleDisplayProps) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Your Capsule Information</CardTitle>
+    <Card className="border-0 shadow-none bg-transparent">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-medium">Capsule Details</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-0">
         {capsuleInfo ? (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">

@@ -1,4 +1,4 @@
-import type { Capsule, CapsuleInfo } from '@/ic/declarations/backend/backend.did.d.ts';
+import type { Capsule, CapsuleInfo, CapsuleHeader, PersonRef } from '@/ic/declarations/backend/backend.did.d.ts';
 
 /**
  * Error types for capsule operations
@@ -25,12 +25,30 @@ export interface CapsuleState {
 }
 
 /**
+ * Unified capsule list item for frontend components
+ * Adapter type that works with both CapsuleInfo and CapsuleHeader
+ */
+export interface CapsuleListItem {
+  id: string;
+  subject: PersonRef;
+  isOwner: boolean;
+  isController: boolean;
+  isSelfCapsule: boolean;
+  boundToNeon: boolean;
+  createdAt: bigint;
+  updatedAt: bigint;
+  memoryCount: bigint;
+  galleryCount: bigint;
+  connectionCount: bigint;
+}
+
+/**
  * Collections state interface (for future use)
  * Extends single capsule state for multiple capsules
  */
 export interface CapsulesState {
   // High-level capsule management
-  capsules: CapsuleInfo[]; // Array of capsule summaries
+  capsules: CapsuleListItem[]; // Array of capsule summaries
   currentCapsule: Capsule | null; // Selected capsule structure
 
   // UI state
@@ -41,10 +59,46 @@ export interface CapsulesState {
   selectedCapsuleId: string | null;
 }
 
+/**
+ * Adapter functions to convert backend types to unified frontend types
+ */
+export function adaptCapsuleInfo(capsuleInfo: CapsuleInfo): CapsuleListItem {
+  return {
+    id: capsuleInfo.capsule_id,
+    subject: capsuleInfo.subject,
+    isOwner: capsuleInfo.is_owner,
+    isController: capsuleInfo.is_controller,
+    isSelfCapsule: capsuleInfo.is_self_capsule,
+    boundToNeon: capsuleInfo.bound_to_neon,
+    createdAt: capsuleInfo.created_at,
+    updatedAt: capsuleInfo.updated_at,
+    memoryCount: capsuleInfo.memory_count,
+    galleryCount: capsuleInfo.gallery_count,
+    connectionCount: capsuleInfo.connection_count,
+  };
+}
+
+export function adaptCapsuleHeader(capsuleHeader: CapsuleHeader): CapsuleListItem {
+  return {
+    id: capsuleHeader.id,
+    subject: capsuleHeader.subject,
+    isOwner: capsuleHeader.owner_count > 0,
+    isController: capsuleHeader.controller_count > 0,
+    isSelfCapsule: false, // CapsuleHeader doesn't have this info, would need to check subject
+    boundToNeon: false, // CapsuleHeader doesn't have this info
+    createdAt: capsuleHeader.created_at,
+    updatedAt: capsuleHeader.updated_at,
+    memoryCount: capsuleHeader.memory_count,
+    galleryCount: BigInt(0), // CapsuleHeader doesn't have this info
+    connectionCount: BigInt(0), // CapsuleHeader doesn't have this info
+  };
+}
+
 // Re-export backend types for convenience
 export type {
   Capsule,
   CapsuleInfo,
+  CapsuleHeader,
   PersonRef,
   OwnerState,
   ControllerState,
