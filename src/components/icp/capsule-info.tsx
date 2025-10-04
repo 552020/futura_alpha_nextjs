@@ -1,185 +1,174 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { getAuthClient } from '@/ic/ii';
 import { useAuthenticatedActor } from '@/hooks/use-authenticated-actor';
-import { useState } from 'react';
-import { logger } from '@/lib/logger';
-import type { CapsuleInfo, Capsule } from '@/ic/declarations/backend/backend.did';
+import { useState, useMemo } from 'react';
+import type { CapsuleInfo, CapsuleState, CapsuleError, Capsule } from '@/types/capsule';
+import { getCapsuleFull, createCapsule } from '@/services/capsule';
 
 /**
  * CapsuleInfo Component
  *
  * Provides functionality to:
- * 1. Get basic capsule information for the authenticated user
- * 2. Read specific capsule data by ID
+ * 1. Get capsule information for the authenticated user
+ * 2. Create a new capsule for the authenticated user
  * 3. Display capsule information in a structured format
  */
 export function CapsuleInfo() {
-  const [capsuleInfo, setCapsuleInfo] = useState<CapsuleInfo | null>(null);
-  const [capsuleReadResult, setCapsuleReadResult] = useState<Capsule | null>(null);
-  const [capsuleIdInput, setCapsuleIdInput] = useState('');
-  const [busy, setBusy] = useState(false);
+  // Single unified state
+  const [state, setState] = useState<CapsuleState>({
+    capsule: null,
+    isLoading: false,
+  });
+
+  // Derive CapsuleInfo from Capsule when needed
+  const capsuleInfo = useMemo<CapsuleInfo | null>(() => {
+    if (!state.capsule) return null;
+
+    const c = state.capsule; // Single source of truth
+
+    // Derive CapsuleInfo from Capsule
+    return {
+      capsule_id: c.id,
+      subject: c.subject,
+      is_owner: c.owners.length > 0,
+      is_controller: c.controllers.length > 0,
+      is_self_capsule: true, // Compare subject to caller principal
+      updated_at: c.updated_at,
+      created_at: c.created_at,
+      bound_to_neon: c.bound_to_neon,
+      gallery_count: BigInt(c.galleries.length),
+      memory_count: BigInt(c.memories.length),
+      connection_count: BigInt(c.connections.length),
+    };
+  }, [state.capsule]);
   const { getActor, clearActor } = useAuthenticatedActor();
   const { toast } = useToast();
 
-  const handleGetCapsuleInfo = async () => {
-    if (busy) return; // UX safety: prevent double-clicks
-    setBusy(true);
-    try {
-      const authClient = await getAuthClient();
-      const isAuthenticated = await authClient.isAuthenticated();
+  // Shared helper functions to eliminate duplication
+  const checkAuthentication = async (): Promise<boolean> => {
+    const authClient = await getAuthClient();
+    const isAuthenticated = await authClient.isAuthenticated();
 
-      if (!isAuthenticated) {
-        toast({
-          title: 'Not Authenticated',
-          description: 'Please login first to get capsule info',
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      // Use cached authenticated actor
-      const authenticatedActor = await getActor();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const capsuleResult = (await authenticatedActor.capsules_read_basic([])) as { Ok: any } | { Err: any };
-
-      if ('Ok' in capsuleResult) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        setCapsuleInfo((capsuleResult as { Ok: any }).Ok);
-        toast({
-          title: 'Capsule Info Retrieved',
-          description: 'Successfully fetched your capsule information',
-        });
-      } else {
-        setCapsuleInfo(null);
-        toast({
-          title: 'No Capsule Found',
-          description: "You don't have a capsule yet. Register to create one.",
-          variant: 'destructive',
-        });
-      }
-    } catch (error) {
-      logger.error('Get capsule info failed', undefined, { data: error as Error });
-      const errorMessage = error instanceof Error ? error.message : String(error);
-
-      // Handle expired/invalid delegation
-      if (
-        errorMessage.includes('Invalid delegation') ||
-        errorMessage.includes('expired') ||
-        errorMessage.includes('401')
-      ) {
-        clearActor();
-        toast({
-          title: 'Session Expired',
-          description: 'Your session has expired. Please sign in again.',
-          variant: 'destructive',
-        });
-        return;
-      }
-
+    if (!isAuthenticated) {
       toast({
-        title: 'Get Capsule Info Failed',
-        description: `Failed to get capsule info: ${errorMessage}`,
+        title: 'Not Authenticated',
+        description: 'Please login first to access capsule features',
         variant: 'destructive',
       });
-    } finally {
-      setBusy(false);
+      return false;
+    }
+    return true;
+  };
+
+  const handleCapsuleOperation = async (
+    operation: () => Promise<unknown>,
+    successMessage: string,
+    successTitle: string = 'Success'
+  ): Promise<unknown | null> => {
+    if (state.isLoading) return null;
+
+    setState(s => ({ ...s, isLoading: true, error: undefined }));
+
+    try {
+      if (!(await checkAuthentication())) {
+        setState(s => ({ ...s, isLoading: false }));
+        return null;
+      }
+
+      const result = await operation();
+
+      if (result) {
+        setState(s => ({ ...s, capsule: result as Capsule, isLoading: false }));
+        toast({
+          title: successTitle,
+          description: successMessage,
+        });
+        return result;
+      } else {
+        setState(s => ({ ...s, capsule: null, isLoading: false }));
+        return null;
+      }
+    } catch (error) {
+      const capsuleError = error as CapsuleError;
+      setState(s => ({ ...s, error: capsuleError, isLoading: false }));
+
+      // Handle different error types
+      if (capsuleError.kind === 'connection') {
+        toast({
+          title: 'Backend Connection Failed',
+          description: capsuleError.message,
+          variant: 'destructive',
+        });
+      } else if (capsuleError.kind === 'authExpired') {
+        toast({
+          title: 'Session Expired',
+          description: capsuleError.message,
+          variant: 'destructive',
+        });
+      } else if (capsuleError.kind === 'notFound') {
+        toast({
+          title: 'Capsule Not Found',
+          description: capsuleError.message,
+          variant: 'destructive',
+        });
+      } else if (capsuleError.kind === 'unauthorized') {
+        toast({
+          title: 'Access Denied',
+          description: capsuleError.message,
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Operation Failed',
+          description: capsuleError.message,
+          variant: 'destructive',
+        });
+      }
+      return null;
     }
   };
 
-  const handleReadCapsule = async () => {
-    if (busy) return; // UX safety: prevent double-clicks
-    if (!capsuleIdInput.trim()) {
+  const handleGetCapsuleInfo = async () => {
+    const result = await handleCapsuleOperation(
+      () => getCapsuleFull(getActor, clearActor),
+      'Successfully fetched your capsule information',
+      'Capsule Info Retrieved'
+    );
+
+    if (!result) {
       toast({
-        title: 'Input Required',
-        description: 'Please enter a capsule ID',
+        title: 'No Capsule Found',
+        description: "You don't have a capsule yet. Click 'Create Capsule' to create one.",
         variant: 'destructive',
       });
-      return;
     }
+  };
 
-    setBusy(true);
-    try {
-      const authClient = await getAuthClient();
-      const isAuthenticated = await authClient.isAuthenticated();
-
-      if (!isAuthenticated) {
-        toast({
-          title: 'Not Authenticated',
-          description: 'Please login first to read capsule',
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      // Use cached authenticated actor
-      const authenticatedActor = await getActor();
-      const capsuleResult = (await authenticatedActor.capsules_read_full([capsuleIdInput.trim()])) as {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        Ok: any;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        Err: any;
-      };
-
-      if ('Ok' in capsuleResult) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        setCapsuleReadResult((capsuleResult as { Ok: any }).Ok);
-        toast({
-          title: 'Capsule Retrieved',
-          description: 'Successfully fetched capsule data',
-        });
-      } else {
-        setCapsuleReadResult(null);
-        toast({
-          title: 'Capsule Not Found',
-          description: `No capsule found with that ID, or you don&apos;t have access: ${
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            JSON.stringify((capsuleResult as { Err: any }).Err)
-          }`,
-          variant: 'destructive',
-        });
-      }
-    } catch (error) {
-      logger.error('Read capsule failed', undefined, { data: error as Error });
-      const errorMessage = error instanceof Error ? error.message : String(error);
-
-      // Handle expired/invalid delegation
-      if (
-        errorMessage.includes('Invalid delegation') ||
-        errorMessage.includes('expired') ||
-        errorMessage.includes('401')
-      ) {
-        clearActor();
-        toast({
-          title: 'Session Expired',
-          description: 'Your session has expired. Please sign in again.',
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      toast({
-        title: 'Read Capsule Failed',
-        description: `Failed to read capsule: ${errorMessage}`,
-        variant: 'destructive',
-      });
-    } finally {
-      setBusy(false);
-    }
+  const handleCreateCapsule = async () => {
+    await handleCapsuleOperation(
+      () => createCapsule(null, getActor, clearActor),
+      'Successfully created new capsule',
+      'Capsule Created'
+    );
   };
 
   return (
     <div className="space-y-6">
       {/* Basic Capsule Info Section */}
       <div className="space-y-4">
-        <Button onClick={handleGetCapsuleInfo} disabled={busy} className="w-40">
-          {busy ? 'Loading...' : 'Get Capsule Info'}
-        </Button>
+        <div className="flex gap-4">
+          <Button onClick={handleGetCapsuleInfo} disabled={state.isLoading} className="w-40">
+            {state.isLoading ? 'Loading...' : 'Get Capsule Info'}
+          </Button>
+          <Button onClick={handleCreateCapsule} disabled={state.isLoading} variant="outline" className="w-40">
+            {state.isLoading ? 'Loading...' : 'Create Capsule'}
+          </Button>
+        </div>
 
         {/* Capsule Information Display */}
         <Card>
@@ -243,84 +232,6 @@ export function CapsuleInfo() {
             )}
           </CardContent>
         </Card>
-      </div>
-
-      {/* Specific Capsule Reading Section */}
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="capsuleId">Read Specific Capsule:</Label>
-          <div className="flex gap-4">
-            <Input
-              id="capsuleId"
-              value={capsuleIdInput}
-              onChange={e => setCapsuleIdInput(e.target.value)}
-              placeholder="Enter capsule ID (e.g., capsule_1234567890)"
-              className="w-80"
-            />
-            <Button onClick={handleReadCapsule} disabled={busy || !capsuleIdInput.trim()} className="w-32">
-              {busy ? 'Reading...' : 'Read Capsule'}
-            </Button>
-          </div>
-        </div>
-
-        {/* Capsule Read Result Display */}
-        {capsuleReadResult && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Capsule Read Result</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-sm font-medium">Capsule ID</Label>
-                    <p className="text-sm text-muted-foreground font-mono">{capsuleReadResult.id}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Subject</Label>
-                    <p className="text-sm text-muted-foreground">
-                      {'Principal' in capsuleReadResult.subject
-                        ? `Principal: ${capsuleReadResult.subject.Principal}`
-                        : `Opaque: ${capsuleReadResult.subject.Opaque}`}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Created At</Label>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(Number(capsuleReadResult.created_at) / 1000000).toLocaleString('en-US')}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Updated At</Label>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(Number(capsuleReadResult.updated_at) / 1000000).toLocaleString('en-US')}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Memory and Gallery Counts */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-sm font-medium">Memory Count</Label>
-                    <p className="text-sm text-muted-foreground">{capsuleReadResult.memories?.length || 0}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Gallery Count</Label>
-                    <p className="text-sm text-muted-foreground">{capsuleReadResult.galleries?.length || 0}</p>
-                  </div>
-                </div>
-
-                {/* Raw Data Display */}
-                <div className="mt-4">
-                  <Label className="text-sm font-medium">Raw Data</Label>
-                  <pre className="mt-2 p-3 bg-gray-100 dark:bg-gray-800 rounded text-xs overflow-auto max-h-64">
-                    {JSON.stringify(capsuleReadResult, null, 2)}
-                  </pre>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </div>
     </div>
   );
