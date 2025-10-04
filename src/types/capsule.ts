@@ -78,13 +78,19 @@ export function adaptCapsuleInfo(capsuleInfo: CapsuleInfo): CapsuleListItem {
   };
 }
 
-export function adaptCapsuleHeader(capsuleHeader: CapsuleHeader): CapsuleListItem {
+export function adaptCapsuleHeader(capsuleHeader: CapsuleHeader, currentUserPrincipal?: string): CapsuleListItem {
+  // Determine if this is a self-capsule by comparing subject to current user's principal
+  let isSelfCapsule = false;
+  if (currentUserPrincipal && 'Principal' in capsuleHeader.subject) {
+    isSelfCapsule = capsuleHeader.subject.Principal.toString() === currentUserPrincipal;
+  }
+
   return {
     id: capsuleHeader.id,
     subject: capsuleHeader.subject,
     isOwner: capsuleHeader.owner_count > 0,
     isController: capsuleHeader.controller_count > 0,
-    isSelfCapsule: false, // CapsuleHeader doesn't have this info, would need to check subject
+    isSelfCapsule: isSelfCapsule,
     boundToNeon: false, // CapsuleHeader doesn't have this info
     createdAt: capsuleHeader.created_at,
     updatedAt: capsuleHeader.updated_at,

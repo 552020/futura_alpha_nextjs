@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useAuthenticatedActor } from '@/hooks/use-authenticated-actor';
+import { getAuthClient } from '@/ic/ii';
 import { CapsuleInfo, Capsule, CapsuleListItem, adaptCapsuleHeader } from '@/types/capsule';
 import CapsuleDisplay from '@/components/icp/capsule-display';
 import { getCapsuleFull } from '@/services/capsule';
@@ -40,14 +41,26 @@ export default function CapsuleList({ refreshTrigger }: CapsuleListProps = {}) {
   });
 
   const loadCapsules = useCallback(async () => {
+    if (!session?.user) return;
+
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
       const actor = await getActor();
       const capsuleHeaders = await actor.capsules_list();
 
+      // Get current user's principal for self-capsule detection
+      let currentUserPrincipal: string | undefined;
+      try {
+        const authClient = await getAuthClient();
+        const identity = await authClient.getIdentity();
+        currentUserPrincipal = identity.getPrincipal().toString();
+      } catch (error) {
+        console.warn('Could not get current user principal:', error);
+      }
+
       // Convert CapsuleHeader[] to CapsuleListItem[] using adapter
-      const capsules = capsuleHeaders.map(adaptCapsuleHeader);
+      const capsules = capsuleHeaders.map(header => adaptCapsuleHeader(header, currentUserPrincipal));
 
       setState(prev => ({
         ...prev,
@@ -63,7 +76,7 @@ export default function CapsuleList({ refreshTrigger }: CapsuleListProps = {}) {
       }));
       toast({ title: 'Error', description: 'Failed to load capsules', variant: 'destructive' });
     }
-  }, [getActor]);
+  }, [session, getActor]);
 
   // Load capsules on component mount
   useEffect(() => {
