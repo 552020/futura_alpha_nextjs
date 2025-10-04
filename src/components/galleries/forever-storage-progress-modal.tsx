@@ -180,7 +180,7 @@ export function ForeverStorageProgressModal({
       setError(err instanceof Error ? err.message : 'Unknown error');
       onError(err instanceof Error ? err : new Error('Unknown error'));
     }
-  }, [hasLinkedII, session?.user, gallery, onSuccess, onError]);
+  }, [hasLinkedII, session?.user, gallery, onSuccess, onError, authStatus.isSignedInWithII]);
 
   // Reset state when modal opens
   useEffect(() => {
@@ -239,7 +239,7 @@ export function ForeverStorageProgressModal({
       // Continue the flow from the beginning; it will pass auth now
       handleStartStorage();
     }
-  }, [isOpen, currentStep, hasLinkedII, session?.user, handleStartStorage]);
+  }, [isOpen, currentStep, hasLinkedII, session?.user, handleStartStorage, authStatus.isSignedInWithII]);
 
   const handleClose = () => {
     if (currentStep === 'success') {

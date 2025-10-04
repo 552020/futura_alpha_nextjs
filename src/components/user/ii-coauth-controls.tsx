@@ -22,6 +22,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
 import { logger } from '@/lib/logger';
+import { getAuthStatus } from '@/lib/utils/auth-status';
 interface IICoAuthControlsProps {
   className?: string;
 }
@@ -43,8 +44,12 @@ export function IICoAuthControls({ className = '' }: IICoAuthControlsProps) {
   const statusMessage = isAuthenticated ? 'Connected' : 'Not Connected';
   const statusClass = isAuthenticated ? 'text-green-600' : 'text-gray-500';
 
+  // App login status variables
+  const isSignedInWithIIInApp = authStatus.isSignedInWithII;
+  const isSignedInWithGoogleInApp = authStatus.isSignedInWithGoogle;
+
   // Use session principal as fallback if no active II session
-  const displayPrincipal = currentIIPrincipal || authStatus.activeIcPrincipal;
+  const _displayPrincipal = currentIIPrincipal || authStatus.activeIcPrincipal;
 
   // Placeholder disconnect function (will be implemented later)
   const disconnectII = async () => {
