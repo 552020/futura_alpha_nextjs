@@ -18,7 +18,7 @@ const ENABLE_LOGGING = true;
 // Core service flags
 const ENABLE_UI_LOGGING = true; // UI components and interactions
 const ENABLE_BACKEND_LOGGING = true; // Backend API and processing
-const ENABLE_UPLOAD_LOGGING = false; // Upload routing and processing
+const ENABLE_UPLOAD_LOGGING = true; // Upload routing and processing
 const ENABLE_DATABASE_LOGGING = false; // Database operations
 const ENABLE_AUTH_LOGGING = false; // Authentication flows
 const ENABLE_ASSET_LOGGING = false; // Asset processing and thumbnails
@@ -308,7 +308,7 @@ class SimpleLogger {
 }
 
 // ===== SINGLE LOGGER INSTANCE =====
-export const logger = new SimpleLogger('app', LogLevel.INFO);
+export const logger = new SimpleLogger('app', LogLevel.DEBUG);
 
 // Legacy exports for backward compatibility (all point to the same instance)
 export const uploadLogger = logger;

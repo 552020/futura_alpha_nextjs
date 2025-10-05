@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useOnboarding } from '@/contexts/onboarding-context';
 import { useSession } from 'next-auth/react';
-import { useHostingPreferences } from '@/hooks/use-hosting-preferences';
+import { useHostingPreferences, type BlobHosting } from '@/hooks/use-hosting-preferences';
 import { processSingleFile } from '@/services/upload/single-file-processor';
 import { processMultipleFiles } from '@/services/upload/multiple-files-processor';
 import { checkICPAuthentication } from '@/services/upload/shared-utils';
@@ -54,8 +54,25 @@ export function useFileUpload({ isOnboarding = false, mode = 'directory', onSucc
       return;
     }
 
-    // Check ICP authentication if user has ICP in preferences
-    const userBlobHostingPreferences = preferences?.blobHosting || ['s3'];
+    // 🚨 TEMPORARY HARDCODE: Force ICP blob hosting for testing
+    // TODO: REMOVE THIS HARDCODE - This is for testing ICP upload flow only
+    // This should be replaced with proper user preference checking
+    const userBlobHostingPreferences = ['icp']; // HARDCODED FOR ICP TESTING
+
+    console.log('🚨 HARDCODED ICP PREFERENCES ACTIVE - This should appear in console!');
+
+    // Original code (commented out for testing):
+    // const userBlobHostingPreferences = preferences?.blobHosting || ['s3'];
+
+    // Create hardcoded preferences object for processors
+    const hardcodedPreferences = {
+      frontendHosting: preferences?.frontendHosting || 'vercel',
+      backendHosting: preferences?.backendHosting || 'vercel',
+      databaseHosting: preferences?.databaseHosting || ['neon'],
+      blobHosting: ['icp'] as BlobHosting[],
+      updatedAt: preferences?.updatedAt,
+    };
+
     if (userBlobHostingPreferences.includes('icp')) {
       try {
         await checkICPAuthentication();
@@ -88,7 +105,7 @@ export function useFileUpload({ isOnboarding = false, mode = 'directory', onSucc
           isOnboarding,
           mode,
           existingUserId: userId,
-          preferences,
+          preferences: hardcodedPreferences,
           onSuccess,
           onError,
           updateOnboardingContext,
@@ -105,7 +122,7 @@ export function useFileUpload({ isOnboarding = false, mode = 'directory', onSucc
           files,
           mode,
           isOnboarding,
-          preferences,
+          preferences: hardcodedPreferences,
           onSuccess,
           onError,
           updateOnboardingContext,

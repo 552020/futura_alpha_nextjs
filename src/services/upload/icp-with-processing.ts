@@ -13,7 +13,7 @@ import { processImageDerivativesPure, type ProcessedBlobs } from './image-deriva
 import { finalizeAllAssets, type ProcessedAssets } from './finalize';
 import { extractFolderName } from './shared-utils';
 import { type UploadServiceResult } from './types';
-import { logger } from '@/lib/logger';
+// import { logger } from '@/lib/logger';
 import { getAuthClient } from '@/ic/ii';
 import { backendActor } from '@/ic/backend';
 import type {
@@ -339,9 +339,10 @@ export async function uploadProcessedAssetsToICP(
         url: '', // ICP URLs will be generated after memory edge creation
       };
     } catch (error) {
-      logger.error('Failed to upload display asset to ICP:', undefined, {
-        data: error instanceof Error ? error : undefined,
-      });
+      console.log(
+        '❌ Failed to upload display asset to ICP:',
+        error instanceof Error ? error.message : 'Unknown error'
+      );
       results.display = {
         assetType: 'display',
         processingStatus: 'failed',
@@ -378,9 +379,7 @@ export async function uploadProcessedAssetsToICP(
         url: '', // ICP URLs will be generated after memory edge creation
       };
     } catch (error) {
-      logger.error('Failed to upload thumb asset to ICP:', undefined, {
-        data: error instanceof Error ? error : undefined,
-      });
+      console.log('❌ Failed to upload thumb asset to ICP:', error instanceof Error ? error.message : 'Unknown error');
       results.thumb = {
         assetType: 'thumb',
         processingStatus: 'failed',
@@ -429,7 +428,8 @@ export async function uploadProcessedAssetsToICP(
  */
 export async function uploadFileToICPWithProgress(file: File, onProgress: (progress: number) => void): Promise<File> {
   const startTime = Date.now();
-  logger.info(`🔄 ICP upload started: ${file.name} (${file.size} bytes)`);
+  console.log('🚀 uploadFileToICPWithProgress called!', { fileName: file.name, fileSize: file.size });
+  console.log(`🔄 ICP upload started: ${file.name} (${file.size} bytes)`);
 
   try {
     // Import ICP dependencies
@@ -446,21 +446,21 @@ export async function uploadFileToICPWithProgress(file: File, onProgress: (progr
     const backend = await backendActor(identity);
 
     // 2. Get or create capsule
-    logger.info('🔍 Getting capsule...');
+    console.log('🔍 Getting capsule...');
     const capsuleResult = (await backend.capsules_read_basic([])) as Result_4;
     let capsuleId;
 
     if ('Ok' in capsuleResult && capsuleResult.Ok) {
       capsuleId = capsuleResult.Ok.capsule_id;
-      logger.info(`✅ Using existing capsule: ${capsuleId}`);
+      console.log(`✅ Using existing capsule: ${capsuleId}`);
     } else {
-      logger.info('🆕 No capsule found, creating one...');
+      console.log('🆕 No capsule found, creating one...');
       const createResult = (await backend.capsules_create([])) as Result_3;
       if (!('Ok' in createResult)) {
         throw new Error('Failed to create capsule: ' + JSON.stringify(createResult));
       }
       capsuleId = createResult.Ok.id;
-      logger.info(`✅ Created new capsule: ${capsuleId}`);
+      console.log(`✅ Created new capsule: ${capsuleId}`);
     }
 
     // 3. Prepare upload session using established limits
@@ -479,7 +479,7 @@ export async function uploadFileToICPWithProgress(file: File, onProgress: (progr
     const totalChunks = UPLOAD_LIMITS_ICP.getExpectedChunks(file.size);
     const isInline = file.size <= limits.inline_max;
 
-    logger.info(
+    console.log(
       `📦 Upload configuration: ${totalChunks} chunks of ${limits.chunk_size} bytes (${isInline ? 'inline' : 'chunked'})`
     );
 
@@ -515,7 +515,7 @@ export async function uploadFileToICPWithProgress(file: File, onProgress: (progr
     } as AssetMetadata; // Use proper AssetMetadata type
 
     // 5. Begin upload session
-    logger.info('🚀 Starting upload session...');
+    console.log('🚀 Starting upload session...');
     const begin = (await backend.uploads_begin(
       capsuleId,
       assetMetadata,
@@ -528,10 +528,10 @@ export async function uploadFileToICPWithProgress(file: File, onProgress: (progr
     }
 
     const session = begin.Ok;
-    logger.info(`✅ Upload session started: ${session}`);
+    console.log(`✅ Upload session started: ${session}`);
 
     // 6. Stream chunks
-    logger.info('📦 Starting chunk upload process...');
+    console.log('📦 Starting chunk upload process...');
     const uploadStartTime = Date.now();
     let uploadedBytes = 0;
 
@@ -540,7 +540,7 @@ export async function uploadFileToICPWithProgress(file: File, onProgress: (progr
       const end = Math.min(start + limits.chunk_size, file.size);
       const chunk = new Uint8Array(await file.slice(start, end).arrayBuffer());
 
-      logger.info(`📤 Uploading chunk ${index + 1}/${totalChunks} (${chunk.length} bytes)`);
+      console.log(`📤 Uploading chunk ${index + 1}/${totalChunks} (${chunk.length} bytes)`);
 
       const put = (await backend.uploads_put_chunk(session, index, chunk)) as Result;
 
@@ -552,29 +552,29 @@ export async function uploadFileToICPWithProgress(file: File, onProgress: (progr
       const percentage = (uploadedBytes / file.size) * 100;
       onProgress(percentage);
 
-      logger.info(`✅ Chunk ${index + 1}/${totalChunks} uploaded (${percentage.toFixed(1)}%)`);
+      console.log(`✅ Chunk ${index + 1}/${totalChunks} uploaded (${percentage.toFixed(1)}%)`);
     }
 
     const uploadEndTime = Date.now();
     const uploadDuration = uploadEndTime - uploadStartTime;
     const uploadSpeed = uploadedBytes / 1024 / 1024 / (uploadDuration / 1000); // MB/s
 
-    logger.info(`✅ All chunks uploaded (${uploadedBytes} bytes total)`);
-    logger.info(`⏱️ Upload time: ${uploadDuration}ms (${(uploadDuration / 1000).toFixed(2)}s)`);
-    logger.info(`🚀 Upload speed: ${uploadSpeed.toFixed(2)} MB/s`);
+    console.log(`✅ All chunks uploaded (${uploadedBytes} bytes total)`);
+    console.log(`⏱️ Upload time: ${uploadDuration}ms (${(uploadDuration / 1000).toFixed(2)}s)`);
+    console.log(`🚀 Upload speed: ${uploadSpeed.toFixed(2)} MB/s`);
 
     // 7. Compute file hash
-    logger.info('🔐 Computing file hash...');
+    console.log('🔐 Computing file hash...');
     const fileBuffer = await file.arrayBuffer();
     const hashBuffer = await crypto.subtle.digest('SHA-256', fileBuffer);
     const hash = new Uint8Array(hashBuffer);
     const hashHex = Array.from(hash)
       .map(b => b.toString(16).padStart(2, '0'))
       .join('');
-    logger.info(`✅ File hash: ${hashHex}`);
+    console.log(`✅ File hash: ${hashHex}`);
 
     // 8. Finish upload
-    logger.info('🏁 Finishing upload...');
+    console.log('🏁 Finishing upload...');
     const fin = (await backend.uploads_finish(session, hash, BigInt(file.size))) as Result_15;
 
     if (!('Ok' in fin)) {
@@ -584,16 +584,16 @@ export async function uploadFileToICPWithProgress(file: File, onProgress: (progr
     const totalTime = Date.now() - startTime;
     const totalSpeed = file.size / 1024 / 1024 / (totalTime / 1000); // MB/s
 
-    logger.info('🎉 Upload completed successfully!');
-    logger.info('📋 Result:', fin.Ok);
-    logger.info(`⏱️ Total time: ${totalTime}ms (${(totalTime / 1000).toFixed(2)}s)`);
-    logger.info(`🚀 Total speed: ${totalSpeed.toFixed(2)} MB/s`);
-    logger.info(`🔐 Final hash: ${hashHex}`);
+    console.log('🎉 Upload completed successfully!');
+    console.log('📋 Result:', fin.Ok);
+    console.log(`⏱️ Total time: ${totalTime}ms (${(totalTime / 1000).toFixed(2)}s)`);
+    console.log(`🚀 Total speed: ${totalSpeed.toFixed(2)} MB/s`);
+    console.log(`🔐 Final hash: ${hashHex}`);
 
     onProgress(100);
     return file;
   } catch (error) {
-    logger.error('❌ ICP upload failed:', error instanceof Error ? error : undefined);
+    console.log('❌ ICP upload failed:', error instanceof Error ? error.message : 'Unknown error');
     throw error;
   }
 }
@@ -609,7 +609,7 @@ export async function uploadFileToICPWithProgress(file: File, onProgress: (progr
  */
 async function createICPMemoryEdge(icpMemoryId: string, neonMemoryId: string): Promise<void> {
   try {
-    logger.info(`🔗 Creating ICP memory edge: ${icpMemoryId} → ${neonMemoryId}`);
+    console.log(`🔗 Creating ICP memory edge: ${icpMemoryId} → ${neonMemoryId}`);
 
     // Get authenticated backend actor
     const authClient = await getAuthClient();
@@ -620,14 +620,23 @@ async function createICPMemoryEdge(icpMemoryId: string, neonMemoryId: string): P
     const identity = authClient.getIdentity();
     const backend = await backendActor(identity);
 
-    // Update memory metadata with database storage edge
+    // Get existing memory to preserve all metadata
+    const existingMemory = await backend.memories_read(icpMemoryId);
+    if (!existingMemory || !('Ok' in existingMemory)) {
+      throw new Error('Failed to read existing memory for edge creation');
+    }
+
+    const memory = (existingMemory as { Ok: { metadata?: Record<string, unknown> } }).Ok;
+    const existingMetadata = memory.metadata || {};
+
+    // Update memory metadata with database storage edge, preserving all existing fields
     const updateData = {
       access: [], // Keep existing access
       name: [], // Keep existing name
       metadata: [
         {
-          database_storage_edges: [{ Icp: null }], // Tell ICP about Neon database
-          // Keep existing metadata fields
+          ...existingMetadata, // Preserve all existing metadata
+          database_storage_edges: [{ Icp: null }], // Add Neon database edge
         },
       ],
     };
@@ -639,9 +648,9 @@ async function createICPMemoryEdge(icpMemoryId: string, neonMemoryId: string): P
       throw new Error('Failed to create ICP memory edge: ' + JSON.stringify(result));
     }
 
-    logger.info(`✅ ICP memory edge created successfully: ${icpMemoryId} → ${neonMemoryId}`);
+    console.log(`✅ ICP memory edge created successfully: ${icpMemoryId} → ${neonMemoryId}`);
   } catch (error) {
-    logger.error('❌ Failed to create ICP memory edge:', error instanceof Error ? error : undefined);
+    console.log('❌ Failed to create ICP memory edge:', error instanceof Error ? error.message : 'Unknown error');
     throw error;
   }
 }

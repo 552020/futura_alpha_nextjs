@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useAuthenticatedActor } from '@/hooks/use-authenticated-actor';
+import { useICPIdentity } from '@/hooks/use-icp-identity';
 import { getAuthClient } from '@/ic/ii';
 import { CapsuleInfo, Capsule, CapsuleListItem, adaptCapsuleHeader } from '@/types/capsule';
 import CapsuleDisplay from '@/components/icp/capsule-display';
@@ -30,6 +31,7 @@ interface CapsuleListProps {
 export default function CapsuleList({ refreshTrigger }: CapsuleListProps = {}) {
   const { data: session } = useSession();
   const { getActor, clearActor } = useAuthenticatedActor();
+  const { isAuthenticated: isICPAuthenticated, isLoading: isICPLoading } = useICPIdentity();
 
   const [state, setState] = useState<CapsuleListState>({
     capsules: [],
@@ -41,7 +43,7 @@ export default function CapsuleList({ refreshTrigger }: CapsuleListProps = {}) {
   });
 
   const loadCapsules = useCallback(async () => {
-    if (!session?.user) return;
+    if (!session?.user || !isICPAuthenticated) return;
 
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
@@ -69,28 +71,46 @@ export default function CapsuleList({ refreshTrigger }: CapsuleListProps = {}) {
       }));
     } catch (error) {
       console.error('Failed to load capsules:', error);
+
+      // Provide user-friendly error message based on error type
+      let userMessage = 'Failed to load capsules';
+      let toastMessage = 'Failed to load capsules';
+
+      if (error instanceof Error) {
+        if (error.message.includes('ERR_CONNECTION_REFUSED') || error.message.includes('Failed to fetch')) {
+          userMessage = 'Unable to connect to ICP. Please check if the local development environment is running.';
+          toastMessage = 'ICP connection failed. Please start the local development environment.';
+        } else if (error.message.includes('TransportError')) {
+          userMessage = 'Network connection error. Please check your internet connection and try again.';
+          toastMessage = 'Network error. Please check your connection.';
+        } else {
+          userMessage = `Error: ${error.message}`;
+          toastMessage = 'Failed to load capsules';
+        }
+      }
+
       setState(prev => ({
         ...prev,
         isLoading: false,
-        error: error instanceof Error ? error.message : 'Failed to load capsules',
+        error: userMessage,
       }));
-      toast({ title: 'Error', description: 'Failed to load capsules', variant: 'destructive' });
+      toast({ title: 'Error', description: toastMessage, variant: 'destructive' });
     }
-  }, [session, getActor]);
+  }, [session, getActor, isICPAuthenticated]);
 
   // Load capsules on component mount
   useEffect(() => {
-    if (session?.user) {
+    if (session?.user && !isICPLoading && isICPAuthenticated) {
       loadCapsules();
     }
-  }, [session, loadCapsules]);
+  }, [session, loadCapsules, isICPAuthenticated, isICPLoading]);
 
   // Refresh when refreshTrigger changes
   useEffect(() => {
-    if (refreshTrigger && session?.user) {
+    if (refreshTrigger && session?.user && !isICPLoading && isICPAuthenticated) {
       loadCapsules();
     }
-  }, [refreshTrigger, session, loadCapsules]);
+  }, [refreshTrigger, session, loadCapsules, isICPAuthenticated, isICPLoading]);
 
   const handleViewCapsule = async (capsuleId: string) => {
     try {
@@ -118,8 +138,20 @@ export default function CapsuleList({ refreshTrigger }: CapsuleListProps = {}) {
       }
     } catch (error) {
       console.error('Failed to load capsule details:', error);
+
+      // Provide user-friendly error message based on error type
+      let toastMessage = 'Failed to load capsule details';
+
+      if (error instanceof Error) {
+        if (error.message.includes('ERR_CONNECTION_REFUSED') || error.message.includes('Failed to fetch')) {
+          toastMessage = 'ICP connection failed. Please start the local development environment.';
+        } else if (error.message.includes('TransportError')) {
+          toastMessage = 'Network error. Please check your connection.';
+        }
+      }
+
       setState(prev => ({ ...prev, isLoading: false }));
-      toast({ title: 'Error', description: 'Failed to load capsule details', variant: 'destructive' });
+      toast({ title: 'Error', description: toastMessage, variant: 'destructive' });
     }
   };
 
@@ -169,6 +201,33 @@ export default function CapsuleList({ refreshTrigger }: CapsuleListProps = {}) {
       <Card>
         <CardContent className="p-6">
           <p className="text-center text-muted-foreground">Please sign in to view your capsules.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show loading state while checking ICP authentication
+  if (isICPLoading) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin mr-2" />
+            <span>Checking authentication...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show message if not authenticated with Internet Identity
+  if (!isICPAuthenticated) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-center">
+            <p className="text-muted-foreground">Please connect your Internet Identity to view capsules.</p>
+          </div>
         </CardContent>
       </Card>
     );

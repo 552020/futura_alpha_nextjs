@@ -12,7 +12,7 @@
 
 import type { FileInputAttributeMode } from '@/types/upload';
 import type { HostingPreferences } from '@/hooks/use-hosting-preferences';
-import { getDefaultHostingPreferences } from '@/hooks/use-hosting-preferences';
+// import { getDefaultHostingPreferences } from '@/hooks/use-hosting-preferences'; // Not used with ICP processing
 import { validateUploadFiles, checkICPAuthentication } from './shared-utils';
 import { uploadToS3WithProcessing } from './s3-with-processing';
 import { logger } from '@/lib/logger';
@@ -84,17 +84,24 @@ export async function processSingleFile(options: ProcessSingleFileOptions): Prom
         return;
       }
 
-      // ICP upload
+      // ICP upload with parallel processing (Lane A + Lane B + finalizeAllAssets)
       // NOTE: For ICP users, isOnboarding is ignored because ICP always requires Internet Identity auth
       // Even "onboarding" users must authenticate with II to interact with ICP canister
-      const { uploadToICP } = await import('./icp-upload');
-      const results = await uploadToICP(
-        [file],
-        preferences || getDefaultHostingPreferences(),
-        existingUserId || '',
-        onProgress ? progress => onProgress(progress.percentage) : undefined
-      );
-      data = results[0]; // Get first (and only) result
+      const { uploadToICPWithProcessing } = await import('./icp-with-processing');
+      const uploadResult = await uploadToICPWithProcessing(file, onProgress);
+      data = {
+        data: uploadResult.data,
+        results: uploadResult.results.map(result => ({
+          memoryId: result.memoryId,
+          size: Number(result.size),
+          checksum_sha256: result.checksumSha256
+            ? Array.from(result.checksumSha256)
+                .map(b => b.toString(16).padStart(2, '0'))
+                .join('')
+            : null,
+        })),
+        userId: uploadResult.userId,
+      };
     } else if (userBlobHostingPreferences.includes('vercel_blob')) {
       const { uploadToVercelBlob } = await import('./vercel-blob-upload');
       const results = await uploadToVercelBlob([file], isOnboarding, existingUserId, mode);

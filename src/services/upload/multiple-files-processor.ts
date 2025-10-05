@@ -12,7 +12,7 @@
  */
 
 import type { HostingPreferences } from '@/hooks/use-hosting-preferences';
-import { getDefaultHostingPreferences } from '@/hooks/use-hosting-preferences';
+// import { getDefaultHostingPreferences } from '@/hooks/use-hosting-preferences'; // Not used with ICP processing
 import { validateUploadFiles, checkICPAuthentication } from './shared-utils';
 import { uploadMultipleToS3WithProcessing } from './s3-with-processing';
 import { logger } from '@/lib/logger';
@@ -93,28 +93,24 @@ export async function processMultipleFiles(options: ProcessMultipleFilesOptions)
         return;
       }
 
-      // ICP upload
+      // ICP upload with parallel processing (Lane A + Lane B + finalizeAllAssets)
       // NOTE: For ICP users, isOnboarding is ignored because ICP always requires Internet Identity auth
       // Even "onboarding" users must authenticate with II to interact with ICP canister
-      const { uploadToICP } = await import('./icp-upload');
-      const results = await uploadToICP(
-        files,
-        preferences || getDefaultHostingPreferences(),
-        existingUserId || '',
-        progress => {
-          // Convert overall progress to per-file progress for compatibility
-          onProgress?.(files[0], progress.percentage);
-        }
-      );
+      const { uploadMultipleToICPWithProcessing } = await import('./icp-with-processing');
+      const uploadResult = await uploadMultipleToICPWithProcessing(files, mode, (file, progress) => {
+        // Convert overall progress to per-file progress for compatibility
+        onProgress?.(file, progress);
+      });
 
       // Convert results to expected format
       data = {
-        results: results.map(result => ({
-          memoryId: result.data.id,
-          size: result.results[0]?.size ? Number(result.results[0].size) : undefined,
-          checksum_sha256: result.results[0]?.checksum_sha256,
-        })),
-        successfulUploads: results.length,
+        results:
+          uploadResult.results?.map(result => ({
+            memoryId: result.memoryId,
+            size: result.size,
+            checksum_sha256: result.checksum_sha256,
+          })) || [],
+        successfulUploads: uploadResult.successfulUploads || 0,
       };
     } else if (userBlobHostingPreference === 'vercel_blob') {
       const { uploadToVercelBlob } = await import('./vercel-blob-upload');

@@ -152,14 +152,24 @@ export default function Header({ dict, lang }: { dict: HeaderDictionary; lang?: 
                     <div className="flex flex-col space-y-2">
                       {/* Settings in footer section (only when authenticated) */}
                       {status === 'authenticated' && session?.user ? (
-                        <SheetClose asChild>
-                          <Link
-                            href={`/${currentLang}/user/settings`}
-                            className="transition-all duration-200 ease-in-out px-4 py-3 hover:text-primary hover:bg-muted rounded-none focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 text-base w-full flex items-center text-muted-foreground"
-                          >
-                            Settings
-                          </Link>
-                        </SheetClose>
+                        <>
+                          <SheetClose asChild>
+                            <Link
+                              href={`/${currentLang}/user/settings`}
+                              className="transition-all duration-200 ease-in-out px-4 py-3 hover:text-primary hover:bg-muted rounded-none focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 text-base w-full flex items-center text-muted-foreground"
+                            >
+                              Settings
+                            </Link>
+                          </SheetClose>
+                          <SheetClose asChild>
+                            <Link
+                              href={`/${currentLang}/user/icp`}
+                              className="transition-all duration-200 ease-in-out px-4 py-3 hover:text-primary hover:bg-muted rounded-none focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 text-base w-full flex items-center text-muted-foreground"
+                            >
+                              ICP
+                            </Link>
+                          </SheetClose>
+                        </>
                       ) : null}
                       <SheetClose asChild>
                         <Link
