@@ -25,6 +25,7 @@ import { allUsers, memories, folders, galleries, galleryItems } from '@/db/schem
 import { eq, and, inArray } from 'drizzle-orm';
 import { cleanupStorageEdgesForMemory } from './utils/memory-database';
 
+import { logger } from '@/lib/logger';
 // Type for memory with metadata for deletion operations
 interface MemoryForDeletion {
   id: string;
@@ -50,15 +51,15 @@ interface MemoryForDeletion {
 
 // Helper function to clean up storage edges for deleted memories
 async function cleanupStorageEdgesForMemories(memoriesToDelete: MemoryForDeletion[]) {
-  console.log(`🧹 Starting cleanup for ${memoriesToDelete.length} memories`);
+  logger.info(`🧹 Starting cleanup for ${memoriesToDelete.length} memories`);
 
   const cleanupPromises = memoriesToDelete.map(memoryData => {
     if (!memoryData) {
-      console.warn('⚠️ Received undefined memory data in cleanup');
+      logger.warn('⚠️ Received undefined memory data in cleanup');
       return Promise.resolve({ success: false });
     }
 
-    console.log(`🧹 Cleaning up memory: ${memoryData.id} (${memoryData.type})`);
+    logger.info(`🧹 Cleaning up memory: ${memoryData.id} (${memoryData.type})`);
 
     return cleanupStorageEdgesForMemory({
       memoryId: memoryData.id,
@@ -76,17 +77,17 @@ async function cleanupStorageEdgesForMemories(memoriesToDelete: MemoryForDeletio
     const memory = memoriesToDelete[index];
     if (result.status === 'fulfilled' && result.value.success) {
       successCount++;
-      console.log(`✅ Successfully cleaned up memory: ${memory?.id || 'unknown'}`);
+      logger.info(`✅ Successfully cleaned up memory: ${memory?.id || 'unknown'}`);
     } else {
       errorCount++;
-      console.error(
+      logger.error(
         `❌ Failed to clean up memory ${memory?.id || 'unknown'}:`,
         result.status === 'rejected' ? result.reason : result.value
       );
     }
   });
 
-  console.log(`🧹 Cleanup complete. Success: ${successCount}, Errors: ${errorCount}`);
+  logger.info(`🧹 Cleanup complete. Success: ${successCount}, Errors: ${errorCount}`);
   return { successCount, errorCount };
 }
 
@@ -108,7 +109,7 @@ export async function handleApiMemoryDelete(request: NextRequest): Promise<NextR
     });
 
     if (!allUserRecord) {
-      console.error('No allUsers record found for user:', session.user.id);
+      logger.error('No allUsers record found for user:', undefined, { data: session.user.id });
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
@@ -123,7 +124,7 @@ export async function handleApiMemoryDelete(request: NextRequest): Promise<NextR
 
     if (memoryId) {
       // Single memory deletion
-      console.log(`🗑️ Deleting single memory: ${memoryId}`);
+      logger.info(`🗑️ Deleting single memory: ${memoryId}`);
 
       // 1. FIRST: Get the memory data BEFORE deletion
       const memoryData = await db.query.memories.findFirst({
@@ -135,7 +136,7 @@ export async function handleApiMemoryDelete(request: NextRequest): Promise<NextR
       });
 
       if (!memoryData) {
-        console.error(`❌ Memory not found: ${memoryId}`);
+        logger.error(`❌ Memory not found: ${memoryId}`);
         return NextResponse.json({ error: 'Memory not found' }, { status: 404 });
       }
 
@@ -146,11 +147,11 @@ export async function handleApiMemoryDelete(request: NextRequest): Promise<NextR
         .returning();
 
       if (!deletedMemoryRow) {
-        console.error(`❌ Failed to delete memory or memory not found: ${memoryId}`);
+        logger.error(`❌ Failed to delete memory or memory not found: ${memoryId}`);
         return NextResponse.json({ error: 'Memory not found' }, { status: 404 });
       }
 
-      console.log(`✅ Deleted memory from database: ${memoryId}`);
+      logger.info(`✅ Deleted memory from database: ${memoryId}`);
 
       // 3. FINALLY: Clean up storage edges with pre-fetched data
       const cleanupResult = await cleanupStorageEdgesForMemory({
@@ -160,9 +161,9 @@ export async function handleApiMemoryDelete(request: NextRequest): Promise<NextR
       });
 
       if (!cleanupResult.success) {
-        console.error(`❌ Failed to clean up storage for memory ${memoryId}:`, cleanupResult.error);
+        logger.error(`❌ Failed to clean up storage for memory ${memoryId}:`, undefined, { data: cleanupResult.error });
       } else {
-        console.log(`✅ Successfully cleaned up storage for memory: ${memoryId}`);
+        logger.info(`✅ Successfully cleaned up storage for memory: ${memoryId}`);
       }
 
       return NextResponse.json({
@@ -172,7 +173,7 @@ export async function handleApiMemoryDelete(request: NextRequest): Promise<NextR
       });
     } else if (all === 'true') {
       // Delete all memories, folders, and galleries for the user
-      console.log('🗑️ Clearing all data for user:', allUserRecord.id);
+      logger.info('🗑️ Clearing all data for user:', undefined, { userId: allUserRecord.id });
 
       // 1. First get all memories that will be deleted for cleanup
       const memoriesToDelete = await db.query.memories.findMany({
@@ -275,7 +276,7 @@ export async function handleApiMemoryDelete(request: NextRequest): Promise<NextR
       all,
     });
   } catch (error) {
-    console.error('Error in bulk delete:', error);
+    logger.error('Error in bulk delete:', undefined, { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to delete memories' }, { status: 500 });
   }
 }

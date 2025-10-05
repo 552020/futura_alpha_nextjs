@@ -5,7 +5,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useAuthGuard } from '@/utils/authentication';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Globe, Lock, Trash2, Maximize2, CheckSquare } from 'lucide-react';
+import { Globe, Lock, Trash2, Maximize2, HardDrive, Eye } from 'lucide-react';
 import { galleryService } from '@/services/gallery';
 import { GalleryWithItems } from '@/types/gallery';
 import { Memory } from '@/types/memory';
@@ -30,6 +30,7 @@ import { SendSelectionModal } from '@/components/galleries/send-selection-modal'
 import { toast } from '@/components/ui/use-toast';
 import { ToastContainer } from '@/components/ui/toast-container';
 
+import { logger } from '@/lib/logger';
 // Mock data flag for development - same pattern as dashboard
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_GALLERY === 'true';
 
@@ -56,10 +57,10 @@ function GalleryViewContent() {
   const [businessEmail, setBusinessEmail] = useState<string | null>(null);
 
   // Image modal state
-  const [selectedImage, setSelectedImage] = useState<{ 
-    url: string; 
-    title: string; 
-    id: string; 
+  const [selectedImage, setSelectedImage] = useState<{
+    url: string;
+    title: string;
+    id: string;
     type?: string;
     assets?: Array<{ assetType: string; url: string; mimeType?: string }>;
   } | null>(null);
@@ -71,58 +72,57 @@ function GalleryViewContent() {
 
   const loadGallery = useCallback(async () => {
     try {
-      console.log('Loading gallery with ID:', id);
+      logger.info('Loading gallery with ID', 'gallery:fe', { galleryId: id });
       setIsLoading(true);
       setError(null);
       const result = await galleryService.getGallery(id as string, USE_MOCK_DATA);
-      console.log('Gallery data received:', result);
+      logger.info('Gallery data received', 'gallery:fe', { galleryId: id, itemCount: result.gallery?.items?.length || 0 });
       setGallery(result.gallery);
-      
+
       // Get the current user's ID from the session
       const sessionResponse = await fetch('/api/auth/session');
       const session = await sessionResponse.json();
       const userId = session?.user?.id;
-      
+
       if (!userId) {
-        console.log('No user session found, skipping business relationship check');
+        logger.info('No user session found, skipping business relationship check', 'gallery:fe');
         return;
       }
-      
+
       // Fetch business relationship to get the business email
       try {
-        console.log('Fetching business relationship for user ID:', userId);
+        logger.info('Fetching business relationship for user ID', 'gallery:fe', { userId });
         const response = await fetch(`/api/users/${userId}/business-relationship`);
         if (response.ok) {
           const data = await response.json();
-          console.log('Business relationship API response:', {
+          logger.info('Business relationship API response', 'gallery:fe', {
             status: 'success',
             isClient: data.isClient,
-            isBusiness: data.isBusiness,
             businessEmail: data.businessEmail,
-            relationships: data.relationships || []
+            relationships: data.relationships || [],
           });
-          
+
           if (data.isClient && data.businessEmail) {
-            console.log(`✅ Using business email from relationship: ${data.businessEmail}`);
+            logger.info('Using business email from relationship', 'gallery:fe', { businessEmail: data.businessEmail });
             setBusinessEmail(data.businessEmail);
           } else if (data.isBusiness) {
-            console.log('ℹ️ User is a business. No business email to use from relationship.');
+            logger.info('User is a business. No business email to use from relationship.', 'gallery:fe');
           } else {
-            console.log('ℹ️ No business relationship found.');
+            logger.info('No business relationship found.', 'gallery:fe');
           }
         } else {
           const error = await response.json().catch(() => ({}));
-          console.error('❌ Error response from business-relationship API:', {
+          logger.error('Error response from business-relationship API', 'gallery:fe', {
             status: response.status,
             statusText: response.statusText,
-            error
+            error,
           });
         }
       } catch (error) {
-        console.error('❌ Error fetching business relationship:', error);
+        logger.error('Error fetching business relationship', 'gallery:fe', { error, userId });
       }
     } catch (err) {
-      console.error('Error loading gallery:', err);
+      logger.error('Error loading gallery', undefined, { data: err as Error });
       setError('Failed to load gallery');
     } finally {
       setIsLoading(false);
@@ -148,7 +148,7 @@ function GalleryViewContent() {
     }
   }, [searchParams]);
 
-  const toggleSelectionMode = () => {
+  const _toggleSelectionMode = () => {
     if (isSelecting) {
       // Exit selection mode
       setSelectedImages([]);
@@ -184,31 +184,31 @@ function GalleryViewContent() {
   };
 
   const handleHideImage = (imageId: string) => {
-    console.log('Hiding image:', imageId);
+    logger.info('Hiding image', 'gallery:fe', { imageId });
     setHiddenImages(prev => {
       const newHidden = [...prev, imageId];
-      console.log('New hidden images:', newHidden);
+      logger.info('New hidden images', 'gallery:fe', { hiddenCount: newHidden.length, imageIds: newHidden });
       return newHidden;
     });
     // Remove from selected images if hidden
     setSelectedImages(prev => {
       const filtered = prev.filter(id => id !== imageId);
-      console.log('Removed from selection, new selection:', filtered);
+      logger.info('Removed from selection, new selection', 'gallery:fe', { selectedCount: filtered.length, imageIds: filtered });
       return filtered;
     });
   };
 
   const handleUnhideImage = (imageId: string) => {
-    console.log('Unhiding image:', imageId);
+    logger.info('Unhiding image', 'gallery:fe', { imageId });
     setHiddenImages(prev => {
       const newHidden = prev.filter(id => id !== imageId);
-      console.log('New hidden images:', newHidden);
+      logger.info('New hidden images', 'gallery:fe', { hiddenCount: newHidden.length, imageIds: newHidden });
       return newHidden;
     });
     // Remove from selected images if unhidden
     setSelectedImages(prev => {
       const filtered = prev.filter(id => id !== imageId);
-      console.log('Removed from selection, new selection:', filtered);
+      logger.info('Removed from selection, new selection', 'gallery:fe', { selectedCount: filtered.length, imageIds: filtered });
       return filtered;
     });
   };
@@ -221,13 +221,14 @@ function GalleryViewContent() {
   const handleSendSelection = async (message: string): Promise<void> => {
     if (selectedImages.length === 0) return;
 
-    const selectedItems = gallery?.items
-      .filter(item => selectedImages.includes(item.memory.id) && item.memory.url)
-      .map(item => ({
-        url: item.memory.url!, // We know it's defined due to the filter above
-        name: item.memory.title || `Photo ${item.memory.id}`,
-        rating: ratings[item.memory.id] || 0,
-      })) || [];
+    const selectedItems =
+      gallery?.items
+        .filter(item => selectedImages.includes(item.memory.id) && item.memory.url)
+        .map(item => ({
+          url: item.memory.url!, // We know it's defined due to the filter above
+          name: item.memory.title || `Photo ${item.memory.id}`,
+          rating: ratings[item.memory.id] || 0,
+        })) || [];
 
     try {
       // Get user info for the email
@@ -236,7 +237,7 @@ function GalleryViewContent() {
       const userEmail = session?.user?.email || 'unknown@example.com';
 
       // Generate email content
-      const { subject, html, text } = await import('@/utils/email/gallerySelectionTemplate').then(m => 
+      const { subject, html, text } = await import('@/utils/email/gallerySelectionTemplate').then(m =>
         m.renderGallerySelectionEmail({
           userName,
           images: selectedItems,
@@ -248,19 +249,24 @@ function GalleryViewContent() {
 
       // Determine recipient email - use business email if available, otherwise fall back to env var
       const recipientEmail = businessEmail || process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL;
-      
-      console.log('📧 Email sending details:', {
+
+      logger.info('Email sending details', 'gallery:fe', {
         source: businessEmail ? 'business-relationship' : 'NEXT_PUBLIC_PHOTOGRAPHER_EMAIL',
         recipientEmail,
         hasBusinessEmail: !!businessEmail,
-        hasEnvEmail: !!process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL
+        hasEnvEmail: !!process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL,
       });
-      
+
       if (!recipientEmail) {
-        const errorMsg = 'No recipient email address available. Tried:' +
+        const errorMsg =
+          'No recipient email address available. Tried:' +
           `\n- Business email from relationship: ${businessEmail || 'Not available'}` +
           `\n- Environment variable: ${process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL || 'Not set'}`;
-        console.error('❌', errorMsg);
+        logger.error('No recipient email address available', 'gallery:fe', {
+          businessEmail,
+          envEmail: process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL,
+          errorMsg,
+        });
         throw new Error(errorMsg);
       }
 
@@ -284,7 +290,7 @@ function GalleryViewContent() {
             galleryId: id,
             images: selectedItems.map(img => ({
               ...img,
-              ratingStars: '★'.repeat(Math.round(img.rating || 0)) + '☆'.repeat(5 - Math.round(img.rating || 0))
+              ratingStars: '★'.repeat(Math.round(img.rating || 0)) + '☆'.repeat(5 - Math.round(img.rating || 0)),
             })),
             appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://futura.now',
           },
@@ -302,12 +308,11 @@ function GalleryViewContent() {
         description: 'Your selection has been sent successfully!',
         variant: 'default',
       });
-      
+
       // Clear selection after successful send
       setSelectedImages([]);
-      
     } catch (error) {
-      console.error('Error sending selection:', error);
+      logger.error('Error sending selection', 'gallery:fe', { error, selectedCount: selectedImages.length });
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to send selection',
@@ -331,7 +336,7 @@ function GalleryViewContent() {
       await galleryService.deleteGallery(gallery.id, USE_MOCK_DATA);
       router.push('/gallery');
     } catch (err) {
-      console.error('Error deleting gallery:', err);
+      logger.error('Error deleting gallery', undefined, { data: err as Error });
       setError('Failed to delete gallery');
     } finally {
       setIsDeleting(false);
@@ -354,29 +359,61 @@ function GalleryViewContent() {
       );
       setGallery(updatedGallery);
     } catch (err) {
-      console.error('Error updating gallery privacy:', err);
+      logger.error('Error updating gallery privacy', undefined, { data: err as Error });
       setError('Failed to update gallery privacy');
     } finally {
       setIsUpdating(false);
     }
   };
 
-  const handleImageClick = (item: { id: string; memory: { id: string; url?: string; title?: string; type?: string; assets?: { assetType: string; url: string; mimeType?: string }[] } }, _index: number) => {
+  const _handleEditGallery = () => {
+    // TODO: Navigate to edit page or open edit modal
+    // logger.info("Edit gallery:", gallery?.id);
+  };
+
+  const handleStoreForever = () => {
+    // TODO: Implement store forever functionality
+    setShowForeverStorageModal(true);
+  };
+
+  const getStoreForeverButtonState = () => {
+    // TODO: Implement button state logic
+    return {
+      variant: 'default' as const,
+      disabled: false,
+      className: '',
+      text: 'Store Forever',
+    };
+  };
+
+  const handleImageClick = (
+    item: {
+      id: string;
+      memory: {
+        id: string;
+        url?: string;
+        title?: string;
+        type?: string;
+        assets?: { assetType: string; url: string; mimeType?: string }[];
+      };
+    },
+    _index: number
+  ) => {
     // Extract assets from the memory object if they exist
     const assets: MemoryAsset[] = (item.memory.assets || []).map(asset => ({
       assetType: asset.assetType,
       url: asset.url,
       mimeType: asset.mimeType,
     }));
-    
-    setSelectedImage({ 
-      url: item.memory.url || '', 
+
+    setSelectedImage({
+      url: item.memory.url || '',
       title: item.memory.title || 'Image',
       id: item.memory.id,
-type: 'image', // Default to 'image' as the selection panel doesn't pass the type
-      assets // Pass the assets array
+      type: 'image', // Default to 'image' as the selection panel doesn't pass the type
+      assets, // Pass the assets array
     });
-    
+
     // Find the index of the item in the filtered items array
     const itemIndex = filteredItems.findIndex(i => i.memory.id === item.memory.id);
     setCurrentImageIndex(itemIndex);
@@ -388,18 +425,19 @@ type: 'image', // Default to 'image' as the selection panel doesn't pass the typ
       const nextIndex = currentImageIndex + 1;
       const nextItem = filteredItems[nextIndex];
       // Extract assets from the memory object if they exist
-      const assets: MemoryAsset[] = (nextItem.memory as GalleryItemMemory).assets?.map(asset => ({
-        assetType: asset.assetType,
-        url: asset.url,
-        mimeType: asset.mimeType,
-      })) || [];
-      
+      const assets: MemoryAsset[] =
+        (nextItem.memory as GalleryItemMemory).assets?.map(asset => ({
+          assetType: asset.assetType,
+          url: asset.url,
+          mimeType: asset.mimeType,
+        })) || [];
+
       setSelectedImage({
         url: nextItem.memory.url || '',
         title: nextItem.memory.title || 'Image',
         id: nextItem.memory.id,
         type: nextItem.memory.type || 'image', // Default to 'image' if not specified
-        assets // Pass the assets array
+        assets, // Pass the assets array
       });
       setCurrentImageIndex(nextIndex);
     }
@@ -410,18 +448,19 @@ type: 'image', // Default to 'image' as the selection panel doesn't pass the typ
       const prevIndex = currentImageIndex - 1;
       const prevItem = filteredItems[prevIndex];
       // Extract assets from the memory object if they exist
-      const assets: MemoryAsset[] = (prevItem.memory as GalleryItemMemory).assets?.map(asset => ({
-        assetType: asset.assetType,
-        url: asset.url,
-        mimeType: asset.mimeType,
-      })) || [];
-      
+      const assets: MemoryAsset[] =
+        (prevItem.memory as GalleryItemMemory).assets?.map(asset => ({
+          assetType: asset.assetType,
+          url: asset.url,
+          mimeType: asset.mimeType,
+        })) || [];
+
       setSelectedImage({
         url: prevItem.memory.url || '',
         title: prevItem.memory.title || 'Image',
         id: prevItem.memory.id,
         type: prevItem.memory.type || 'image', // Default to 'image' if not specified
-        assets // Pass the assets array
+        assets, // Pass the assets array
       });
       setCurrentImageIndex(prevIndex);
     }
@@ -481,7 +520,9 @@ type: 'image', // Default to 'image' as the selection panel doesn't pass the typ
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <h2 className="text-2xl font-semibold mb-4">Gallery not found</h2>
-          <p className="text-muted-foreground mb-6">This gallery doesn&apos;t exist or you don&apos;t have access to it</p>
+          <p className="text-muted-foreground mb-6">
+            This gallery doesn&apos;t exist or you don&apos;t have access to it
+          </p>
           <Button onClick={() => router.back()}>Go Back</Button>
         </div>
       </div>
@@ -534,21 +575,58 @@ type: 'image', // Default to 'image' as the selection panel doesn't pass the typ
                 <Maximize2 className="h-4 w-4" />
                 Full Screen
               </Button>
-
-              <Button variant="outline" size="sm" onClick={toggleSelectionMode} className="flex items-center gap-2">
-                <CheckSquare className="h-4 w-4" />
-                {isSelecting ? 'Exit Selection' : 'Select'}
-              </Button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDeleteGallery}
-                disabled={isDeleting}
-                className="flex items-center gap-2 text-red-600 hover:text-red-700"
-              >
-                <Trash2 className="h-4 w-4" />
-                {isDeleting ? 'Deleting...' : 'Delete'}
+              {(() => {
+                const buttonState = getStoreForeverButtonState();
+                return (
+                  <>
+                    <div className="relative group">
+                      <Button
+                        variant={buttonState.variant}
+                        size="sm"
+                        onClick={handleStoreForever}
+                        disabled={buttonState.disabled}
+                        className={buttonState.className}
+                      >
+                        <HardDrive className="h-4 w-4 mr-2" />
+                        {buttonState.text}
+                      </Button>
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                        {gallery?.storageStatus?.status === 'stored_forever'
+                          ? 'This gallery is already permanently stored on the Internet Computer'
+                          : gallery?.storageStatus?.status === 'partially_stored'
+                            ? 'Continue storing the remaining items on the Internet Computer'
+                            : 'Store this gallery permanently on the Internet Computer blockchain'}
+                      </div>
+                    </div>
+                    {gallery?.storageStatus?.status === 'stored_forever' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          // TODO: Open ICP explorer or gallery viewer
+                          // logger.info("View gallery on ICP:", gallery.id);
+                        }}
+                        className="border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-300 dark:hover:bg-purple-950"
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        View on ICP
+                      </Button>
+                    )}
+                  </>
+                );
+              })()}
+              <Button variant="outline" size="sm" onClick={handleDeleteGallery} disabled={isDeleting}>
+                {isDeleting ? (
+                  <>
+                    <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </>
+                )}
               </Button>
             </div>
           </div>
@@ -579,7 +657,7 @@ type: 'image', // Default to 'image' as the selection panel doesn't pass the typ
           {/* Photo Grid */}
           <div className={`overflow-y-auto h-full ${showSidePanel ? 'flex-1' : 'w-full'}`}>
             <div className="container min-w-0 px-6 py-8 mx-auto h-full flex flex-col">
-                <GalleryPhotoGrid
+              <GalleryPhotoGrid
                 items={filteredItems}
                 isLoading={isLoading}
                 error={error}
@@ -593,9 +671,7 @@ type: 'image', // Default to 'image' as the selection panel doesn't pass the typ
                 onImageClick={handleImageClick}
                 onSelectionToggle={(imageId, checked) => {
                   if (checked) {
-                    setSelectedImages(prev => 
-                      prev.length < MAX_SELECTION ? [...prev, imageId] : prev
-                    );
+                    setSelectedImages(prev => (prev.length < MAX_SELECTION ? [...prev, imageId] : prev));
                   } else {
                     setSelectedImages(prev => prev.filter(id => id !== imageId));
                   }
@@ -608,7 +684,7 @@ type: 'image', // Default to 'image' as the selection panel doesn't pass the typ
               />
             </div>
           </div>
-          
+
           {/* Selection Panel */}
           {isSelecting && (
             <GallerySelectionPanel
@@ -619,7 +695,7 @@ type: 'image', // Default to 'image' as the selection panel doesn't pass the typ
               onImageClick={(item, index) => {
                 handleImageClick(item, index);
               }}
-              onRemoveFromSelection={(imageId) => {
+              onRemoveFromSelection={imageId => {
                 setSelectedImages(prev => prev.filter(id => id !== imageId));
               }}
             />
@@ -633,12 +709,12 @@ type: 'image', // Default to 'image' as the selection panel doesn't pass the typ
           isOpen={showForeverStorageModal}
           onClose={() => setShowForeverStorageModal(false)}
           gallery={gallery}
-          onSuccess={(result) => {
-            console.log('Gallery stored successfully:', result);
+          onSuccess={result => {
+            logger.info('Gallery stored successfully', 'gallery:fe', { result, galleryId: gallery?.id });
             setShowForeverStorageModal(false);
           }}
-          onError={(error) => {
-            console.error('Error storing gallery:', error);
+          onError={error => {
+            logger.error('Error storing gallery', 'gallery:fe', { error, galleryId: gallery?.id });
           }}
         />
       )}

@@ -49,5 +49,49 @@ export const UPLOAD_LIMITS = {
   },
 } as const;
 
+// ICP-specific upload limits
+export const UPLOAD_LIMITS_ICP = {
+  // Inline upload limit (same as Vercel Blob for consistency)
+  INLINE_MAX_BYTES: 1.5 * 1024 * 1024, // 1.5MB (ICP can handle up to 2MB, using 1.5MB for safety)
+
+  // Chunking configuration
+  CHUNK_SIZE_BYTES: 1.5 * 1024 * 1024, // 1.5MB chunks
+  MAX_CHUNKS: 512, // Maximum number of chunks allowed
+
+  // Derived values
+  get INLINE_MAX_MB() {
+    return this.INLINE_MAX_BYTES / (1024 * 1024);
+  },
+
+  get CHUNK_SIZE_KB() {
+    return this.CHUNK_SIZE_BYTES / 1024;
+  },
+
+  // Validation helpers
+  isInlineSizeValid(fileSize: number): boolean {
+    return fileSize <= this.INLINE_MAX_BYTES;
+  },
+
+  getExpectedChunks(fileSize: number): number {
+    return Math.ceil(fileSize / this.CHUNK_SIZE_BYTES);
+  },
+
+  isChunkCountValid(fileSize: number): boolean {
+    return this.getExpectedChunks(fileSize) <= this.MAX_CHUNKS;
+  },
+
+  // Error messages
+  getInlineSizeErrorMessage(fileSize: number): string {
+    const fileSizeMB = Math.round((fileSize / (1024 * 1024)) * 100) / 100;
+    return `File too large for inline upload: ${fileSizeMB}MB. Maximum inline size: ${this.INLINE_MAX_MB}MB`;
+  },
+
+  getChunkCountErrorMessage(fileSize: number): string {
+    const chunks = this.getExpectedChunks(fileSize);
+    return `File too large: ${chunks} chunks exceeds limit of ${this.MAX_CHUNKS} chunks`;
+  },
+} as const;
+
 // Type for upload limits
 export type UploadLimits = typeof UPLOAD_LIMITS;
+export type UploadLimitsICP = typeof UPLOAD_LIMITS_ICP;

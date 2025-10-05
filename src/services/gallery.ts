@@ -10,9 +10,10 @@ import { generatedGalleries, getGeneratedGallery } from '../../scripts/mock-data
 import { icpGalleryService, type GalleryData, type StoreGalleryResponse } from './icp-gallery';
 import { Principal } from '@dfinity/principal';
 
+import { logger } from '@/lib/logger';
 // Analytics tracking shim for future implementation
 export const trackGalleryEvent = (event: string, _properties: Record<string, unknown> = {}) => {
-  // console.log("Gallery Analytics:", { event, properties: _properties, timestamp: new Date().toISOString() });
+  // logger.info("Gallery Analytics:", undefined, { event, properties: _properties, timestamp: new Date().toISOString() });
   // TODO: Implement actual analytics tracking
   // This could send data to PostHog, Google Analytics, or other analytics services
 };
@@ -71,7 +72,7 @@ export const galleryService = {
       const response = await fetch(`/api/galleries?page=${page}&limit=${limit}`);
       return await handleApiResponse(response);
     } catch (error) {
-      console.error('Error listing galleries:', error);
+      logger.error('Error listing galleries', 'gallery:be', { error });
       throw new Error('Failed to load galleries');
     }
   },
@@ -97,7 +98,7 @@ export const galleryService = {
       const response = await fetch(`/api/galleries/${id}`);
       return await handleApiResponse(response);
     } catch (error) {
-      console.error('Error getting gallery:', error);
+      logger.error('Error getting gallery', 'gallery:be', { error });
       throw new Error('Failed to load gallery');
     }
   },
@@ -140,7 +141,7 @@ export const galleryService = {
         isPublic,
       };
 
-      // console.log("Sending request to API:", request);
+      // logger.info("Sending request to API:", request);
 
       const response = await fetch('/api/galleries', {
         method: 'POST',
@@ -148,14 +149,14 @@ export const galleryService = {
         body: JSON.stringify(request),
       });
 
-      // console.log("API response status:", response.status);
+      // logger.info("API response status:", response.status);
 
       const result = await handleApiResponse(response);
-      // console.log("API response result:", result);
-      // console.log("Gallery items count:", result.gallery?.items?.length || 0);
+      // logger.info("API response result:", result);
+      // logger.info("Gallery items count:", result.gallery?.items?.length || 0);
       return result.gallery;
     } catch (error) {
-      console.error('Error creating gallery from folder:', error);
+      logger.error('Error creating gallery from folder', 'gallery:be', { error });
       throw new Error('Failed to create gallery from folder');
     }
   },
@@ -207,7 +208,7 @@ export const galleryService = {
       const result = await handleApiResponse(response);
       return result.gallery;
     } catch (error) {
-      console.error('Error creating gallery from memories:', error);
+      logger.error('Error creating gallery from memories', 'gallery:be', { error });
       throw new Error('Failed to create gallery from memories');
     }
   },
@@ -245,7 +246,7 @@ export const galleryService = {
       const result = await handleApiResponse(response);
       return result.gallery;
     } catch (error) {
-      console.error('Error creating gallery:', error);
+      logger.error('Error creating gallery', 'gallery:be', { error });
       throw new Error('Failed to create gallery');
     }
   },
@@ -281,7 +282,7 @@ export const galleryService = {
       const result = await handleApiResponse(response);
       return result.gallery;
     } catch (error) {
-      console.error('Error updating gallery:', error);
+      logger.error('Error updating gallery', 'gallery:be', { error });
       throw new Error('Failed to update gallery');
     }
   },
@@ -305,7 +306,7 @@ export const galleryService = {
         throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
     } catch (error) {
-      console.error('Error deleting gallery:', error);
+      logger.error('Error deleting gallery', 'gallery:be', { error });
       throw new Error('Failed to delete gallery');
     }
   },
@@ -335,7 +336,7 @@ export const galleryService = {
         throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
     } catch (error) {
-      console.error('Error sharing gallery:', error);
+      logger.error('Error sharing gallery', 'gallery:be', { error });
       throw new Error('Failed to share gallery');
     }
   },
@@ -355,7 +356,7 @@ export const galleryService = {
       const response = await fetch('/api/galleries/folders');
       return await handleApiResponse(response);
     } catch (error) {
-      console.error('Error getting folders:', error);
+      logger.error('Error getting folders', 'gallery:be', { error });
       // Return empty array instead of throwing for now
       return [];
     }
@@ -396,7 +397,7 @@ export const galleryService = {
 
       return result;
     } catch (error) {
-      console.error('Error storing gallery forever:', error);
+      logger.error('Error storing gallery forever', 'gallery:be', { error });
       trackGalleryEvent('gallery_store_forever_failed', {
         galleryId: gallery.id,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -450,7 +451,7 @@ export const galleryService = {
       trackGalleryEvent('icp_galleries_retrieved', { count: web2Galleries.length });
       return web2Galleries;
     } catch (error) {
-      console.error('Error getting ICP galleries:', error);
+      logger.error('Error getting ICP galleries', 'gallery:be', { error });
       trackGalleryEvent('icp_galleries_failed', {
         error: error instanceof Error ? error.message : 'Unknown error',
       });
@@ -465,7 +466,7 @@ export const galleryService = {
     try {
       return await icpGalleryService.checkCapsuleStatus();
     } catch (error) {
-      console.error('Error checking ICP capsule status:', error);
+      logger.error('Error checking ICP capsule status', 'gallery:be', { error });
       return false;
     }
   },
@@ -512,9 +513,9 @@ async function updateStorageEdgesAfterICPSuccess(gallery: GalleryWithItems): Pro
       });
     }
 
-    // console.log(`Updated storage edges for ${gallery.items?.length || 0} memories in gallery ${gallery.id}`);
+    // logger.info(`Updated storage edges for ${gallery.items?.length || 0} memories in gallery ${gallery.id}`);
   } catch (error) {
-    console.error('Error updating storage edges after ICP success:', error);
+    logger.error('Error updating storage edges after ICP success', 'gallery:be', { error });
     // Don't throw - this is a side effect, not critical to the main operation
   }
 }

@@ -1,14 +1,15 @@
 import { S3Client, DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 
+import { logger } from '@/lib/logger';
 // Get bucket name from environment variables
 const BUCKET_NAME = process.env.NEXT_PUBLIC_AWS_S3_BUCKET || 'futura0';
 
 if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
-  console.warn('⚠️ AWS credentials not found. S3 operations will fail.');
+  logger.warn('AWS credentials not found. S3 operations will fail', 's3:be');
 }
 
 if (!process.env.AWS_S3_REGION) {
-  console.warn('⚠️ AWS_S3_REGION not set. Defaulting to eu-central-1');
+  logger.warn('AWS_S3_REGION not set, defaulting to eu-central-1', 's3:be');
 }
 
 // Initialize S3 client with explicit credentials and region
@@ -18,7 +19,6 @@ const s3Client = new S3Client({
     accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
   },
-  logger: console, // request logging for debugging
 });
 
 /**
@@ -40,7 +40,10 @@ async function objectExists(key: string): Promise<boolean> {
     if (err.name === 'NotFound') {
       return false;
     }
-    console.error(`❌ Unexpected error checking if S3 object exists (${key}):`, err);
+    logger.error('Unexpected error checking if S3 object exists', 's3:be', {
+      key,
+      error: err
+    });
     return false;
   }
 }
@@ -49,26 +52,32 @@ async function objectExists(key: string): Promise<boolean> {
  * Delete an object from S3 with enhanced error handling and logging
  */
 export async function deleteS3Object(key: string): Promise<boolean> {
-  console.log('🔧 deleteS3Object called with key:', key);
+  logger.info('deleteS3Object called', 's3:be', { key });
 
   if (!key) {
-    console.warn('⚠️ Attempted to delete S3 object with empty key');
+    logger.warn('Attempted to delete S3 object with empty key', 's3:be');
     return false;
   }
 
   const bucket = BUCKET_NAME;
 
   try {
-    console.log('🔍 Checking if object exists before deletion...');
+    logger.info('Checking if object exists before deletion', 's3:be');
     const exists = await objectExists(key);
-    console.log(`🔍 Object ${exists ? 'exists' : 'does not exist'}: ${key}`);
+    logger.info('Object existence check completed', 's3:be', {
+      key,
+      exists
+    });
 
     if (!exists) {
-      console.warn(`⚠️ S3 object does not exist: ${key}`);
+      logger.warn(`S3 object does not exist: ${key}`, 's3:be');
       return true; // Safe to treat as success
     }
 
-    console.log(`🗑️ Attempting to delete S3 object: ${key} from bucket: ${bucket}`);
+    logger.info('Attempting to delete S3 object', 's3:be', {
+      key,
+      bucket
+    });
 
     const command = new DeleteObjectCommand({
       Bucket: bucket,
@@ -76,7 +85,7 @@ export async function deleteS3Object(key: string): Promise<boolean> {
     });
 
     const result = await s3Client.send(command);
-    console.log(`✅ DeleteObjectCommand sent successfully`, {
+    logger.info('DeleteObjectCommand sent successfully', 's3:be', {
       deleteMarker: result.DeleteMarker,
       versionId: result.VersionId,
       requestId: result.$metadata.requestId,
@@ -88,7 +97,7 @@ export async function deleteS3Object(key: string): Promise<boolean> {
       const stillExists = await objectExists(key);
       if (stillExists) {
         const objectUrl = `https://${bucket}.s3.${process.env.AWS_S3_REGION || 'eu-central-1'}.amazonaws.com/${key}`;
-        console.error(`❌ S3 object still exists after deletion attempt`, {
+        logger.error('S3 object still exists after deletion attempt', 's3:be', {
           key,
           bucket,
           region: process.env.AWS_S3_REGION || 'eu-central-1',
@@ -97,7 +106,7 @@ export async function deleteS3Object(key: string): Promise<boolean> {
         });
         return false;
       }
-      console.log('✅ Deletion verified', {
+      logger.info('Deletion verified', 's3:be', {
         key,
         bucket,
         region: process.env.AWS_S3_REGION || 'eu-central-1',
@@ -115,18 +124,16 @@ export async function deleteS3Object(key: string): Promise<boolean> {
     return true;
   } catch (error) {
     const fullUrl = `https://${bucket}.s3.${process.env.AWS_S3_REGION || 'eu-central-1'}.amazonaws.com/${key}`;
-    const errorMsg = `Unexpected error deleting S3 object: ${error instanceof Error ? error.message : String(error)}`;
-    console.error(errorMsg, {
+    logger.error('Unexpected error deleting S3 object', 's3:be', {
       key,
       url: fullUrl,
-      error:
-        error instanceof Error
-          ? {
-              name: error.name,
-              message: error.message,
-              stack: error.stack,
-            }
-          : String(error),
+      error: error instanceof Error
+        ? {
+            name: error.name,
+            message: error.message,
+            stack: error.stack,
+          }
+        : String(error),
       timestamp: new Date().toISOString(),
     });
     return false;

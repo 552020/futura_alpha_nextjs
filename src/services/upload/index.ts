@@ -1,7 +1,5 @@
 // Upload services
-export * from './upload';
-export * from './intent';
-export * from './verification';
+export * from './vercel-blob-upload';
 export * from './file-picker';
 export * from './single-file-processor';
 export * from './multiple-files-processor';

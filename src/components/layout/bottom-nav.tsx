@@ -7,6 +7,7 @@ import { useInterface } from '@/contexts/interface-context';
 import { allNavItems, getTranslatedLabel } from '@/utils/navigation';
 import { Dictionary } from '@/utils/dictionaries';
 
+import { logger } from '@/lib/logger';
 interface BottomNavProps {
   dict: Dictionary;
 }
@@ -20,7 +21,7 @@ export default function BottomNav({ dict }: BottomNavProps) {
 
   // Guard against edge cases
   if (!lang) {
-    console.warn('Missing required language parameter');
+    logger.warn('Missing required language parameter');
   }
 
   // Helper function to construct full URLs

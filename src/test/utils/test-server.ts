@@ -1,5 +1,6 @@
 import { createServer, IncomingMessage, ServerResponse } from 'http';
 
+import { logger } from '@/lib/logger';
 // ============================================================================
 // REUSABLE TEST SERVER UTILITY
 // ============================================================================
@@ -54,7 +55,7 @@ export class TestServerBuilder {
       const url = req.url;
       const method = req.method;
 
-      console.log(`🔍 Test Server: ${method} ${url}`);
+      logger.info(`🔍 Test Server: ${method} ${url}`);
 
       // Handle requests to our mock endpoints
       if (url && this.endpoints.has(url)) {
@@ -85,7 +86,7 @@ export class TestServerBuilder {
               parsedBody = {};
             }
 
-            console.log(`🔍 Request body:`, parsedBody);
+            logger.info(`🔍 Request body:`, parsedBody);
             const result = endpoint.POST!(parsedBody);
             const headers = { 'Content-Type': 'application/json', ...result.headers };
             res.writeHead(result.status, headers);

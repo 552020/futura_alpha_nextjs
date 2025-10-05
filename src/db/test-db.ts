@@ -1,6 +1,7 @@
 import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
 import { config } from 'dotenv';
+import { logger } from '@/lib/logger';
 import * as schema from './schema'; // Import the SAME schema
 
 // Load environment variables
@@ -27,10 +28,10 @@ export { schema };
 export async function cleanupTestData() {
   try {
     // Clean up test users (you can add more cleanup logic here)
-    console.log('🧹 Cleaning up test data...');
+    logger.info('🧹 Cleaning up test data...');
     // Add specific cleanup logic as needed
   } catch (error) {
-    console.error('❌ Error cleaning up test data:', error);
+    logger.error('❌ Error cleaning up test data:', undefined, { data: error instanceof Error ? error : undefined });
   }
 }
 

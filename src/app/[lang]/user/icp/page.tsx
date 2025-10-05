@@ -19,6 +19,7 @@ import RequireAuth from '@/components/auth/require-auth';
 import { LinkedAccounts } from '@/components/user/linked-accounts';
 import { IICoAuthControls } from '@/components/user/ii-coauth-controls';
 
+import { logger } from '@/lib/logger';
 export default function ICPPage() {
   const { isAuthorized, isLoading } = useAuthGuard();
   const [greeting, setGreeting] = useState('');
@@ -95,7 +96,7 @@ export default function ICPPage() {
           description: 'Principal ID copied to clipboard',
         });
       } catch (error) {
-        console.error('Failed to copy:', error);
+        logger.error('Failed to copy', undefined, { data: error as Error });
         toast({
           title: 'Copy Failed',
           description: 'Failed to copy principal ID to clipboard',
@@ -127,12 +128,12 @@ export default function ICPPage() {
             const actor = await backendActor(identity);
             authenticatedActorRef.current = actor;
           } catch (error) {
-            console.error('Failed to rehydrate actor:', error);
+            logger.error('Failed to rehydrate actor', undefined, { data: error as Error });
             // Don't break the flow if actor creation fails
           }
         }
       } catch (error) {
-        console.error('Failed to check auth state:', error);
+        logger.error('Failed to check auth state', undefined, { data: error as Error });
         // Don't show toast on mount errors - just log them
       } finally {
         setIsRehydrating(false);
@@ -175,19 +176,19 @@ export default function ICPPage() {
 
       // Automatically fetch capsule info after successful login
       try {
-        // console.log("Fetching capsule info after login...");
+        // logger.info("Fetching capsule info after login...");
         const capsuleResult = (await authenticatedActor.capsules_read_basic([])) as { Ok: any } | { Err: any }; // eslint-disable-line @typescript-eslint/no-explicit-any
-        // console.log("Capsule result received:", capsuleResult);
+        // logger.info("Capsule result received:", capsuleResult);
 
         if ('Ok' in capsuleResult) {
           setCapsuleInfo((capsuleResult as { Ok: any }).Ok); // eslint-disable-line @typescript-eslint/no-explicit-any
-          // console.log("Capsule info set to:", capsuleResult.Ok);
+          // logger.info("Capsule info set to:", capsuleResult.Ok);
         } else {
-          console.warn('Capsule read failed:', (capsuleResult as { Err: any }).Err); // eslint-disable-line @typescript-eslint/no-explicit-any
+          logger.warn('Capsule read failed:', (capsuleResult as { Err: any }).Err); // eslint-disable-line @typescript-eslint/no-explicit-any
           setCapsuleInfo(null);
         }
       } catch (error) {
-        console.warn('Failed to fetch capsule info on login:', error);
+        logger.warn('Failed to fetch capsule info on login', undefined, { error: error instanceof Error ? error.message : String(error) });
         // Don't fail the login if capsule info fetch fails
       }
 
@@ -196,7 +197,7 @@ export default function ICPPage() {
         description: 'Successfully authenticated with Internet Identity!',
       });
     } catch (error) {
-      console.error('Login failed:', error);
+      logger.error('Login failed', undefined, { data: error as Error });
       const errorMessage = error instanceof Error ? error.message : String(error);
       toast({
         title: 'Login Failed',
@@ -229,7 +230,7 @@ export default function ICPPage() {
       const backendPrincipal = await authenticatedActor.whoami();
       setWhoamiResult(`Backend whoami result: ${backendPrincipal.toString()}`);
     } catch (error) {
-      console.error('Whoami failed:', error);
+      logger.error('Whoami failed', undefined, { data: error as Error });
       const errorMessage = error instanceof Error ? error.message : String(error);
 
       // Handle expired/invalid delegation
@@ -238,7 +239,7 @@ export default function ICPPage() {
         errorMessage.includes('expired') ||
         errorMessage.includes('401')
       ) {
-        // console.log("Delegation expired, prompting re-login");
+        // logger.info("Delegation expired, prompting re-login");
         setIsAuthenticated(false);
         setPrincipalId('');
         setGreeting('');
@@ -298,7 +299,7 @@ export default function ICPPage() {
         });
       }
     } catch (error) {
-      console.error('Get capsule info failed:', error);
+      logger.error('Get capsule info failed', undefined, { data: error as Error });
       const errorMessage = error instanceof Error ? error.message : String(error);
 
       // Handle expired/invalid delegation
@@ -307,7 +308,7 @@ export default function ICPPage() {
         errorMessage.includes('expired') ||
         errorMessage.includes('401')
       ) {
-        // console.log("Delegation expired, prompting re-login");
+        // logger.info("Delegation expired, prompting re-login");
         setIsAuthenticated(false);
         setPrincipalId('');
         setGreeting('');
@@ -383,7 +384,7 @@ export default function ICPPage() {
         });
       }
     } catch (error) {
-      console.error('Read capsule failed:', error);
+      logger.error('Read capsule failed', undefined, { data: error as Error });
       const errorMessage = error instanceof Error ? error.message : String(error);
 
       // Handle expired/invalid delegation
@@ -432,7 +433,7 @@ export default function ICPPage() {
         description: 'Successfully signed out',
       });
     } catch (error) {
-      console.error('Sign out failed:', error);
+      logger.error('Sign out failed', undefined, { data: error as Error });
       const errorMessage = error instanceof Error ? error.message : String(error);
       toast({
         title: 'Sign Out Failed',
@@ -459,7 +460,7 @@ export default function ICPPage() {
   }
 
   // Debug logging
-  // console.log("Rendering ICP page, capsuleInfo:", capsuleInfo);
+  // logger.info("Rendering ICP page, capsuleInfo:", capsuleInfo);
 
   return (
     <div className="container mx-auto px-6 py-8">

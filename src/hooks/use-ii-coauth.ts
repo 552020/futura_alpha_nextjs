@@ -9,6 +9,7 @@ import { useSession } from 'next-auth/react';
 import { useCallback, useEffect, useState } from 'react';
 import { checkIICoAuthTTL, requiresIIReAuth } from '@/lib/ii-coauth-ttl';
 
+import { logger } from '@/lib/logger';
 // Extended session user interface for II co-auth
 interface ExtendedSessionUser {
   linkedIcPrincipal?: string;
@@ -93,7 +94,7 @@ export function useIICoAuth(): IICoAuthState {
       try {
         await update({ activeIcPrincipal: principal });
       } catch (error) {
-        console.error('Failed to activate II co-auth:', error);
+        logger.error('Failed to activate II co-auth:', undefined, { data: error instanceof Error ? error : undefined });
         throw error;
       }
     },
@@ -105,7 +106,7 @@ export function useIICoAuth(): IICoAuthState {
     try {
       await update({ clearActiveIc: true });
     } catch (error) {
-      console.error('Failed to disconnect II co-auth:', error);
+      logger.error('Failed to disconnect II co-auth:', undefined, { data: error instanceof Error ? error : undefined });
       throw error;
     }
   }, [update]);

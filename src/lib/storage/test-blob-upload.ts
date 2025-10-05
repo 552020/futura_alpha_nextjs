@@ -3,149 +3,55 @@
  *
  * This is a simple test to verify that the blob-first upload flow works correctly.
  * It can be run in the browser console or as a simple test script.
+ *
+ * NOTE: This file is outdated and needs to be updated to use the new unified upload functions.
  */
 
-import { uploadFile } from '@/services/upload/upload';
+// import { uploadFileToVercelBlob } from '@/services/upload/vercel-blob-upload';
 
+import { logger } from '@/lib/logger';
 /**
  * Test the blob-first upload flow with a sample file
  */
 export async function testBlobFirstUpload() {
-  console.log('🧪 Testing blob-first upload flow...');
+  logger.info('🧪 Testing blob-first upload flow...');
+  logger.info('⚠️ This test is outdated and needs to be updated to use the new unified upload functions.');
 
-  try {
-    // Create a simple test file
-    const testContent = 'Hello, this is a test file for blob-first upload!';
-    const testFile = new File([testContent], 'test.txt', { type: 'text/plain' });
-
-    console.log('📁 Created test file:', testFile.name, testFile.size, 'bytes');
-
-    // Test upload with Vercel Blob
-    const result = await uploadFile(
-      testFile,
-      false, // isOnboarding
-      undefined, // existingUserId
-      'multiple-files', // mode
-      'vercel_blob' // storageBackend
-    );
-
-    console.log('✅ Upload successful!');
-    console.log('📊 Result:', result);
-    console.log(`📊 Assets created: ${result.data.assets.length}`);
-
-    return result;
-  } catch (error) {
-    console.error('❌ Upload failed:', error);
-    throw error;
-  }
+  // TODO: Update this test to use the new uploadToVercelBlob function
+  throw new Error('Test is outdated - needs to be updated to use new unified upload functions');
 }
 
 /**
  * Test image upload with multiple assets (original, display, thumb)
  */
 export async function testImageUpload() {
-  console.log('🧪 Testing image upload with multiple assets...');
+  logger.info('🧪 Testing image upload with multiple assets...');
+  logger.info('⚠️ This test is outdated and needs to be updated to use the new unified upload functions.');
 
-  try {
-    // Create a simple test image (1x1 pixel PNG)
-    const canvas = document.createElement('canvas');
-    canvas.width = 100;
-    canvas.height = 100;
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      ctx.fillStyle = '#ff0000';
-      ctx.fillRect(0, 0, 100, 100);
-    }
-
-    const blob = await new Promise<Blob>(resolve => {
-      canvas.toBlob(blob => {
-        resolve(blob!);
-      }, 'image/png');
-    });
-
-    const testImage = new File([blob], 'test-image.png', { type: 'image/png' });
-    console.log('🖼️ Created test image:', testImage.name, testImage.size, 'bytes');
-
-    // Test upload with Vercel Blob
-    const result = await uploadFile(
-      testImage,
-      false, // isOnboarding
-      undefined, // existingUserId
-      'multiple-files', // mode
-      'vercel_blob' // storageBackend
-    );
-
-    console.log('✅ Image upload successful!');
-    console.log('📊 Result:', result);
-    console.log(`📊 Assets created: ${result.data.assets.length}`);
-
-    // Log each asset
-    result.data.assets.forEach((asset, index) => {
-      console.log(`  Asset ${index + 1}: ${asset.assetType} - ${asset.bytes} bytes - ${asset.url}`);
-    });
-
-    return result;
-  } catch (error) {
-    console.error('❌ Image upload failed:', error);
-    throw error;
-  }
+  // TODO: Update this test to use the new uploadToVercelBlob function
+  throw new Error('Test is outdated - needs to be updated to use new unified upload functions');
 }
 
 /**
  * Test multiple storage backends
  */
 export async function testMultipleStorageBackends() {
-  console.log('🧪 Testing multiple storage backends...');
+  logger.info('🧪 Testing multiple storage backends...');
+  logger.info('⚠️ This test is outdated and needs to be updated to use the new unified upload functions.');
 
-  try {
-    const testContent = 'Testing multiple storage backends!';
-    const testFile = new File([testContent], 'multi-test.txt', { type: 'text/plain' });
-
-    // Test with multiple backends (Vercel Blob + S3)
-    const result = await uploadFile(
-      testFile,
-      false,
-      undefined,
-      'multiple-files',
-      ['vercel_blob', 's3'] // Multiple backends
-    );
-
-    console.log('✅ Multi-backend upload successful!');
-    console.log('📊 Result:', result);
-
-    return result;
-  } catch (error) {
-    console.error('❌ Multi-backend upload failed:', error);
-    throw error;
-  }
+  // TODO: Update this test to use the new uploadToVercelBlob function
+  throw new Error('Test is outdated - needs to be updated to use new unified upload functions');
 }
 
 /**
  * Test onboarding flow
  */
 export async function testOnboardingUpload() {
-  console.log('🧪 Testing onboarding upload flow...');
+  logger.info('🧪 Testing onboarding upload flow...');
+  logger.info('⚠️ This test is outdated and needs to be updated to use the new unified upload functions.');
 
-  try {
-    const testContent = 'Testing onboarding upload!';
-    const testFile = new File([testContent], 'onboarding-test.txt', { type: 'text/plain' });
-
-    const result = await uploadFile(
-      testFile,
-      true, // isOnboarding
-      undefined,
-      'multiple-files',
-      'vercel_blob'
-    );
-
-    console.log('✅ Onboarding upload successful!');
-    console.log('📊 Result:', result);
-
-    return result;
-  } catch (error) {
-    console.error('❌ Onboarding upload failed:', error);
-    throw error;
-  }
+  // TODO: Update this test to use the new uploadToVercelBlob function
+  throw new Error('Test is outdated - needs to be updated to use new unified upload functions');
 }
 
 // Export for browser console testing

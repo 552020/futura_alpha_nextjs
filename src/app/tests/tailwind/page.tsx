@@ -2,24 +2,24 @@
 
 import React, { useEffect } from 'react';
 
+import { logger } from '@/lib/logger';
 export default function TailwindTestPage() {
   useEffect(() => {
-    console.log('TailwindTestPage mounted');
+    logger.info('TailwindTestPage mounted');
 
     // Log all loaded stylesheets
-    console.log(
-      'All loaded stylesheets:',
-      Array.from(document.styleSheets).map(sheet => ({
+    logger.info('All loaded stylesheets:', undefined, {
+      stylesheets: Array.from(document.styleSheets).map(sheet => ({
         href: sheet.href,
         type: sheet.type,
         rules: sheet.cssRules?.length,
-      }))
-    );
+      })),
+    });
 
     // Check specific Tailwind classes
     //     const testElement = document.querySelector(".test-tailwind");
     //     if (testElement) {
-    //       console.log("Test element styles:", {
+    //       logger.info("Test element styles:", undefined, {
     //         computed: window.getComputedStyle(testElement),
     //         classList: testElement.classList,
     //         backgroundColor: window.getComputedStyle(testElement).backgroundColor,

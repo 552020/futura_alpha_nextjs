@@ -25,6 +25,7 @@ import { allUsers, memories, memoryAssets } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { getMemoryAccessLevel } from '../../utils/access';
 
+import { logger } from '@/lib/logger';
 /**
  * PUT /api/memories/:id/assets - Upsert multiple assets for a memory
  *
@@ -176,7 +177,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
       },
     });
   } catch (error) {
-    console.error('Error managing assets:', error);
+    logger.error('Error managing assets:', undefined, { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to manage assets' }, { status: 500 });
   }
 }
@@ -227,7 +228,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       },
     });
   } catch (error) {
-    console.error('Error fetching assets:', error);
+    logger.error('Error fetching assets:', undefined, { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to fetch assets' }, { status: 500 });
   }
 }
@@ -304,7 +305,7 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
       },
     });
   } catch (error) {
-    console.error('Error deleting assets:', error);
+    logger.error('Error deleting assets:', undefined, { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to delete assets' }, { status: 500 });
   }
 }

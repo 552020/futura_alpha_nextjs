@@ -36,7 +36,7 @@ export function GalleryGrid({
       emptyState={emptyState}
       gap="md"
       gridCols={{ sm: 1, md: 2, lg: 3, xl: 4 }}
-      renderItem={(gallery) => (
+      renderItem={gallery => (
         <ContentCard
           key={gallery.id}
           item={gallery}

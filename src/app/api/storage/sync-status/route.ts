@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db/db';
 import { syncStatus, getSyncStatusByState, getStuckSyncs, getSyncStatusByBackend } from '@/db/schema';
 
+import { logger } from '@/lib/logger';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -95,7 +96,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error querying sync status:', error);
+    logger.error('Error querying sync status:', undefined, { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

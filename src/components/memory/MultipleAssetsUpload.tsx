@@ -17,6 +17,7 @@
 
 import React, { useState, useCallback } from 'react';
 import Image from 'next/image';
+import { logger } from '@/lib/logger';
 import {
   uploadMultipleImagesWithAssets,
   getOptimalAssetUrl,
@@ -58,7 +59,7 @@ export default function MultipleAssetsUpload({
       try {
         // Calculate upload size info
         const sizeInfo = calculateUploadSize(imageFiles);
-        console.log('Upload size info:', sizeInfo);
+        logger.info('Upload size info', sizeInfo);
 
         // Upload files
         const results = await uploadMultipleImagesWithAssets(imageFiles, {
@@ -76,7 +77,7 @@ export default function MultipleAssetsUpload({
           onUploadError?.(`${results.failed.length} files failed to upload`);
         }
       } catch (error) {
-        console.error('Upload error:', error);
+        logger.error('Upload error:', undefined, { data: error instanceof Error ? error : undefined });
         onUploadError?.(error instanceof Error ? error.message : 'Upload failed');
       } finally {
         setIsUploading(false);

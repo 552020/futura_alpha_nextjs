@@ -20,7 +20,6 @@ function getLocale(request: NextRequest): string | undefined {
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const origin = request.headers.get('origin');
-
   // Handle PostHog paths
   const isPosthogPath =
     pathname === '/ingest' ||

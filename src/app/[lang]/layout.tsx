@@ -17,6 +17,7 @@ import { Toaster } from '@/components/ui/toaster';
 import Footer from '@/components/layout/footer';
 import { QueryProvider } from '@/components/providers/query-provider';
 
+import { logger } from '@/lib/logger';
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],
@@ -38,12 +39,12 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
   // Check for missing translations and log warnings in development
   if (process.env.NODE_ENV === 'development') {
     if (!dict?.metadata?.title) {
-      console.warn(
+      logger.warn(
         `[i18n] Missing translation for "metadata.title" in locale "${resolvedParams.lang}". Using fallback: "Futura"`
       );
     }
     if (!dict?.metadata?.description) {
-      console.warn(
+      logger.warn(
         `[i18n] Missing translation for "metadata.description" in locale "${resolvedParams.lang}". Using fallback: "Live forever. Now."`
       );
     }

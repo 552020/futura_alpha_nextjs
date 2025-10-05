@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import { createServer, IncomingMessage, ServerResponse } from 'http';
 
+import { logger } from '@/lib/logger';
 // ============================================================================
 // SUPERTEST TESTS FOR ICP AUTHENTICATION ENDPOINTS
 // ============================================================================
@@ -156,8 +157,7 @@ beforeAll(async () => {
     const url = req.url;
     const method = req.method;
 
-    console.log(`🔍 Mock Server: ${method} ${url}`);
-    console.log(`🔍 Request headers:`, req.headers);
+    logger.info('Mock Server request', { method, url, headers: req.headers });
 
     // Handle POST requests to our mock endpoints
     if (method === 'POST') {
@@ -168,7 +168,7 @@ beforeAll(async () => {
       });
 
       req.on('end', () => {
-        console.log(`🔍 Request body:`, body);
+        logger.info(`🔍 Request body:`, undefined, { body });
 
         let parsedBody: Record<string, unknown> = {};
         try {
@@ -176,7 +176,7 @@ beforeAll(async () => {
             parsedBody = JSON.parse(body);
           }
         } catch (e) {
-          console.log(`🔍 Failed to parse body:`, e);
+          logger.info(`🔍 Failed to parse body:`, undefined, { error: e instanceof Error ? e : undefined });
         }
 
         // Create a mock request object with the parsed body
@@ -184,13 +184,13 @@ beforeAll(async () => {
 
         if (url === '/api/auth/link-ii') {
           mockICPEndpoints['/api/auth/link-ii'](mockReq).then(result => {
-            console.log(`🔍 Link-II result:`, result);
+            logger.info(`🔍 Link-II result:`, undefined, { result });
             res.writeHead(result.status, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify(result.body));
           });
         } else if (url === '/api/ii/verify-nonce') {
           mockICPEndpoints['/api/ii/verify-nonce'](mockReq).then(result => {
-            console.log(`🔍 Verify-nonce result:`, result);
+            logger.info(`🔍 Verify-nonce result:`, undefined, { result });
             res.writeHead(result.status, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify(result.body));
           });

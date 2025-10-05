@@ -4,6 +4,7 @@ import {
   text,
   timestamp,
   json,
+  jsonb,
   boolean,
   primaryKey,
   integer,
@@ -31,6 +32,10 @@ export const frontend_hosting_t = pgEnum('frontend_hosting_t', ['vercel', 'icp']
 export const backend_hosting_t = pgEnum('backend_hosting_t', ['vercel', 'icp']);
 export const database_hosting_t = pgEnum('database_hosting_t', ['neon', 'icp']);
 export const blob_hosting_t = pgEnum('blob_hosting_t', ['s3', 'vercel_blob', 'icp', 'arweave', 'ipfs', 'neon']);
+
+// TypeScript types for hosting values (used in JSONB arrays)
+export type BlobHosting = 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs' | 'neon';
+export type DatabaseHosting = 'neon' | 'icp';
 
 /**
  * STORAGE PREFERENCE - User's preferred storage strategy
@@ -1521,6 +1526,18 @@ export type DBMemoryWithDetails = DBMemory & {
  * This table stores the user's preferred hosting providers for different parts of the application.
  * Each user must have preferences set for all four service categories.
  */
+/**
+ * USER HOSTING PREFERENCES - User's preferred hosting providers for different services
+ *
+ * This table stores the user's preferred hosting providers for different parts of the application.
+ * Each user must have preferences set for all four service categories.
+ *
+ * NOTE: databaseHosting and blobHosting use JSONB arrays to support multiple storage options with fallback order.
+ * This is PostgreSQL-specific but maintains schema symmetry and provides type safety via Drizzle.
+ * Examples:
+ * - databaseHosting: ['neon', 'icp'] for primary Neon with ICP as fallback
+ * - blobHosting: ['s3', 'icp', 'vercel_blob'] for primary S3 with ICP and Vercel Blob as fallbacks
+ */
 export const userHostingPreferences = pgTable(
   'user_hosting_preferences',
   {
@@ -1530,8 +1547,8 @@ export const userHostingPreferences = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     frontendHosting: frontend_hosting_t('frontend_hosting').default('vercel').notNull(),
     backendHosting: backend_hosting_t('backend_hosting').default('vercel').notNull(),
-    databaseHosting: database_hosting_t('database_hosting').default('neon').notNull(),
-    blobHosting: blob_hosting_t('blob_hosting').default('s3').notNull(),
+    databaseHosting: jsonb('database_hosting').$type<DatabaseHosting[]>().default(['neon']).notNull(),
+    blobHosting: jsonb('blob_hosting').$type<BlobHosting[]>().default(['s3']).notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },

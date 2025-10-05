@@ -1,6 +1,7 @@
 import { backendActor } from '@/ic/backend';
 import { Identity } from '@dfinity/agent';
 
+import { logger } from '@/lib/logger';
 /**
  * Client-side functions for Internet Identity integration
  */
@@ -15,8 +16,8 @@ export interface IIChallengeResponse {
  * Fetch a challenge nonce from the Web2 backend
  */
 export async function fetchChallenge(callbackUrl?: string): Promise<IIChallengeResponse> {
-  // console.log("DEBUG: fetchChallenge called with callbackUrl:", callbackUrl);
-  // console.log("DEBUG: fetchChallenge using fallback:", callbackUrl || "/en/dashboard");
+  // logger.info("DEBUG: fetchChallenge called with callbackUrl:", callbackUrl);
+  // logger.info("DEBUG: fetchChallenge using fallback:", callbackUrl || "/en/dashboard");
 
   const response = await fetch('/api/ii/challenge', {
     method: 'POST',
@@ -42,10 +43,10 @@ export async function fetchChallenge(callbackUrl?: string): Promise<IIChallengeR
  */
 export async function registerWithNonce(nonce: string, identity: Identity) {
   try {
-    // console.log("DEBUG: registerWithNonce called with nonce length:", nonce.length);
-    // console.log("DEBUG: registerWithNonce nonce preview:", nonce.substring(0, 10) + "...");
+    // logger.info("DEBUG: registerWithNonce called with nonce length:", nonce.length);
+    // logger.info("DEBUG: registerWithNonce nonce preview:", nonce.substring(0, 10) + "...");
   } catch (error) {
-    console.warn('registerWithNonce error:', error);
+    logger.warn('registerWithNonce error:', undefined, { error: error instanceof Error ? error : undefined });
   }
 
   const actor = await backendActor(identity);

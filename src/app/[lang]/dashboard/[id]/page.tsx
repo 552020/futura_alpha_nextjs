@@ -14,6 +14,7 @@ import { sampleDashboardMemories } from '../../../../../scripts/mock-data/create
 import { getBlurPlaceholder, IMAGE_SIZES } from '@/utils/image-utils';
 import { generateBestAssetUrl } from '@/lib/presigned-url-utils';
 
+import { logger } from '@/lib/logger';
 // Demo flag - set to true to use mock data for demo
 // 📝 Sample data generation script: scripts/mock-data/create-dashboard-sample-data.ts
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_MEMORY === 'true';
@@ -60,7 +61,7 @@ const getAssetUrl = async (
 
   // Helper function to construct URL from bucket and storageKey
   const constructS3Url = async (asset: MemoryAsset): Promise<string> => {
-    console.log('🔍 Constructing URL for asset:', {
+    logger.asset().info('🔍 Constructing URL for asset:', {
       id: asset.id,
       type: asset.assetType,
       hasStorageKey: !!asset.storageKey,
@@ -136,7 +137,7 @@ export default function MemoryDetailPage() {
       }
       return url;
     } catch (error) {
-      console.error('Error generating asset URL:', error);
+      logger.error('Error generating asset URL:', undefined, { data: error as Error });
       return undefined;
     }
   }, []);
@@ -161,7 +162,7 @@ export default function MemoryDetailPage() {
         assetUrlsRef.current = newAssetUrls;
         return newAssetUrls;
       } catch (error) {
-        console.error('Error loading asset URLs:', error);
+        logger.error('Error loading asset URLs:', undefined, { data: error as Error });
         return assetUrlsRef.current;
       }
     },
@@ -173,12 +174,12 @@ export default function MemoryDetailPage() {
       setIsLoading(true);
 
       if (USE_MOCK_DATA) {
-        console.log('🎭 MOCK DATA - Using sample data for memory detail');
+        logger.info('🎭 MOCK DATA - Using sample data for memory detail');
         // Find the memory in the sample data
         const mockMemory = sampleDashboardMemories.find(m => m.id === id);
 
         if (mockMemory) {
-          console.log('🔍 Found mock memory:', mockMemory);
+          logger.dashboard().info('Found mock memory', undefined, { memoryId: mockMemory.id, type: mockMemory.type });
           const transformedMemory: Memory = {
             id: mockMemory.id,
             type: mockMemory.type,
@@ -202,7 +203,7 @@ export default function MemoryDetailPage() {
           };
           setMemory(transformedMemory);
         } else {
-          console.log('❌ Mock memory not found:', id);
+          logger.dashboard().info('Mock memory not found', { memoryId: id });
           setMemory(null);
         }
         return;
@@ -210,25 +211,25 @@ export default function MemoryDetailPage() {
 
       const response = await fetch(`/api/memories/${id}`);
 
-      console.log('Memory API Response:', {
+      logger.apiResponse().info('Memory API Response:', {
         status: response.status,
         ok: response.ok,
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('Memory fetch error:', errorData);
+        logger.error('Memory fetch error:', undefined, { data: new Error(errorData) });
         throw new Error(errorData.error || 'Failed to fetch memory');
       }
 
       const data = await response.json();
-      console.log('Memory data:', data);
+      logger.dashboard().info('Memory data loaded', { memoryId: data.id, type: data.type });
 
       if (data.success && data.data) {
         const memoryData = data.data;
         const assets = memoryData.assets || [];
 
-        console.log('🔍 Memory assets:', assets);
+        logger.dashboard().info('Memory assets loaded', { assetCount: assets.length });
 
         // Load asset URLs if assets exist
         let displayUrl: string | undefined;
@@ -242,9 +243,9 @@ export default function MemoryDetailPage() {
           mimeType = loadedUrls.mimeType;
         }
 
-        console.log('🔍 Extracted display URL:', displayUrl);
-        console.log('🔍 Extracted original URL:', originalUrl);
-        console.log('🔍 Extracted MIME type:', mimeType);
+        logger.dashboard().info('Extracted display URL', { displayUrl });
+        logger.dashboard().info('Extracted original URL', { originalUrl });
+        logger.dashboard().info('Extracted MIME type', { mimeType });
 
         // Get the thumbnail URL with caching
         const thumbnailUrl = assets ? await getCachedAssetUrl(assets, 'thumb') : undefined;
@@ -264,7 +265,7 @@ export default function MemoryDetailPage() {
           thumbnail: thumbnailUrl || displayUrl || originalUrl,
         };
 
-        console.log('🔄 Transformed memory:', {
+        logger.dashboard().info('🔄 Transformed memory:', {
           id: transformedMemory.id,
           type: transformedMemory.type,
           url: transformedMemory.url,
@@ -277,7 +278,7 @@ export default function MemoryDetailPage() {
         throw new Error('Invalid memory data format');
       }
     } catch (error) {
-      console.error('Error fetching memory:', error);
+      logger.error('Error fetching memory:', undefined, { data: error as Error });
       setMemory(null);
     } finally {
       setIsLoading(false);
@@ -307,13 +308,13 @@ export default function MemoryDetailPage() {
       // Use router.push for smoother navigation
       router.push('/vault');
     } catch (error) {
-      console.error('Error deleting memory:', error);
+      logger.error('Error deleting memory:', undefined, { data: error as Error });
     }
   };
 
   const handleShare = () => {
     // TODO: Implement share functionality
-    console.log('Share memory:', id);
+    logger.dashboard().info('Share memory', { memoryId: id });
   };
 
   if (!isAuthorized) {

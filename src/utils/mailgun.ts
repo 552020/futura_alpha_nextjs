@@ -5,6 +5,9 @@ import formData from 'form-data';
 const mailgun = new Mailgun(formData);
 
 // Environment variables
+import { logger } from '@/lib/logger';
+
+// Environment variables
 const API_KEY = process.env.MAILGUN_API_KEY || '';
 const DOMAIN = process.env.MAILGUN_DOMAIN || ''; // e.g., "futura.now"
 const FROM_EMAIL = process.env.MAILGUN_FROM || `hello@${DOMAIN}`;
@@ -23,11 +26,11 @@ const clientOptions: MailgunClientOptions = {
 };
 
 // Add debug logging for configuration
-console.log('Mailgun Configuration:', {
+logger.info('Mailgun Configuration', 'mailgun:be', {
   domain: DOMAIN,
   fromEmail: FROM_EMAIL,
   region: 'EU (explicitly set)',
-  apiKey: API_KEY ? '***' + API_KEY.slice(-4) : 'Not configured'
+  apiKey: API_KEY ? '***' + API_KEY.slice(-4) : 'Not configured',
 });
 
 const mg = mailgun.client(clientOptions);
@@ -125,18 +128,23 @@ export const sendEmail = async ({
     return response;
   } catch (error) {
     // Create a more detailed error message
-    const errorMessage = error instanceof Error 
-      ? `Mailgun Error: ${error.message}${error.stack ? `\n${error.stack}` : ''}`
-      : 'Unknown error occurred while sending email';
-    
-    console.error(errorMessage);
-    
+    const errorMessage =
+      error instanceof Error
+        ? `Mailgun Error: ${error.message}${error.stack ? `\n${error.stack}` : ''}`
+        : 'Unknown error occurred while sending email';
+
+    logger.error('Mailgun Error', 'mailgun:be', {
+      error: errorMessage,
+      domain: DOMAIN,
+      fromEmail: FROM_EMAIL,
+    });
+
     // Create a new error with more context
     const enhancedError = new Error(`Failed to send email: ${errorMessage}`);
     if (error instanceof Error) {
       enhancedError.stack = error.stack;
     }
-    
+
     // Add additional debug information
     Object.defineProperty(enhancedError, 'details', {
       value: {
@@ -146,7 +154,7 @@ export const sendEmail = async ({
       },
       enumerable: false,
     });
-    
+
     throw enhancedError;
   }
 };

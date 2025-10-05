@@ -101,7 +101,9 @@ describe('View Performance Tests', () => {
     const startTime = Date.now();
 
     // Test ordered query (most expensive operation)
-    const _orderedResult = await db.execute(sql`SELECT * FROM sync_status ORDER BY sync_duration_seconds DESC LIMIT 10`);
+    const _orderedResult = await db.execute(
+      sql`SELECT * FROM sync_status ORDER BY sync_duration_seconds DESC LIMIT 10`
+    );
     const orderingTime = Date.now() - startTime;
 
     expect(orderingTime).toBeLessThan(1000); // Should complete in under 1 second

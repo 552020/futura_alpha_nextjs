@@ -22,6 +22,7 @@ import { eq, desc, sql, and } from 'drizzle-orm';
 import { fetchMemoriesWithGalleries } from './utils/queries';
 import { generateBestAssetUrl } from '@/lib/presigned-url-utils';
 
+import { logger } from '@/lib/logger';
 /**
  * Main GET handler for memory listing
  * Handles pagination, filtering, and asset inclusion
@@ -40,11 +41,11 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
     });
 
     if (!allUserRecord) {
-      console.error('No allUsers record found for user:', session.user.id);
+      logger.database('be').error('No allUsers record found for user', { userId: session.user.id });
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
-    console.log('🔍 API: Found allUserRecord:', allUserRecord.id);
+    logger.database('be').info('Found allUserRecord', { userId: allUserRecord.id });
 
     // Get query parameters
     const searchParams = request.nextUrl.searchParams;
@@ -69,7 +70,7 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
         )
       : eq(memories.ownerId, allUserRecord.id);
 
-    console.log('🔍 API: Built whereCondition for ownerId:', allUserRecord.id);
+    logger.database('be').debug('Built whereCondition', { ownerId: allUserRecord.id });
 
     // Handle optimized query with galleries
     if (useOptimizedQuery) {
@@ -85,62 +86,49 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
           total: memoriesWithGalleries.length,
         });
       } catch (error) {
-        console.error('Error with optimized query:', error);
+        logger.database('be').error('Error with optimized query', error instanceof Error ? error : new Error(String(error)), {
+          query: 'optimized',
+          userId: allUserRecord.id
+        });
         // Fall back to original implementation
       }
     }
 
     // Fetch memories with optional assets and folder information
-    console.log('🔍 API: Fetching memories with whereCondition:', whereCondition);
-    console.log('🔍 API: Pagination params - limit:', limit, 'offset:', offset, 'page:', page);
-
+    logger.database('be').debug('Fetching memories with whereCondition', { 
+      whereCondition,
+      pagination: { limit, offset, page } 
+    });
     // First, let's check total count without pagination
     const totalCount = await db.query.memories.findMany({
       where: whereCondition,
     });
-    console.log('🔍 API: Total memories count (no pagination):', totalCount.length);
-    console.log(
-      '🔍 API: Total memories by folder:',
-      totalCount.reduce(
-        (acc, m) => {
-          const folderId = m.parentFolderId || 'no-folder';
-          acc[folderId] = (acc[folderId] || 0) + 1;
-          return acc;
-        },
-        {} as Record<string, number>
-      )
-    );
+    logger.database('be').debug('Total memories count (no pagination)', { count: totalCount.length });
+    const folderCounts = totalCount.reduce((acc, m) => {
+      const folderId = m.parentFolderId || 'no-folder';
+      acc[folderId] = (acc[folderId] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    logger.database('be').debug('Total memories by folder', { counts: folderCounts });
 
     // For dashboard, we need ALL memories to properly group into folders
     // The limit should be applied to the final dashboard items, not raw memories
     const userMemories = await db.query.memories.findMany({
       where: whereCondition,
       orderBy: desc(memories.createdAt),
-      // Remove limit and offset - we need all memories to group properly
       with: includeAssets
         ? {
             assets: true,
-            folder: true, // Include folder information
           }
         : {
             folder: true, // Always include folder information for dashboard grouping
           },
     });
-    console.log('🔍 API: Found memories:', userMemories.length);
-    console.log(
-      '🔍 API: All memories with folder info:',
-      userMemories.map(m => ({
-        id: m.id,
-        title: m.title,
-        parentFolderId: m.parentFolderId,
-        folderName: m.folder?.name,
-      }))
-    );
-    console.log('🔍 API: Sample memory:', userMemories[0]);
 
-    // Calculate share counts for each memory (like the old implementation)
+    // Calculate share counts for each memory
     const memoriesWithShareInfo = await Promise.all(
-      userMemories.map(async memory => {
+      userMemories.map(async (memory) => {
         const shareCount = await db
           .select({ count: sql<number>`count(*)` })
           .from(memoryShares)
@@ -161,8 +149,8 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
     if (!includeAssets) {
       // Add thumbnails for grid view
       const memoriesWithThumbs = await Promise.all(
-        memoriesWithShareInfo.map(async memory => {
-          console.log(`🔍 Processing memory ${memory.id} for thumbnail`);
+        memoriesWithShareInfo.map(async (memory) => {
+          logger.asset('be').debug('Processing memory for thumbnail', { memoryId: memory.id });
 
           // Get thumb asset and placeholder asset for better UX
           const [thumbAsset, displayAsset, originalAsset, placeholderAsset] = await Promise.all([
@@ -182,28 +170,29 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
 
           // Use thumb if available, otherwise fallback to display, then original
           const thumbOrFallback = thumbAsset || displayAsset || originalAsset;
-
-          console.log(`📸 Found asset for memory ${memory.id}:`, {
-            assetType: thumbOrFallback?.assetType,
-            url: thumbOrFallback?.url,
-            assetLocation: thumbOrFallback?.assetLocation,
-            storageKey: thumbOrFallback?.storageKey,
-            bucket: thumbOrFallback?.bucket,
-          });
-
-          // Generate presigned URL for thumbnail if asset exists
           let thumbnailUrl = null;
+
           if (thumbOrFallback) {
             try {
               thumbnailUrl = await generateBestAssetUrl(thumbOrFallback);
-              console.log(`🎯 Generated thumbnail URL for memory ${memory.id}:`, thumbnailUrl);
+              logger.s3('be').info('Generated thumbnail URL', { 
+                memoryId: memory.id, 
+                thumbnailUrl 
+              });
             } catch (error) {
-              console.warn(`Failed to generate thumbnail URL for memory ${memory.id}:`, error);
-              thumbnailUrl = thumbOrFallback.url; // Fallback to direct URL
-              console.log(`🔄 Using fallback URL for memory ${memory.id}:`, thumbnailUrl);
+              const errorObj = error instanceof Error ? error : new Error(String(error));
+              logger.asset('be').warn('Failed to generate thumbnail URL', {
+                memoryId: memory.id,
+                error: errorObj
+              });
+              thumbnailUrl = thumbOrFallback.url;
+              logger.asset('be').debug('Using fallback URL', { 
+                memoryId: memory.id, 
+                thumbnailUrl 
+              });
             }
           } else {
-            console.log(`❌ No asset found for memory ${memory.id}`);
+            logger.asset('be').warn('No asset found for memory', { memoryId: memory.id });
           }
 
           return {
@@ -224,8 +213,10 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
       });
     }
 
-    console.log('🔍 API: Returning memories:', memoriesWithShareInfo.length);
-    console.log('🔍 API: Sample returned memory:', memoriesWithShareInfo[0]);
+    logger.database('be').debug('Returning memories', { 
+      count: memoriesWithShareInfo.length,
+      sample: memoriesWithShareInfo[0] || null
+    });
 
     return NextResponse.json({
       success: true,
@@ -234,7 +225,10 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
       total: memoriesWithShareInfo.length,
     });
   } catch (error) {
-    console.error('Error listing memories:', error);
+    const listError = error instanceof Error ? error : new Error(String(error));
+    logger.database('be').error('Error listing memories', listError, {
+      userId: session?.user?.id
+    });
     return NextResponse.json({ error: 'Failed to list memories' }, { status: 500 });
   }
 }

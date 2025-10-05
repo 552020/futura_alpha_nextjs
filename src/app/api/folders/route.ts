@@ -3,6 +3,7 @@ import { db } from '@/db/db';
 import { folders } from '@/db/schema';
 import { getUserIdForUpload } from '../memories/utils/user-management';
 
+import { logger } from '@/lib/logger';
 export async function POST(request: NextRequest) {
   try {
     const { folderName, parentFolderId } = await request.json();
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ folder: createdFolder });
   } catch (error) {
-    console.error('Error creating folder:', error);
+    logger.error('Error creating folder:', undefined, { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to create folder' }, { status: 500 });
   }
 }

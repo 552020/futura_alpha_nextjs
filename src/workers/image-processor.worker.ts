@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 /**
  * Image Processing Web Worker
  *
@@ -54,7 +56,7 @@ self.onmessage = async (e: MessageEvent<ProcessMessage>) => {
       return;
     }
 
-    console.log(`🖼️ Worker processing: ${file.name} (${file.type})`);
+    logger.info(`🖼️ Worker processing: ${file.name} (${file.type})`);
 
     // Create image from file
     const image = await createImageFromFile(file);
@@ -78,7 +80,7 @@ self.onmessage = async (e: MessageEvent<ProcessMessage>) => {
 
     self.postMessage(response);
   } catch (error) {
-    console.error('❌ Worker processing error:', error);
+    logger.error('Worker processing error', undefined, { data: error as Error });
     const response: ProcessResponse = {
       kind: 'process',
       ok: false,

@@ -4,6 +4,7 @@ import { db } from '@/db/db';
 import { accounts } from '@/db/schema';
 import { createServerSideActor } from '@/lib/server-actor';
 
+import { logger } from '@/lib/logger';
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
@@ -67,7 +68,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, principal });
   } catch (error) {
-    console.error('/api/auth/link-ii error:', error);
+    logger.error('/api/auth/link-ii error:', undefined, { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

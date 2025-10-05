@@ -4,6 +4,7 @@ import { backendActor } from '@/ic/backend';
 import { Identity } from '@dfinity/agent';
 import { Principal } from '@dfinity/principal';
 
+import { logger } from '@/lib/logger';
 // ============================================================================
 // TYPES - Will be updated when declarations are regenerated
 // ============================================================================
@@ -254,7 +255,7 @@ export class ICPGalleryService {
         storage_location: gallery.storage_location,
       };
     } catch (error) {
-      console.error('Error storing gallery forever:', error);
+      logger.error('Error storing gallery forever:', undefined, { data: error instanceof Error ? error : undefined });
       return {
         success: false,
         message: `Failed to store gallery: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -274,10 +275,10 @@ export class ICPGalleryService {
       // const galleries = await actor.get_my_galleries();
 
       // Placeholder implementation until backend is ready
-      // console.log("Get my galleries - placeholder");
+      // logger.info("Get my galleries - placeholder");
       return [];
     } catch (error) {
-      console.error('Error getting user galleries:', error);
+      logger.error('Error getting user galleries:', undefined, { data: error instanceof Error ? error : undefined });
       throw new Error(`Failed to get galleries: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -293,11 +294,11 @@ export class ICPGalleryService {
       // const gallery = await actor.get_gallery_by_id(galleryId);
 
       // Placeholder implementation
-      // console.log("Get gallery by ID:", galleryId);
+      // logger.info("Get gallery by ID:", galleryId);
 
       return null;
     } catch (error) {
-      console.error('Error getting gallery:', error);
+      logger.error('Error getting gallery:', undefined, { data: error instanceof Error ? error : undefined });
       throw new Error(`Failed to get gallery: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -313,14 +314,14 @@ export class ICPGalleryService {
       // const result = await actor.update_gallery(galleryId, updateData);
 
       // Placeholder implementation
-      // console.log("Update gallery:", galleryId, updateData);
+      // logger.info("Update gallery:", galleryId, updateData);
 
       return {
         success: true,
         message: 'Gallery updated successfully',
       };
     } catch (error) {
-      console.error('Error updating gallery:', error);
+      logger.error('Error updating gallery:', undefined, { data: error instanceof Error ? error : undefined });
       return {
         success: false,
         message: `Failed to update gallery: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -339,14 +340,14 @@ export class ICPGalleryService {
       // const result = await actor.delete_gallery(galleryId);
 
       // Placeholder implementation
-      // console.log("Delete gallery:", galleryId);
+      // logger.info("Delete gallery:", galleryId);
 
       return {
         success: true,
         message: 'Gallery deleted successfully',
       };
     } catch (error) {
-      console.error('Error deleting gallery:', error);
+      logger.error('Error deleting gallery:', undefined, { data: error instanceof Error ? error : undefined });
       return {
         success: false,
         message: `Failed to delete gallery: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -369,7 +370,7 @@ export class ICPGalleryService {
       // const result = await actor.memories_create(capsuleId, memoryData);
 
       // Placeholder implementation
-      // console.log("Add memory to capsule:", memoryData);
+      // logger.info("Add memory to capsule:", memoryData);
 
       return {
         success: true,
@@ -377,7 +378,7 @@ export class ICPGalleryService {
         message: 'Memory added successfully to capsule',
       };
     } catch (error) {
-      console.error('Error adding memory to capsule:', error);
+      logger.error('Error adding memory to capsule:', undefined, { data: error instanceof Error ? error : undefined });
       return {
         success: false,
         message: `Failed to add memory: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -396,11 +397,11 @@ export class ICPGalleryService {
       // const memory = await actor.memories_read(memoryId);
 
       // Placeholder implementation
-      // console.log("Get memory from capsule:", memoryId);
+      // logger.info("Get memory from capsule:", memoryId);
 
       return null;
     } catch (error) {
-      console.error('Error getting memory:', error);
+      logger.error('Error getting memory:', undefined, { data: error instanceof Error ? error : undefined });
       throw new Error(`Failed to get memory: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -416,14 +417,14 @@ export class ICPGalleryService {
       // const result = await actor.memories_update(memoryId, updates);
 
       // Placeholder implementation
-      // console.log("Update memory in capsule:", memoryId, updates);
+      // logger.info("Update memory in capsule:", memoryId, updates);
 
       return {
         success: true,
         message: 'Memory updated successfully',
       };
     } catch (error) {
-      console.error('Error updating memory:', error);
+      logger.error('Error updating memory:', undefined, { data: error instanceof Error ? error : undefined });
       return {
         success: false,
         message: `Failed to update memory: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -442,14 +443,14 @@ export class ICPGalleryService {
       // const result = await actor.memories_delete(memoryId);
 
       // Placeholder implementation
-      // console.log("Delete memory from capsule:", memoryId);
+      // logger.info("Delete memory from capsule:", memoryId);
 
       return {
         success: true,
         message: 'Memory deleted successfully',
       };
     } catch (error) {
-      console.error('Error deleting memory:', error);
+      logger.error('Error deleting memory:', undefined, { data: error instanceof Error ? error : undefined });
       return {
         success: false,
         message: `Failed to delete memory: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -470,7 +471,7 @@ export class ICPGalleryService {
       // const result = await actor.memories_list(capsuleId);
 
       // Placeholder implementation
-      // console.log("List memories for capsule:", capsuleId);
+      // logger.info("List memories for capsule:", capsuleId);
 
       return {
         success: true,
@@ -478,7 +479,7 @@ export class ICPGalleryService {
         message: 'Memories retrieved successfully',
       };
     } catch (error) {
-      console.error('Error listing memories:', error);
+      logger.error('Error listing memories:', undefined, { data: error instanceof Error ? error : undefined });
       return {
         success: false,
         memories: [],
@@ -537,11 +538,11 @@ export class ICPGalleryService {
       // const userInfo = await actor.get_user();
 
       // Placeholder implementation
-      // console.log("Check capsule status");
+      // logger.info("Check capsule status");
 
       return true; // Assume user has capsule for now
     } catch (error) {
-      console.error('Error checking capsule status:', error);
+      logger.error('Error checking capsule status:', undefined, { data: error instanceof Error ? error : undefined });
       return false;
     }
   }

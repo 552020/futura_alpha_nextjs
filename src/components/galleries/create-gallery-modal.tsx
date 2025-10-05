@@ -23,6 +23,7 @@ import { galleryService } from '@/services/gallery';
 import { FolderInfo } from '@/types/gallery';
 import { Plus, AlertCircle } from 'lucide-react';
 
+import { logger } from '@/lib/logger';
 // Form validation schema
 const createGallerySchema = z.object({
   title: z.string().min(1, 'Title is required').max(100, 'Title must be less than 100 characters'),
@@ -102,7 +103,7 @@ export function CreateGalleryModal({
       const folderList = await galleryService.getFoldersWithImages(false); // Use real data
       setFolders(folderList);
     } catch (error) {
-      console.error('Error loading folders:', error);
+      logger.error('Error loading folders:', undefined, { data: error instanceof Error ? error : undefined });
       setError('Failed to load folders. Please try again.');
     } finally {
       setIsLoadingFolders(false);
@@ -114,7 +115,7 @@ export function CreateGalleryModal({
       setIsLoading(true);
       setError(null);
 
-      console.log('Creating gallery with data:', data);
+      logger.info('Creating gallery', { data });
 
       const gallery = await galleryService.createGalleryFromFolder(
         data.folderName,
@@ -124,14 +125,14 @@ export function CreateGalleryModal({
         false // Use real data
       );
 
-      console.log('Gallery created successfully:', gallery);
+      logger.info('Gallery created successfully:', undefined, { gallery });
 
       // Success - close modal and notify parent
       setOpen(false);
       form.reset();
       onGalleryCreated?.(gallery.id);
     } catch (error) {
-      console.error('Error creating gallery:', error);
+      logger.error('Error creating gallery:', undefined, { data: error instanceof Error ? error : undefined });
       setError(error instanceof Error ? error.message : 'Failed to create gallery');
     } finally {
       setIsLoading(false);

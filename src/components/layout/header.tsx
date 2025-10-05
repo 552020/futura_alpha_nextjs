@@ -16,6 +16,7 @@ import { Dictionary } from '@/utils/dictionaries';
 import { usePathname } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 
+import { logger } from '@/lib/logger';
 // Define a proper type for the dictionary with optional fields
 type HeaderDictionary = Dictionary;
 
@@ -42,16 +43,16 @@ export default function Header({ dict, lang }: { dict: HeaderDictionary; lang?: 
           text: 'I found this interesting content and wanted to share it with you.',
           url: window.location.href,
         });
-        // console.log("Content shared successfully");
+        // logger.info("Content shared successfully");
       } catch (error) {
         if ((error as Error).name === 'AbortError') {
-          // console.log("Web Share API not supported");
+          // logger.info("Web Share API not supported");
         } else {
-          console.error('Error sharing content:', error);
+          logger.error('Error sharing content:', undefined, { data: error instanceof Error ? error : undefined });
         }
       }
     } else {
-      // console.log("Share was canceled by the user");
+      // logger.info("Share was canceled by the user");
       // Fallback: copy to clipboard
       try {
         await navigator.clipboard.writeText(window.location.href);
@@ -60,7 +61,7 @@ export default function Header({ dict, lang }: { dict: HeaderDictionary; lang?: 
           description: 'The link has been copied to your clipboard.',
         });
       } catch (error) {
-        console.error('Failed to copy link:', error);
+        logger.error('Failed to copy link:', undefined, { data: error instanceof Error ? error : undefined });
         toast({
           title: 'Error',
           description: 'Failed to copy link to clipboard.',

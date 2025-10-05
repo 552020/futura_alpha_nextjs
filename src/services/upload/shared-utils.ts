@@ -66,10 +66,22 @@ export async function uploadFileWithProgress(
   });
 }
 
-// 413 Solution: Check ICP authentication
+// Common return type for all upload functions (based on S3 format)
+export interface UploadServiceResult {
+  data: { id: string };
+  results: Array<{
+    memoryId: string;
+    size: number;
+    checksum_sha256: string | null;
+  }>;
+  userId: string;
+}
+
+// 413 Solution: Check ICP authentication using functional approach
 export async function checkICPAuthentication(): Promise<void> {
-  const { icpUploadService } = await import('./icp-upload');
-  const isAuthenticated = await icpUploadService.isAuthenticated();
+  const { getAuthClient } = await import('@/ic/ii');
+  const authClient = await getAuthClient();
+  const isAuthenticated = await authClient.isAuthenticated();
   if (!isAuthenticated) {
     throw new Error('Please connect your Internet Identity to upload to ICP');
   }
@@ -78,7 +90,7 @@ export async function checkICPAuthentication(): Promise<void> {
 // 413 Solution: Extract folder name from files
 export function extractFolderName(file: File): string {
   const fileWithPath = file as File & { webkitRelativePath?: string };
-  console.log(`🔍 DEBUG: extractFolderName for file:`, {
+  logger.upload().info('DEBUG: extractFolderName for file', {
     name: file.name,
     webkitRelativePath: fileWithPath.webkitRelativePath,
     hasWebkitRelativePath: !!fileWithPath.webkitRelativePath,
@@ -87,11 +99,11 @@ export function extractFolderName(file: File): string {
   if (fileWithPath.webkitRelativePath) {
     const pathParts = fileWithPath.webkitRelativePath.split('/');
     const folderName = pathParts.length > 1 ? pathParts[0] : 'Ungrouped';
-    console.log(`🔍 DEBUG: Extracted folder name from webkitRelativePath:`, folderName);
+    logger.upload().info('DEBUG: Extracted folder name from webkitRelativePath', { folderName });
     return folderName;
   }
 
-  console.log(`🔍 DEBUG: No webkitRelativePath, returning 'Ungrouped'`);
+  logger.upload().info("DEBUG: No webkitRelativePath, returning 'Ungrouped'");
   return 'Ungrouped';
 }
 
@@ -139,6 +151,59 @@ export function handleUploadError(
     }
   }
 
-  console.error('❌ Upload error:', error);
+  logger.error('Upload error', 'upload:fe', { error });
   showToast({ variant: 'destructive', title, description });
+}
+
+/**
+ * Shared validation function for upload processors
+ *
+ * Validates file size, file count, and total size limits.
+ * Shows appropriate toast messages for validation failures.
+ *
+ * @param files - Array of files to validate
+ * @param showToast - Toast function to show error messages
+ * @returns true if validation passes, false if validation fails
+ */
+import { UPLOAD_LIMITS } from '@/config/upload-limits';
+
+import { logger } from '@/lib/logger';
+export function validateUploadFiles(
+  files: File[],
+  showToast: (toast: { variant: 'destructive'; title: string; description: string }) => void
+): boolean {
+  // Validate file count limit
+  if (!UPLOAD_LIMITS.isFileCountValid(files.length)) {
+    showToast({
+      variant: 'destructive',
+      title: 'Too many files',
+      description: UPLOAD_LIMITS.getFileCountErrorMessage(files.length),
+    });
+    return false;
+  }
+
+  // Validate individual file sizes
+  for (const file of files) {
+    if (!UPLOAD_LIMITS.isFileSizeValid(file.size)) {
+      showToast({
+        variant: 'destructive',
+        title: 'File too large',
+        description: UPLOAD_LIMITS.getFileSizeErrorMessage(file.size),
+      });
+      return false;
+    }
+  }
+
+  // Validate total size limit
+  const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+  if (!UPLOAD_LIMITS.isTotalSizeValid(totalSize)) {
+    showToast({
+      variant: 'destructive',
+      title: 'Upload too large',
+      description: UPLOAD_LIMITS.getTotalSizeErrorMessage(totalSize),
+    });
+    return false;
+  }
+
+  return true;
 }

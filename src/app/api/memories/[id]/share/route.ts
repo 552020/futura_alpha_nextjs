@@ -8,6 +8,7 @@ import { eq, and } from 'drizzle-orm';
 import type { RelationshipType, FamilyRelationshipType } from '@/db/schema';
 import crypto from 'crypto';
 
+import { logger } from '@/lib/logger';
 // Dummy function for generating secure code
 function generateSecureCode(): string {
   return crypto.randomUUID();
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
 
   try {
     const body = (await request.json()) as ShareRequest;
-    console.log('📨 Share request body:', body);
+    logger.info('📨 Share request body:', undefined, body);
 
     const {
       target,
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
 
     // Find the memory first
     const memory = await findMemory(memoryId);
-    console.log('🔍 Found memory:', { exists: !!memory, id: memoryId });
+    logger.info('🔍 Found memory:', undefined, { exists: !!memory, id: memoryId });
     if (!memory) {
       return NextResponse.json({ error: 'Memory not found' }, { status: 404 });
     }
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     // Handle authentication differently for onboarding vs regular flow
     let authenticatedUserId: string | undefined;
     if (isOnboarding) {
-      console.log('👤 Onboarding flow - checking owner:', ownerAllUserId);
+      logger.info('👤 Onboarding flow - checking owner:', undefined, { ownerAllUserId });
       if (!ownerAllUserId) {
         return NextResponse.json({ error: 'Owner ID required for onboarding' }, { status: 400 });
       }
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       const owner = await db.query.allUsers.findFirst({
         where: eq(allUsers.id, ownerAllUserId),
       });
-      console.log('👤 Found owner:', { exists: !!owner, type: owner?.type });
+      logger.info('👤 Found owner:', undefined, { exists: !!owner, type: owner?.type });
       if (!owner || owner.type !== 'temporary') {
         return NextResponse.json({ error: 'Invalid onboarding user' }, { status: 401 });
       }
@@ -114,13 +115,13 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
         where: eq(users.id, targetUser.userId),
       });
       userEmail = permanentUser?.email ?? undefined;
-      console.log('📧 Found permanent user email:', { email: userEmail, userId: targetUser.userId });
+      logger.info('📧 Found permanent user email:', undefined, { email: userEmail, userId: targetUser.userId });
     } else if (targetUser.type === 'temporary' && targetUser.temporaryUserId) {
       const temporaryUser = await db.query.temporaryUsers.findFirst({
         where: eq(temporaryUsers.id, targetUser.temporaryUserId),
       });
       userEmail = temporaryUser?.email ?? undefined;
-      console.log('📧 Found temporary user email:', {
+      logger.info('📧 Found temporary user email:', undefined, {
         email: userEmail,
         temporaryUserId: targetUser.temporaryUserId,
         temporaryUser: {
@@ -132,10 +133,10 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     }
 
     if (!userEmail) {
-      console.error('❌ User email not found:', { targetUser });
+      logger.error('❌ User email not found:', undefined, { data: { targetUser } });
       return NextResponse.json({ error: 'User email not found' }, { status: 404 });
     }
-    console.log('📧 Will send email to:', { userEmail, isInviteeNew });
+    logger.info('📧 Will send email to:', undefined, { userEmail, isInviteeNew });
 
     // Create share record
     const [share] = await db
@@ -162,7 +163,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     // Send email if requested
     // TODO: Implement email functions for new unified schema
     if (sendEmail && target.type === 'user') {
-      console.log('📧 Email sending not implemented yet for new schema');
+      logger.info('📧 Email sending not implemented yet for new schema');
       // if (isInviteeNew) {
       //   await sendInvitationEmail(userEmail, memory, memory.ownerId, { useTemplate: false });
       // } else {
@@ -176,8 +177,8 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       inviteeMagicLink,
     });
   } catch (error) {
-    console.error('🔴 Error sharing memory:', {
-      error,
+    logger.error('🔴 Error sharing memory:', undefined, {
+      error: error instanceof Error ? error : undefined,
       stack: error instanceof Error ? error.stack : undefined,
       message: error instanceof Error ? error.message : String(error),
     });

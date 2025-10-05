@@ -8,6 +8,7 @@
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
+import { logger } from '@/lib/logger';
 /**
  * Generate a presigned URL directly using AWS SDK (more reliable than server-side fetch)
  * @param key - The S3 object key
@@ -15,17 +16,12 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
  * @param region - The S3 region (optional, will use env var if not provided)
  * @returns Promise<string> - The presigned URL
  */
-export async function generatePresignedUrlDirect(
-  key: string,
-  bucket?: string,
-  region?: string
-): Promise<string> {
-  console.log('🔑 generatePresignedUrlDirect called with:', {
+export async function generatePresignedUrlDirect(key: string, bucket?: string, region?: string): Promise<string> {
+  logger.info('generatePresignedUrlDirect called', 's3:be', {
     key,
     bucket,
     region,
-    hasAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
-    hasSecretKey: !!process.env.AWS_SECRET_ACCESS_KEY,
+    hasCredentials: !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY)
   });
 
   const bucketName = bucket || process.env.AWS_S3_BUCKET || 'futura0';
@@ -49,7 +45,9 @@ export async function generatePresignedUrlDirect(
   });
 
   const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
-  console.log('✅ Generated presigned URL directly:', url.substring(0, 100) + '...');
+  logger.info('Generated presigned URL directly', 's3:be', {
+    urlPreview: url.substring(0, 100) + '...'
+  });
   return url;
 }
 
@@ -59,16 +57,16 @@ export async function generatePresignedUrlDirect(
  * @returns Promise<string> - The presigned URL
  */
 export async function generatePresignedUrl(key: string): Promise<string> {
-  console.log('🔑 Requesting presigned URL for key:', key);
+  logger.info('Requesting presigned URL for key', 's3:be', { key });
   try {
     // Use absolute URL for server-side fetch
     const baseUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL || 'http://localhost:3000';
-    const apiUrl = `${baseUrl}/api/s3/presigned-url`;
-    console.log('🌐 Using API URL:', apiUrl);
-    console.log('🌐 Environment check:', {
+    const apiUrl = `${baseUrl}/api/upload/s3/download`;
+    logger.info('Using API URL', 's3:be', { apiUrl });
+    logger.info('Environment check', 's3:be', {
       hasNextAuthUrl: !!process.env.NEXTAUTH_URL,
       hasVercelUrl: !!process.env.VERCEL_URL,
-      baseUrl,
+      baseUrl
     });
 
     const response = await fetch(apiUrl, {
@@ -79,22 +77,22 @@ export async function generatePresignedUrl(key: string): Promise<string> {
       body: JSON.stringify({ key }),
     });
 
-    console.log('📡 Presigned URL response status:', response.status);
-    console.log('📡 Presigned URL response headers:', Object.fromEntries(response.headers.entries()));
+    logger.s3().info('📡 Presigned URL response status:', { status: response.status });
+    logger.s3().info('📡 Presigned URL response headers:', Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ Failed to generate presigned URL:', {
-        status: response.status,
-        statusText: response.statusText,
-        errorText,
-        apiUrl,
-      });
+    logger.error('Failed to generate presigned URL', 's3:be', {
+      status: response.status,
+      statusText: response.statusText,
+      errorText,
+      apiUrl
+    });
       throw new Error(`Failed to generate presigned URL: ${response.status} ${errorText}`);
     }
 
     const data = await response.json();
-    console.log('✅ Received presigned URL response:', {
+    logger.s3().info('✅ Received presigned URL response:', {
       hasUrl: !!data.url,
       urlLength: data.url?.length || 0,
       urlPreview: data.url ? data.url.substring(0, 100) + '...' : 'No URL',
@@ -106,7 +104,7 @@ export async function generatePresignedUrl(key: string): Promise<string> {
 
     return data.url;
   } catch (error) {
-    console.error('❌ Error in generatePresignedUrl:', error);
+    logger.error('Error in generatePresignedUrl', 's3:be', { error });
     throw error;
   }
 }
@@ -126,14 +124,14 @@ export async function generatePresignedUrlFromS3Url(s3Url: string): Promise<stri
     const urlParts = s3Url.split('.amazonaws.com/');
     if (urlParts.length === 2) {
       const s3Key = urlParts[1];
-      console.log(`🔑 Generating presigned URL for S3 key: ${s3Key}`);
+      logger.info(`Generating presigned URL for S3 key: ${s3Key}`, 's3:be');
 
       const presignedUrl = await generatePresignedUrl(s3Key);
-      console.log(`✅ Generated presigned URL from S3 URL`);
+      logger.info('Generated presigned URL from S3 URL', 's3:be');
       return presignedUrl;
     }
   } catch (error) {
-    console.error(`❌ Error generating presigned URL from S3 URL:`, error);
+    logger.error('Error generating presigned URL from S3 URL', 's3:be', { error });
   }
 
   // Fallback to original URL if presigned URL generation fails
@@ -156,34 +154,37 @@ export async function generatePresignedUrlFromStorageKey(
     throw new Error('Storage key is required');
   }
 
-  console.log('🔑 generatePresignedUrlFromStorageKey called with:', {
+  logger.info('generatePresignedUrlFromStorageKey called', 's3:be', {
     storageKey,
     bucket,
     region,
     envBucket: process.env.NEXT_PUBLIC_AWS_S3_BUCKET || process.env.AWS_S3_BUCKET,
-    envRegion: process.env.NEXT_PUBLIC_AWS_S3_REGION,
+    envRegion: process.env.NEXT_PUBLIC_AWS_S3_REGION
   });
 
   try {
-    console.log('🔑 Attempting to get presigned URL for:', storageKey);
+    logger.info('Attempting to get presigned URL', 's3:be', { storageKey });
     const presignedUrl = await generatePresignedUrl(storageKey);
-    console.log('✅ Successfully generated presigned URL:', presignedUrl);
+    logger.info('Successfully generated presigned URL', 's3:be', {
+      urlLength: presignedUrl.length,
+      urlPreview: presignedUrl.substring(0, 100) + '...'
+    });
     return presignedUrl;
   } catch (error) {
-    console.warn('⚠️ Server-side fetch failed, trying direct AWS SDK method:', {
+    logger.warn('Server-side fetch failed, trying direct AWS SDK method', 's3:be', {
       storageKey,
-      error: error instanceof Error ? error.message : String(error),
+      error: error instanceof Error ? error.message : String(error)
     });
 
     try {
       // Try direct AWS SDK method as fallback
       const directPresignedUrl = await generatePresignedUrlDirect(storageKey, bucket, region);
-      console.log('✅ Successfully generated presigned URL using direct method');
+      logger.info('Successfully generated presigned URL using direct method', 's3:be');
       return directPresignedUrl;
     } catch (directError) {
-      console.error('❌ Both presigned URL methods failed:', {
+      logger.error('Both presigned URL methods failed', 's3:be', {
         serverError: error instanceof Error ? error.message : String(error),
-        directError: directError instanceof Error ? directError.message : String(directError),
+        directError: directError instanceof Error ? directError.message : String(directError)
       });
 
       // Final fallback to direct URL (will likely fail for private buckets)
@@ -191,8 +192,8 @@ export async function generatePresignedUrlFromStorageKey(
       const regionName = region || process.env.NEXT_PUBLIC_AWS_S3_REGION || 'eu-central-1';
       const directUrl = `https://${bucketName}.s3.${regionName}.amazonaws.com/${storageKey}`;
 
-      console.log('🔄 Using direct URL as final fallback:', directUrl);
-      console.log('⚠️ WARNING: Direct S3 URLs may not work for private buckets. All presigning methods failed.');
+      logger.info('Using direct URL as final fallback', 's3:be', { directUrl });
+      logger.warn('Direct S3 URLs may not work for private buckets - all presigning methods failed', 's3:be');
       return directUrl;
     }
   }
@@ -209,17 +210,17 @@ export async function generateBestAssetUrl(asset: {
   storageKey?: string;
   bucket?: string | null;
 }): Promise<string> {
-  console.log('🔍 generateBestAssetUrl called with:', {
+  logger.info('generateBestAssetUrl called', 'asset:be', {
     url: asset.url,
     assetLocation: asset.assetLocation,
     storageKey: asset.storageKey,
-    bucket: asset.bucket,
+    bucket: asset.bucket
   });
 
   // Clean up the storage key if it's a full URL
   const cleanStorageKey = (key?: string) => {
     if (!key) return key;
-    
+
     // If it's already a full URL, extract just the path
     try {
       const url = new URL(key);
@@ -233,39 +234,43 @@ export async function generateBestAssetUrl(asset: {
   // For S3 assets, try to presign using storageKey
   if (asset.assetLocation === 's3') {
     const storageKey = cleanStorageKey(asset.storageKey || asset.url);
-    
+
     if (!storageKey) {
-      console.warn('⚠️ No storage key available for S3 asset, using direct URL');
+      logger.warn('No storage key available for S3 asset, using direct URL', 'asset:be', {
+        url: asset.url
+      });
       return asset.url;
     }
 
     try {
-      console.log('🔑 Attempting to presign S3 URL for storageKey:', storageKey);
-      const presignedUrl = await generatePresignedUrlFromStorageKey(
-        storageKey, 
-        asset.bucket || undefined
-      );
-      
-      console.log('✅ Successfully generated presigned URL');
+      logger.info('Attempting to presign S3 URL for storageKey', 's3:be', { storageKey });
+      const presignedUrl = await generatePresignedUrlFromStorageKey(storageKey, asset.bucket || undefined);
+
+      logger.info('Successfully generated presigned URL', 's3:be');
       return presignedUrl;
     } catch (error) {
-      console.warn('⚠️ Failed to presign S3 URL, using direct URL:', error);
-      
+      logger.warn('Failed to presign S3 URL, using direct URL', 'asset:be', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+
       // As a last resort, try to construct a direct URL
       try {
-        const bucketName = asset.bucket || process.env.NEXT_PUBLIC_AWS_S3_BUCKET || process.env.AWS_S3_BUCKET || 'futura0';
+        const bucketName =
+          asset.bucket || process.env.NEXT_PUBLIC_AWS_S3_BUCKET || process.env.AWS_S3_BUCKET || 'futura0';
         const region = process.env.NEXT_PUBLIC_AWS_S3_REGION || 'eu-central-1';
         const directUrl = `https://${bucketName}.s3.${region}.amazonaws.com/${storageKey}`;
-        console.log('🔄 Falling back to direct S3 URL:', directUrl);
+        logger.info('Falling back to direct S3 URL', 'asset:be', { directUrl });
         return directUrl;
       } catch (fallbackError) {
-        console.error('❌ Failed to construct direct S3 URL, using original URL:', fallbackError);
+        logger.error('Failed to construct direct S3 URL, using original URL', 'asset:be', {
+          error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
+        });
         return asset.url;
       }
     }
   }
 
   // For other backends (vercel_blob, icp, etc.), use the stored URL directly
-  console.log('🌐 Using direct URL for non-S3 asset:', asset.url);
+  logger.info('Using direct URL for non-S3 asset', 'asset:be', { url: asset.url });
   return asset.url;
 }

@@ -3,8 +3,9 @@ import { auth } from '@/auth';
 import { db } from '@/db/db';
 import { userHostingPreferences } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import type { HostingPreferences } from '@/hooks/use-storage-preferences';
+import type { HostingPreferences } from '@/hooks/use-hosting-preferences';
 
+import { logger } from '@/lib/logger';
 /**
  * GET /api/me/hosting-preferences
  * Returns the user's current hosting preferences
@@ -27,24 +28,26 @@ export async function GET(): Promise<NextResponse> {
       const defaultPreferences: HostingPreferences = {
         frontendHosting: 'vercel',
         backendHosting: 'vercel',
-        databaseHosting: 'neon',
-        blobHosting: 's3',
+        databaseHosting: ['neon'],
+        blobHosting: ['s3'],
       };
       return NextResponse.json(defaultPreferences);
     }
 
-    // Return existing preferences
+    // Return preferences directly (already in correct format)
     const response: HostingPreferences = {
-      frontendHosting: preferences.frontendHosting as HostingPreferences['frontendHosting'],
-      backendHosting: preferences.backendHosting as HostingPreferences['backendHosting'],
-      databaseHosting: preferences.databaseHosting as HostingPreferences['databaseHosting'],
-      blobHosting: preferences.blobHosting as HostingPreferences['blobHosting'],
+      frontendHosting: preferences.frontendHosting,
+      backendHosting: preferences.backendHosting,
+      databaseHosting: preferences.databaseHosting,
+      blobHosting: preferences.blobHosting,
       updatedAt: preferences.updatedAt.toISOString(),
     };
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error('Error fetching hosting preferences:', error);
+    logger.error('Error fetching hosting preferences:', undefined, {
+      data: error instanceof Error ? error : undefined,
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -92,6 +95,14 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
         .returning();
 
       updatedPreferences = updated;
+
+      // Log preference update
+      logger.hostingPreferences().info('🔄 Hosting preferences updated in database', {
+        userId: session.user.id,
+        changes: updates,
+        previousValues: existingPreferences,
+        newValues: updated,
+      });
     } else {
       // Create new preferences with defaults + updates
       const [created] = await db
@@ -100,26 +111,34 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
           userId: session.user.id,
           frontendHosting: updates.frontendHosting || 'vercel',
           backendHosting: updates.backendHosting || 'vercel',
-          databaseHosting: updates.databaseHosting || 'neon',
-          blobHosting: updates.blobHosting || 's3',
+          databaseHosting: updates.databaseHosting || ['neon'],
+          blobHosting: updates.blobHosting || ['s3'],
         })
         .returning();
 
       updatedPreferences = created;
+
+      // Log preference creation
+      logger.hostingPreferences().info('🆕 Hosting preferences created in database', {
+        userId: session.user.id,
+        initialValues: created,
+      });
     }
 
-    // Return updated preferences
+    // Return updated preferences directly
     const response: HostingPreferences = {
-      frontendHosting: updatedPreferences.frontendHosting as HostingPreferences['frontendHosting'],
-      backendHosting: updatedPreferences.backendHosting as HostingPreferences['backendHosting'],
-      databaseHosting: updatedPreferences.databaseHosting as HostingPreferences['databaseHosting'],
-      blobHosting: updatedPreferences.blobHosting as HostingPreferences['blobHosting'],
+      frontendHosting: updatedPreferences.frontendHosting,
+      backendHosting: updatedPreferences.backendHosting,
+      databaseHosting: updatedPreferences.databaseHosting,
+      blobHosting: updatedPreferences.blobHosting,
       updatedAt: updatedPreferences.updatedAt.toISOString(),
     };
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error('Error updating hosting preferences:', error);
+    logger.error('Error updating hosting preferences:', undefined, {
+      data: error instanceof Error ? error : undefined,
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

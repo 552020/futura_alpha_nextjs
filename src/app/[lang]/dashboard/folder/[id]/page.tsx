@@ -13,6 +13,7 @@ import { TawkChat } from '@/components/chat/tawk-chat';
 import { fetchMemories, deleteMemory, type MemoryWithFolder, type DashboardItem } from '@/services/memories';
 import { Memory } from '@/types/memory';
 import { sampleDashboardMemories } from '../../../../../../scripts/mock-data/create-dashboard-sample-data';
+import { logger } from '@/lib/logger';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -28,9 +29,9 @@ import {
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_FOLDER === 'true';
 
 export default function FolderPage() {
-  // console.log("🔍 Folder page component rendered");
+  // logger.info("🔍 Folder page component rendered");
   const { isAuthorized, userId, redirectToSignIn, isLoading } = useAuthGuard();
-  // console.log("🔍 Folder page auth state:", { isAuthorized, isTemporaryUser, userId, isLoading });
+  // logger.info("🔍 Folder page auth state:", undefined, { isAuthorized, isTemporaryUser, userId, isLoading });
 
   const router = useRouter();
   const params = useParams();
@@ -41,16 +42,16 @@ export default function FolderPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const folderId = params.id as string;
-  // console.log("🔍 Folder ID:", folderId);
+  // logger.info("🔍 Folder ID:", folderId);
 
   const fetchFolderMemories = useCallback(async () => {
-    // console.log("🚀 ENTERING fetchFolderMemories function");
+    // logger.info("🚀 ENTERING fetchFolderMemories function");
 
     if (USE_MOCK_DATA) {
-      // console.log("🎭 MOCK DATA - Using sample data for folder");
-      // console.log("🔍 Looking for folder:", folderId);
-      // console.log("🔍 Available memories:", sampleDashboardMemories.length);
-      // console.log(
+      // logger.info("🎭 MOCK DATA - Using sample data for folder");
+      // logger.info("🔍 Looking for folder:", folderId);
+      // logger.info("🔍 Available memories:", sampleDashboardMemories.length);
+      // logger.info(
       //   "🔍 Sample memories with metadata:",
       //   sampleDashboardMemories
       //     .filter((m) => m.metadata?.folderName)
@@ -62,7 +63,7 @@ export default function FolderPage() {
         memory => memory.parentFolderId === folderId || memory.metadata?.folderName === folderId
       );
 
-      // console.log("🔍 Mock folder memories found:", folderMemories.length);
+      // logger.info("🔍 Mock folder memories found:", folderMemories.length);
 
       if (folderMemories.length > 0) {
         // Use folder name from new structure or fallback to old structure
@@ -71,7 +72,7 @@ export default function FolderPage() {
         setFolderName(folderName);
         setMemories(folderMemories);
       } else {
-        // console.log("❌ No mock memories found for folder:", folderId);
+        // logger.info("❌ No mock memories found for folder:", folderId);
         toast({
           title: 'Folder not found',
           description: "This folder doesn't exist or is empty.",
@@ -93,20 +94,20 @@ export default function FolderPage() {
         memory => memory.parentFolderId === folderId || memory.metadata?.folderName === folderId
       );
 
-      // console.log("🔍 Folder memories found:", folderMemories.length);
-      // console.log("🔍 Folder ID:", folderId);
-      // console.log("🔍 Cleaned folder ID:", folderId.replace("folder-", ""));
-      // console.log("🔍 First memory folder name:", folderMemories[0]?.folder?.name);
+      // logger.info("🔍 Folder memories found:", folderMemories.length);
+      // logger.info("🔍 Folder ID:", folderId);
+      // logger.info("🔍 Cleaned folder ID:", folderId.replace("folder-", ""));
+      // logger.info("🔍 First memory folder name:", folderMemories[0]?.folder?.name);
 
       if (folderMemories.length > 0) {
         // Use folder name from new structure or fallback to old structure
         const actualFolderName =
           (folderMemories[0] as MemoryWithFolder)?.folder?.name || folderMemories[0]?.metadata?.folderName || folderId;
-        // console.log("🔍 Setting folder name to:", actualFolderName);
+        // logger.info("🔍 Setting folder name to:", actualFolderName);
         setFolderName(actualFolderName);
         setMemories(folderMemories);
       } else {
-        // console.log("❌ No memories found for folder:", folderId);
+        // logger.info("❌ No memories found for folder:", folderId);
         toast({
           title: 'Folder not found',
           description: "This folder doesn't exist or is empty.",
@@ -115,7 +116,7 @@ export default function FolderPage() {
         router.push(`/${params.lang}/dashboard`);
       }
     } catch (error) {
-      console.error('❌ FETCH FOLDER MEMORIES ERROR:', error);
+      logger.error('FETCH FOLDER MEMORIES ERROR', undefined, { data: error as Error });
       toast({
         title: 'Error',
         description: 'Failed to load folder contents. Please try again.',
@@ -124,7 +125,7 @@ export default function FolderPage() {
     } finally {
       setIsLoadingMemories(false);
     }
-    // console.log("🚀 EXITING fetchFolderMemories function");
+    // logger.info("🚀 EXITING fetchFolderMemories function");
   }, [folderId, params.lang, router, toast]);
 
   useEffect(() => {
@@ -134,13 +135,13 @@ export default function FolderPage() {
   }, [isAuthorized, redirectToSignIn]);
 
   useEffect(() => {
-    // console.log("🔍 Folder useEffect - Auth check:", { isAuthorized, userId, isLoading });
+    // logger.info("🔍 Folder useEffect - Auth check:", undefined, { isAuthorized, userId, isLoading });
     if (isAuthorized && !isLoading && folderId) {
-      // console.log("🚀 CALLING fetchFolderMemories");
+      // logger.info("🚀 CALLING fetchFolderMemories");
       fetchFolderMemories();
-      // console.log("✅ EXITED fetchFolderMemories");
+      // logger.info("✅ EXITED fetchFolderMemories");
     } else {
-      // console.log("🔍 Folder useEffect - Not authorized, still loading, or no folderId");
+      // logger.info("🔍 Folder useEffect - Not authorized, still loading, or no folderId");
     }
   }, [isAuthorized, isLoading, userId, folderId, fetchFolderMemories]);
 
@@ -153,7 +154,7 @@ export default function FolderPage() {
         description: 'Memory deleted successfully.',
       });
     } catch (error) {
-      console.error('Error deleting memory:', error);
+      logger.error('Error deleting memory', undefined, { data: error as Error });
       toast({
         title: 'Error',
         description: 'Failed to delete memory. Please try again.',
@@ -169,7 +170,7 @@ export default function FolderPage() {
 
   const handleEdit = (memoryId: string) => {
     // TODO: Implement edit functionality
-    console.log('Edit memory:', memoryId);
+    logger.dashboard().info('Edit memory', { memoryId });
     toast({
       title: 'Edit',
       description: 'Edit functionality coming soon!',

@@ -3,6 +3,7 @@ import { db } from '@/db/db';
 import { storageEdges } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 
+import { logger } from '@/lib/logger';
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
@@ -102,7 +103,7 @@ export async function PUT(request: NextRequest) {
       data: result[0],
     });
   } catch (error) {
-    console.error('Error upserting storage edge:', error);
+    logger.error('Error upserting storage edge:', undefined, { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -155,7 +156,7 @@ export async function GET(request: NextRequest) {
       data: result,
     });
   } catch (error) {
-    console.error('Error querying storage edges:', error);
+    logger.error('Error querying storage edges:', undefined, { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
