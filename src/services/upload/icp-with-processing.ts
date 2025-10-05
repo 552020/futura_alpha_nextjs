@@ -16,14 +16,7 @@ import { type UploadServiceResult } from './types';
 // import { logger } from '@/lib/logger';
 import { getAuthClient } from '@/ic/ii';
 import { backendActor } from '@/ic/backend';
-import type {
-  Result,
-  Result_3,
-  Result_4,
-  Result_13,
-  Result_15,
-  AssetMetadata,
-} from '@/ic/declarations/backend/backend.did';
+import type { Result, Result_4, Result_13, Result_15, AssetMetadata } from '@/ic/declarations/backend/backend.did';
 
 /**
  * Upload original files to ICP using chunked uploads (Lane A)
@@ -451,11 +444,11 @@ export async function uploadFileToICPWithProgress(file: File, onProgress: (progr
     let capsuleId;
 
     if ('Ok' in capsuleResult && capsuleResult.Ok) {
-      capsuleId = capsuleResult.Ok.capsule_id;
+      capsuleId = capsuleResult.Ok.id;
       console.log(`✅ Using existing capsule: ${capsuleId}`);
     } else {
       console.log('🆕 No capsule found, creating one...');
-      const createResult = (await backend.capsules_create([])) as Result_3;
+      const createResult = (await backend.capsules_create([])) as Result_4;
       if (!('Ok' in createResult)) {
         throw new Error('Failed to create capsule: ' + JSON.stringify(createResult));
       }
@@ -626,7 +619,7 @@ async function createICPMemoryEdge(icpMemoryId: string, neonMemoryId: string): P
       throw new Error('Failed to read existing memory for edge creation');
     }
 
-    const memory = (existingMemory as { Ok: { metadata?: Record<string, unknown> } }).Ok;
+    const memory = existingMemory.Ok;
     const existingMetadata = memory.metadata || {};
 
     // Update memory metadata with database storage edge, preserving all existing fields
