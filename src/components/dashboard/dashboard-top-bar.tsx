@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { ExtendedMemory } from '@/types/dashboard';
 import { ItemUploadButton } from '@/components/memory/item-upload-button';
 import { BaseTopBar } from '@/components/common/base-top-bar';
+import { Switch } from '@/components/ui/switch';
 
 interface SearchAndFilterBarProps {
   memories: ExtendedMemory[];
@@ -16,6 +17,8 @@ interface SearchAndFilterBarProps {
   onUploadSuccess?: () => void;
   onUploadError?: (error: Error) => void;
   onClearAllMemories?: () => void;
+  dataSource: "neon" | "icp";
+  onDataSourceChange: (source: "neon" | "icp") => void;
 }
 
 export function DashboardTopBar({
@@ -29,6 +32,8 @@ export function DashboardTopBar({
   onUploadSuccess,
   onUploadError,
   onClearAllMemories,
+  dataSource,
+  onDataSourceChange,
 }: SearchAndFilterBarProps) {
   // Create left action buttons
   const leftActions = (
@@ -59,6 +64,12 @@ export function DashboardTopBar({
           Clear All
         </Button>
       )}
+
+      {/* Database Toggle Switch */}
+      <div className="flex items-center gap-2 px-3 py-1 border rounded-md bg-background">
+        <Switch checked={dataSource === 'icp'} onCheckedChange={checked => onDataSourceChange(checked ? 'icp' : 'neon')} />
+        <span className="text-xs font-medium">{dataSource === 'icp' ? 'ICP' : 'Neon'}</span>
+      </div>
     </>
   );
 

@@ -59,6 +59,9 @@ export default function VaultPage() {
   const { ref: _ref } = useInView();
   const params = useParams();
 
+  // Database source state for switching between ICP and Neon
+  const [dataSource, setDataSource] = useState<"neon" | "icp">("neon");
+
   // React Query for dashboard data
   const {
     data,
@@ -67,8 +70,8 @@ export default function VaultPage() {
     hasNextPage,
     fetchNextPage,
   } = useInfiniteQuery({
-    queryKey: qk.memories.dashboard(userId, params.lang as string),
-    queryFn: ({ pageParam = 1 }) => fetchMemories(pageParam as number),
+    queryKey: qk.memories.dashboard(userId, params.lang as string, dataSource),
+    queryFn: ({ pageParam = 1 }) => fetchMemories(pageParam as number, dataSource),
     initialPageParam: 1,
     getNextPageParam: () => undefined, // No pagination for now
     placeholderData: keepPreviousData,
@@ -260,6 +263,8 @@ export default function VaultPage() {
         onUploadSuccess={handleUploadSuccess}
         onUploadError={handleUploadError}
         onClearAllMemories={handleClearAllMemories}
+        dataSource={dataSource}
+        onDataSourceChange={setDataSource}
       />
 
       {/* Show loading state while fetching */}
