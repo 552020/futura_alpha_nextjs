@@ -50,6 +50,44 @@ export function canSwitchDatabase(preferences?: HostingPreferences): boolean {
   return isAdvancedDatabaseSwitchingEnabled(preferences) && getAvailableDatabases(preferences).length > 1;
 }
 
+// ---- hosting stack helpers (for checkbox logic) ----
+export function getWeb2Enabled(preferences?: HostingPreferences): boolean {
+  return !!(preferences?.backendHosting === 'vercel' || preferences?.databaseHosting?.includes('neon'));
+}
+
+export function getWeb3Enabled(preferences?: HostingPreferences): boolean {
+  return !!(preferences?.backendHosting === 'icp' || preferences?.databaseHosting?.includes('icp'));
+}
+
+export function createHostingPreferencesFromStacks(
+  web2Enabled: boolean,
+  web3Enabled: boolean
+): Partial<HostingPreferences> {
+  // Determine backend hosting - if both are enabled, prefer the first one, otherwise use the enabled one
+  let backendHosting: BackendHosting;
+  if (web2Enabled && web3Enabled) {
+    // Both enabled - use Web2 as primary backend
+    backendHosting = 'vercel';
+  } else if (web2Enabled) {
+    backendHosting = 'vercel';
+  } else if (web3Enabled) {
+    backendHosting = 'icp';
+  } else {
+    // Neither enabled - this should be prevented by validation
+    backendHosting = 'vercel'; // fallback
+  }
+
+  // Create database hosting array
+  const databaseHosting: DatabaseHosting[] = [];
+  if (web2Enabled) databaseHosting.push('neon');
+  if (web3Enabled) databaseHosting.push('icp');
+
+  return {
+    backendHosting,
+    databaseHosting,
+  };
+}
+
 // ---- API helpers ----
 async function parseError(res: Response): Promise<NormalizedError> {
   const apiError = await parseApiError(res);
