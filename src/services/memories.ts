@@ -144,7 +144,7 @@ const fetchMemoriesFromICP = async (page: number): Promise<FetchMemoriesResult> 
       throw new Error(`ICP canister error: ${JSON.stringify(result.Err)}`);
     }
   } catch (error) {
-    logger.error('Failed to fetch memories from ICP:', error);
+    logger.error('Failed to fetch memories from ICP:', error instanceof Error ? error : new Error(String(error)));
     throw error;
   }
 };
