@@ -7,8 +7,9 @@ import {
   UpdateGalleryRequest,
 } from '@/types/gallery';
 import { generatedGalleries, getGeneratedGallery } from '../../scripts/mock-data/generated-gallery-data';
-import { icpGalleryService, type GalleryData, type StoreGalleryResponse } from './icp-gallery';
-import { Principal } from '@dfinity/principal';
+// Lazy imports to avoid ICP actor creation during static generation
+// import { icpGalleryService, type GalleryData, type StoreGalleryResponse } from './icp-gallery';
+// import { Principal } from '@dfinity/principal';
 
 import { logger } from '@/lib/logger';
 // Analytics tracking shim for future implementation
@@ -156,7 +157,9 @@ export const galleryService = {
       // logger.info("Gallery items count:", result.gallery?.items?.length || 0);
       return result.gallery;
     } catch (error) {
-      logger.error('Error creating gallery from folder:', undefined, { data: error instanceof Error ? error : undefined });
+      logger.error('Error creating gallery from folder:', undefined, {
+        data: error instanceof Error ? error : undefined,
+      });
       throw new Error('Failed to create gallery from folder');
     }
   },
@@ -208,7 +211,9 @@ export const galleryService = {
       const result = await handleApiResponse(response);
       return result.gallery;
     } catch (error) {
-      logger.error('Error creating gallery from memories:', undefined, { data: error instanceof Error ? error : undefined });
+      logger.error('Error creating gallery from memories:', undefined, {
+        data: error instanceof Error ? error : undefined,
+      });
       throw new Error('Failed to create gallery from memories');
     }
   },
@@ -369,17 +374,24 @@ export const galleryService = {
   /**
    * Store a gallery forever in the ICP canister
    */
-  storeGalleryForever: async (gallery: GalleryWithItems, ownerPrincipal?: string): Promise<StoreGalleryResponse> => {
+  storeGalleryForever: async (
+    gallery: GalleryWithItems,
+    ownerPrincipal?: string
+  ): Promise<{ success: boolean; message: string; storage_location: unknown }> => {
     trackGalleryEvent('gallery_store_forever_requested', { galleryId: gallery.id });
 
     try {
+      // Dynamic imports to avoid ICP actor creation during static generation
+      const { icpGalleryService } = await import('./icp-gallery');
+      const { Principal } = await import('@dfinity/principal');
+
       // Convert Web2 gallery to ICP format
-      const galleryData: GalleryData = icpGalleryService.convertWeb2GalleryToICP(
+      const principal = ownerPrincipal ? Principal.fromText(ownerPrincipal) : Principal.anonymous();
+
+      const galleryData = icpGalleryService.convertWeb2GalleryToICP(
         gallery as unknown as Record<string, unknown>,
         (gallery.items || []) as unknown as Record<string, unknown>[],
-        ownerPrincipal
-          ? ({ Principal: ownerPrincipal } as unknown as Principal)
-          : ({ Principal: 'anonymous' } as unknown as Principal)
+        principal
       );
 
       // Store in ICP canister
@@ -418,6 +430,8 @@ export const galleryService = {
     trackGalleryEvent('icp_galleries_requested');
 
     try {
+      // Dynamic import to avoid ICP actor creation during static generation
+      const { icpGalleryService } = await import('./icp-gallery');
       const icpGalleries = await icpGalleryService.getMyGalleries();
 
       // Convert ICP galleries to Web2 format for frontend compatibility
@@ -464,9 +478,13 @@ export const galleryService = {
    */
   checkICPCapsuleStatus: async (): Promise<boolean> => {
     try {
+      // Dynamic import to avoid ICP actor creation during static generation
+      const { icpGalleryService } = await import('./icp-gallery');
       return await icpGalleryService.checkCapsuleStatus();
     } catch (error) {
-      logger.error('Error checking ICP capsule status:', undefined, { data: error instanceof Error ? error : undefined });
+      logger.error('Error checking ICP capsule status:', undefined, {
+        data: error instanceof Error ? error : undefined,
+      });
       return false;
     }
   },
@@ -515,7 +533,9 @@ async function updateStorageEdgesAfterICPSuccess(gallery: GalleryWithItems): Pro
 
     // logger.info(`Updated storage edges for ${gallery.items?.length || 0} memories in gallery ${gallery.id}`);
   } catch (error) {
-    logger.error('Error updating storage edges after ICP success:', undefined, { data: error instanceof Error ? error : undefined });
+    logger.error('Error updating storage edges after ICP success:', undefined, {
+      data: error instanceof Error ? error : undefined,
+    });
     // Don't throw - this is a side effect, not critical to the main operation
   }
 }

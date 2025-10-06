@@ -888,40 +888,9 @@ export async function uploadChunkedToICP(
       throw new Error(`File too large: ${expectedChunks} chunks exceeds limit of ${limits.max_chunks}`);
     }
 
-    // Create asset metadata for the file (simplified like the working script)
-    const assetMetadata: AssetMetadata = {
-      Image: {
-        base: {
-          url: [],
-          height: [],
-          updated_at: BigInt(Date.now() * 1000000),
-          asset_type: { Original: null },
-          sha256: [],
-          name: file.name,
-          storage_key: [],
-          tags: ['upload-test', 'frontend-uploader'],
-          processing_error: [],
-          mime_type: file.type,
-          description: [`Uploaded file: ${file.name}`],
-          created_at: BigInt(Date.now() * 1000000),
-          deleted_at: [],
-          bytes: BigInt(file.size),
-          asset_location: [],
-          width: [],
-          processing_status: [],
-          bucket: [],
-        },
-        dpi: [],
-        color_space: [],
-        exif_data: [],
-        compression_ratio: [],
-        orientation: [],
-      },
-    };
-
     // Begin upload session
     console.log('🚀 Beginning upload session...');
-    const sessionResult = await actor.uploads_begin(capsuleId, assetMetadata, expectedChunks, idem);
+    const sessionResult = await actor.uploads_begin(capsuleId, expectedChunks, idem);
 
     if ('Err' in sessionResult) {
       console.log('❌ Failed to begin upload session', { error: sessionResult.Err });

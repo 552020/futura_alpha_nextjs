@@ -16,7 +16,7 @@ import { type UploadServiceResult } from './types';
 // import { logger } from '@/lib/logger';
 import { getAuthClient } from '@/ic/ii';
 import { backendActor } from '@/ic/backend';
-import type { Result, Result_4, Result_13, Result_15, AssetMetadata } from '@/ic/declarations/backend/backend.did';
+import type { Result, Result_5, Result_6, Result_15, Result13 } from '@/ic/declarations/backend/backend.did';
 
 /**
  * Upload original files to ICP using chunked uploads (Lane A)
@@ -440,15 +440,15 @@ export async function uploadFileToICPWithProgress(file: File, onProgress: (progr
 
     // 2. Get or create capsule
     console.log('🔍 Getting capsule...');
-    const capsuleResult = (await backend.capsules_read_basic([])) as Result_4;
+    const capsuleResult = (await backend.capsules_read_basic([])) as Result_6;
     let capsuleId;
 
     if ('Ok' in capsuleResult && capsuleResult.Ok) {
-      capsuleId = capsuleResult.Ok.id;
+      capsuleId = capsuleResult.Ok.capsule_id;
       console.log(`✅ Using existing capsule: ${capsuleId}`);
     } else {
       console.log('🆕 No capsule found, creating one...');
-      const createResult = (await backend.capsules_create([])) as Result_4;
+      const createResult = (await backend.capsules_create([])) as Result_5;
       if (!('Ok' in createResult)) {
         throw new Error('Failed to create capsule: ' + JSON.stringify(createResult));
       }
@@ -476,45 +476,9 @@ export async function uploadFileToICPWithProgress(file: File, onProgress: (progr
       `📦 Upload configuration: ${totalChunks} chunks of ${limits.chunk_size} bytes (${isInline ? 'inline' : 'chunked'})`
     );
 
-    // 4. Create asset metadata (using same pattern as existing service)
-    const assetMetadata = {
-      Image: {
-        base: {
-          url: [],
-          height: [],
-          updated_at: BigInt(Date.now() * 1000000), // Convert to nanoseconds
-          asset_type: { Original: null },
-          sha256: [],
-          name: file.name,
-          storage_key: [],
-          tags: ['frontend-upload', 'icp-upload'],
-          processing_error: [],
-          mime_type: file.type || 'application/octet-stream',
-          description: [`Uploaded file: ${file.name}`],
-          created_at: BigInt(Date.now() * 1000000),
-          deleted_at: [],
-          bytes: BigInt(file.size),
-          asset_location: [],
-          width: [],
-          processing_status: [],
-          bucket: [],
-        },
-        dpi: [],
-        color_space: [],
-        exif_data: [],
-        compression_ratio: [],
-        orientation: [],
-      },
-    } as AssetMetadata; // Use proper AssetMetadata type
-
-    // 5. Begin upload session
+    // 4. Begin upload session
     console.log('🚀 Starting upload session...');
-    const begin = (await backend.uploads_begin(
-      capsuleId,
-      assetMetadata,
-      totalChunks,
-      `upload-${Date.now()}`
-    )) as Result_13;
+    const begin = (await backend.uploads_begin(capsuleId, totalChunks, `upload-${Date.now()}`)) as Result13;
 
     if (!('Ok' in begin)) {
       throw new Error('uploads_begin failed: ' + JSON.stringify(begin));
