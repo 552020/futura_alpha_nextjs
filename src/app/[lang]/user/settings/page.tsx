@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { useInterface } from '@/contexts/interface-context';
 import { HostingSinglePreferenceCard } from '@/components/user/hosting-single-preference-card';
 import { HostingToggleCard } from '@/components/user/hosting-toggle-card';
+import { DatabaseToggle } from '@/components/user/database-toggle';
 import { useHostingPreferences, useUpdateHostingPreferences } from '@/hooks/use-hosting-preferences';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -446,6 +447,9 @@ export default function SettingsPage() {
 
         {/* Hosting Preferences Component */}
         <HostingSinglePreferenceCard />
+
+        {/* Advanced Database Switching */}
+        <DatabaseToggle />
 
         {/* Settings Cards */}
         <NotificationsCard />

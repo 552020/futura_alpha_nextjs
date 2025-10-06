@@ -13,6 +13,9 @@ export interface HostingPreferences {
   backendHosting: BackendHosting;
   databaseHosting: DatabaseHosting[];
   blobHosting: BlobHosting[];
+  // Advanced database switching for dashboard
+  advancedDatabaseSwitching?: boolean;
+  currentDatabaseView?: DatabaseHosting;
   updatedAt?: string;
 }
 
@@ -28,6 +31,23 @@ export function getDefaultHostingPreferences(): HostingPreferences {
 
 export function isHostingPreferenceValid(prefs: Partial<HostingPreferences>): prefs is HostingPreferences {
   return !!(prefs.frontendHosting && prefs.backendHosting && prefs.databaseHosting && prefs.blobHosting);
+}
+
+// ---- advanced database switching helpers ----
+export function isAdvancedDatabaseSwitchingEnabled(preferences?: HostingPreferences): boolean {
+  return !!(preferences?.advancedDatabaseSwitching && preferences?.databaseHosting?.length > 1);
+}
+
+export function getAvailableDatabases(preferences?: HostingPreferences): DatabaseHosting[] {
+  return preferences?.databaseHosting || ['neon'];
+}
+
+export function getCurrentDatabaseView(preferences?: HostingPreferences): DatabaseHosting {
+  return preferences?.currentDatabaseView || preferences?.databaseHosting?.[0] || 'neon';
+}
+
+export function canSwitchDatabase(preferences?: HostingPreferences): boolean {
+  return isAdvancedDatabaseSwitchingEnabled(preferences) && getAvailableDatabases(preferences).length > 1;
 }
 
 // ---- API helpers ----

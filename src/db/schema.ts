@@ -1549,6 +1549,9 @@ export const userHostingPreferences = pgTable(
     backendHosting: backend_hosting_t('backend_hosting').default('vercel').notNull(),
     databaseHosting: jsonb('database_hosting').$type<DatabaseHosting[]>().default(['neon']).notNull(),
     blobHosting: jsonb('blob_hosting').$type<BlobHosting[]>().default(['s3']).notNull(),
+    // Advanced database switching for dashboard
+    advancedDatabaseSwitching: boolean('advanced_database_switching').default(false),
+    currentDatabaseView: database_hosting_t('current_database_view'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
@@ -1609,6 +1612,72 @@ export type NewUserHostingPreference = typeof userHostingPreferences.$inferInser
 // Service deployment types
 export type ServiceDeployment = typeof serviceDeployments.$inferSelect;
 export type NewServiceDeployment = typeof serviceDeployments.$inferInsert;
+
+/**
+ * USER SETTINGS - UI preferences that affect user experience
+ *
+ * This table stores UI-affecting preferences that must survive sessions/devices.
+ * Separate from hosting preferences to decouple UI concerns from infrastructure choices.
+ *
+ * COMPOSITION:
+ * - Identity: userId (FK to users, 1:1)
+ * - UI Settings: hasAdvancedSettings (controls advanced features visibility)
+ * - Timestamps: createdAt, updatedAt
+ *
+ * USAGE:
+ * - Controls whether user sees advanced database toggle, sync indicators, etc.
+ * - Extensible for future UI preferences (themes, experiment flags, etc.)
+ * - Syncs to ICP backend for Web3 users
+ */
+export const userSettings = pgTable(
+  'user_settings',
+  {
+    userId: text('user_id')
+      .primaryKey()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    hasAdvancedSettings: boolean('has_advanced_settings').notNull().default(false),
+    createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
+  },
+  table => [
+    // Index for efficient lookups
+    index('user_settings_user_idx').on(table.userId),
+  ]
+);
+
+// User settings types
+export type UserSettings = typeof userSettings.$inferSelect;
+export type NewUserSettings = typeof userSettings.$inferInsert;
+
+// User settings relations
+export const userSettingsRelations = relations(userSettings, ({ one }) => ({
+  user: one(users, {
+    fields: [userSettings.userId],
+    references: [users.id],
+  }),
+}));
+
+/**
+ * USER TABLE RELATIONS - Drizzle ORM query helpers for the users table
+ *
+ * This defines how the users table relates to other tables for clean queries.
+ * This is NOT the same as the 'relationship' table which stores actual user relationships.
+ *
+ * Purpose: Enables object-like queries like user.settings, user.accounts, etc.
+ * Usage: db.query.users.findFirst({ with: { settings: true, accounts: true } })
+ */
+export const userTableRelations = relations(users, ({ one, many }) => ({
+  settings: one(userSettings, {
+    fields: [users.id],
+    references: [userSettings.userId],
+  }),
+  hostingPreferences: one(userHostingPreferences, {
+    fields: [users.id],
+    references: [userHostingPreferences.userId],
+  }),
+  accounts: many(accounts),
+  sessions: many(sessions),
+}));
 
 // Temporary type exports for backward compatibility
 export type DBImage = DBMemory;
