@@ -16,6 +16,7 @@ import { Analytics } from '@vercel/analytics/react';
 import { Toaster } from '@/components/ui/toaster';
 import Footer from '@/components/layout/footer';
 import { QueryProvider } from '@/components/providers/query-provider';
+import ServiceWorkerClient from '@/lib/service-worker';
 
 import { logger } from '@/lib/logger';
 const geistSans = Geist({
@@ -88,6 +89,7 @@ export default async function RootLayout({
     <html lang={lang} suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`} suppressHydrationWarning>
         <QueryProvider>
+          <ServiceWorkerClient />
           <SessionProvider basePath="/api/auth">
             <PostHogProvider>
               <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>

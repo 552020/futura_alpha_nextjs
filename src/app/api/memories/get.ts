@@ -21,8 +21,14 @@ import { allUsers, memories, memoryAssets, memoryShares } from '@/db/schema';
 import { eq, desc, sql, and } from 'drizzle-orm';
 import { fetchMemoriesWithGalleries } from './utils/queries';
 import { generateBestAssetUrl } from '@/lib/presigned-url-utils';
+import crypto from 'node:crypto';
 
 import { logger } from '@/lib/logger';
+
+function etagOf(obj: unknown) {
+  const hash = crypto.createHash('sha1').update(JSON.stringify(obj)).digest('hex');
+  return `W/"${hash}"`;
+}
 /**
  * Main GET handler for memory listing
  * Handles pagination, filtering, and asset inclusion
@@ -232,11 +238,31 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
     logger.info('🔍 API: Returning memories:', undefined, { count: memoriesWithShareInfo.length });
     logger.info('🔍 API: Sample returned memory:', undefined, memoriesWithShareInfo[0]);
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       data: memoriesWithShareInfo,
       hasMore: false, // No pagination for now - dashboard needs all memories to group properly
       total: memoriesWithShareInfo.length,
+    };
+
+    const etag = etagOf(responseData);
+    const ifNoneMatch = request.headers.get('if-none-match');
+
+    if (ifNoneMatch === etag) {
+      return new NextResponse(null, {
+        status: 304,
+        headers: {
+          'Cache-Control': 'public, max-age=300, stale-while-revalidate=86400',
+          ETag: etag,
+        },
+      });
+    }
+
+    return NextResponse.json(responseData, {
+      headers: {
+        'Cache-Control': 'public, max-age=300, stale-while-revalidate=86400',
+        ETag: etag,
+      },
     });
   } catch (error) {
     logger.error('Error listing memories:', error instanceof Error ? error : undefined, {

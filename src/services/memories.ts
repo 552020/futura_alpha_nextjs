@@ -46,7 +46,7 @@ export interface FetchMemoriesResult {
 
 export const fetchMemories = async (page: number): Promise<FetchMemoriesResult> => {
   logger.dashboard().info(`🔍 Fetching memories for page ${page}...`);
-  const response = await fetch(`/api/memories?page=${page}`);
+  const response = await fetch(`/api/memories?page=${page}`, { cache: 'no-store' });
   logger.apiResponse().info(`🔍 API response status: ${response.status} ${response.statusText}`);
 
   if (!response.ok) {
