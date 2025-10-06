@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
           }
         );
 
-        logger.info('📝 Memory creation result:', result);
+        logger.info('Memory creation result', { result });
 
         // Store the memory ID to return to client
         if (result.success && result.memoryId) {

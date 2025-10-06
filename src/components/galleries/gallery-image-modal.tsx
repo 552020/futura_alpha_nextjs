@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Download, X, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { generateBestAssetUrl } from '@/lib/presigned-url-utils';
 
+import { logger } from '@/lib/logger';
+
 type GalleryAsset = {
   assetType: string;
   url: string;
@@ -91,7 +93,7 @@ export function GalleryImageModal({
           setCurrentImageUrl(image.url);
         }
       } catch (error) {
-        console.error('Error updating displayed image:', error);
+        logger.error('Error updating displayed image', 'rendering:fe', { error });
         setCurrentImageUrl(image.url);
       }
     };
@@ -163,7 +165,7 @@ export function GalleryImageModal({
           };
           return await generateBestAssetUrl(formattedAsset);
         } catch (error) {
-          console.error(`Error generating URL for asset type ${assetType}:`, error);
+          logger.error(`Error generating URL for asset type ${assetType}`, 'rendering:fe', { error, assetType });
           continue;
         }
       }
@@ -209,7 +211,7 @@ export function GalleryImageModal({
         
         blob = await response.blob();
       } catch (fetchError) {
-        console.warn('Fetch failed, trying direct download:', fetchError);
+        logger.warn('Fetch failed, trying direct download', 'rendering:fe', { error: fetchError });
         // If fetch fails, try direct download
         const link = document.createElement('a');
         link.href = downloadUrl;
@@ -255,7 +257,7 @@ export function GalleryImageModal({
           }
         }
       } catch (e) {
-        console.warn('Could not parse URL for filename', e);
+        logger.warn('Could not parse URL for filename', 'rendering:fe', { error: e, downloadUrl });
         const ext = blob.type.split('/')[1] || 'jpg';
         filename = `download-${displaySize}.${ext}`;
       }
@@ -275,7 +277,7 @@ export function GalleryImageModal({
       }, 100);
       
     } catch (error) {
-      console.error('Error in download handler:', error);
+      logger.error('Error in download handler', 'rendering:fe', { error, imageUrl: image?.url });
       // Final fallback - try direct download with the image URL
       const link = document.createElement('a');
       link.href = image.url;

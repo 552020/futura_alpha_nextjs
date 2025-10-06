@@ -90,7 +90,7 @@ const fetchMemoriesFromNeon = async (page: number): Promise<FetchMemoriesResult>
   }
 
   const data = await response.json();
-  logger.info(`🔍 API response data:`, undefined, {
+  logger.apiResponse().info('API response data', {
     memoriesCount: data.data?.length || 0,
     hasMore: data.hasMore,
     total: data.total,

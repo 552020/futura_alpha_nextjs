@@ -27,7 +27,7 @@ export async function parseSingleFile(
     const file = formData.get('file') as File;
 
     if (!file) {
-      logger.error('❌ No file found in form data');
+      logger.error('No file found in form data', 'upload:be');
       return {
         file: null,
         formData: null,
@@ -37,7 +37,9 @@ export async function parseSingleFile(
 
     return { file, formData, error: null };
   } catch (error) {
-    logger.error('❌ Error parsing form data:', undefined, { data: error instanceof Error ? error : undefined });
+    logger.error('Error parsing form data', 'upload:be', {
+      error: error instanceof Error ? error : undefined
+    });
     return {
       file: null,
       formData: null,
@@ -61,7 +63,7 @@ export async function parseMultipleFiles(
     const userId = formData.get('userId') as string | null;
 
     if (!files || files.length === 0) {
-      logger.error('❌ No files found in form data');
+      logger.error('No files found in form data', 'upload:be');
       return {
         files: [],
         error: 'Missing files',
@@ -71,7 +73,9 @@ export async function parseMultipleFiles(
     // logger.info(`📁 Found ${files.length} files in folder upload`);
     return { files, userId: userId || undefined, error: null };
   } catch (error) {
-    logger.error('❌ Error parsing form data:', undefined, { data: error instanceof Error ? error : undefined });
+    logger.error('Error parsing form data', 'upload:be', {
+      error: error instanceof Error ? error : undefined
+    });
     return {
       files: [],
       error: 'Invalid form data',

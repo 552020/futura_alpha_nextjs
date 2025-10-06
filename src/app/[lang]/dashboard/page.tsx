@@ -20,7 +20,6 @@ import { useInfiniteQuery, keepPreviousData, useQueryClient } from '@tanstack/re
 import { qk } from '@/lib/query-keys';
 import { MemoryGrid } from '@/components/memory/memory-grid';
 import { Loader2 } from 'lucide-react';
-import { useInView } from 'react-intersection-observer';
 import { useAuthGuard } from '@/utils/authentication';
 import { Memory } from '@/types/memory';
 import { useRouter } from 'next/navigation';
@@ -42,25 +41,21 @@ import { TawkChat } from '@/components/chat/tawk-chat';
 import { DashboardTopBar } from '@/components/dashboard/dashboard-top-bar';
 import { sampleDashboardMemories } from '../../../../scripts/mock-data/create-dashboard-sample-data';
 
-import { logger } from '@/lib/logger';
 // Demo flag - set to true to use mock data for demo
 // 📝 Sample data generation script: scripts/mock-data/create-dashboard-sample-data.ts
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_DASHBOARD === 'true';
 
 export default function VaultPage() {
-  // logger.info("🔍 Dashboard component rendered");
   const { isAuthorized, isTemporaryUser, userId, isLoading } = useAuthGuard();
-  // logger.info("🔍 Dashboard auth state:", undefined, { isAuthorized, isTemporaryUser, userId, isLoading });
   const router = useRouter();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filteredMemories, setFilteredMemories] = useState<DashboardItem[]>([]);
-  const { ref: _ref } = useInView();
   const params = useParams();
 
   // Database source state for switching between ICP and Neon
-  const [dataSource, setDataSource] = useState<"neon" | "icp">("neon");
+  const [dataSource, setDataSource] = useState<'neon' | 'icp'>('neon');
 
   // React Query for dashboard data
   const {
@@ -115,10 +110,6 @@ export default function VaultPage() {
 
   // Initialize filtered memories when items are loaded
   useEffect(() => {
-    logger.dashboard().info('🔍 Dashboard useEffect - items changed:', {
-      itemsCount: items.length,
-      items: items.map(m => ({ id: m.id, type: m.type, title: m.title })),
-    });
     setFilteredMemories(items);
   }, [items]);
 
@@ -131,8 +122,7 @@ export default function VaultPage() {
         title: 'Success',
         description: 'Memory deleted successfully.',
       });
-    } catch (error) {
-      logger.error('Error deleting memory', undefined, { data: error as Error });
+    } catch (_error) {
       toast({
         title: 'Error',
         description: 'Failed to delete memory. Please try again.',
@@ -147,20 +137,13 @@ export default function VaultPage() {
   };
 
   const handleMemoryClick = (memory: Memory | DashboardItem) => {
-    // logger.info("🔍 Memory clicked:", memory);
-    // logger.info("🔍 Memory type:", memory.type);
-    // logger.info("🔍 Memory ID:", memory.id);
-
     // Check if it's a folder item
     if (memory.type === 'folder') {
       // For folders, use the folderId property (new structure) or fallback to extracting from ID (old structure)
       const folderId = (memory as FolderItem).folderId || memory.id.replace('folder-', '');
-      // logger.info("🔍 Folder ID:", folderId);
-      // logger.info("🔍 Navigating to folder:", folderId);
       router.push(`/${params.lang}/dashboard/folder/${folderId}`);
     } else {
       // For individual memories, navigate to the memory detail page
-      // logger.info("🔍 Navigating to memory:", memory.id);
       router.push(`/${params.lang}/dashboard/${memory.id}`);
     }
   };
@@ -179,10 +162,6 @@ export default function VaultPage() {
   };
 
   const handleFilteredMemoriesChange = useCallback((filtered: ExtendedMemory[]) => {
-    logger.dashboard().info('🔍 handleFilteredMemoriesChange called:', {
-      filteredCount: filtered.length,
-      filtered: filtered.map(f => ({ id: f.id, type: f.type, title: f.title })),
-    });
     setFilteredMemories(filtered as MemoryWithFolder[]);
   }, []);
 
@@ -200,8 +179,7 @@ export default function VaultPage() {
         title: 'Success',
         description: `Successfully deleted ${result.deletedCount} memories.`,
       });
-    } catch (error) {
-      logger.error('Error clearing all memories', undefined, { data: error as Error });
+    } catch (_error) {
       toast({
         title: 'Error',
         description: 'Failed to clear all memories. Please try again.',
