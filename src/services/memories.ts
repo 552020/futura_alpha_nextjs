@@ -1,5 +1,6 @@
 // import { normalizeMemories } from "@/utils/normalizeMemories"; // Unused
 import { Memory } from '@/types/memory';
+import type { MemoryHeader, MemoryType } from '@/ic/declarations/backend/backend.did';
 
 import { logger } from '@/lib/logger';
 // Removed old interfaces - now using unified format
@@ -44,8 +45,21 @@ export interface FetchMemoriesResult {
   hasMore: boolean;
 }
 
-export const fetchMemories = async (page: number): Promise<FetchMemoriesResult> => {
-  logger.dashboard().info(`🔍 Fetching memories for page ${page}...`);
+export const fetchMemories = async (
+  page: number,
+  dataSource: 'neon' | 'icp' = 'neon'
+): Promise<FetchMemoriesResult> => {
+  logger.dashboard().info(`🔍 Fetching memories for page ${page} from ${dataSource}...`);
+
+  if (dataSource === 'icp') {
+    return await fetchMemoriesFromICP(page);
+  } else {
+    return await fetchMemoriesFromNeon(page);
+  }
+};
+
+// Fetch memories from Neon database via API (current implementation)
+const fetchMemoriesFromNeon = async (page: number): Promise<FetchMemoriesResult> => {
   const response = await fetch(`/api/memories?page=${page}`, { cache: 'no-store' });
   logger.apiResponse().info(`🔍 API response status: ${response.status} ${response.statusText}`);
 
@@ -94,6 +108,111 @@ export const fetchMemories = async (page: number): Promise<FetchMemoriesResult> 
     memories,
     hasMore: data.hasMore,
   };
+};
+
+// Fetch memories from ICP canister directly
+const fetchMemoriesFromICP = async (page: number): Promise<FetchMemoriesResult> => {
+  try {
+    const { backendActor } = await import('@/ic/backend');
+    const actor = await backendActor();
+
+    // Get user's capsule ID
+    const capsuleResult = await actor.capsules_read_basic([]);
+    if (!('Ok' in capsuleResult)) {
+      throw new Error('Failed to get user capsule');
+    }
+    const capsuleId = capsuleResult.Ok.capsule_id;
+
+    // Calculate cursor from page (ICP uses cursor-based pagination)
+    const limit: [] | [number] = [12];
+    const cursor: [] | [string] = page > 1 ? [((page - 1) * 12).toString()] : [];
+
+    // Call ICP canister
+    const result = await actor.memories_list(capsuleId, cursor, limit);
+
+    if ('Ok' in result) {
+      const icpPage = result.Ok;
+
+      // Transform ICP MemoryHeader to Neon MemoryWithFolder format
+      const memories = icpPage.items.map(header => transformICPMemoryHeaderToNeon(header));
+
+      return {
+        memories,
+        hasMore: icpPage.next_cursor !== null,
+      };
+    } else {
+      throw new Error(`ICP canister error: ${JSON.stringify(result.Err)}`);
+    }
+  } catch (error) {
+    logger.error('Failed to fetch memories from ICP:', error);
+    throw error;
+  }
+};
+
+// Transform ICP MemoryHeader to Neon MemoryWithFolder format
+const transformICPMemoryHeaderToNeon = (header: MemoryHeader): MemoryWithFolder => {
+  return {
+    // Core identification
+    id: header.id,
+    ownerId: 'icp-user', // ICP users don't have ownerId in same way
+
+    // Memory metadata
+    type: mapICPMemoryTypeToNeon(header.memory_type),
+    title: (header.title.length > 0 ? header.title[0] : null) || header.name || 'Untitled',
+    description: header.description.length > 0 ? header.description[0] : undefined,
+    isPublic: header.is_public,
+
+    // Organization
+    parentFolderId: header.parent_folder_id.length > 0 ? header.parent_folder_id[0] : undefined,
+    tags: header.tags || [],
+    recipients: [], // TODO: Extract from access if needed
+
+    // Timestamps (convert nanoseconds to ISO strings)
+    createdAt: new Date(Number(header.created_at / BigInt(1000000))).toISOString(),
+    updatedAt: new Date(Number(header.updated_at / BigInt(1000000))).toISOString(),
+    fileCreatedAt: undefined, // Not available in MemoryHeader
+    unlockDate: undefined, // ICP doesn't have unlock dates
+    deletedAt: undefined, // Not available in MemoryHeader
+
+    // Storage information
+    metadata: {
+      originalPath: undefined,
+    },
+
+    // Sharing information (from pre-computed fields)
+    status: header.sharing_status as 'public' | 'shared' | 'private',
+    sharedWithCount: header.shared_count,
+
+    // Folder information
+    folder:
+      header.parent_folder_id.length > 0
+        ? {
+            id: header.parent_folder_id[0]!,
+            name: 'ICP Folder', // TODO: Get actual folder name
+            ownerId: 'icp-user',
+            parentFolderId: undefined,
+            createdAt: new Date(Number(header.created_at / BigInt(1000000))),
+            updatedAt: new Date(Number(header.updated_at / BigInt(1000000))),
+          }
+        : undefined,
+
+    // Legacy fields
+    thumbnail: header.thumbnail_url.length > 0 ? header.thumbnail_url[0] : undefined,
+    url: header.primary_asset_url.length > 0 ? header.primary_asset_url[0] : undefined,
+  };
+};
+
+// Helper function to map ICP memory types to Neon types
+const mapICPMemoryTypeToNeon = (icpType: MemoryType): 'image' | 'video' | 'note' | 'document' | 'audio' => {
+  // Handle ICP enum format: { Image: null }, { Video: null }, etc.
+  if (typeof icpType === 'object' && icpType !== null) {
+    if ('Image' in icpType) return 'image';
+    if ('Video' in icpType) return 'video';
+    if ('Note' in icpType) return 'note';
+    if ('Document' in icpType) return 'document';
+    if ('Audio' in icpType) return 'audio';
+  }
+  return 'document'; // Default fallback
 };
 
 export const deleteMemory = async (id: string): Promise<void> => {
