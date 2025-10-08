@@ -11,15 +11,10 @@ const s3Config = {
   },
 };
 
-fatLogger.info('S3 Config', 'be', { config: s3Config });
-
 const s3Client = new S3Client(s3Config);
 
 export const S3_BUCKET = process.env.AWS_S3_BUCKET || '';
 export const S3_REGION = process.env.AWS_S3_REGION || 'eu-central-1';
-
-fatLogger.info('S3 Bucket', 'be', { bucket: S3_BUCKET });
-fatLogger.info('S3 Region', 'be', { region: S3_REGION });
 
 // Check if S3 is properly configured
 export function isS3Configured(): boolean {
@@ -28,7 +23,13 @@ export function isS3Configured(): boolean {
     process.env.AWS_SECRET_ACCESS_KEY &&
     process.env.AWS_S3_BUCKET
   );
+
+  // Log S3 configuration when this function is called (not at module import)
+  fatLogger.info('S3 Config', 'be', { config: s3Config });
+  fatLogger.info('S3 Bucket', 'be', { bucket: S3_BUCKET });
+  fatLogger.info('S3 Region', 'be', { region: S3_REGION });
   fatLogger.info('S3 Configuration Check', 'be', { isConfigured: configured });
+
   return configured;
 }
 

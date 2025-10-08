@@ -25,14 +25,6 @@ const clientOptions: MailgunClientOptions = {
   url: 'https://api.eu.mailgun.net',
 };
 
-// Add debug logging for configuration
-fatLogger.info('Mailgun Configuration', 'be', {
-  domain: DOMAIN,
-  fromEmail: FROM_EMAIL,
-  region: 'EU (explicitly set)',
-  apiKey: API_KEY ? '***' + API_KEY.slice(-4) : 'Not configured',
-});
-
 const mg = mailgun.client(clientOptions);
 
 // Define the email options interface
@@ -86,6 +78,13 @@ export const sendEmail = async ({
   attachments,
 }: EmailOptions): Promise<MessagesSendResult> => {
   try {
+    // Log Mailgun configuration when this function is called (not at module import)
+    fatLogger.info('Mailgun Configuration', 'be', {
+      domain: DOMAIN,
+      fromEmail: FROM_EMAIL,
+      region: 'EU (explicitly set)',
+      apiKey: API_KEY ? '***' + API_KEY.slice(-4) : 'Not configured',
+    });
     const messageData: {
       from: string;
       to: string;
