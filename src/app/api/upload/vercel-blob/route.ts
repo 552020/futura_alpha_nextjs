@@ -1,7 +1,7 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { handleUpload } from '@vercel/blob/client';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 // Centralized allowlist for file types
 const ALLOWED = [
   'image/*',
@@ -44,13 +44,13 @@ export async function POST(req: NextRequest) {
       onUploadCompleted: async ({ blob }) => {
         // Minimal callback - just log the completion
         // Database operations are handled by client via /api/upload/complete
-        logger.info('✅ Vercel Blob upload completed:', undefined, { url: blob.url });
+        fatLogger.info('✅ Vercel Blob upload completed:', 'be', { url: blob.url });
       },
     });
 
     return NextResponse.json(res);
   } catch (error) {
-    logger.error('❌ Vercel Blob upload failed:', undefined, { data: error instanceof Error ? error : undefined });
+    fatLogger.error('❌ Vercel Blob upload failed:', 'be', { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
   }
 }

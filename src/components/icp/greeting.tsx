@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 import type { BackendActor } from '@/ic/backend';
 
 /**
@@ -45,7 +45,7 @@ export function Greeting() {
         description: 'Successfully received greeting from backend',
       });
     } catch (error) {
-      logger.error('Greeting failed', undefined, { data: error as Error });
+      fatLogger.error('Greeting failed', 'fe', { data: error as Error });
       const errorMessage = error instanceof Error ? error.message : String(error);
 
       toast({

@@ -24,7 +24,7 @@ import { useSession } from 'next-auth/react';
 import { getAuthStatus } from '@/lib/utils/auth-status';
 import { LinkedAccounts } from './linked-accounts';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 
 interface InternetIdentityManagementProps {
   className?: string;
@@ -61,7 +61,7 @@ export function InternetIdentityManagement({ className = '' }: InternetIdentityM
 
       router.push(signinUrl);
     } catch (error) {
-      logger.error('Failed to redirect to II signin page:', undefined, {
+      fatLogger.error('Failed to redirect to II signin page:', 'fe', {
         data: error instanceof Error ? error : undefined,
       });
       toast({
@@ -86,9 +86,9 @@ export function InternetIdentityManagement({ className = '' }: InternetIdentityM
         await update({
           clearActiveIc: true,
         });
-        logger.info('Successfully cleared II authentication from NextAuth session');
+        fatLogger.info('Successfully cleared II authentication from NextAuth session', 'fe');
       } catch (error) {
-        logger.warn('Failed to clear II authentication from session', undefined, {
+        fatLogger.warn('Failed to clear II authentication from session', 'fe', {
           error: error instanceof Error ? error.message : String(error),
         });
         // Don't fail the sign out if session update fails
@@ -99,7 +99,7 @@ export function InternetIdentityManagement({ className = '' }: InternetIdentityM
         description: 'Successfully signed out from Internet Identity',
       });
     } catch (error) {
-      logger.error('Failed to sign out from Internet Identity:', undefined, {
+      fatLogger.error('Failed to sign out from Internet Identity:', 'fe', {
         data: error instanceof Error ? error : undefined,
       });
       const errorMessage = error instanceof Error ? error.message : String(error);

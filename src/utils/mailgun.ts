@@ -5,7 +5,7 @@ import formData from 'form-data';
 const mailgun = new Mailgun(formData);
 
 // Environment variables
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 
 // Environment variables
 const API_KEY = process.env.MAILGUN_API_KEY || '';
@@ -26,7 +26,7 @@ const clientOptions: MailgunClientOptions = {
 };
 
 // Add debug logging for configuration
-logger.info('Mailgun Configuration', 'mailgun:be', {
+fatLogger.info('Mailgun Configuration', 'be', {
   domain: DOMAIN,
   fromEmail: FROM_EMAIL,
   region: 'EU (explicitly set)',
@@ -133,7 +133,7 @@ export const sendEmail = async ({
         ? `Mailgun Error: ${error.message}${error.stack ? `\n${error.stack}` : ''}`
         : 'Unknown error occurred while sending email';
 
-    logger.error('Mailgun Error', 'mailgun:be', {
+    fatLogger.error('Mailgun Error', 'be', {
       error: errorMessage,
       domain: DOMAIN,
       fromEmail: FROM_EMAIL,

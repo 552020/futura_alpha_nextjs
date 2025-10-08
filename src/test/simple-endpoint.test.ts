@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import { createServer, IncomingMessage, ServerResponse } from 'http';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 
 type EndpointResponse = {
   status: number;
@@ -115,7 +115,7 @@ beforeAll(async () => {
     const url = req.url;
     const method = req.method;
 
-    logger.info(`🔍 Simple Server: ${method} ${url}`);
+    fatLogger.info(`🔍 Simple Server: ${method} ${url}`, 'be');
 
     // Handle requests to our simple endpoints
     if (url && simpleEndpoints[url as keyof typeof simpleEndpoints]) {
@@ -145,7 +145,7 @@ beforeAll(async () => {
             parsedBody = {};
           }
 
-          logger.info(`🔍 Request body:`, undefined, { parsedBody });
+          fatLogger.info(`🔍 Request body:`, 'be', { parsedBody });
           if (endpoint.POST) {
             const result = endpoint.POST(parsedBody);
             res.writeHead(result.status, { 'Content-Type': 'application/json' });

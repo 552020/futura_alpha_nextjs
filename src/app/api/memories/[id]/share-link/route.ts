@@ -4,7 +4,7 @@ import { memoryShares } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { findMemory } from '@/app/api/memories/utils/memory';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
   const { searchParams } = new URL(request.url);
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       accessLevel: share.accessLevel,
     });
   } catch (error) {
-    logger.error('Error accessing shared memory:', undefined, { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Error accessing shared memory:', 'be', { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to access memory' }, { status: 500 });
   }
 }

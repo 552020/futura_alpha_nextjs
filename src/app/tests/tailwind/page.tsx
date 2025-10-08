@@ -2,13 +2,13 @@
 
 import React, { useEffect } from 'react';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 export default function TailwindTestPage() {
   useEffect(() => {
-    logger.info('TailwindTestPage mounted');
+    fatLogger.info('TailwindTestPage mounted', 'fe');
 
     // Log all loaded stylesheets
-    logger.info('All loaded stylesheets:', undefined, {
+    fatLogger.info('All loaded stylesheets:', 'fe', {
       stylesheets: Array.from(document.styleSheets).map(sheet => ({
         href: sheet.href,
         type: sheet.type,
@@ -19,7 +19,7 @@ export default function TailwindTestPage() {
     // Check specific Tailwind classes
     //     const testElement = document.querySelector(".test-tailwind");
     //     if (testElement) {
-    //       logger.info("Test element styles:", undefined, {
+    //       fatLogger.info("Test element styles:", undefined, {
     //         computed: window.getComputedStyle(testElement),
     //         classList: testElement.classList,
     //         backgroundColor: window.getComputedStyle(testElement).backgroundColor,

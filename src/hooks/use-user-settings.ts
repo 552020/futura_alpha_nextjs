@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { parseApiError, type NormalizedError } from '@/lib/error-handling';
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 import { useICPIdentity } from '@/hooks/use-icp-identity';
 import { useSession } from 'next-auth/react';
 import { useAuthenticatedActor } from '@/hooks/use-authenticated-actor';
@@ -37,7 +37,7 @@ export function useUserSettings() {
     queryFn: async () => {
       if (isDualUser) {
         // Dual Access: Use Web2 as primary source, sync to ICP
-        logger.info('🔄 Fetching user settings with dual access - using Web2 as primary', {
+        fatLogger.info('🔄 Fetching user settings with dual access - using Web2 as primary', 'fe', {
           userId: session.user.id,
           principal,
         });
@@ -59,20 +59,20 @@ export function useUserSettings() {
           });
 
           if ('Ok' in result) {
-            logger.info('✅ Dual access: Web2 settings synced to ICP', {
+            fatLogger.info('✅ Dual access: Web2 settings synced to ICP', 'fe', {
               hasAdvancedSettings: web2Settings.hasAdvancedSettings ?? false,
               userId: session.user.id,
               principal,
             });
           } else {
-            logger.warn('⚠️ Dual access: Failed to sync Web2 settings to ICP', {
+            fatLogger.warn('⚠️ Dual access: Failed to sync Web2 settings to ICP', 'fe', {
               error: result.Err,
               userId: session.user.id,
               principal,
             });
           }
         } catch (error) {
-          logger.warn('⚠️ Dual access: Failed to sync to ICP, continuing with Web2 settings', {
+          fatLogger.warn('⚠️ Dual access: Failed to sync to ICP, continuing with Web2 settings', 'fe', {
             error: error instanceof Error ? error.message : 'Unknown error',
             userId: session.user.id,
             principal,
@@ -82,7 +82,7 @@ export function useUserSettings() {
         return web2Settings;
       } else if (isICPUser) {
         // Web3 Only: Call ICP canister
-        logger.info('🌐 Fetching user settings from ICP canister (Web3 only)', { principal });
+        fatLogger.info('🌐 Fetching user settings from ICP canister (Web3 only)', 'fe', { principal });
 
         const actor = await getActor();
         const result = await actor.get_user_settings();
@@ -94,7 +94,7 @@ export function useUserSettings() {
             updatedAt: new Date().toISOString(), // ICP doesn't have updatedAt, use current time
           };
 
-          logger.info('🚀 ICP user settings loaded (Web3 only)', {
+          fatLogger.info('🚀 ICP user settings loaded (Web3 only)', 'fe', {
             settings,
             hasAdvancedSettings: settings.hasAdvancedSettings,
             principal,
@@ -106,7 +106,7 @@ export function useUserSettings() {
         }
       } else if (isNeonUser) {
         // Web2 Only: Call Neon database API
-        logger.info('🗄️ Fetching user settings from Neon database (Web2 only)', { userId: session.user.id });
+        fatLogger.info('🗄️ Fetching user settings from Neon database (Web2 only)', 'fe', { userId: session.user.id });
 
         const res = await fetch('/api/user-settings', {
           cache: 'no-store',
@@ -116,7 +116,7 @@ export function useUserSettings() {
         if (!res.ok) throw await parseApiError(res);
         const data = await res.json();
 
-        logger.info('🚀 Web2 user settings loaded (Web2 only)', {
+        fatLogger.info('🚀 Web2 user settings loaded (Web2 only)', 'fe', {
           settings: data,
           hasAdvancedSettings: data.hasAdvancedSettings,
           userId: session.user.id,
@@ -161,7 +161,7 @@ export function useUpdateUserSettings() {
     mutationFn: async body => {
       if (isDualUser) {
         // Dual Access: Update Web2 first, then sync to ICP
-        logger.info('🔄 Updating user settings with dual access - updating Web2 first', {
+        fatLogger.info('🔄 Updating user settings with dual access - updating Web2 first', 'fe', {
           userId: session.user.id,
           principal,
           updates: body,
@@ -187,20 +187,20 @@ export function useUpdateUserSettings() {
           });
 
           if ('Ok' in result) {
-            logger.info('✅ Dual access: Settings updated in both Web2 and ICP', {
+            fatLogger.info('✅ Dual access: Settings updated in both Web2 and ICP', 'fe', {
               updatedSettings: web2Settings,
               userId: session.user.id,
               principal,
             });
           } else {
-            logger.warn('⚠️ Dual access: Web2 updated but ICP sync failed', {
+            fatLogger.warn('⚠️ Dual access: Web2 updated but ICP sync failed', 'fe', {
               error: result.Err,
               userId: session.user.id,
               principal,
             });
           }
         } catch (error) {
-          logger.warn('⚠️ Dual access: Web2 updated but ICP sync failed', {
+          fatLogger.warn('⚠️ Dual access: Web2 updated but ICP sync failed', 'fe', {
             error: error instanceof Error ? error.message : 'Unknown error',
             userId: session.user.id,
             principal,
@@ -210,7 +210,7 @@ export function useUpdateUserSettings() {
         return web2Settings;
       } else if (isICPUser) {
         // Web3 Only: Update ICP canister
-        logger.info('🌐 Updating user settings in ICP canister (Web3 only)', { principal, updates: body });
+        fatLogger.info('🌐 Updating user settings in ICP canister (Web3 only)', 'fe', { principal, updates: body });
 
         const actor = await getActor();
         const result = await actor.update_user_settings({
@@ -224,7 +224,7 @@ export function useUpdateUserSettings() {
             updatedAt: new Date().toISOString(),
           };
 
-          logger.info('✅ ICP user settings updated successfully (Web3 only)', {
+          fatLogger.info('✅ ICP user settings updated successfully (Web3 only)', 'fe', {
             updatedSettings: settings,
             principal,
           });
@@ -235,7 +235,7 @@ export function useUpdateUserSettings() {
         }
       } else if (isNeonUser) {
         // Web2 Only: Update Neon database
-        logger.info('🗄️ Updating user settings in Neon database (Web2 only)', {
+        fatLogger.info('🗄️ Updating user settings in Neon database (Web2 only)', 'fe', {
           userId: session.user.id,
           updates: body,
         });
@@ -251,7 +251,7 @@ export function useUpdateUserSettings() {
         if (!res.ok) throw await parseApiError(res);
         const data = await res.json();
 
-        logger.info('✅ Web2 user settings updated successfully (Web2 only)', {
+        fatLogger.info('✅ Web2 user settings updated successfully (Web2 only)', 'fe', {
           updatedSettings: data,
           userId: session.user.id,
         });
@@ -286,7 +286,7 @@ export function useUpdateUserSettings() {
       qc.setQueryData<UserSettings>(['user-settings', userKey], data);
 
       // Log successful settings update
-      logger.info('✅ User settings updated successfully', {
+      fatLogger.info('✅ User settings updated successfully', 'fe', {
         updatedSettings: data,
         userType: isICPUser ? 'Web3' : 'Web2',
       });

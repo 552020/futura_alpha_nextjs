@@ -23,7 +23,7 @@ import FormData from 'form-data';
 import Mailgun from 'mailgun.js';
 import type { MemoryWithType } from './memory';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 // Constants
 const DOMAIN = process.env.MAILGUN_DOMAIN || '';
 const API_KEY = process.env.MAILGUN_API_KEY || '';
@@ -53,14 +53,14 @@ async function sendEmail(options: EmailOptions): Promise<any> {
     ...options,
   };
 
-  // logger.info("📧 Sending email:", undefined, {
+  // fatLogger.info("📧 Sending email:", undefined, {
   //   from: messageData.from,
   //   to: messageData.to,
   //   subject: messageData.subject,
   // });
 
   const response = await mg.messages.create(DOMAIN, messageData);
-  // logger.info("📬 Email sent successfully:", undefined, {
+  // fatLogger.info("📬 Email sent successfully:", undefined, {
   //   messageId: response.id,
   //   from: FROM_EMAIL,
   //   status: response.status,
@@ -167,7 +167,7 @@ export async function sendInvitationEmail(
   options: { useTemplate?: boolean; useHTML?: boolean } = {}
 ) {
   try {
-    // logger.info("📧 sendInvitationEmail called with:", undefined, {
+    // fatLogger.info("📧 sendInvitationEmail called with:", undefined, {
     //   recipientEmail: email,
     //   memoryType: memory.type,
     //   invitedById,
@@ -178,7 +178,7 @@ export async function sendInvitationEmail(
     const inviterName = await getInviterName(invitedById);
     const relationship = await getRelationship(invitedById, memory.id);
 
-    // logger.info("👤 Got inviter details:", undefined, {
+    // fatLogger.info("👤 Got inviter details:", undefined, {
     //   inviterName,
     //   relationship,
     //   invitedById,
@@ -199,7 +199,7 @@ export async function sendInvitationEmail(
         'h:X-Mailgun-Variables': JSON.stringify(templateVars),
         text: '', // You can optionally supply a fallback text version
       };
-      // logger.info("📧 Using template, sending to:", { email, template: "memory-invitation" });
+      // fatLogger.info("📧 Using template, sending to:", { email, template: "memory-invitation" });
     } else {
       // Use hardcoded message
       const { text, html } = getEmailContent(memory, inviterName || 'Someone', relationship, options.useHTML ?? false);
@@ -209,11 +209,11 @@ export async function sendInvitationEmail(
         text: text,
         ...(options.useHTML && html ? { html } : {}),
       };
-      // logger.info("📧 Using hardcoded message, sending to:", { email });
+      // fatLogger.info("📧 Using hardcoded message, sending to:", { email });
     }
 
     const response = await sendEmail(messageData);
-    // logger.info("📬 Email sent to:", undefined, { email, status: response.status });
+    // fatLogger.info("📬 Email sent to:", undefined, { email, status: response.status });
 
     if (response.statusCode === 200) {
       return true;
@@ -221,7 +221,7 @@ export async function sendInvitationEmail(
       return false;
     }
   } catch (error) {
-    logger.error('Error sending email:', undefined, { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Error sending email:', 'be', { data: error instanceof Error ? error : undefined });
     throw new Error(
       `Failed to send invitation email to ${email}: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
@@ -274,7 +274,7 @@ export async function sendSharedMemoryEmail(
       return false;
     }
   } catch (error) {
-    logger.error('Error sending email:', undefined, { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Error sending email:', 'be', { data: error instanceof Error ? error : undefined });
     throw new Error(
       `Failed to send shared memory email to ${email}: ${error instanceof Error ? error.message : 'Unknown error'}`
     );

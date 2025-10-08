@@ -5,7 +5,7 @@ import { eq, and } from 'drizzle-orm';
 import { auth } from '@/auth';
 import { findMemory } from '@/app/api/memories/utils/memory';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   // Check authentication
   const session = await auth();
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       code: share.inviteeSecureCode,
     });
   } catch (error) {
-    logger.error('Error getting share code:', undefined, { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Error getting share code:', 'be', { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to get share code' }, { status: 500 });
   }
 }

@@ -3,7 +3,7 @@ import { auth } from '@/auth';
 import FormData from 'form-data';
 import Mailgun from 'mailgun.js';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 const mailgun = new Mailgun(FormData);
 const mg = mailgun.client({
   username: 'api',
@@ -20,8 +20,8 @@ export async function POST(request: NextRequest) {
   // Check if user is admin or dev
   //   if (!session?.user?.role || !["admin", "developer", "superadmin"].includes(session.user.role)) {
   if (!session?.user.role || !['admin', 'developer', 'superadmin'].includes(session.user.role)) {
-    // logger.info("Current session role:", session?.user?.role);
-    // logger.info("Current session user:", session?.user);
+    // fatLogger.info("Current session role:", session?.user?.role);
+    // fatLogger.info("Current session user:", session?.user);
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, id: response.id });
   } catch (error) {
-    logger.error('Mailgun test error:', undefined, { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Mailgun test error:', 'be', { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to send email' }, { status: 500 });
   }
 }

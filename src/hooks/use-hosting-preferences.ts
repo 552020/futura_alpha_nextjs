@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { parseApiError, normalizeError, type NormalizedError } from '@/lib/error-handling';
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 
 // Hosting preference types matching the database schema
 export type FrontendHosting = 'vercel' | 'icp';
@@ -115,7 +115,15 @@ export function useHostingPreferences() {
       const data = await res.json();
 
       // Log when preferences are loaded
-      logger.hostingPreferences().info('🚀 Hosting preferences loaded', {
+      fatLogger.debug('🚀 [HOSTING PREFERENCES] Loaded from API:', 'fe', {
+        preferences: data,
+        isDefault: JSON.stringify(data) === JSON.stringify(getDefaultHostingPreferences()),
+        backendHosting: data.backendHosting,
+        databaseHosting: data.databaseHosting,
+        blobHosting: data.blobHosting,
+      });
+
+      fatLogger.info('🚀 Hosting preferences loaded', 'fe', {
         preferences: data,
         isDefault: JSON.stringify(data) === JSON.stringify(getDefaultHostingPreferences()),
       });
@@ -139,6 +147,8 @@ export function useUpdateHostingPreferences() {
 
   return useMutation<HostingPreferences, NormalizedError, UpdateBody, Ctx>({
     mutationFn: async body => {
+      fatLogger.debug('🔄 [HOSTING PREFERENCES] Updating preferences:', 'fe', body);
+
       const res = await fetch('/api/me/hosting-preferences', {
         method: 'PATCH',
         credentials: 'include',
@@ -176,7 +186,14 @@ export function useUpdateHostingPreferences() {
       qc.setQueryData<HostingPreferences>(['me', 'hosting-preferences'], data);
 
       // Log successful preference update
-      logger.hostingPreferences().info('✅ Hosting preferences updated successfully', {
+      fatLogger.debug('✅ [HOSTING PREFERENCES] Updated successfully:', 'fe', {
+        updatedPreferences: data,
+        backendHosting: data.backendHosting,
+        databaseHosting: data.databaseHosting,
+        blobHosting: data.blobHosting,
+      });
+
+      fatLogger.info('✅ Hosting preferences updated successfully', 'fe', {
         updatedPreferences: data,
       });
     },

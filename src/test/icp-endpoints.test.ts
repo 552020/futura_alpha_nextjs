@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import { createServer, IncomingMessage, ServerResponse } from 'http';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 // ============================================================================
 // SUPERTEST TESTS FOR ICP AUTHENTICATION ENDPOINTS
 // ============================================================================
@@ -157,7 +157,7 @@ beforeAll(async () => {
     const url = req.url;
     const method = req.method;
 
-    logger.info('Mock Server request', { method, url, headers: req.headers });
+    fatLogger.info('Mock Server request', 'be', { method, url, headers: req.headers });
 
     // Handle POST requests to our mock endpoints
     if (method === 'POST') {
@@ -168,7 +168,7 @@ beforeAll(async () => {
       });
 
       req.on('end', () => {
-        logger.info(`🔍 Request body:`, undefined, { body });
+        fatLogger.info(`🔍 Request body:`, 'be', { body });
 
         let parsedBody: Record<string, unknown> = {};
         try {
@@ -176,7 +176,7 @@ beforeAll(async () => {
             parsedBody = JSON.parse(body);
           }
         } catch (e) {
-          logger.info(`🔍 Failed to parse body:`, undefined, { error: e instanceof Error ? e : undefined });
+          fatLogger.info(`🔍 Failed to parse body:`, 'be', { error: e instanceof Error ? e : undefined });
         }
 
         // Create a mock request object with the parsed body
@@ -184,13 +184,13 @@ beforeAll(async () => {
 
         if (url === '/api/auth/link-ii') {
           mockICPEndpoints['/api/auth/link-ii'](mockReq).then(result => {
-            logger.info(`🔍 Link-II result:`, undefined, { result });
+            fatLogger.info(`🔍 Link-II result:`, 'be', { result });
             res.writeHead(result.status, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify(result.body));
           });
         } else if (url === '/api/ii/verify-nonce') {
           mockICPEndpoints['/api/ii/verify-nonce'](mockReq).then(result => {
-            logger.info(`🔍 Verify-nonce result:`, undefined, { result });
+            fatLogger.info(`🔍 Verify-nonce result:`, 'be', { result });
             res.writeHead(result.status, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify(result.body));
           });

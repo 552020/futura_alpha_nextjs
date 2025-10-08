@@ -13,7 +13,7 @@ import { processImageDerivativesPure, type ProcessedBlobs } from './image-deriva
 import { finalizeAllAssets, type ProcessedAssets } from './finalize';
 import { extractFolderName } from './shared-utils';
 import { type UploadServiceResult } from './types';
-// import { logger } from '@/lib/logger';
+// import { fatLogger } from '@/lib/logger';
 import { getAuthClient } from '@/ic/ii';
 import { backendActor } from '@/ic/backend';
 import type { Result, Result_5, Result_6, Result_15, Result13 } from '@/ic/declarations/backend/backend.did';

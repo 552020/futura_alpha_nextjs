@@ -15,7 +15,7 @@ import type { HostingPreferences } from '@/hooks/use-hosting-preferences';
 // import { getDefaultHostingPreferences } from '@/hooks/use-hosting-preferences'; // Not used with ICP processing
 import { validateUploadFiles, checkICPAuthentication } from './shared-utils';
 import { uploadMultipleToS3WithProcessing } from './s3-with-processing';
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 
 export interface ProcessMultipleFilesOptions {
   files: File[];
@@ -58,7 +58,7 @@ export async function processMultipleFiles(options: ProcessMultipleFilesOptions)
     const userBlobHostingPreference = preferences?.blobHosting?.[0] || 's3';
 
     // Log upload routing decision
-    logger.upload().info('📤 Multiple files upload routing decision', {
+    fatLogger.info('📤 Multiple files upload routing decision', 'be', {
       selectedProvider: userBlobHostingPreference,
       availableProviders: preferences?.blobHosting || ['s3'],
       fileCount: files.length,

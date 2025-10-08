@@ -7,7 +7,7 @@ import { MemoryViewer } from '@/components/memory/memory-viewer';
 import { Card } from '@/components/ui/card';
 import { auth } from '@/auth';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 interface SharedMemoryPageProps {
   params: Promise<{
     id: string;
@@ -18,7 +18,7 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
   const { id } = await params;
   const session = await auth();
 
-  logger.dashboard().info('🔍 DEBUG SharedMemoryPage - Auth Check:', {
+  fatLogger.info('🔍 DEBUG SharedMemoryPage - Auth Check:', 'fe', {
     id,
     hasSession: !!session,
     userId: session?.user?.id,
@@ -26,7 +26,7 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
   });
 
   if (!session?.user?.id) {
-    logger.info('❌ DEBUG SharedMemoryPage - No authenticated user');
+    fatLogger.info('❌ DEBUG SharedMemoryPage - No authenticated user', 'fe');
     notFound();
   }
 
@@ -36,7 +36,7 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
       where: eq(allUsers.userId, session.user.id),
     });
 
-    logger.dashboard().info('🔍 DEBUG SharedMemoryPage - AllUser Lookup:', {
+    fatLogger.info('🔍 DEBUG SharedMemoryPage - AllUser Lookup:', 'fe', {
       found: !!allUserRecord,
       userId: session.user.id,
       allUserId: allUserRecord?.id,
@@ -44,13 +44,13 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
     });
 
     if (!allUserRecord) {
-      logger.info('❌ DEBUG SharedMemoryPage - No allUser record found');
+      fatLogger.info('❌ DEBUG SharedMemoryPage - No allUser record found', 'fe');
       notFound();
     }
 
     // First try to find the memory
     const memory = await findMemory(id);
-    logger.dashboard().info('🔍 DEBUG SharedMemoryPage - Memory Lookup:', undefined, {
+    fatLogger.info('🔍 DEBUG SharedMemoryPage - Memory Lookup:', 'fe', {
       memoryFound: !!memory,
       memoryId: id,
       ownerId: memory?.ownerId,
@@ -58,12 +58,12 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
     });
 
     if (!memory) {
-      logger.info('❌ DEBUG SharedMemoryPage - Memory not found');
+      fatLogger.info('❌ DEBUG SharedMemoryPage - Memory not found', 'fe');
       notFound();
     }
 
     const isOwner = memory.ownerId === allUserRecord.id;
-    logger.dashboard().info('🔍 DEBUG SharedMemoryPage - Ownership Check:', undefined, {
+    fatLogger.info('🔍 DEBUG SharedMemoryPage - Ownership Check:', 'fe', {
       isOwner,
       memoryOwnerId: memory.ownerId,
       currentUserAllId: allUserRecord.id,
@@ -75,7 +75,7 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
       where: and(eq(memoryShares.memoryId, id), eq(memoryShares.sharedWithId, allUserRecord.id)),
     });
 
-    logger.dashboard().info('🔍 DEBUG SharedMemoryPage - Share Check:', {
+    fatLogger.info('🔍 DEBUG SharedMemoryPage - Share Check:', 'fe', {
       hasShare: !!share,
       shareDetails: share
         ? {
@@ -91,7 +91,7 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
     // 1. The owner of the memory OR
     // 2. Have a share record
     if (!isOwner && !share) {
-      logger.info('❌ DEBUG SharedMemoryPage - Access Denied:', undefined, {
+      fatLogger.info('❌ DEBUG SharedMemoryPage - Access Denied:', 'fe', {
         reason: 'User is not owner and has no share record',
         isOwner,
         hasShare: !!share,
@@ -102,7 +102,7 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
       notFound();
     }
 
-    logger.info('✅ DEBUG SharedMemoryPage - Access Granted:', undefined, {
+    fatLogger.info('✅ DEBUG SharedMemoryPage - Access Granted:', 'fe', {
       reason: isOwner ? 'User is owner' : 'User has share record',
       accessLevel: isOwner ? 'write' : share?.accessLevel || 'read',
       timestamp: new Date().toISOString(),
@@ -125,7 +125,7 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
       </div>
     );
   } catch (error) {
-    logger.error('Error accessing shared memory', undefined, { data: error as Error });
+    fatLogger.error('Error accessing shared memory', 'fe', { data: error as Error });
     notFound();
   }
 }

@@ -8,7 +8,7 @@ import { ArrowDown, Trash2, FileType, FileText } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Image from 'next/image';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 // Define types for our data
 interface PhotoItem {
   id: string;
@@ -73,7 +73,7 @@ export default function TestFiles() {
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch files';
       setError(errorMessage);
-      logger.error('Error fetching files:', undefined, { data: err });
+      fatLogger.error('Error fetching files:', 'fe', { data: err });
     } finally {
       setLoading(false);
     }
@@ -104,7 +104,7 @@ export default function TestFiles() {
       // Reset delete status
       setDeleteStatus({ id: '', status: null });
     } catch (err) {
-      logger.error('Error deleting file:', undefined, { data: err });
+      fatLogger.error('Error deleting file:', 'fe', { data: err });
       setDeleteStatus({ id, status: 'error' });
 
       // Reset status after 3 seconds

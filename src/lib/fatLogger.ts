@@ -1,41 +1,146 @@
 /**
- * Simple logging wrapper with timestamps and service tags
- *
- * Provides structured logging without complex serialization.
- * Handles any object type without circular reference issues.
+ * 🍔 fatLogger
+ * The original full-featured logger (Core/Service system).
+ * Kept for experimental use — hierarchical, configurable, context-aware.
+ * Heavy, but potentially powerful if we ever need structured logging again.
  *
  * Usage:
- * import { logger } from '@/lib/logger';
+ * import { logger } from '@/lib/fatLogger';
  *
- * logger.info('User created', user);
- * logger.error('Database error', error);
- * logger.debug('Debug info', complexObject);
+ * fatLogger.info('User created', user);
+ * fatLogger.error('Database error', error);
+ * fatLogger.debug('Debug info', complexObject);
  */
 
 // ===== LOGGING CONTROL FLAGS =====
-const ENABLE_LOGGING = true;
+// Default values (can be overridden by UI configuration)
+const DEFAULT_ENABLE_LOGGING = false;
 
 // Core service flags
-const ENABLE_UI_LOGGING = true; // UI components and interactions
-const ENABLE_BACKEND_LOGGING = true; // Backend API and processing
-const ENABLE_UPLOAD_LOGGING = true; // Upload routing and processing
-const ENABLE_DATABASE_LOGGING = true; // Database operations
-const ENABLE_AUTH_LOGGING = true; // Authentication flows
-const ENABLE_ASSET_LOGGING = true; // Asset processing and thumbnails
-const ENABLE_S3_LOGGING = true; // S3 presigned URLs and storage
-const ENABLE_ICP_UPLOAD_LOGGING = true; // ICP upload and canister interactions
+const DEFAULT_ENABLE_FRONTEND_LOGGING = true; // Frontend components and interactions
+const DEFAULT_ENABLE_BACKEND_LOGGING = true; // Backend API and processing
+const DEFAULT_ENABLE_UPLOAD_LOGGING = true; // Upload routing and processing
+const DEFAULT_ENABLE_DATABASE_LOGGING = true; // Database operations
+const DEFAULT_ENABLE_AUTH_LOGGING = true; // Authentication flows
+const DEFAULT_ENABLE_ASSET_LOGGING = true; // Asset processing and thumbnails
+const DEFAULT_ENABLE_S3_LOGGING = true; // S3 presigned URLs and storage
+const DEFAULT_ENABLE_ICP_UPLOAD_LOGGING = true; // ICP upload and canister interactions
 
 // Feature flags (cross-cutting concerns)
-const ENABLE_HOSTING_PREFERENCES = true; // Hosting preference changes and routing
-const ENABLE_DASHBOARD_LOGGING = true; // Dashboard state and API calls
-const ENABLE_MEMORY_PROCESSING_LOGGING = true; // Memory processing and folder grouping
-const ENABLE_RENDERING_LOGGING = true; // Component rendering logs
+const DEFAULT_ENABLE_HOSTING_PREFERENCES = true; // Hosting preference changes and routing
+const DEFAULT_ENABLE_DASHBOARD_LOGGING = true; // Dashboard state and API calls
+const DEFAULT_ENABLE_MEMORY_PROCESSING_LOGGING = true; // Memory processing and folder grouping
+const DEFAULT_ENABLE_RENDERING_LOGGING = true; // Component rendering logs
 
 // Additional granular flags for specific log categories
-const ENABLE_API_RESPONSE_LOGGING = true; // API response status and data logs
-const ENABLE_FOLDER_GROUPING_LOGGING = true; // Folder grouping and memory processing logs
-const ENABLE_MEMORY_GRID_LOGGING = true; // MemoryGrid component rendering logs
-const ENABLE_USE_EFFECT_LOGGING = true; // useEffect hook logs
+const DEFAULT_ENABLE_API_RESPONSE_LOGGING = true; // API response status and data logs
+const DEFAULT_ENABLE_FOLDER_GROUPING_LOGGING = true; // Folder grouping and memory processing logs
+const DEFAULT_ENABLE_MEMORY_GRID_LOGGING = true; // MemoryGrid component rendering logs
+const DEFAULT_ENABLE_USE_EFFECT_LOGGING = true; // useEffect hook logs
+
+// Helper function to resolve three-state toggle to boolean
+function resolveToggleState(uiState: string | undefined, defaultValue: boolean): boolean {
+  if (uiState === 'enabled') return true;
+  if (uiState === 'disabled') return false;
+  return defaultValue; // 'not-set' or undefined
+}
+
+// Runtime configuration getter
+function getLoggerConfig() {
+  if (typeof window === 'undefined') {
+    // Server-side: use defaults
+    return {
+      ENABLE_LOGGING: DEFAULT_ENABLE_LOGGING,
+      ENABLE_FRONTEND_LOGGING: DEFAULT_ENABLE_FRONTEND_LOGGING,
+      ENABLE_BACKEND_LOGGING: DEFAULT_ENABLE_BACKEND_LOGGING,
+      ENABLE_UPLOAD_LOGGING: DEFAULT_ENABLE_UPLOAD_LOGGING,
+      ENABLE_DATABASE_LOGGING: DEFAULT_ENABLE_DATABASE_LOGGING,
+      ENABLE_AUTH_LOGGING: DEFAULT_ENABLE_AUTH_LOGGING,
+      ENABLE_ASSET_LOGGING: DEFAULT_ENABLE_ASSET_LOGGING,
+      ENABLE_S3_LOGGING: DEFAULT_ENABLE_S3_LOGGING,
+      ENABLE_ICP_UPLOAD_LOGGING: DEFAULT_ENABLE_ICP_UPLOAD_LOGGING,
+      ENABLE_HOSTING_PREFERENCES: DEFAULT_ENABLE_HOSTING_PREFERENCES,
+      ENABLE_DASHBOARD_LOGGING: DEFAULT_ENABLE_DASHBOARD_LOGGING,
+      ENABLE_MEMORY_PROCESSING_LOGGING: DEFAULT_ENABLE_MEMORY_PROCESSING_LOGGING,
+      ENABLE_RENDERING_LOGGING: DEFAULT_ENABLE_RENDERING_LOGGING,
+      ENABLE_API_RESPONSE_LOGGING: DEFAULT_ENABLE_API_RESPONSE_LOGGING,
+      ENABLE_FOLDER_GROUPING_LOGGING: DEFAULT_ENABLE_FOLDER_GROUPING_LOGGING,
+      ENABLE_MEMORY_GRID_LOGGING: DEFAULT_ENABLE_MEMORY_GRID_LOGGING,
+      ENABLE_USE_EFFECT_LOGGING: DEFAULT_ENABLE_USE_EFFECT_LOGGING,
+    };
+  }
+
+  // Client-side: try to load from localStorage, fallback to defaults
+  try {
+    const savedConfig = localStorage.getItem('logger-config');
+    if (savedConfig) {
+      const parsed = JSON.parse(savedConfig);
+      return {
+        ENABLE_LOGGING: resolveToggleState(parsed.ENABLE_LOGGING, DEFAULT_ENABLE_LOGGING),
+        ENABLE_FRONTEND_LOGGING: resolveToggleState(parsed.ENABLE_FRONTEND_LOGGING, DEFAULT_ENABLE_FRONTEND_LOGGING),
+        ENABLE_BACKEND_LOGGING: resolveToggleState(parsed.ENABLE_BACKEND_LOGGING, DEFAULT_ENABLE_BACKEND_LOGGING),
+        ENABLE_UPLOAD_LOGGING: resolveToggleState(parsed.ENABLE_UPLOAD_LOGGING, DEFAULT_ENABLE_UPLOAD_LOGGING),
+        ENABLE_DATABASE_LOGGING: resolveToggleState(parsed.ENABLE_DATABASE_LOGGING, DEFAULT_ENABLE_DATABASE_LOGGING),
+        ENABLE_AUTH_LOGGING: resolveToggleState(parsed.ENABLE_AUTH_LOGGING, DEFAULT_ENABLE_AUTH_LOGGING),
+        ENABLE_ASSET_LOGGING: resolveToggleState(parsed.ENABLE_ASSET_LOGGING, DEFAULT_ENABLE_ASSET_LOGGING),
+        ENABLE_S3_LOGGING: resolveToggleState(parsed.ENABLE_S3_LOGGING, DEFAULT_ENABLE_S3_LOGGING),
+        ENABLE_ICP_UPLOAD_LOGGING: resolveToggleState(
+          parsed.ENABLE_ICP_UPLOAD_LOGGING,
+          DEFAULT_ENABLE_ICP_UPLOAD_LOGGING
+        ),
+        ENABLE_HOSTING_PREFERENCES: resolveToggleState(
+          parsed.ENABLE_HOSTING_PREFERENCES,
+          DEFAULT_ENABLE_HOSTING_PREFERENCES
+        ),
+        ENABLE_DASHBOARD_LOGGING: resolveToggleState(parsed.ENABLE_DASHBOARD_LOGGING, DEFAULT_ENABLE_DASHBOARD_LOGGING),
+        ENABLE_MEMORY_PROCESSING_LOGGING: resolveToggleState(
+          parsed.ENABLE_MEMORY_PROCESSING_LOGGING,
+          DEFAULT_ENABLE_MEMORY_PROCESSING_LOGGING
+        ),
+        ENABLE_RENDERING_LOGGING: resolveToggleState(parsed.ENABLE_RENDERING_LOGGING, DEFAULT_ENABLE_RENDERING_LOGGING),
+        ENABLE_API_RESPONSE_LOGGING: resolveToggleState(
+          parsed.ENABLE_API_RESPONSE_LOGGING,
+          DEFAULT_ENABLE_API_RESPONSE_LOGGING
+        ),
+        ENABLE_FOLDER_GROUPING_LOGGING: resolveToggleState(
+          parsed.ENABLE_FOLDER_GROUPING_LOGGING,
+          DEFAULT_ENABLE_FOLDER_GROUPING_LOGGING
+        ),
+        ENABLE_MEMORY_GRID_LOGGING: resolveToggleState(
+          parsed.ENABLE_MEMORY_GRID_LOGGING,
+          DEFAULT_ENABLE_MEMORY_GRID_LOGGING
+        ),
+        ENABLE_USE_EFFECT_LOGGING: resolveToggleState(
+          parsed.ENABLE_USE_EFFECT_LOGGING,
+          DEFAULT_ENABLE_USE_EFFECT_LOGGING
+        ),
+      };
+    }
+  } catch (error) {
+    console.warn('Failed to load logger config from localStorage:', error);
+  }
+
+  // Fallback to defaults
+  return {
+    ENABLE_LOGGING: DEFAULT_ENABLE_LOGGING,
+    ENABLE_FRONTEND_LOGGING: DEFAULT_ENABLE_FRONTEND_LOGGING,
+    ENABLE_BACKEND_LOGGING: DEFAULT_ENABLE_BACKEND_LOGGING,
+    ENABLE_UPLOAD_LOGGING: DEFAULT_ENABLE_UPLOAD_LOGGING,
+    ENABLE_DATABASE_LOGGING: DEFAULT_ENABLE_DATABASE_LOGGING,
+    ENABLE_AUTH_LOGGING: DEFAULT_ENABLE_AUTH_LOGGING,
+    ENABLE_ASSET_LOGGING: DEFAULT_ENABLE_ASSET_LOGGING,
+    ENABLE_S3_LOGGING: DEFAULT_ENABLE_S3_LOGGING,
+    ENABLE_ICP_UPLOAD_LOGGING: DEFAULT_ENABLE_ICP_UPLOAD_LOGGING,
+    ENABLE_HOSTING_PREFERENCES: DEFAULT_ENABLE_HOSTING_PREFERENCES,
+    ENABLE_DASHBOARD_LOGGING: DEFAULT_ENABLE_DASHBOARD_LOGGING,
+    ENABLE_MEMORY_PROCESSING_LOGGING: DEFAULT_ENABLE_MEMORY_PROCESSING_LOGGING,
+    ENABLE_RENDERING_LOGGING: DEFAULT_ENABLE_RENDERING_LOGGING,
+    ENABLE_API_RESPONSE_LOGGING: DEFAULT_ENABLE_API_RESPONSE_LOGGING,
+    ENABLE_FOLDER_GROUPING_LOGGING: DEFAULT_ENABLE_FOLDER_GROUPING_LOGGING,
+    ENABLE_MEMORY_GRID_LOGGING: DEFAULT_ENABLE_MEMORY_GRID_LOGGING,
+    ENABLE_USE_EFFECT_LOGGING: DEFAULT_ENABLE_USE_EFFECT_LOGGING,
+  };
+}
 // ===================================
 
 export enum LogLevel {
@@ -55,7 +160,7 @@ class ServiceLogger {
   constructor(
     private service: string,
     private context: string,
-    private parentLogger: SimpleLogger
+    private parentLogger: CoreLogger
   ) {}
 
   private getServiceContext(): string {
@@ -97,7 +202,7 @@ class ServiceLogger {
   }
 }
 
-class SimpleLogger {
+class CoreLogger {
   private level: LogLevel;
   private service: string;
 
@@ -135,8 +240,11 @@ class SimpleLogger {
   }
 
   private shouldLog(level: LogLevel, service?: string): boolean {
+    // Get current configuration (reads from localStorage on client-side)
+    const config = getLoggerConfig();
+
     // If logging is disabled globally, don't log anything
-    if (!ENABLE_LOGGING) return false;
+    if (!config.ENABLE_LOGGING) return false;
 
     // If the log level is below the current level, don't log
     if (level < this.level) return false;
@@ -152,46 +260,46 @@ class SimpleLogger {
       let serviceEnabled = true; // Default to true if service is not explicitly disabled
       switch (serviceName) {
         case 'upload':
-          serviceEnabled = ENABLE_UPLOAD_LOGGING;
+          serviceEnabled = config.ENABLE_UPLOAD_LOGGING;
           break;
         case 'database':
-          serviceEnabled = ENABLE_DATABASE_LOGGING;
+          serviceEnabled = config.ENABLE_DATABASE_LOGGING;
           break;
         case 'auth':
-          serviceEnabled = ENABLE_AUTH_LOGGING;
+          serviceEnabled = config.ENABLE_AUTH_LOGGING;
           break;
         case 'asset':
-          serviceEnabled = ENABLE_ASSET_LOGGING;
+          serviceEnabled = config.ENABLE_ASSET_LOGGING;
           break;
         case 's3':
-          serviceEnabled = ENABLE_S3_LOGGING;
+          serviceEnabled = config.ENABLE_S3_LOGGING;
           break;
         case 'icp-upload':
-          serviceEnabled = ENABLE_ICP_UPLOAD_LOGGING;
+          serviceEnabled = config.ENABLE_ICP_UPLOAD_LOGGING;
           break;
         case 'dashboard':
-          serviceEnabled = ENABLE_DASHBOARD_LOGGING;
+          serviceEnabled = config.ENABLE_DASHBOARD_LOGGING;
           break;
         case 'memory-processing':
-          serviceEnabled = ENABLE_MEMORY_PROCESSING_LOGGING;
+          serviceEnabled = config.ENABLE_MEMORY_PROCESSING_LOGGING;
           break;
         case 'rendering':
-          serviceEnabled = ENABLE_RENDERING_LOGGING;
+          serviceEnabled = config.ENABLE_RENDERING_LOGGING;
           break;
         case 'api-response':
-          serviceEnabled = ENABLE_API_RESPONSE_LOGGING;
+          serviceEnabled = config.ENABLE_API_RESPONSE_LOGGING;
           break;
         case 'folder-grouping':
-          serviceEnabled = ENABLE_FOLDER_GROUPING_LOGGING;
+          serviceEnabled = config.ENABLE_FOLDER_GROUPING_LOGGING;
           break;
         case 'memory-grid':
-          serviceEnabled = ENABLE_MEMORY_GRID_LOGGING;
+          serviceEnabled = config.ENABLE_MEMORY_GRID_LOGGING;
           break;
         case 'use-effect':
-          serviceEnabled = ENABLE_USE_EFFECT_LOGGING;
+          serviceEnabled = config.ENABLE_USE_EFFECT_LOGGING;
           break;
         case 'hosting-preferences':
-          serviceEnabled = ENABLE_HOSTING_PREFERENCES;
+          serviceEnabled = config.ENABLE_HOSTING_PREFERENCES;
           break;
         default:
           // If the service is not in our list, allow it by default
@@ -199,7 +307,7 @@ class SimpleLogger {
       }
 
       // Check if the context (be/fe) is enabled
-      const contextEnabled = context === 'be' ? ENABLE_BACKEND_LOGGING : ENABLE_UI_LOGGING;
+      const contextEnabled = context === 'be' ? config.ENABLE_BACKEND_LOGGING : config.ENABLE_FRONTEND_LOGGING;
 
       return serviceEnabled && contextEnabled;
     }
@@ -390,7 +498,7 @@ class SimpleLogger {
 }
 
 // ===== SINGLE LOGGER INSTANCE =====
-export const logger = new SimpleLogger('app', LogLevel.DEBUG);
+export const logger = new CoreLogger('app', LogLevel.DEBUG);
 
 // Legacy exports for backward compatibility (all point to the same instance)
 export const uploadLogger = logger;

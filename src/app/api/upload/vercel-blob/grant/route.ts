@@ -12,7 +12,7 @@ import { getAllUserId } from '@/app/api/memories/utils/user-management';
 import { createMemoryFromBlob } from '@/app/api/memories/utils/memory-creation';
 import { enqueueImageProcessing } from '@/app/api/memories/utils/image-processing-workflow';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 // optional: centralize your allowlist
 const ALLOWED = [
   'image/*',
@@ -26,8 +26,9 @@ const ALLOWED = [
 
 export async function POST(req: NextRequest) {
   // Log deprecation warning
-  logger.warn(
-    '⚠️  DEPRECATED: /api/upload/vercel-blob/grant is deprecated. Use /api/upload/vercel-blob + /api/upload/complete instead.'
+  fatLogger.warn(
+    '⚠️  DEPRECATED: /api/upload/vercel-blob/grant is deprecated. Use /api/upload/vercel-blob + /api/upload/complete instead.',
+    'be'
   );
 
   // who's uploading?
@@ -37,12 +38,12 @@ export async function POST(req: NextRequest) {
   }
 
   const body = (await req.json()) as HandleUploadBody & { clientPayload?: string };
-  logger.info('🔍 Raw request body keys:', undefined, { keys: Object.keys(body) });
-  logger.info('🔍 Raw clientPayload value:', undefined, { clientPayload: body.clientPayload });
+  fatLogger.info('🔍 Raw request body keys:', 'be', { keys: Object.keys(body) });
+  fatLogger.info('🔍 Raw clientPayload value:', 'be', { clientPayload: body.clientPayload });
 
   // Extract client payload from the request body
   const clientPayload = body.clientPayload ? JSON.parse(body.clientPayload) : {};
-  logger.info('📦 Client payload received:', clientPayload);
+  fatLogger.info('📦 Client payload received:', 'be', clientPayload);
 
   // Store memory ID to return to client
   let createdMemoryId: string | undefined;
@@ -64,11 +65,11 @@ export async function POST(req: NextRequest) {
       };
     },
     onUploadCompleted: async ({ blob, tokenPayload }) => {
-      logger.info('🎉 onUploadCompleted callback triggered!', undefined, { blob: blob.url, tokenPayload });
+      fatLogger.info('🎉 onUploadCompleted callback triggered!', 'be', { blob: blob.url, tokenPayload });
       // persist in DB
       try {
         const payload = tokenPayload ? JSON.parse(tokenPayload as string) : {};
-        logger.info('📦 Parsed token payload:', payload);
+        fatLogger.info('📦 Parsed token payload:', payload);
 
         const result = await createMemoryFromBlob(
           {
@@ -84,7 +85,7 @@ export async function POST(req: NextRequest) {
           }
         );
 
-        logger.info('Memory creation result', { result });
+        fatLogger.info('Memory creation result', 'be', { result });
 
         // Store the memory ID to return to client
         if (result.success && result.memoryId) {
@@ -93,7 +94,7 @@ export async function POST(req: NextRequest) {
 
         // If this is an image and memory creation was successful, enqueue image processing
         if (result.success && result.memoryId && blob.contentType?.startsWith('image/')) {
-          logger.info(`🖼️ Enqueueing image processing for memory ${result.memoryId}`);
+          fatLogger.info(`🖼️ Enqueueing image processing for memory ${result.memoryId}`, 'be');
           enqueueImageProcessing({
             memoryId: result.memoryId,
             originalBlobUrl: blob.url,
@@ -104,7 +105,7 @@ export async function POST(req: NextRequest) {
         }
       } catch (e) {
         // don't throw; upload already succeeded. Log & alert.
-        logger.error('❌ post-upload DB create failed', undefined, { data: e });
+        fatLogger.error('❌ post-upload DB create failed', 'be', { data: e });
       }
     },
   });

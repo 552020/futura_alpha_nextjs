@@ -18,7 +18,7 @@ import Footer from '@/components/layout/footer';
 import { QueryProvider } from '@/components/providers/query-provider';
 import ServiceWorkerClient from '@/lib/service-worker';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],
@@ -40,13 +40,15 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
   // Check for missing translations and log warnings in development
   if (process.env.NODE_ENV === 'development') {
     if (!dict?.metadata?.title) {
-      logger.warn(
-        `[i18n] Missing translation for "metadata.title" in locale "${resolvedParams.lang}". Using fallback: "Futura"`
+      fatLogger.warn(
+        `[i18n] Missing translation for "metadata.title" in locale "${resolvedParams.lang}". Using fallback: "Futura"`,
+        'fe'
       );
     }
     if (!dict?.metadata?.description) {
-      logger.warn(
-        `[i18n] Missing translation for "metadata.description" in locale "${resolvedParams.lang}". Using fallback: "Live forever. Now."`
+      fatLogger.warn(
+        `[i18n] Missing translation for "metadata.description" in locale "${resolvedParams.lang}". Using fallback: "Live forever. Now."`,
+        'fe'
       );
     }
   }

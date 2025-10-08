@@ -17,7 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { getAuthStatus } from '@/lib/utils/auth-status';
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 
 export function LinkedAccounts() {
   const { data: session } = useSession();
@@ -40,7 +40,7 @@ export function LinkedAccounts() {
         description: 'Principal ID copied to clipboard',
       });
     } catch (error) {
-      logger.error('Failed to copy:', undefined, { data: error instanceof Error ? error : undefined });
+      fatLogger.error('Failed to copy:', 'fe', { data: error instanceof Error ? error : undefined });
       toast({
         title: 'Copy Failed',
         description: 'Failed to copy principal ID to clipboard',
@@ -76,7 +76,7 @@ export function LinkedAccounts() {
         description: 'Internet Identity account has been unlinked.',
       });
     } catch (error) {
-      logger.error('Failed to unlink II account:', undefined, {
+      fatLogger.error('Failed to unlink II account:', 'fe', {
         data: error instanceof Error ? error : undefined,
       });
       toast({

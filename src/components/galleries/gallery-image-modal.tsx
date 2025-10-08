@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Download, X, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { generateBestAssetUrl } from '@/lib/presigned-url-utils';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 
 type GalleryAsset = {
   assetType: string;
@@ -31,39 +31,38 @@ interface GalleryImageModalProps {
   onKeyDown?: (e: React.KeyboardEvent) => void;
 }
 
-export function GalleryImageModal({ 
-  isOpen, 
-  onClose, 
-  image, 
-  onNext, 
-  onPrevious, 
-  hasNext = false, 
+export function GalleryImageModal({
+  isOpen,
+  onClose,
+  image,
+  onNext,
+  onPrevious,
+  hasNext = false,
   hasPrevious = false,
-  assets = []
+  assets = [],
 }: GalleryImageModalProps) {
   const [displaySize, setDisplaySize] = React.useState<'display' | 'original'>('display');
   const [currentImageUrl, setCurrentImageUrl] = React.useState(image?.url || '');
   const [isDownloading, setIsDownloading] = React.useState(false);
   const [showSizeDropdown, setShowSizeDropdown] = React.useState(false);
   const [shouldDropUp, setShouldDropUp] = React.useState(false);
-  
+
   // Update current image URL when display size or assets change
   React.useEffect(() => {
     const updateDisplayedImage = async () => {
       if (!image) return;
-      
+
       // If no assets, use the image URL directly
       if (!assets || assets.length === 0) {
         setCurrentImageUrl(image.url);
         return;
       }
-      
+
       try {
         // Try to find the best asset for display
-        const preferredOrder = displaySize === 'display' 
-          ? ['display', 'original', 'thumb'] 
-          : ['original', 'display', 'thumb'];
-        
+        const preferredOrder =
+          displaySize === 'display' ? ['display', 'original', 'thumb'] : ['original', 'display', 'thumb'];
+
         for (const assetType of preferredOrder) {
           const asset = assets.find(a => a.assetType === assetType);
           if (asset) {
@@ -71,21 +70,21 @@ export function GalleryImageModal({
               url: asset.url,
               assetLocation: 's3',
               storageKey: asset.url,
-              bucket: process.env.AWS_S3_BUCKET
+              bucket: process.env.AWS_S3_BUCKET,
             };
             const url = await generateBestAssetUrl(formattedAsset);
             setCurrentImageUrl(url);
             return;
           }
         }
-        
+
         // Fallback to first available asset or image URL
         if (assets[0]) {
           const formattedAsset = {
             url: assets[0].url,
             assetLocation: 's3',
             storageKey: assets[0].url,
-            bucket: process.env.AWS_S3_BUCKET
+            bucket: process.env.AWS_S3_BUCKET,
           };
           const url = await generateBestAssetUrl(formattedAsset);
           setCurrentImageUrl(url);
@@ -93,41 +92,44 @@ export function GalleryImageModal({
           setCurrentImageUrl(image.url);
         }
       } catch (error) {
-        logger.error('Error updating displayed image', 'rendering:fe', { error });
+        fatLogger.error('Error updating displayed image', 'fe', { error });
         setCurrentImageUrl(image.url);
       }
     };
-    
+
     updateDisplayedImage();
   }, [image, assets, displaySize]);
-  
+
   // Handle keyboard navigation
-  const handleKeyDown = React.useCallback((e: KeyboardEvent) => {
-    if (!onNext || !onPrevious) return;
-    
-    const keyboardEvent = e as unknown as React.KeyboardEvent;
-    
-    switch (keyboardEvent.key) {
-      case 'ArrowLeft':
-        if (hasPrevious && onPrevious) {
-          keyboardEvent.preventDefault();
-          onPrevious();
-        }
-        break;
-      case 'ArrowRight':
-        if (hasNext && onNext) {
-          keyboardEvent.preventDefault();
-          onNext();
-        }
-        break;
-      case 'Escape':
-        onClose();
-        break;
-      default:
-        break;
-    }
-  }, [hasNext, hasPrevious, onNext, onPrevious, onClose]);
-  
+  const handleKeyDown = React.useCallback(
+    (e: KeyboardEvent) => {
+      if (!onNext || !onPrevious) return;
+
+      const keyboardEvent = e as unknown as React.KeyboardEvent;
+
+      switch (keyboardEvent.key) {
+        case 'ArrowLeft':
+          if (hasPrevious && onPrevious) {
+            keyboardEvent.preventDefault();
+            onPrevious();
+          }
+          break;
+        case 'ArrowRight':
+          if (hasNext && onNext) {
+            keyboardEvent.preventDefault();
+            onNext();
+          }
+          break;
+        case 'Escape':
+          onClose();
+          break;
+        default:
+          break;
+      }
+    },
+    [hasNext, hasPrevious, onNext, onPrevious, onClose]
+  );
+
   // Add event listener for keyboard navigation
   React.useEffect(() => {
     if (isOpen) {
@@ -138,21 +140,20 @@ export function GalleryImageModal({
       };
     }
   }, [isOpen, handleKeyDown]);
-  
+
   // Get the best URL for the selected download size
   const getDownloadUrl = async (): Promise<string> => {
     if (!image) return '';
-    
+
     // If no assets array or it's empty, use the image URL directly
     if (!assets || assets.length === 0) {
       return image.url;
     }
 
     // For downloads, we'll use the same logic as display but with the downloadSize
-    const preferredOrder = displaySize === 'display' 
-      ? ['display', 'original', 'thumb'] 
-      : ['original', 'display', 'thumb'];
-    
+    const preferredOrder =
+      displaySize === 'display' ? ['display', 'original', 'thumb'] : ['original', 'display', 'thumb'];
+
     for (const assetType of preferredOrder) {
       const asset = assets.find(a => a.assetType === assetType);
       if (asset) {
@@ -161,11 +162,11 @@ export function GalleryImageModal({
             url: asset.url,
             assetLocation: 's3',
             storageKey: asset.url,
-            bucket: process.env.AWS_S3_BUCKET
+            bucket: process.env.AWS_S3_BUCKET,
           };
           return await generateBestAssetUrl(formattedAsset);
         } catch (error) {
-          logger.error(`Error generating URL for asset type ${assetType}`, 'rendering:fe', { error, assetType });
+          fatLogger.error(`Error generating URL for asset type ${assetType}`, 'fe', { error, assetType });
           continue;
         }
       }
@@ -177,23 +178,23 @@ export function GalleryImageModal({
         url: assets[0].url,
         assetLocation: 's3',
         storageKey: assets[0].url,
-        bucket: process.env.AWS_S3_BUCKET
+        bucket: process.env.AWS_S3_BUCKET,
       };
       return generateBestAssetUrl(formattedAsset);
     }
-    
+
     return image.url;
   };
 
   const handleDownload = async () => {
     if (!image?.url) return;
-    
+
     try {
       setIsDownloading(true);
-      
+
       // Get the appropriate URL based on selected size
       const downloadUrl = await getDownloadUrl();
-      
+
       // Try to fetch the file first to handle potential errors
       let blob: Blob;
       try {
@@ -202,16 +203,16 @@ export function GalleryImageModal({
           headers: {
             'Cache-Control': 'no-cache',
           },
-          credentials: 'include' // Include credentials for authenticated requests
+          credentials: 'include', // Include credentials for authenticated requests
         });
-        
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         blob = await response.blob();
       } catch (fetchError) {
-        logger.warn('Fetch failed, trying direct download', 'rendering:fe', { error: fetchError });
+        fatLogger.warn('Fetch failed, trying direct download', 'fe', { error: fetchError });
         // If fetch fails, try direct download
         const link = document.createElement('a');
         link.href = downloadUrl;
@@ -221,25 +222,25 @@ export function GalleryImageModal({
         document.body.removeChild(link);
         return;
       }
-      
+
       // Create a blob URL for the downloaded file
       const blobUrl = URL.createObjectURL(blob);
-      
+
       // Create a temporary anchor element
       const link = document.createElement('a');
-      
+
       // Extract filename from URL or use a default one
       let filename = 'download';
       try {
         const url = new URL(downloadUrl);
         const pathParts = url.pathname.split('/');
         const extractedName = pathParts[pathParts.length - 1];
-        
+
         // Clean up the filename
         if (extractedName) {
           // Remove any query parameters
           const cleanName = extractedName.split('?')[0];
-          
+
           // If no extension or we want to ensure a specific one
           if (!cleanName.includes('.')) {
             // Get extension from content type or use default
@@ -248,7 +249,7 @@ export function GalleryImageModal({
           } else {
             filename = cleanName;
           }
-          
+
           // Add size indicator if not in the filename
           if (!filename.includes(displaySize) && displaySize !== 'original') {
             const parts = filename.split('.');
@@ -257,27 +258,26 @@ export function GalleryImageModal({
           }
         }
       } catch (e) {
-        logger.warn('Could not parse URL for filename', 'rendering:fe', { error: e, downloadUrl });
+        fatLogger.warn('Could not parse URL for filename', 'fe', { error: e, downloadUrl });
         const ext = blob.type.split('/')[1] || 'jpg';
         filename = `download-${displaySize}.${ext}`;
       }
-      
+
       // Set up the download link
       link.href = blobUrl;
       link.download = filename;
-      
+
       // Add to document, trigger download, and clean up
       document.body.appendChild(link);
       link.click();
-      
+
       // Clean up
       setTimeout(() => {
         document.body.removeChild(link);
         URL.revokeObjectURL(blobUrl);
       }, 100);
-      
     } catch (error) {
-      logger.error('Error in download handler', 'rendering:fe', { error, imageUrl: image?.url });
+      fatLogger.error('Error in download handler', 'fe', { error, imageUrl: image?.url });
       // Final fallback - try direct download with the image URL
       const link = document.createElement('a');
       link.href = image.url;
@@ -291,7 +291,6 @@ export function GalleryImageModal({
       setShowSizeDropdown(false);
     }
   };
-
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -317,7 +316,7 @@ export function GalleryImageModal({
               variant="ghost"
               size="icon"
               className="absolute left-4 z-10 h-12 w-12 rounded-full bg-black/50 text-white hover:bg-black/70 transition-all"
-              onClick={(e) => {
+              onClick={e => {
                 e.stopPropagation();
                 onPrevious();
               }}
@@ -334,7 +333,7 @@ export function GalleryImageModal({
               variant="ghost"
               size="icon"
               className="absolute right-4 z-10 h-12 w-12 rounded-full bg-black/50 text-white hover:bg-black/70 transition-all"
-              onClick={(e) => {
+              onClick={e => {
                 e.stopPropagation();
                 onNext();
               }}
@@ -380,27 +379,23 @@ export function GalleryImageModal({
                     variant="ghost"
                     size="icon"
                     className="text-white hover:bg-white/20 h-9 w-6"
-                    onClick={(e) => {
+                    onClick={e => {
                       e.stopPropagation();
                       setShowSizeDropdown(!showSizeDropdown);
                     }}
-                    ref={(el) => {
+                    ref={el => {
                       if (el) {
                         const rect = el.getBoundingClientRect();
                         const spaceBelow = window.innerHeight - rect.bottom;
                         const spaceAbove = rect.top;
                         const dropdownHeight = 100; // Approximate height of the dropdown
-                        
+
                         // Position dropdown below if there's enough space, otherwise above
                         setShouldDropUp(spaceBelow < dropdownHeight && spaceAbove > spaceBelow);
                       }
                     }}
                   >
-                    <ChevronDown
-                      className={`h-4 w-4 transition-transform ${
-                        showSizeDropdown ? 'rotate-180' : ''
-                      }`}
-                    />
+                    <ChevronDown className={`h-4 w-4 transition-transform ${showSizeDropdown ? 'rotate-180' : ''}`} />
                     <span className="sr-only">Select download size</span>
                   </Button>
                   {showSizeDropdown && (
@@ -422,7 +417,7 @@ export function GalleryImageModal({
                           className={`w-full text-left px-4 py-2 text-sm text-white hover:bg-white/20 ${
                             displaySize === 'display' ? 'bg-white/30' : ''
                           }`}
-                          onClick={(e) => {
+                          onClick={e => {
                             e.stopPropagation();
                             setDisplaySize('display');
                             setShowSizeDropdown(false);
@@ -434,7 +429,7 @@ export function GalleryImageModal({
                           className={`w-full text-left px-4 py-2 text-sm text-white hover:bg-white/20 ${
                             displaySize === 'original' ? 'bg-white/30' : ''
                           }`}
-                          onClick={(e) => {
+                          onClick={e => {
                             e.stopPropagation();
                             setDisplaySize('original');
                             setShowSizeDropdown(false);

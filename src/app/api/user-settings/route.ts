@@ -3,7 +3,7 @@ import { auth } from '@/auth';
 import { db } from '@/db/db';
 import { userSettings } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 
 export type UserSettings = {
   hasAdvancedSettings: boolean;
@@ -44,7 +44,7 @@ export async function GET(): Promise<NextResponse> {
 
     return NextResponse.json(response);
   } catch (error) {
-    logger.error('Error fetching user settings:', undefined, {
+    fatLogger.error('Error fetching user settings:', 'be', {
       data: error instanceof Error ? error : undefined,
     });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -96,7 +96,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       updatedSettings = updated;
 
       // Log settings update
-      logger.info('🔄 User settings updated in database', {
+      fatLogger.info('🔄 User settings updated in database', 'be', {
         userId: session.user.id,
         changes: updates,
         previousValues: existingSettings,
@@ -115,7 +115,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       updatedSettings = created;
 
       // Log settings creation
-      logger.info('🆕 User settings created in database', {
+      fatLogger.info('🆕 User settings created in database', 'be', {
         userId: session.user.id,
         initialValues: created,
       });
@@ -129,7 +129,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json(response);
   } catch (error) {
-    logger.error('Error updating user settings:', undefined, {
+    fatLogger.error('Error updating user settings:', 'be', {
       data: error instanceof Error ? error : undefined,
     });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react';
 // Note: DBImage, DBDocument, DBNote, DBVideo types are no longer used with the new schema
 import { shortenTitle } from '@/lib/utils';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 interface MemoryViewerProps {
   memory: MemoryWithType;
   isOwner: boolean;
@@ -38,7 +38,7 @@ export function MemoryViewer({ memory, isOwner }: MemoryViewerProps) {
       setDownloadUrl(url);
       setDownloadFileName(memory.title || 'memory');
     } catch (error) {
-      logger.error('Error downloading memory:', undefined, { data: error instanceof Error ? error : undefined });
+      fatLogger.error('Error downloading memory:', 'fe', { data: error instanceof Error ? error : undefined });
     }
   };
 
@@ -64,7 +64,7 @@ export function MemoryViewer({ memory, isOwner }: MemoryViewerProps) {
       // Redirect to home or show success message
       window.location.href = '/';
     } catch (error) {
-      logger.error('Error deleting memory:', undefined, { data: error instanceof Error ? error : undefined });
+      fatLogger.error('Error deleting memory:', 'fe', { data: error instanceof Error ? error : undefined });
     }
   };
 

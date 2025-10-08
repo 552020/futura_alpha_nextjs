@@ -6,7 +6,7 @@ import { galleries, allUsers, galleryShares, galleryItems, memories } from '@/db
 import { addStorageStatusToGallery } from '../utils';
 import { generateBestAssetUrl } from '@/lib/presigned-url-utils';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 // Helper function to check if user has access to a memory, considering gallery override
 async function checkMemoryAccess(
   memoryId: string,
@@ -95,7 +95,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     });
 
     if (!allUserRecord) {
-      logger.error('No allUsers record found for user', 'gallery:be', {
+      fatLogger.error('No allUsers record found for user', 'be', {
         userId: session.user.id
       });
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
@@ -119,7 +119,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     let accessibleGallery = null;
 
     if (ownedGallery) {
-      // logger.info("User owns gallery:", ownedGallery);
+      // fatLogger.info("User owns gallery:", ownedGallery);
       accessibleGallery = ownedGallery;
     } else {
       // Check if gallery exists and is public (gallery override)
@@ -128,7 +128,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       });
 
       if (publicGallery) {
-        // logger.info("User accessing public gallery:", publicGallery);
+        // fatLogger.info("User accessing public gallery:", publicGallery);
         accessibleGallery = publicGallery;
       } else {
         // Check if gallery is shared with this user
@@ -147,7 +147,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           });
 
           if (shareRecord) {
-            // logger.info("User has shared access to gallery:", sharedGallery);
+            // fatLogger.info("User has shared access to gallery:", sharedGallery);
             accessibleGallery = sharedGallery;
           }
         }
@@ -173,7 +173,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       }
     }
 
-    // logger.info("Gallery access result:", undefined, {
+    // fatLogger.info("Gallery access result:", undefined, {
     //   galleryId,
     //   totalItems: galleryItemsList.length,
     //   accessibleItems: accessibleItems.length,
@@ -181,11 +181,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // Get the actual memory data for each item
     const itemsWithMemories = [];
-    // logger.info("Processing accessible items:", accessibleItems.length);
+    // fatLogger.info("Processing accessible items:", accessibleItems.length);
 
     for (const item of accessibleItems) {
       try {
-        // logger.info(`Processing item: ${item.memoryId} (type: ${item.memoryType})`);
+        // fatLogger.info(`Processing item: ${item.memoryId} (type: ${item.memoryType})`);
 
         // Fetch memory from unified memories table with assets
         const memory = await db.query.memories.findFirst({
@@ -199,7 +199,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         });
 
         if (memory) {
-          logger.info(`Found memory for item ${item.memoryId}`, 'gallery:be', {
+          fatLogger.info(`Found memory for item ${item.memoryId}`, 'be', {
             memoryId: memory.id,
             title: memory.title,
             type: memory.type,
@@ -216,7 +216,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           // Extract best asset URL (prefer thumb for gallery grid, then display, then original)
           const getBestAssetUrl = async (assets: GalleryAsset[] | undefined): Promise<string | undefined> => {
             if (!assets || assets.length === 0) {
-              logger.info(`No assets found for memory ${item.memoryId}`, 'gallery:be');
+              fatLogger.info(`No assets found for memory ${item.memoryId}`, 'be');
               return undefined;
             }
 
@@ -225,13 +225,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             for (const assetType of preferredOrder) {
               const asset = assets.find(a => a.assetType === assetType);
               if (asset) {
-                logger.info(`Found ${assetType} asset for memory ${item.memoryId}`, 'gallery:be');
+                fatLogger.info(`Found ${assetType} asset for memory ${item.memoryId}`, 'be');
                 return await generateBestAssetUrl(asset);
               }
             }
 
             // Fallback to first available asset
-            logger.info(`No preferred asset found for memory ${item.memoryId}, using first asset`, 'gallery:be');
+            fatLogger.info(`No preferred asset found for memory ${item.memoryId}, using first asset`, 'be');
             return await generateBestAssetUrl(assets[0]);
           };
           // Define asset type
@@ -264,7 +264,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             mimeType: getAssetMimeType(memory.assets),
           };
 
-          logger.info(`Generated URL for memory ${item.memoryId}`, 'gallery:be', {
+          fatLogger.info(`Generated URL for memory ${item.memoryId}`, 'be', {
             finalUrl: finalUrl,
             hasUrl: !!finalUrl,
             urlLength: finalUrl?.length || 0,
@@ -275,10 +275,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             memory: memoryWithUrl,
           });
         } else {
-          logger.warn(`Memory not found for item: ${item.memoryId} (type: ${item.memoryType})`, 'gallery:be');
+          fatLogger.warn(`Memory not found for item: ${item.memoryId} (type: ${item.memoryType})`, 'be');
         }
       } catch (itemError) {
-        logger.error(`Error fetching memory for item ${item.memoryId}`, 'gallery:be', {
+        fatLogger.error(`Error fetching memory for item ${item.memoryId}`, 'be', {
           error: itemError instanceof Error ? itemError : undefined,
         });
       }
@@ -295,7 +295,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       isOwner: accessibleGallery.ownerId === allUserRecord.id,
     };
 
-    // logger.info("Returning gallery with items:", undefined, {
+    // fatLogger.info("Returning gallery with items:", undefined, {
     //   galleryId,
     //   itemsCount: itemsWithMemories.length,
     //   isOwner: galleryWithItems.isOwner,
@@ -305,10 +305,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       gallery: galleryWithItems,
     });
   } catch (error) {
-    logger.error('Error fetching gallery', 'gallery:be', {
+    fatLogger.error('Error fetching gallery', 'be', {
       error: error instanceof Error ? error : undefined
     });
-    logger.error('Error details', 'gallery:be', {
+    fatLogger.error('Error details', 'be', {
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
     });
@@ -331,7 +331,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     });
 
     if (!allUserRecord) {
-      logger.error('No allUsers record found for user', 'gallery:be', {
+      fatLogger.error('No allUsers record found for user', 'be', {
         userId: session.user.id
       });
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
@@ -408,7 +408,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       }
     }
 
-    // logger.info("Updated gallery:", undefined, {
+    // fatLogger.info("Updated gallery:", undefined, {
     //   gallery: updatedGallery[0],
     //   items: itemsResult,
     // });
@@ -419,7 +419,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       items: itemsResult,
     });
   } catch (error) {
-    logger.error('Error updating gallery', 'gallery:be', {
+    fatLogger.error('Error updating gallery', 'be', {
       error: error instanceof Error ? error : undefined
     });
     return NextResponse.json({ error: 'Failed to update gallery' }, { status: 500 });
@@ -441,7 +441,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     });
 
     if (!allUserRecord) {
-      logger.error('No allUsers record found for user', 'gallery:be', {
+      fatLogger.error('No allUsers record found for user', 'be', {
         userId: session.user.id
       });
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
@@ -461,13 +461,13 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     // Delete gallery (cascade will handle gallery_items)
     await db.delete(galleries).where(eq(galleries.id, galleryId));
 
-    // logger.info("Deleted gallery:", galleryId);
+    // fatLogger.info("Deleted gallery:", galleryId);
 
     return NextResponse.json({
       message: 'Gallery deleted successfully',
     });
   } catch (error) {
-    logger.error('Error deleting gallery', 'gallery:be', {
+    fatLogger.error('Error deleting gallery', 'be', {
       error: error instanceof Error ? error : undefined
     });
     return NextResponse.json({ error: 'Failed to delete gallery' }, { status: 500 });

@@ -1,4 +1,4 @@
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 import type { CapsuleInfo, Capsule, PersonRef, CapsuleUpdateData, CapsuleError } from '@/types/capsule';
 import type { BackendActor } from '@/ic/backend';
 import type { Identity } from '@dfinity/agent';
@@ -30,20 +30,20 @@ export async function getCapsuleFull(
   clearActor: () => void
 ): Promise<Capsule | null> {
   try {
-    logger.info('Getting full capsule data for authenticated user');
+    fatLogger.info('Getting full capsule data for authenticated user', 'be');
 
     const authenticatedActor = await getActor();
     const capsuleResult = await authenticatedActor.capsules_read_full([]);
 
     if ('Ok' in capsuleResult) {
-      logger.info('Successfully retrieved full capsule data');
+      fatLogger.info('Successfully retrieved full capsule data', 'be');
       return capsuleResult.Ok;
     } else {
-      logger.info('No capsule found for user');
+      fatLogger.info('No capsule found for user', 'be');
       return null;
     }
   } catch (error) {
-    logger.error('Failed to get full capsule data', undefined, { data: error as Error });
+    fatLogger.error('Failed to get full capsule data', 'be', { data: error as Error });
 
     const errorMessage = error instanceof Error ? error.message : String(error);
 
@@ -92,20 +92,20 @@ export async function getCapsuleInfo(
   clearActor: () => void
 ): Promise<CapsuleInfo | null> {
   try {
-    logger.info('Getting capsule info for authenticated user');
+    fatLogger.info('Getting capsule info for authenticated user', 'be');
 
     const authenticatedActor = await getActor();
     const capsuleResult = await authenticatedActor.capsules_read_basic([]);
 
     if ('Ok' in capsuleResult) {
-      logger.info('Successfully retrieved capsule info');
+      fatLogger.info('Successfully retrieved capsule info', 'be');
       return capsuleResult.Ok;
     } else {
-      logger.info('No capsule found for user');
+      fatLogger.info('No capsule found for user', 'be');
       return null;
     }
   } catch (error) {
-    logger.error('Failed to get capsule info', undefined, { data: error as Error });
+    fatLogger.error('Failed to get capsule info', 'be', { data: error as Error });
 
     const errorMessage = error instanceof Error ? error.message : String(error);
 
@@ -162,20 +162,20 @@ export async function readCapsule(
   }
 
   try {
-    logger.info(`Reading capsule: ${capsuleId}`);
+    fatLogger.info(`Reading capsule: ${capsuleId}`, 'be');
 
     const authenticatedActor = await getActor();
     const capsuleResult = await authenticatedActor.capsules_read_full([capsuleId.trim()]);
 
     if ('Ok' in capsuleResult) {
-      logger.info(`Successfully read capsule: ${capsuleId}`);
+      fatLogger.info(`Successfully read capsule: ${capsuleId}`, 'be');
       return capsuleResult.Ok;
     } else {
-      logger.info(`Capsule not found or no access: ${capsuleId}`);
+      fatLogger.info(`Capsule not found or no access: ${capsuleId}`, 'be');
       return null;
     }
   } catch (error) {
-    logger.error(`Failed to read capsule: ${capsuleId}`, undefined, { data: error as Error });
+    fatLogger.error(`Failed to read capsule: ${capsuleId}`, 'be', { data: error as Error });
 
     const errorMessage = error instanceof Error ? error.message : String(error);
 
@@ -226,7 +226,7 @@ export async function createCapsule(
   clearActor: () => void
 ): Promise<Capsule> {
   try {
-    logger.info('Creating new capsule');
+    fatLogger.info('Creating new capsule', 'be');
     console.log('🔍 Create Capsule Debug:', {
       subject,
       subjectType: subject ? ('Principal' in subject ? 'Principal' : 'Opaque') : 'null',
@@ -247,7 +247,7 @@ export async function createCapsule(
     });
 
     if ('Ok' in capsuleResult) {
-      logger.info('Successfully created capsule');
+      fatLogger.info('Successfully created capsule', 'be');
       return capsuleResult.Ok;
     } else {
       throw createServiceError(`Failed to create capsule: ${JSON.stringify(capsuleResult.Err)}`);
@@ -261,7 +261,7 @@ export async function createCapsule(
       errorStack: error instanceof Error ? error.stack : 'no stack',
     });
 
-    logger.error('Failed to create capsule', undefined, { data: error as Error });
+    fatLogger.error('Failed to create capsule', 'be', { data: error as Error });
 
     const errorMessage = error instanceof Error ? error.message : String(error);
 
@@ -308,19 +308,19 @@ export async function updateCapsule(
   }
 
   try {
-    logger.info(`Updating capsule: ${capsuleId}`);
+    fatLogger.info(`Updating capsule: ${capsuleId}`, 'be');
 
     const authenticatedActor = await getActor();
     const capsuleResult = await authenticatedActor.capsules_update(capsuleId, updates);
 
     if ('Ok' in capsuleResult) {
-      logger.info(`Successfully updated capsule: ${capsuleId}`);
+      fatLogger.info(`Successfully updated capsule: ${capsuleId}`, 'be');
       return capsuleResult.Ok;
     } else {
       throw createServiceError(`Failed to update capsule: ${JSON.stringify(capsuleResult.Err)}`);
     }
   } catch (error) {
-    logger.error(`Failed to update capsule: ${capsuleId}`, undefined, { data: error as Error });
+    fatLogger.error(`Failed to update capsule: ${capsuleId}`, 'be', { data: error as Error });
 
     const errorMessage = error instanceof Error ? error.message : String(error);
 
@@ -369,19 +369,19 @@ export async function deleteCapsule(
   }
 
   try {
-    logger.info(`Deleting capsule: ${capsuleId}`);
+    fatLogger.info(`Deleting capsule: ${capsuleId}`, 'be');
 
     const authenticatedActor = await getActor();
     const result = await authenticatedActor.capsules_delete(capsuleId);
 
     if ('Ok' in result) {
-      logger.info(`Successfully deleted capsule: ${capsuleId}`);
+      fatLogger.info(`Successfully deleted capsule: ${capsuleId}`, 'be');
       return;
     } else {
       throw createServiceError(`Failed to delete capsule: ${JSON.stringify(result.Err)}`);
     }
   } catch (error) {
-    logger.error(`Failed to delete capsule: ${capsuleId}`, undefined, { data: error as Error });
+    fatLogger.error(`Failed to delete capsule: ${capsuleId}`, 'be', { data: error as Error });
 
     const errorMessage = error instanceof Error ? error.message : String(error);
 
@@ -419,15 +419,15 @@ export async function deleteCapsule(
  */
 export async function listCapsules(getActor: () => Promise<BackendActor>, clearActor: () => void): Promise<unknown[]> {
   try {
-    logger.info('Listing capsules for authenticated user');
+    fatLogger.info('Listing capsules for authenticated user', 'be');
 
     const authenticatedActor = await getActor();
     const capsules = await authenticatedActor.capsules_list();
 
-    logger.info(`Successfully listed ${capsules.length} capsules`);
+    fatLogger.info(`Successfully listed ${capsules.length} capsules`, 'be');
     return capsules;
   } catch (error) {
-    logger.error('Failed to list capsules', undefined, { data: error as Error });
+    fatLogger.error('Failed to list capsules', 'be', { data: error as Error });
 
     const errorMessage = error instanceof Error ? error.message : String(error);
 
@@ -456,7 +456,7 @@ export async function ensureSelfCapsule(
   clearActor: () => void
 ): Promise<Capsule> {
   try {
-    logger.info('Ensuring self-capsule exists');
+    fatLogger.info('Ensuring self-capsule exists', 'be');
 
     const actor = await getActor();
 
@@ -465,13 +465,13 @@ export async function ensureSelfCapsule(
 
     // Handle the Result type
     if ('Ok' in capsuleResult) {
-      logger.info('Self-capsule ensured successfully');
+      fatLogger.info('Self-capsule ensured successfully', 'be');
       return capsuleResult.Ok;
     } else {
       throw createServiceError(`Failed to create capsule: ${JSON.stringify(capsuleResult.Err)}`);
     }
   } catch (error) {
-    logger.error('Failed to ensure self-capsule:', undefined, {
+    fatLogger.error('Failed to ensure self-capsule:', 'be', {
       data: error instanceof Error ? error : undefined,
     });
 
@@ -492,7 +492,7 @@ export async function ensureSelfCapsule(
  */
 export async function ensureSelfCapsuleWithIdentity(identity: Identity): Promise<Capsule> {
   try {
-    logger.info('Ensuring self-capsule exists with raw identity');
+    fatLogger.info('Ensuring self-capsule exists with raw identity', 'be');
 
     // Create actor with the provided identity
     const { backendActor } = await import('@/ic/backend');
@@ -503,13 +503,13 @@ export async function ensureSelfCapsuleWithIdentity(identity: Identity): Promise
 
     // Handle the Result type
     if ('Ok' in capsuleResult) {
-      logger.info('Self-capsule ensured successfully with raw identity');
+      fatLogger.info('Self-capsule ensured successfully with raw identity', 'be');
       return capsuleResult.Ok;
     } else {
       throw createServiceError(`Failed to create capsule: ${JSON.stringify(capsuleResult.Err)}`);
     }
   } catch (error) {
-    logger.error('Failed to ensure self-capsule with raw identity:', undefined, {
+    fatLogger.error('Failed to ensure self-capsule with raw identity:', 'be', {
       data: error instanceof Error ? error : undefined,
     });
     throw error;

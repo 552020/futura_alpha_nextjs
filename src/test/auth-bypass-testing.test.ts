@@ -4,7 +4,7 @@ import { testDb } from '@/db/test-db';
 import { users, allUsers } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 // 🎯 AUTH BYPASS TESTING - IMMEDIATE UNBLOCKING
 // This test demonstrates that we can now test authenticated endpoints
 // by bypassing NextAuth complexity in test environment
@@ -18,7 +18,8 @@ describe('Auth Bypass Testing - Immediate ICP Endpoint Testing', () => {
   let testUser2Id: string;
 
   beforeAll(async () => {
-    logger.info(`
+    fatLogger.info(
+      `
 🎯 SETTING UP AUTH BYPASS TESTING
 
 We're now using the senior dev's recommended approach:
@@ -27,7 +28,9 @@ We're now using the senior dev's recommended approach:
 3. Immediate testing of authenticated endpoints
 
 This should unblock your ICP endpoint testing!
-    `);
+    `,
+      'be'
+    );
 
     try {
       // Create test users in the database
@@ -69,15 +72,18 @@ This should unblock your ICP endpoint testing!
       testUser1Id = testUser1.id;
       testUser2Id = testUser2.id;
 
-      logger.info(`
+      fatLogger.info(
+        `
 ✅ TEST USERS CREATED SUCCESSFULLY:
 - User 1: ${testUser1.email} (ID: ${testUser1.id}) - Role: ${testUser1.role}
 - User 2: ${testUser2.email} (ID: ${testUser2.id}) - Role: ${testUser2.role}
 
 Now let's test the auth bypass!
-      `);
+      `,
+        'be'
+      );
     } catch (error) {
-      logger.error('❌ Error creating test users:', undefined, { data: error instanceof Error ? error : undefined });
+      fatLogger.error('❌ Error creating test users:', 'be', { data: error instanceof Error ? error : undefined });
       throw error;
     }
   });
@@ -87,22 +93,25 @@ Now let's test the auth bypass!
     try {
       await testDb.delete(users).where(eq(users.id, testUser1Id));
       await testDb.delete(users).where(eq(users.id, testUser2Id));
-      logger.info('🧹 Test users cleaned up successfully');
+      fatLogger.info('🧹 Test users cleaned up successfully', 'be');
     } catch (error) {
-      logger.error('❌ Error cleaning up test users:', undefined, { data: error instanceof Error ? error : undefined });
+      fatLogger.error('❌ Error cleaning up test users:', 'be', { data: error instanceof Error ? error : undefined });
     }
   });
 
   describe('Testing Auth Bypass with Headers', () => {
     it('should test basic user authentication bypass', async () => {
-      logger.info(`
+      fatLogger.info(
+        `
 🔍 TESTING BASIC AUTH BYPASS:
 - Setting TEST_AUTH_BYPASS=1
 - Using x-test-user-id header
 - Should bypass NextAuth and return 200
 
 Testing authenticated endpoint with auth bypass...
-      `);
+      `,
+        'be'
+      );
 
       // Test the authenticated endpoint with auth bypass
       const response = await request(baseURL)
@@ -125,24 +134,30 @@ Testing authenticated endpoint with auth bypass...
         status: 'success',
       });
 
-      logger.info(`
+      fatLogger.info(
+        `
 ✅ BASIC AUTH BYPASS TEST PASSED!
 - Endpoint returned 200 (authenticated)
 - User data correctly returned
 - NextAuth bypass working
 - We can now test authenticated endpoints!
-      `);
+      `,
+        'be'
+      );
     });
 
     it('should test admin user with different role', async () => {
-      logger.info(`
+      fatLogger.info(
+        `
 🔍 TESTING ADMIN USER AUTH BYPASS:
 - User: ${testUser2Id}
 - Role: admin
 - Should bypass NextAuth and return 200
 
 Testing admin endpoint with auth bypass...
-      `);
+      `,
+        'be'
+      );
 
       // Test the authenticated endpoint
       const response = await request(baseURL)
@@ -165,24 +180,30 @@ Testing admin endpoint with auth bypass...
         status: 'success',
       });
 
-      logger.info(`
+      fatLogger.info(
+        `
 ✅ ADMIN USER AUTH BYPASS TEST PASSED!
 - Endpoint returned 200 (authenticated)
 - Admin user data correctly returned
 - Role-based authentication working
 - Auth bypass is fully functional!
-      `);
+      `,
+        'be'
+      );
     });
 
     it('should test user with linked Internet Identity Principal', async () => {
-      logger.info(`
+      fatLogger.info(
+        `
 🔍 TESTING II USER WITH LINKED PRINCIPAL:
 - User: ${testUser1Id}
 - Linked Principal: 2vxsx-fae
 - Should include II data in session
 
 Testing II user with auth bypass...
-      `);
+      `,
+        'be'
+      );
 
       const linkedPrincipal = '2vxsx-fae';
 
@@ -209,16 +230,20 @@ Testing II user with auth bypass...
         status: 'success',
       });
 
-      logger.info(`
+      fatLogger.info(
+        `
 ✅ II USER AUTH BYPASS TEST PASSED!
 - Endpoint returned 200 (authenticated)
 - II Principal data correctly included
 - Auth bypass working with complex user states
-      `);
+      `,
+        'be'
+      );
     });
 
     it('should test user with active II co-authentication', async () => {
-      logger.info(`
+      fatLogger.info(
+        `
 🔍 TESTING ACTIVE II CO-AUTHENTICATION:
 - User: ${testUser1Id}
 - Active Principal: 2vxsx-fae
@@ -226,7 +251,9 @@ Testing II user with auth bypass...
 - Should include active II data
 
 Testing active co-auth with auth bypass...
-      `);
+      `,
+        'be'
+      );
 
       const activePrincipal = '2vxsx-fae';
 
@@ -255,19 +282,23 @@ Testing active co-auth with auth bypass...
         status: 'success',
       });
 
-      logger.info(`
+      fatLogger.info(
+        `
 ✅ ACTIVE II CO-AUTHENTICATION TEST PASSED!
 - Endpoint returned 200 (authenticated)
 - Active co-auth data correctly included
 - Complex authentication states working
 - Ready to test real ICP endpoints!
-      `);
+      `,
+        'be'
+      );
     });
   });
 
   describe('Next Steps: Testing Real ICP Endpoints', () => {
     it('should outline how to test your real ICP endpoints', () => {
-      logger.info(`
+      fatLogger.info(
+        `
 🎯 NEXT STEPS: TESTING REAL ICP ENDPOINTS WITH AUTH BYPASS
 
 Now that we have auth bypass working, we can test:
@@ -293,7 +324,9 @@ Now that we have auth bypass working, we can test:
    - TTL expiration testing
 
 💡 READY TO TEST: We now have the foundation to test your real ICP authentication system!
-      `);
+      `,
+        'be'
+      );
 
       expect(true).toBe(true);
     });

@@ -16,7 +16,7 @@ import { getAuthClient } from '@/ic/ii';
 import { useIILinks } from '@/hooks/use-ii-links';
 import { getAuthStatus } from '@/lib/utils/auth-status';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 interface ForeverStorageProgressModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -218,10 +218,10 @@ export function ForeverStorageProgressModal({
       const currentUrl = new URL(window.location.href);
       currentUrl.searchParams.set('storeForever', '1');
       const signinUrl = `/${lang}/sign-ii-only?callbackUrl=${encodeURIComponent(currentUrl.toString())}`;
-      // logger.info("Redirecting to II-only signin page:", signinUrl);
+      // fatLogger.info("Redirecting to II-only signin page:", signinUrl);
       window.location.href = signinUrl;
     } catch (error) {
-      logger.error('Failed to redirect to II signin page:', undefined, {
+      fatLogger.error('Failed to redirect to II signin page:', 'fe', {
         data: error instanceof Error ? error : undefined,
       });
       setError('Failed to redirect to sign in page');

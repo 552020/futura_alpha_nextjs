@@ -13,7 +13,7 @@ import { MemoryStorageBadge } from '@/components/common/memory-storage-badge';
 import { useToast } from '@/hooks/use-toast';
 import { getBlurPlaceholder, IMAGE_SIZES } from '@/utils/image-utils';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 // Gallery Hero Cover Component
 function GalleryHeroCover({
   gallery,
@@ -280,7 +280,7 @@ function GalleryPreviewContent() {
       const result = await galleryService.getGallery(id as string, USE_MOCK_DATA);
       setGallery(result.gallery);
     } catch (err) {
-      logger.error('Error loading gallery', undefined, { data: err as Error });
+      fatLogger.error('Error loading gallery', 'fe', { data: err as Error });
       setError('Failed to load gallery');
     } finally {
       setIsLoading(false);
@@ -344,13 +344,13 @@ function GalleryPreviewContent() {
       setGallery(prev => (prev ? { ...prev, isPublic: !prev.isPublic } : null));
 
       // Show success message (you can add toast notification here)
-      // logger.info(`Gallery ${gallery.isPublic ? "hidden" : "published"} successfully`);
+      // fatLogger.info(`Gallery ${gallery.isPublic ? "hidden" : "published"} successfully`);
       toast({
         title: 'Success',
         description: `Gallery ${gallery.isPublic ? 'hidden' : 'published'} successfully`,
       });
     } catch (error) {
-      logger.error('Failed to update gallery', undefined, { data: error as Error });
+      fatLogger.error('Failed to update gallery', 'fe', { data: error as Error });
       // Show error message (you can add toast notification here)
     } finally {
       setIsPublishing(false);
@@ -373,7 +373,7 @@ function GalleryPreviewContent() {
         document.body.removeChild(link);
       }
     } catch (error) {
-      logger.error('Failed to download image', undefined, { data: error as Error });
+      fatLogger.error('Failed to download image', 'fe', { data: error as Error });
     } finally {
       setIsDownloading(false);
     }
@@ -390,13 +390,13 @@ function GalleryPreviewContent() {
       });
 
       // Show success message (you can add toast notification here)
-      // logger.info("Gallery shared successfully");
+      // fatLogger.info("Gallery shared successfully");
       toast({
         title: 'Success',
         description: 'Gallery shared successfully',
       });
     } catch (error) {
-      logger.error('Failed to share gallery', undefined, { data: error as Error });
+      fatLogger.error('Failed to share gallery', 'fe', { data: error as Error });
       // Show error message (you can add toast notification here)
     } finally {
       setIsSharing(false);
@@ -417,7 +417,7 @@ function GalleryPreviewContent() {
   };
 
   const handleForeverStorageError = (error: Error) => {
-    logger.error('Error storing gallery forever', undefined, { data: error as Error });
+    fatLogger.error('Error storing gallery forever', 'fe', { data: error as Error });
     setError('Failed to store gallery forever');
   };
 

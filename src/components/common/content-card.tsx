@@ -1,6 +1,22 @@
 'use client';
 
-import { FileText, ImageIcon, Video, Share2, Trash2, File, Pencil, Music, Folder, Star, Eye, EyeOff, Image as ImageLucide, Globe, Lock } from 'lucide-react';
+import {
+  FileText,
+  ImageIcon,
+  Video,
+  Share2,
+  Trash2,
+  File,
+  Pencil,
+  Music,
+  Folder,
+  Star,
+  Eye,
+  EyeOff,
+  Image as ImageLucide,
+  Globe,
+  Lock,
+} from 'lucide-react';
 import { MemoryStatus } from '../memory/memory-status';
 import { MemoryStorageBadge } from '@/components/common/memory-storage-badge';
 import { BaseCard } from '@/components/common/base-card';
@@ -28,6 +44,9 @@ interface MemoryItem extends BaseItem {
   sharedBy?: string;
   itemCount?: number;
   assets?: Array<{ assetType: string; url: string }>;
+  storageSummary?: {
+    storageLocations: string[]; // Array of storage locations: ['icp'], ['neon'], ['icp', 'neon']
+  };
 }
 
 interface GalleryPhotoItem extends BaseItem {
@@ -79,6 +98,203 @@ interface ContentCardProps {
   contentType?: 'memory' | 'gallery-photo' | 'gallery';
 }
 
+// Helper functions
+function getMemoryIcon(type: string) {
+  switch (type) {
+    case 'image':
+      return <ImageIcon className="h-5 w-5" />;
+    case 'video':
+      return <Video className="h-5 w-5" />;
+    case 'note':
+      return <FileText className="h-5 w-5" />;
+    case 'document':
+      return <File className="h-5 w-5" />;
+    case 'audio':
+      return <Music className="h-5 w-5" />;
+    case 'folder':
+      return <Folder className="h-5 w-5" />;
+    default:
+      return <FileText className="h-5 w-5" />;
+  }
+}
+
+function renderPreview(item: FlexibleItem) {
+  // Memory preview logic
+  if ('type' in item && item.type) {
+    const memory = item as MemoryItem;
+
+    // Prefer provided thumbnail; otherwise derive from minimal assets array if present
+    const memoryWithAssets = memory as typeof memory & { assets?: Array<{ assetType: string; url: string }> };
+    const derivedThumb =
+      memoryWithAssets?.assets?.find?.(a => a.assetType === 'thumb')?.url ||
+      memoryWithAssets?.assets?.find?.(a => a.assetType === 'display')?.url ||
+      memoryWithAssets?.assets?.find?.(a => a.assetType === 'original')?.url;
+
+    // Look for placeholder asset for better blur effect
+    const placeholderAsset = memoryWithAssets?.assets?.find?.(a => a.assetType === 'placeholder');
+    const blurDataURL = placeholderAsset?.url || getBlurPlaceholder();
+
+    if (memory.type === 'image' && (memory.thumbnail || derivedThumb)) {
+      return (
+        <Image
+          src={memory.thumbnail || derivedThumb || ''}
+          alt={memory.title || 'Memory image'}
+          fill={true}
+          className="object-cover"
+          sizes={IMAGE_SIZES.grid}
+          placeholder="blur"
+          blurDataURL={blurDataURL}
+        />
+      );
+    }
+
+    const IconComponent = getMemoryIconComponent(memory.type);
+    const label = getMemoryLabel(memory);
+
+    return (
+      <div className="flex flex-col items-center justify-center text-muted-foreground">
+        <IconComponent className="h-12 w-12 mb-2" />
+        <span className="text-sm">{label}</span>
+      </div>
+    );
+  }
+
+  return null;
+}
+
+function getMemoryIconComponent(type: string) {
+  switch (type) {
+    case 'image':
+      return ImageIcon;
+    case 'video':
+      return Video;
+    case 'note':
+      return FileText;
+    case 'document':
+      return File;
+    case 'audio':
+      return Music;
+    case 'folder':
+      return Folder;
+    default:
+      return FileText;
+  }
+}
+
+function getMemoryLabel(memory: MemoryItem) {
+  if (memory.type === 'folder') {
+    return `${memory.itemCount || 0} items`;
+  }
+  switch (memory.type) {
+    case 'video':
+      return 'Video';
+    case 'audio':
+      return 'Audio';
+    case 'document':
+      return 'Document';
+    case 'note':
+      return 'Note';
+    default:
+      return 'File';
+  }
+}
+
+/**
+ * Renders the title for different item types in the card.
+ *
+ * TODO: BAD DESIGN - This function handles multiple item structures with different
+ * property paths. This indicates poor type design and should be refactored to:
+ * 1. Use a unified item interface with consistent property names
+ * 2. Or use proper type guards/discriminated unions
+ * 3. Or separate render functions for different item types
+ *
+ * Current logic:
+ * - Direct memory items: uses item.title
+ * - Gallery photo items: uses item.memory.title
+ * - Fallback: "Untitled"
+ */
+function renderTitle(item: FlexibleItem) {
+  if ('title' in item) {
+    return shortenTitle(item.title);
+  }
+  if ('memory' in item && item.memory.title) {
+    return item.memory.title;
+  }
+  return 'Untitled';
+}
+
+/**
+ * Renders the description for different item types in the card.
+ *
+ * Returns undefined (not "Untitled") because:
+ * - Descriptions are optional content, unlike titles which are required
+ * - Returning undefined allows the BaseCard to conditionally render the description section
+ * - If we returned "Untitled", it would show "Untitled" text even when no description exists
+ * - The BaseCard checks if renderDescription returns a value before rendering the description area
+ */
+function renderDescription(item: FlexibleItem) {
+  if ('description' in item) {
+    return item.description;
+  }
+  return undefined;
+}
+
+// FolderStorageBadge component for displaying folder storage status
+function FolderStorageBadge({
+  storageSummary,
+  size: _size,
+}: {
+  storageSummary?: { storageLocations: string[] };
+  size: string;
+}) {
+  if (!storageSummary?.storageLocations?.length) return null;
+
+  const { storageLocations } = storageSummary;
+
+  // Simple logic: show badge for each storage location
+  return (
+    <div className="flex gap-1">
+      {storageLocations.map(location => (
+        <Badge key={location} variant="secondary" className="text-xs">
+          {location.toUpperCase()}
+        </Badge>
+      ))}
+    </div>
+  );
+}
+
+function renderStorageBadge(item: FlexibleItem) {
+  if ('type' in item && item.type) {
+    if (item.type === 'folder') {
+      // Handle folder storage badge
+      const folderItem = item as MemoryItem & { storageSummary?: { storageLocations: string[] } };
+      return <FolderStorageBadge storageSummary={folderItem.storageSummary} size="xs" />;
+    } else {
+      // Handle individual memory storage badge
+      return <MemoryStorageBadge memoryId={item.id} memoryType={item.type} size="xs" />;
+    }
+  }
+  return null;
+}
+
+function renderLeftStatus(item: FlexibleItem) {
+  if ('type' in item && item.type) {
+    const memory = item as MemoryItem;
+
+    return (
+      <>
+        {/* Document type icon */}
+        <div className="flex-shrink-0">{getMemoryIcon(memory.type)}</div>
+
+        {/* Visibility status */}
+        <MemoryStatus status={memory.status} sharedWithCount={memory.sharedWithCount} sharedBy={memory.sharedBy} />
+      </>
+    );
+  }
+
+  return null;
+}
+
 export function ContentCard({
   item,
   onClick,
@@ -107,9 +323,7 @@ export function ContentCard({
         onClick={() => onClick(item)}
       >
         <div className="flex items-center gap-4">
-          <div className="flex-shrink-0">
-            {getMemoryIcon(memory.type)}
-          </div>
+          <div className="flex-shrink-0">{getMemoryIcon(memory.type)}</div>
           <div className="flex-1 min-w-0">
             <h3 className="font-medium truncate" title={memory.title}>
               {shortenTitle(memory.title)}
@@ -241,11 +455,7 @@ export function ContentCard({
                   }}
                   className="h-8 w-8 p-0 bg-white/90 hover:bg-white border border-gray-300"
                 >
-                  {isHidden ? (
-                    <Eye className="h-4 w-4 text-gray-700" />
-                  ) : (
-                    <EyeOff className="h-4 w-4 text-gray-700" />
-                  )}
+                  {isHidden ? <Eye className="h-4 w-4 text-gray-700" /> : <EyeOff className="h-4 w-4 text-gray-700" />}
                 </Button>
               )}
             </div>
@@ -265,7 +475,9 @@ export function ContentCard({
                       }}
                       className="h-6 w-6 p-0 hover:bg-transparent"
                     >
-                      <Star className={`h-4 w-4 ${star <= rating ? 'text-yellow-500 fill-current' : 'text-gray-400'}`} />
+                      <Star
+                        className={`h-4 w-4 ${star <= rating ? 'text-yellow-500 fill-current' : 'text-gray-400'}`}
+                      />
                     </Button>
                   ))}
                 </div>
@@ -350,156 +562,11 @@ export function ContentCard({
       onEdit={onEdit}
       onShare={onShare}
       onDelete={onDelete}
-      renderPreview={_renderPreview}
-      renderTitle={_renderTitle}
-      renderDescription={_renderDescription}
-      renderStorageBadge={_renderStorageBadge}
-      renderLeftStatus={_renderLeftStatus}
+      renderPreview={renderPreview}
+      renderTitle={renderTitle}
+      renderDescription={renderDescription}
+      renderStorageBadge={renderStorageBadge}
+      renderLeftStatus={renderLeftStatus}
     />
   );
-}
-
-// Helper functions
-function getMemoryIcon(type: string) {
-  switch (type) {
-    case 'image':
-      return <ImageIcon className="h-5 w-5" />;
-    case 'video':
-      return <Video className="h-5 w-5" />;
-    case 'note':
-      return <FileText className="h-5 w-5" />;
-    case 'document':
-      return <File className="h-5 w-5" />;
-    case 'audio':
-      return <Music className="h-5 w-5" />;
-    case 'folder':
-      return <Folder className="h-5 w-5" />;
-    default:
-      return <FileText className="h-5 w-5" />;
-  }
-}
-
-function _renderPreview(item: FlexibleItem) {
-  // Memory preview logic
-  if ('type' in item && item.type) {
-    const memory = item as MemoryItem;
-
-    // Prefer provided thumbnail; otherwise derive from minimal assets array if present
-    const memoryWithAssets = memory as typeof memory & { assets?: Array<{ assetType: string; url: string }> };
-    const derivedThumb =
-      memoryWithAssets?.assets?.find?.(a => a.assetType === 'thumb')?.url ||
-      memoryWithAssets?.assets?.find?.(a => a.assetType === 'display')?.url ||
-      memoryWithAssets?.assets?.find?.(a => a.assetType === 'original')?.url;
-
-    // Look for placeholder asset for better blur effect
-    const placeholderAsset = memoryWithAssets?.assets?.find?.(a => a.assetType === 'placeholder');
-    const blurDataURL = placeholderAsset?.url || getBlurPlaceholder();
-
-    if (memory.type === 'image' && (memory.thumbnail || derivedThumb)) {
-      return (
-        <Image
-          src={memory.thumbnail || derivedThumb || ''}
-          alt={memory.title || 'Memory image'}
-          fill={true}
-          className="object-cover"
-          sizes={IMAGE_SIZES.grid}
-          placeholder="blur"
-          blurDataURL={blurDataURL}
-        />
-      );
-    }
-
-    const IconComponent = getMemoryIconComponent(memory.type);
-    const label = getMemoryLabel(memory);
-
-    return (
-      <div className="flex flex-col items-center justify-center text-muted-foreground">
-        <IconComponent className="h-12 w-12 mb-2" />
-        <span className="text-sm">{label}</span>
-      </div>
-    );
-  }
-
-  return null;
-}
-
-function getMemoryIconComponent(type: string) {
-  switch (type) {
-    case 'image':
-      return ImageIcon;
-    case 'video':
-      return Video;
-    case 'note':
-      return FileText;
-    case 'document':
-      return File;
-    case 'audio':
-      return Music;
-    case 'folder':
-      return Folder;
-    default:
-      return FileText;
-  }
-}
-
-function getMemoryLabel(memory: MemoryItem) {
-  if (memory.type === 'folder') {
-    return `${memory.itemCount || 0} items`;
-  }
-  switch (memory.type) {
-    case 'video':
-      return 'Video';
-    case 'audio':
-      return 'Audio';
-    case 'document':
-      return 'Document';
-    case 'note':
-      return 'Note';
-    default:
-      return 'File';
-  }
-}
-
-function _renderTitle(item: FlexibleItem) {
-  if ('title' in item) {
-    return shortenTitle(item.title);
-  }
-  if ('memory' in item && item.memory.title) {
-    return item.memory.title;
-  }
-  return 'Untitled';
-}
-
-function _renderDescription(item: FlexibleItem) {
-  if ('description' in item) {
-    return item.description;
-  }
-  return undefined;
-}
-
-function _renderStorageBadge(item: FlexibleItem) {
-  if ('type' in item && item.type && item.type !== 'folder') {
-    return <MemoryStorageBadge memoryId={item.id} memoryType={item.type} size="xs" />;
-  }
-  return null;
-}
-
-function _renderLeftStatus(item: FlexibleItem) {
-  if ('type' in item && item.type) {
-    const memory = item as MemoryItem;
-
-    return (
-      <>
-        {/* Document type icon */}
-        <div className="flex-shrink-0">
-          {getMemoryIcon(memory.type)}
-        </div>
-
-        {/* Visibility status */}
-        <MemoryStatus status={memory.status} sharedWithCount={memory.sharedWithCount} sharedBy={memory.sharedBy} />
-      </>
-    );
-  }
-
-  return null;
 }

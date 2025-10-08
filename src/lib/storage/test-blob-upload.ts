@@ -9,13 +9,13 @@
 
 // import { uploadFileToVercelBlob } from '@/services/upload/vercel-blob-upload';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 /**
  * Test the blob-first upload flow with a sample file
  */
 export async function testBlobFirstUpload() {
-  logger.info('🧪 Testing blob-first upload flow...');
-  logger.info('⚠️ This test is outdated and needs to be updated to use the new unified upload functions.');
+  fatLogger.info('🧪 Testing blob-first upload flow...', 'be');
+  fatLogger.info('⚠️ This test is outdated and needs to be updated to use the new unified upload functions.', 'be');
 
   // TODO: Update this test to use the new uploadToVercelBlob function
   throw new Error('Test is outdated - needs to be updated to use new unified upload functions');
@@ -25,8 +25,8 @@ export async function testBlobFirstUpload() {
  * Test image upload with multiple assets (original, display, thumb)
  */
 export async function testImageUpload() {
-  logger.info('🧪 Testing image upload with multiple assets...');
-  logger.info('⚠️ This test is outdated and needs to be updated to use the new unified upload functions.');
+  fatLogger.info('🧪 Testing image upload with multiple assets...', 'be');
+  fatLogger.info('⚠️ This test is outdated and needs to be updated to use the new unified upload functions.', 'be');
 
   // TODO: Update this test to use the new uploadToVercelBlob function
   throw new Error('Test is outdated - needs to be updated to use new unified upload functions');
@@ -36,8 +36,8 @@ export async function testImageUpload() {
  * Test multiple storage backends
  */
 export async function testMultipleStorageBackends() {
-  logger.info('🧪 Testing multiple storage backends...');
-  logger.info('⚠️ This test is outdated and needs to be updated to use the new unified upload functions.');
+  fatLogger.info('🧪 Testing multiple storage backends...', 'be');
+  fatLogger.info('⚠️ This test is outdated and needs to be updated to use the new unified upload functions.', 'be');
 
   // TODO: Update this test to use the new uploadToVercelBlob function
   throw new Error('Test is outdated - needs to be updated to use new unified upload functions');
@@ -47,8 +47,8 @@ export async function testMultipleStorageBackends() {
  * Test onboarding flow
  */
 export async function testOnboardingUpload() {
-  logger.info('🧪 Testing onboarding upload flow...');
-  logger.info('⚠️ This test is outdated and needs to be updated to use the new unified upload functions.');
+  fatLogger.info('🧪 Testing onboarding upload flow...', 'be');
+  fatLogger.info('⚠️ This test is outdated and needs to be updated to use the new unified upload functions.', 'be');
 
   // TODO: Update this test to use the new uploadToVercelBlob function
   throw new Error('Test is outdated - needs to be updated to use new unified upload functions');

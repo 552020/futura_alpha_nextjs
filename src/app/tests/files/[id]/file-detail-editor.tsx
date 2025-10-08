@@ -12,7 +12,7 @@ import { AlertCircle, ArrowLeft, Save } from 'lucide-react';
 import Image from 'next/image';
 import { DBMemory } from '@/db/schema';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 // Extended type for test data that includes legacy fields
 type TestMemoryData = DBMemory & {
   url?: string;
@@ -179,7 +179,7 @@ export default function FileDetailEditor({ fileDetails }: { fileDetails: FileDet
       // Refresh the page after successful update
       router.refresh();
     } catch (err) {
-      logger.error('Error updating file:', undefined, { data: err });
+      fatLogger.error('Error updating file:', 'fe', { data: err });
       setError(err instanceof Error ? err.message : 'Failed to update file');
     } finally {
       setUpdating(false);

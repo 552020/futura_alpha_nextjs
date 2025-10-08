@@ -5,7 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getAuthClient } from '@/ic/ii';
 import { useAuthenticatedActor } from '@/hooks/use-authenticated-actor';
 import { useState, useEffect } from 'react';
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 
 /**
  * Whoami Component
@@ -33,7 +33,7 @@ export function Whoami() {
         const authenticated = await authClient.isAuthenticated();
         setIsAuthenticated(authenticated);
       } catch (error) {
-        logger.error('Failed to check authentication status:', undefined, {
+        fatLogger.error('Failed to check authentication status:', 'fe', {
           data: error instanceof Error ? error : undefined,
         });
         setIsAuthenticated(false);
@@ -70,7 +70,7 @@ export function Whoami() {
         description: `Backend whoami result: ${backendPrincipal.toString()}`,
       });
     } catch (error) {
-      logger.error('Whoami failed', undefined, { data: error as Error });
+      fatLogger.error('Whoami failed', 'fe', { data: error as Error });
       const errorMessage = error instanceof Error ? error.message : String(error);
 
       // Handle expired/invalid delegation

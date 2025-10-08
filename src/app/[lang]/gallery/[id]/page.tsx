@@ -30,7 +30,7 @@ import { SendSelectionModal } from '@/components/galleries/send-selection-modal'
 import { toast } from '@/components/ui/use-toast';
 import { ToastContainer } from '@/components/ui/toast-container';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 // Mock data flag for development - same pattern as dashboard
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_GALLERY === 'true';
 
@@ -72,11 +72,11 @@ function GalleryViewContent() {
 
   const loadGallery = useCallback(async () => {
     try {
-      logger.info('Loading gallery with ID', 'gallery:fe', { galleryId: id });
+      fatLogger.info('Loading gallery with ID', 'fe', { galleryId: id });
       setIsLoading(true);
       setError(null);
       const result = await galleryService.getGallery(id as string, USE_MOCK_DATA);
-      logger.info('Gallery data received', 'gallery:fe', { galleryId: id, itemCount: result.gallery?.items?.length || 0 });
+      fatLogger.info('Gallery data received', 'fe', { galleryId: id, itemCount: result.gallery?.items?.length || 0 });
       setGallery(result.gallery);
 
       // Get the current user's ID from the session
@@ -85,17 +85,17 @@ function GalleryViewContent() {
       const userId = session?.user?.id;
 
       if (!userId) {
-        logger.info('No user session found, skipping business relationship check', 'gallery:fe');
+        fatLogger.info('No user session found, skipping business relationship check', 'fe');
         return;
       }
 
       // Fetch business relationship to get the business email
       try {
-        logger.info('Fetching business relationship for user ID', 'gallery:fe', { userId });
+        fatLogger.info('Fetching business relationship for user ID', 'fe', { userId });
         const response = await fetch(`/api/users/${userId}/business-relationship`);
         if (response.ok) {
           const data = await response.json();
-          logger.info('Business relationship API response', 'gallery:fe', {
+          fatLogger.info('Business relationship API response', 'fe', {
             status: 'success',
             isClient: data.isClient,
             businessEmail: data.businessEmail,
@@ -103,26 +103,26 @@ function GalleryViewContent() {
           });
 
           if (data.isClient && data.businessEmail) {
-            logger.info('Using business email from relationship', 'gallery:fe', { businessEmail: data.businessEmail });
+            fatLogger.info('Using business email from relationship', 'fe', { businessEmail: data.businessEmail });
             setBusinessEmail(data.businessEmail);
           } else if (data.isBusiness) {
-            logger.info('User is a business. No business email to use from relationship.', 'gallery:fe');
+            fatLogger.info('User is a business. No business email to use from relationship.', 'fe');
           } else {
-            logger.info('No business relationship found.', 'gallery:fe');
+            fatLogger.info('No business relationship found.', 'fe');
           }
         } else {
           const error = await response.json().catch(() => ({}));
-          logger.error('Error response from business-relationship API', 'gallery:fe', {
+          fatLogger.error('Error response from business-relationship API', 'fe', {
             status: response.status,
             statusText: response.statusText,
             error,
           });
         }
       } catch (error) {
-        logger.error('Error fetching business relationship', 'gallery:fe', { error, userId });
+        fatLogger.error('Error fetching business relationship', 'fe', { error, userId });
       }
     } catch (err) {
-      logger.error('Error loading gallery', undefined, { data: err as Error });
+      fatLogger.error('Error loading gallery', 'fe', { data: err as Error });
       setError('Failed to load gallery');
     } finally {
       setIsLoading(false);
@@ -184,31 +184,37 @@ function GalleryViewContent() {
   };
 
   const handleHideImage = (imageId: string) => {
-    logger.info('Hiding image', 'gallery:fe', { imageId });
+    fatLogger.info('Hiding image', 'fe', { imageId });
     setHiddenImages(prev => {
       const newHidden = [...prev, imageId];
-      logger.info('New hidden images', 'gallery:fe', { hiddenCount: newHidden.length, imageIds: newHidden });
+      fatLogger.info('New hidden images', 'fe', { hiddenCount: newHidden.length, imageIds: newHidden });
       return newHidden;
     });
     // Remove from selected images if hidden
     setSelectedImages(prev => {
       const filtered = prev.filter(id => id !== imageId);
-      logger.info('Removed from selection, new selection', 'gallery:fe', { selectedCount: filtered.length, imageIds: filtered });
+      fatLogger.info('Removed from selection, new selection', 'fe', {
+        selectedCount: filtered.length,
+        imageIds: filtered,
+      });
       return filtered;
     });
   };
 
   const handleUnhideImage = (imageId: string) => {
-    logger.info('Unhiding image', 'gallery:fe', { imageId });
+    fatLogger.info('Unhiding image', 'fe', { imageId });
     setHiddenImages(prev => {
       const newHidden = prev.filter(id => id !== imageId);
-      logger.info('New hidden images', 'gallery:fe', { hiddenCount: newHidden.length, imageIds: newHidden });
+      fatLogger.info('New hidden images', 'fe', { hiddenCount: newHidden.length, imageIds: newHidden });
       return newHidden;
     });
     // Remove from selected images if unhidden
     setSelectedImages(prev => {
       const filtered = prev.filter(id => id !== imageId);
-      logger.info('Removed from selection, new selection', 'gallery:fe', { selectedCount: filtered.length, imageIds: filtered });
+      fatLogger.info('Removed from selection, new selection', 'fe', {
+        selectedCount: filtered.length,
+        imageIds: filtered,
+      });
       return filtered;
     });
   };
@@ -250,7 +256,7 @@ function GalleryViewContent() {
       // Determine recipient email - use business email if available, otherwise fall back to env var
       const recipientEmail = businessEmail || process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL;
 
-      logger.info('Email sending details', 'gallery:fe', {
+      fatLogger.info('Email sending details', 'fe', {
         source: businessEmail ? 'business-relationship' : 'NEXT_PUBLIC_PHOTOGRAPHER_EMAIL',
         recipientEmail,
         hasBusinessEmail: !!businessEmail,
@@ -262,7 +268,7 @@ function GalleryViewContent() {
           'No recipient email address available. Tried:' +
           `\n- Business email from relationship: ${businessEmail || 'Not available'}` +
           `\n- Environment variable: ${process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL || 'Not set'}`;
-        logger.error('No recipient email address available', 'gallery:fe', {
+        fatLogger.error('No recipient email address available', 'fe', {
           businessEmail,
           envEmail: process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL,
           errorMsg,
@@ -312,7 +318,7 @@ function GalleryViewContent() {
       // Clear selection after successful send
       setSelectedImages([]);
     } catch (error) {
-      logger.error('Error sending selection', 'gallery:fe', { error, selectedCount: selectedImages.length });
+      fatLogger.error('Error sending selection', 'fe', { error, selectedCount: selectedImages.length });
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to send selection',
@@ -336,7 +342,7 @@ function GalleryViewContent() {
       await galleryService.deleteGallery(gallery.id, USE_MOCK_DATA);
       router.push('/gallery');
     } catch (err) {
-      logger.error('Error deleting gallery', undefined, { data: err as Error });
+      fatLogger.error('Error deleting gallery', 'fe', { data: err as Error });
       setError('Failed to delete gallery');
     } finally {
       setIsDeleting(false);
@@ -359,7 +365,7 @@ function GalleryViewContent() {
       );
       setGallery(updatedGallery);
     } catch (err) {
-      logger.error('Error updating gallery privacy', undefined, { data: err as Error });
+      fatLogger.error('Error updating gallery privacy', 'fe', { data: err as Error });
       setError('Failed to update gallery privacy');
     } finally {
       setIsUpdating(false);
@@ -368,7 +374,7 @@ function GalleryViewContent() {
 
   const _handleEditGallery = () => {
     // TODO: Navigate to edit page or open edit modal
-    // logger.info("Edit gallery:", gallery?.id);
+    // fatLogger.info("Edit gallery:", gallery?.id);
   };
 
   const handleStoreForever = () => {
@@ -604,7 +610,7 @@ function GalleryViewContent() {
                         size="sm"
                         onClick={() => {
                           // TODO: Open ICP explorer or gallery viewer
-                          // logger.info("View gallery on ICP:", gallery.id);
+                          // fatLogger.info("View gallery on ICP:", gallery.id);
                         }}
                         className="border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-300 dark:hover:bg-purple-950"
                       >
@@ -710,11 +716,11 @@ function GalleryViewContent() {
           onClose={() => setShowForeverStorageModal(false)}
           gallery={gallery}
           onSuccess={result => {
-            logger.info('Gallery stored successfully', 'gallery:fe', { result, galleryId: gallery?.id });
+            fatLogger.info('Gallery stored successfully', 'fe', { result, galleryId: gallery?.id });
             setShowForeverStorageModal(false);
           }}
           onError={error => {
-            logger.error('Error storing gallery', 'gallery:fe', { error, galleryId: gallery?.id });
+            fatLogger.error('Error storing gallery', 'fe', { error, galleryId: gallery?.id });
           }}
         />
       )}

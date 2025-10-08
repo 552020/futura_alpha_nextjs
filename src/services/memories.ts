@@ -2,7 +2,7 @@
 import { Memory } from '@/types/memory';
 import type { MemoryHeader, MemoryType } from '@/ic/declarations/backend/backend.did';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 // Removed old interfaces - now using unified format
 
 export interface MemoryWithFolder extends Omit<Memory, 'parentFolderId'> {
@@ -21,6 +21,9 @@ export interface MemoryWithFolder extends Omit<Memory, 'parentFolderId'> {
     originalPath?: string;
     folderName?: string; // Keep for backward compatibility
   };
+  storageStatus?: {
+    storageLocations: string[]; // Array of storage locations: ['icp'], ['neon'], ['icp', 'neon']
+  };
 }
 
 export interface FolderItem {
@@ -36,6 +39,9 @@ export interface FolderItem {
   thumbnail?: string;
   status: 'private' | 'shared' | 'public';
   sharedWithCount?: number;
+  storageSummary?: {
+    storageLocations: string[]; // Array of storage locations: ['icp'], ['neon'], ['icp', 'neon']
+  };
 }
 
 export type DashboardItem = MemoryWithFolder | FolderItem;
@@ -49,10 +55,16 @@ export const fetchMemories = async (
   page: number,
   dataSource: 'neon' | 'icp' = 'neon'
 ): Promise<FetchMemoriesResult> => {
-  logger.dashboard().info(`🔍 Fetching memories for page ${page} from ${dataSource}...`);
+  fatLogger.info(`🔍 Fetching memories for page ${page} from ${dataSource}...`, 'be');
 
   if (dataSource === 'icp') {
-    return await fetchMemoriesFromICP(page);
+    try {
+      return await fetchMemoriesFromICP(page);
+    } catch (error) {
+      fatLogger.warn(`⚠️ ICP fetch failed, falling back to Neon:`, 'be', { error: error instanceof Error ? error.message : String(error) });
+      // Gracefully fall back to Neon when ICP fails
+      return await fetchMemoriesFromNeon(page);
+    }
   } else {
     return await fetchMemoriesFromNeon(page);
   }
@@ -61,7 +73,7 @@ export const fetchMemories = async (
 // Fetch memories from Neon database via API (current implementation)
 const fetchMemoriesFromNeon = async (page: number): Promise<FetchMemoriesResult> => {
   const response = await fetch(`/api/memories?page=${page}`, { cache: 'no-store' });
-  logger.apiResponse().info(`🔍 API response status: ${response.status} ${response.statusText}`);
+  fatLogger.info(`🔍 API response status: ${response.status} ${response.statusText}`, 'be');
 
   if (!response.ok) {
     // Try to get error details from the response
@@ -90,7 +102,7 @@ const fetchMemoriesFromNeon = async (page: number): Promise<FetchMemoriesResult>
   }
 
   const data = await response.json();
-  logger.apiResponse().info('API response data', {
+  fatLogger.info('API response data', 'be', {
     memoriesCount: data.data?.length || 0,
     hasMore: data.hasMore,
     total: data.total,
@@ -144,7 +156,7 @@ const fetchMemoriesFromICP = async (page: number): Promise<FetchMemoriesResult> 
       throw new Error(`ICP canister error: ${JSON.stringify(result.Err)}`);
     }
   } catch (error) {
-    logger.error('Failed to fetch memories from ICP:', error instanceof Error ? error : new Error(String(error)));
+    fatLogger.error('Failed to fetch memories from ICP:', 'be', { data: error instanceof Error ? error : new Error(String(error)) });
     throw error;
   }
 };
@@ -254,9 +266,9 @@ export const deleteAllMemories = async (options?: {
 };
 
 export const processDashboardItems = (memories: MemoryWithFolder[]): DashboardItem[] => {
-  logger.memoryProcessing().info('🚀 LINE 129: ENTERING processDashboardItems');
-  logger.memoryProcessing().info('🔍 processDashboardItems - Received memories:', { count: memories.length });
-  logger.memoryProcessing().info('🔍 All memories with folder info:', {
+  fatLogger.info('🚀 LINE 129: ENTERING processDashboardItems', 'be');
+  fatLogger.info('🔍 processDashboardItems - Received memories:', 'be', { count: memories.length });
+  fatLogger.info('🔍 All memories with folder info:', 'be', {
     memories: memories.map(m => ({
       id: m.id,
       title: m.title,
@@ -269,27 +281,26 @@ export const processDashboardItems = (memories: MemoryWithFolder[]): DashboardIt
   const folderGroups = memories.reduce(
     (groups, memory) => {
       const parentFolderId = memory.parentFolderId;
-      logger.memoryProcessing().info(`🔍 Processing memory "${memory.title}" with parentFolderId: ${parentFolderId}`);
+      fatLogger.info(`🔍 Processing memory "${memory.title}" with parentFolderId: ${parentFolderId}`, 'be');
       if (parentFolderId) {
         if (!groups[parentFolderId]) {
           groups[parentFolderId] = [];
-          logger.memoryProcessing().info(`📁 Created new folder group for: ${parentFolderId}`);
+          fatLogger.info(`📁 Created new folder group for: ${parentFolderId}`, 'be');
         }
         groups[parentFolderId].push(memory);
-        logger
-          .memoryProcessing()
-          .info(
-            `📁 Added "${memory.title}" to folder ${parentFolderId}. Group now has ${groups[parentFolderId].length} items`
-          );
+        fatLogger.info(
+          `📁 Added "${memory.title}" to folder ${parentFolderId}. Group now has ${groups[parentFolderId].length} items`,
+          'be'
+        );
       } else {
-        logger.memoryProcessing().info(`🔍 Memory "${memory.title}" has no parentFolderId - will be individual`);
+        fatLogger.info(`🔍 Memory "${memory.title}" has no parentFolderId - will be individual`, 'be');
       }
       return groups;
     },
     {} as Record<string, MemoryWithFolder[]>
   );
 
-  logger.memoryProcessing().info('🔍 Final folder groups:', {
+  fatLogger.info('🔍 Final folder groups:', 'be', {
     folderGroups: Object.entries(folderGroups).map(([folderId, memories]) => ({
       folderId,
       folderName: memories[0]?.folder?.name || 'Unknown',
@@ -299,47 +310,62 @@ export const processDashboardItems = (memories: MemoryWithFolder[]): DashboardIt
   });
 
   // Step 2: Create FolderItems for each group
-  const folderItems: FolderItem[] = Object.entries(folderGroups).map(([folderId, folderMemories]) => ({
-    id: `folder-${folderId}`,
-    type: 'folder' as const,
-    title: folderMemories[0]?.folder?.name || 'Unknown Folder',
-    description: `${folderMemories.length} items`,
-    itemCount: folderMemories.length,
-    memories: folderMemories,
-    folderId: folderId, // Store actual folder ID
-    createdAt: folderMemories[0]?.createdAt || new Date().toISOString(),
-    url: folderMemories[0]?.url || '',
-    // Prefer the first memory's best available asset for a folder thumbnail
-    thumbnail:
-      (
-        folderMemories[0] as (typeof folderMemories)[0] & { assets?: Array<{ assetType: string; url: string }> }
-      )?.assets?.find?.(a => a.assetType === 'thumb')?.url ||
-      (
-        folderMemories[0] as (typeof folderMemories)[0] & { assets?: Array<{ assetType: string; url: string }> }
-      )?.assets?.find?.(a => a.assetType === 'display')?.url ||
-      (
-        folderMemories[0] as (typeof folderMemories)[0] & { assets?: Array<{ assetType: string; url: string }> }
-      )?.assets?.find?.(a => a.assetType === 'original')?.url ||
-      folderMemories[0]?.thumbnail ||
-      '',
-    status: 'private' as const,
-    sharedWithCount: 0,
-  }));
+  const folderItems: FolderItem[] = Object.entries(folderGroups).map(([folderId, folderMemories]) => {
+    // Compute storage summary from existing memory data (using NEW array approach)
+    const allStorageLocations = new Set<string>();
 
-  logger.memoryProcessing().info('🔍 Created folder items:', { folderItems });
+    folderMemories.forEach(memory => {
+      // Check if memory has storageStatus with storageLocations
+      if (memory.storageStatus?.storageLocations) {
+        memory.storageStatus.storageLocations.forEach(location => allStorageLocations.add(location));
+      }
+    });
+
+    return {
+      id: `folder-${folderId}`,
+      type: 'folder' as const,
+      title: folderMemories[0]?.folder?.name || 'Unknown Folder',
+      description: `${folderMemories.length} items`,
+      itemCount: folderMemories.length,
+      memories: folderMemories,
+      folderId: folderId, // Store actual folder ID
+      createdAt: folderMemories[0]?.createdAt || new Date().toISOString(),
+      url: folderMemories[0]?.url || '',
+      // Prefer the first memory's best available asset for a folder thumbnail
+      thumbnail:
+        (
+          folderMemories[0] as (typeof folderMemories)[0] & { assets?: Array<{ assetType: string; url: string }> }
+        )?.assets?.find?.(a => a.assetType === 'thumb')?.url ||
+        (
+          folderMemories[0] as (typeof folderMemories)[0] & { assets?: Array<{ assetType: string; url: string }> }
+        )?.assets?.find?.(a => a.assetType === 'display')?.url ||
+        (
+          folderMemories[0] as (typeof folderMemories)[0] & { assets?: Array<{ assetType: string; url: string }> }
+        )?.assets?.find?.(a => a.assetType === 'original')?.url ||
+        folderMemories[0]?.thumbnail ||
+        '',
+      status: 'private' as const,
+      sharedWithCount: 0,
+      storageSummary: {
+        storageLocations: Array.from(allStorageLocations),
+      },
+    };
+  });
+
+  fatLogger.info('🔍 Created folder items:', 'be', { folderItems });
 
   // Step 3: Get individual memories (not in folders)
   const individualMemories = memories.filter(memory => !memory.parentFolderId);
 
-  // logger.info("🔍 Individual memories:", individualMemories.length);
+  // fatLogger.info("🔍 Individual memories:", individualMemories.length);
 
   // Step 4: Combine and return
   const result = [...individualMemories, ...folderItems];
-  logger.memoryProcessing().info('🔍 Final result:', { count: result.length, type: 'items' });
-  logger.memoryProcessing().info('🔍 Individual memories count:', { count: individualMemories.length });
-  logger.memoryProcessing().info('🔍 Folder items count:', { count: folderItems.length });
+  fatLogger.info('🔍 Final result:', 'be', { count: result.length, type: 'items' });
+  fatLogger.info('🔍 Individual memories count:', 'be', { count: individualMemories.length });
+  fatLogger.info('🔍 Folder items count:', 'be', { count: folderItems.length });
 
-  logger.memoryProcessing().info('✅ LINE 180: EXITING processDashboardItems');
+  fatLogger.info('✅ LINE 180: EXITING processDashboardItems', 'be');
   return result;
 };
 
@@ -349,7 +375,7 @@ export const memoryActions = {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   share: async (id: string) => {
     // TODO: Implement share logic
-    // logger.info("Sharing memory:", id);
+    // fatLogger.info("Sharing memory:", id);
   },
 
   navigate: (memory: Memory, lang: string, segment: string) => {

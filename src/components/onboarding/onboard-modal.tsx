@@ -8,7 +8,7 @@ import { useSession } from 'next-auth/react';
 import { useEffect } from 'react';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 interface OnboardModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -74,7 +74,7 @@ export function OnboardModal({ isOpen, onClose }: OnboardModalProps) {
 
           setCurrentStep('share');
         } catch (error) {
-          logger.error('Error updating user information:', undefined, {
+          fatLogger.error('Error updating user information:', 'fe', {
             data: error instanceof Error ? error : undefined,
           });
           toast({
@@ -146,7 +146,7 @@ export function OnboardModal({ isOpen, onClose }: OnboardModalProps) {
 
           if (!shareResponse.ok) {
             const errorData = await shareResponse.json();
-            logger.error('Share response error:', undefined, {
+            fatLogger.error('Share response error:', 'fe', {
               status: shareResponse.status,
               statusText: shareResponse.statusText,
               errorData,
@@ -162,7 +162,7 @@ export function OnboardModal({ isOpen, onClose }: OnboardModalProps) {
             setCurrentStep('sign-up');
           }
         } catch (error) {
-          logger.error('Error in share step:', undefined, {
+          fatLogger.error('Error in share step:', 'fe', {
             error: error instanceof Error ? error : undefined,
             message: error instanceof Error ? error.message : String(error),
             stack: error instanceof Error ? error.stack : undefined,

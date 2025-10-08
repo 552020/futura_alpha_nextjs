@@ -21,7 +21,7 @@ import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 import { getAuthStatus } from '@/lib/utils/auth-status';
 interface IICoAuthControlsProps {
   className?: string;
@@ -70,7 +70,7 @@ export function IICoAuthControls({ className = '' }: IICoAuthControlsProps) {
       const signinUrl = `/${locale}/${signinPagePath}?callbackUrl=${encodeURIComponent(currentUrl)}`;
       router.push(signinUrl);
     } catch (error) {
-      logger.error('Failed to redirect to II signin page:', undefined, {
+      fatLogger.error('Failed to redirect to II signin page:', 'fe', {
         data: error instanceof Error ? error : undefined,
       });
       toast({
@@ -107,7 +107,7 @@ export function IICoAuthControls({ className = '' }: IICoAuthControlsProps) {
         update // Pass the session update function
       );
     } catch (error) {
-      logger.error('Failed to authenticate with II:', undefined, { data: error instanceof Error ? error : undefined });
+      fatLogger.error('Failed to authenticate with II:', 'fe', { data: error instanceof Error ? error : undefined });
       toast({
         title: 'Authentication Failed',
         description: 'Failed to authenticate with Internet Identity. Please try again.',
@@ -126,7 +126,7 @@ export function IICoAuthControls({ className = '' }: IICoAuthControlsProps) {
         description: 'Your Internet Identity is no longer active for this session',
       });
     } catch (error) {
-      logger.error('Failed to disconnect II:', undefined, { data: error instanceof Error ? error : undefined });
+      fatLogger.error('Failed to disconnect II:', 'fe', { data: error instanceof Error ? error : undefined });
       toast({
         title: 'Disconnect Failed',
         description: 'Failed to disconnect Internet Identity. Please try again.',

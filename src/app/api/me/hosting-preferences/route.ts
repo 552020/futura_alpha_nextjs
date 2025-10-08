@@ -5,7 +5,7 @@ import { userHostingPreferences } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import type { HostingPreferences } from '@/hooks/use-hosting-preferences';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 /**
  * GET /api/me/hosting-preferences
  * Returns the user's current hosting preferences
@@ -45,7 +45,7 @@ export async function GET(): Promise<NextResponse> {
 
     return NextResponse.json(response);
   } catch (error) {
-    logger.error('Error fetching hosting preferences:', undefined, {
+    fatLogger.error('Error fetching hosting preferences:', 'be', {
       data: error instanceof Error ? error : undefined,
     });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -97,7 +97,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       updatedPreferences = updated;
 
       // Log preference update
-      logger.hostingPreferences().info('🔄 Hosting preferences updated in database', {
+      fatLogger.info('🔄 Hosting preferences updated in database', 'be', {
         userId: session.user.id,
         changes: updates,
         previousValues: existingPreferences,
@@ -119,7 +119,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       updatedPreferences = created;
 
       // Log preference creation
-      logger.hostingPreferences().info('🆕 Hosting preferences created in database', {
+      fatLogger.info('🆕 Hosting preferences created in database', 'be', {
         userId: session.user.id,
         initialValues: created,
       });
@@ -136,7 +136,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json(response);
   } catch (error) {
-    logger.error('Error updating hosting preferences:', undefined, {
+    fatLogger.error('Error updating hosting preferences:', 'be', {
       data: error instanceof Error ? error : undefined,
     });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

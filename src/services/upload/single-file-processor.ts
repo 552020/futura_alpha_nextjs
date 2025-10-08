@@ -15,7 +15,7 @@ import type { HostingPreferences } from '@/hooks/use-hosting-preferences';
 // import { getDefaultHostingPreferences } from '@/hooks/use-hosting-preferences'; // Not used with ICP processing
 import { validateUploadFiles, checkICPAuthentication } from './shared-utils';
 import { uploadToS3WithProcessing } from './s3-with-processing';
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 
 export interface ProcessSingleFileOptions {
   file: File;
@@ -54,7 +54,7 @@ export async function processSingleFile(options: ProcessSingleFileOptions): Prom
     const userBlobHostingPreferences = preferences?.blobHosting || ['s3'];
 
     // Log upload routing decision
-    logger.upload().info('📤 Single file upload routing decision', {
+    fatLogger.info('📤 Single file upload routing decision', 'be', {
       selectedProvider: userBlobHostingPreferences[0],
       availableProviders: userBlobHostingPreferences,
       fileName: file.name,

@@ -1,7 +1,7 @@
 import { S3Client, PutObjectCommand, PutObjectCommandInput } from '@aws-sdk/client-s3';
 // import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 // S3 Configuration
 const s3Config = {
   region: process.env.AWS_S3_REGION || 'eu-central-1',
@@ -11,15 +11,15 @@ const s3Config = {
   },
 };
 
-logger.info('S3 Config', { config: s3Config });
+fatLogger.info('S3 Config', 'be', { config: s3Config });
 
 const s3Client = new S3Client(s3Config);
 
 export const S3_BUCKET = process.env.AWS_S3_BUCKET || '';
 export const S3_REGION = process.env.AWS_S3_REGION || 'eu-central-1';
 
-logger.info('S3 Bucket', { bucket: S3_BUCKET });
-logger.info('S3 Region', { region: S3_REGION });
+fatLogger.info('S3 Bucket', 'be', { bucket: S3_BUCKET });
+fatLogger.info('S3 Region', 'be', { region: S3_REGION });
 
 // Check if S3 is properly configured
 export function isS3Configured(): boolean {
@@ -28,7 +28,7 @@ export function isS3Configured(): boolean {
     process.env.AWS_SECRET_ACCESS_KEY &&
     process.env.AWS_S3_BUCKET
   );
-  logger.info('S3 Configuration Check', { isConfigured: configured });
+  fatLogger.info('S3 Configuration Check', 'be', { isConfigured: configured });
   return configured;
 }
 
@@ -38,7 +38,7 @@ function generateSafeFileName(originalName: string, userId: string = 'anonymous'
   const safeFileName = originalName.replace(/[^a-zA-Z0-9-_\.]/g, '_');
   // Include user ID in the path: uploads/{userId}/{timestamp}-{filename}
   const fullName = `uploads/${userId}/${timestamp}-${safeFileName}`;
-  logger.info('Generated file name', { fileName: fullName });
+  fatLogger.info('Generated file name', 'be', { fileName: fullName });
   return fullName;
 }
 
@@ -61,17 +61,17 @@ export async function uploadToS3(file: File, buffer?: Buffer, userId?: string): 
     // ACL: 'public-read', // Make the object publicly readable
   };
 
-  logger.info('Uploading to S3 with params:', undefined, { uploadParams });
+  fatLogger.info('Uploading to S3 with params:', 'be', { uploadParams });
 
   try {
     const command = new PutObjectCommand(uploadParams);
     await s3Client.send(command);
 
     const publicUrl = `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/${fileName}`;
-    logger.info('Uploaded file public URL:', undefined, { publicUrl });
+    fatLogger.info('Uploaded file public URL:', 'be', { publicUrl });
     return publicUrl;
   } catch (error) {
-    logger.error('Error uploading to S3:', undefined, { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Error uploading to S3:', 'be', { data: error instanceof Error ? error : undefined });
     throw new Error('Failed to upload file to S3');
   }
 }
@@ -91,14 +91,14 @@ export async function uploadToS3(file: File, buffer?: Buffer, userId?: string): 
 //     // ACL: 'public-read',
 //   });
 
-//   logger.info('Generating presigned URL for:', safeFileName);
+//   fatLogger.info('Generating presigned URL for:', safeFileName);
 
 //   try {
 //     const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 }); // 1 hour
-//     logger.info('Presigned URL:', signedUrl);
+//     fatLogger.info('Presigned URL:', signedUrl);
 //     return signedUrl;
 //   } catch (error) {
-//     logger.error('Error generating presigned URL:', undefined, { data: error instanceof Error ? error : undefined });
+//     fatLogger.error('Error generating presigned URL:', undefined, { data: error instanceof Error ? error : undefined });
 //     throw new Error('Failed to generate presigned URL');
 //   }
 // }
@@ -106,7 +106,7 @@ export async function uploadToS3(file: File, buffer?: Buffer, userId?: string): 
 // Get public URL for an S3 object - COMMENTED OUT FOR MVP
 // export function getS3PublicUrl(key: string): string {
 //   const url = `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/${key}`;
-//   logger.info('S3 Public URL:', url);
+//   fatLogger.info('S3 Public URL:', url);
 //   return url;
 // }
 
@@ -123,11 +123,11 @@ export async function uploadToS3(file: File, buffer?: Buffer, userId?: string): 
 //       Key: key,
 //     });
 
-//     logger.info('Deleting from S3:', key);
+//     fatLogger.info('Deleting from S3:', key);
 //     await s3Client.send(command);
-//     logger.info('Deleted successfully:', key);
+//     fatLogger.info('Deleted successfully:', key);
 //   } catch (error) {
-//     logger.error('Error deleting from S3:', undefined, { data: error instanceof Error ? error : undefined });
+//     fatLogger.error('Error deleting from S3:', undefined, { data: error instanceof Error ? error : undefined });
 //     throw new Error('Failed to delete file from S3');
 //   }
 // }
@@ -138,7 +138,7 @@ export function extractS3KeyFromUrl(url: string): string | null {
     const urlObj = new URL(url);
     if (urlObj.hostname.includes('s3') || urlObj.hostname.includes('amazonaws.com')) {
       const key = urlObj.pathname.slice(1);
-      logger.info('Extracted S3 key from URL:', undefined, { key });
+      fatLogger.info('Extracted S3 key from URL:', 'be', { key });
       return key;
     }
     return null;
@@ -155,11 +155,11 @@ export function extractS3KeyFromUrl(url: string): string | null {
 //   const preferred = process.env.PREFERRED_STORAGE_TYPE as StorageType;
 
 //   if (preferred && ['vercel-blob', 's3', 'icp-canister', 'neon-db'].includes(preferred)) {
-//     logger.info('Preferred storage type from env:', preferred);
+//     fatLogger.info('Preferred storage type from env:', preferred);
 //     return preferred;
 //   }
 
 //   const fallback = isS3Configured() ? 's3' : 'vercel-blob';
-//   logger.info('Using storage type fallback:', fallback);
+//   fatLogger.info('Using storage type fallback:', fallback);
 //   return fallback;
 // }

@@ -14,7 +14,7 @@ import { sampleDashboardMemories } from '../../../../../scripts/mock-data/create
 import { getBlurPlaceholder, IMAGE_SIZES } from '@/utils/image-utils';
 import { generateBestAssetUrl } from '@/lib/presigned-url-utils';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 // Demo flag - set to true to use mock data for demo
 // 📝 Sample data generation script: scripts/mock-data/create-dashboard-sample-data.ts
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_MEMORY === 'true';
@@ -61,7 +61,7 @@ const getAssetUrl = async (
 
   // Helper function to construct URL from bucket and storageKey
   const constructS3Url = async (asset: MemoryAsset): Promise<string> => {
-    logger.asset().info('🔍 Constructing URL for asset:', {
+    fatLogger.info('🔍 Constructing URL for asset:', 'fe', {
       id: asset.id,
       type: asset.assetType,
       hasStorageKey: !!asset.storageKey,
@@ -137,7 +137,7 @@ export default function MemoryDetailPage() {
       }
       return url;
     } catch (error) {
-      logger.error('Error generating asset URL:', undefined, { data: error as Error });
+      fatLogger.error('Error generating asset URL:', 'fe', { data: error as Error });
       return undefined;
     }
   }, []);
@@ -162,7 +162,7 @@ export default function MemoryDetailPage() {
         assetUrlsRef.current = newAssetUrls;
         return newAssetUrls;
       } catch (error) {
-        logger.error('Error loading asset URLs:', undefined, { data: error as Error });
+        fatLogger.error('Error loading asset URLs:', 'fe', { data: error as Error });
         return assetUrlsRef.current;
       }
     },
@@ -174,12 +174,12 @@ export default function MemoryDetailPage() {
       setIsLoading(true);
 
       if (USE_MOCK_DATA) {
-        logger.info('🎭 MOCK DATA - Using sample data for memory detail');
+        fatLogger.info('🎭 MOCK DATA - Using sample data for memory detail', 'fe');
         // Find the memory in the sample data
         const mockMemory = sampleDashboardMemories.find(m => m.id === id);
 
         if (mockMemory) {
-          logger.dashboard().info('Found mock memory', undefined, { memoryId: mockMemory.id, type: mockMemory.type });
+          fatLogger.info('Found mock memory', 'fe', { memoryId: mockMemory.id, type: mockMemory.type });
           const transformedMemory: Memory = {
             id: mockMemory.id,
             type: mockMemory.type,
@@ -203,7 +203,7 @@ export default function MemoryDetailPage() {
           };
           setMemory(transformedMemory);
         } else {
-          logger.dashboard().info('Mock memory not found', { memoryId: id });
+          fatLogger.info('Mock memory not found', 'fe', { memoryId: id });
           setMemory(null);
         }
         return;
@@ -211,25 +211,25 @@ export default function MemoryDetailPage() {
 
       const response = await fetch(`/api/memories/${id}`);
 
-      logger.apiResponse().info('Memory API Response:', {
+      fatLogger.info('Memory API Response:', 'fe', {
         status: response.status,
         ok: response.ok,
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        logger.error('Memory fetch error:', undefined, { data: new Error(errorData) });
+        fatLogger.error('Memory fetch error:', 'fe', { data: new Error(errorData) });
         throw new Error(errorData.error || 'Failed to fetch memory');
       }
 
       const data = await response.json();
-      logger.dashboard().info('Memory data loaded', { memoryId: data.id, type: data.type });
+      fatLogger.info('Memory data loaded', 'fe', { memoryId: data.id, type: data.type });
 
       if (data.success && data.data) {
         const memoryData = data.data;
         const assets = memoryData.assets || [];
 
-        logger.dashboard().info('Memory assets loaded', { assetCount: assets.length });
+        fatLogger.info('Memory assets loaded', 'fe', { assetCount: assets.length });
 
         // Load asset URLs if assets exist
         let displayUrl: string | undefined;
@@ -243,9 +243,9 @@ export default function MemoryDetailPage() {
           mimeType = loadedUrls.mimeType;
         }
 
-        logger.dashboard().info('Extracted display URL', { displayUrl });
-        logger.dashboard().info('Extracted original URL', { originalUrl });
-        logger.dashboard().info('Extracted MIME type', { mimeType });
+        fatLogger.info('Extracted display URL', 'fe', { displayUrl });
+        fatLogger.info('Extracted original URL', 'fe', { originalUrl });
+        fatLogger.info('Extracted MIME type', 'fe', { mimeType });
 
         // Get the thumbnail URL with caching
         const thumbnailUrl = assets ? await getCachedAssetUrl(assets, 'thumb') : undefined;
@@ -265,7 +265,7 @@ export default function MemoryDetailPage() {
           thumbnail: thumbnailUrl || displayUrl || originalUrl,
         };
 
-        logger.dashboard().info('🔄 Transformed memory:', {
+        fatLogger.info('🔄 Transformed memory:', 'fe', {
           id: transformedMemory.id,
           type: transformedMemory.type,
           url: transformedMemory.url,
@@ -278,7 +278,7 @@ export default function MemoryDetailPage() {
         throw new Error('Invalid memory data format');
       }
     } catch (error) {
-      logger.error('Error fetching memory:', undefined, { data: error as Error });
+      fatLogger.error('Error fetching memory:', 'fe', { data: error as Error });
       setMemory(null);
     } finally {
       setIsLoading(false);
@@ -308,13 +308,13 @@ export default function MemoryDetailPage() {
       // Use router.push for smoother navigation
       router.push('/vault');
     } catch (error) {
-      logger.error('Error deleting memory:', undefined, { data: error as Error });
+      fatLogger.error('Error deleting memory:', 'fe', { data: error as Error });
     }
   };
 
   const handleShare = () => {
     // TODO: Implement share functionality
-    logger.dashboard().info('Share memory', { memoryId: id });
+    fatLogger.info('Share memory', 'fe', { memoryId: id });
   };
 
   if (!isAuthorized) {

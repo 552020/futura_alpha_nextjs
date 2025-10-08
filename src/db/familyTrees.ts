@@ -1,7 +1,7 @@
 import { db } from './db';
 import { sql } from 'drizzle-orm';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 /**
  * Finds the lowest common ancestor (LCA) of two users.
  */
@@ -31,7 +31,7 @@ export async function findCommonAncestor(userAId: string, userBId: string) {
 
     return result.rows.length > 0 ? result.rows[0] : null;
   } catch (error) {
-    logger.error('Error finding common ancestor:', undefined, { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Error finding common ancestor:', 'be', { data: error instanceof Error ? error : undefined });
     throw new Error('Database error.');
   }
 }
@@ -42,7 +42,7 @@ export async function findCommonAncestor(userAId: string, userBId: string) {
 export async function resolveFuzzyRelationship(userAId: string, userBId: string) {
   const ancestorData = await findCommonAncestor(userAId, userBId);
   if (!ancestorData) {
-    // logger.info(`No common ancestor found for ${userAId} and ${userBId}`);
+    // fatLogger.info(`No common ancestor found for ${userAId} and ${userBId}`);
     return null;
   }
 
@@ -60,5 +60,5 @@ export async function resolveFuzzyRelationship(userAId: string, userBId: string)
     )
   `);
 
-  // logger.info(`Updated relationship between ${userAId} and ${userBId} to ${newFamilyRole}`);
+  // fatLogger.info(`Updated relationship between ${userAId} and ${userBId} to ${newFamilyRole}`);
 }

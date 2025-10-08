@@ -2,35 +2,39 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
 import { eq, and } from 'drizzle-orm';
-import { allUsers, memories } from '@/db/schema';
+import { allUsers, memories, storageEdges } from '@/db/schema';
 
-import { logger } from '@/lib/logger';
-// Helper function to add storage status to memory (similar to gallery utils)
-function addStorageStatusToMemory(memory: typeof memories.$inferSelect) {
-  // Calculate storage status from the memory's own fields
-  // For now, assume all memories are stored in web2 (neon/vercel) by default
-  // ICP storage status would need to be determined from storageEdges table
-  const hasIcpStorage = false; // TODO: Query storageEdges table for actual ICP status
-  const hasWeb2Storage = true; // Assume all memories have web2 storage
+import { fatLogger } from '@/lib/logger';
+// Helper function to add storage status to memory by querying storageEdges table
+async function addStorageStatusToMemory(memory: typeof memories.$inferSelect) {
+  // Query storageEdges table to get actual storage locations
+  const edges = await db.query.storageEdges.findMany({
+    where: and(eq(storageEdges.memoryId, memory.id), eq(storageEdges.present, true)),
+  });
 
-  // Determine overall status
-  let overallStatus: 'stored_forever' | 'partially_stored' | 'web2_only';
-  if (hasIcpStorage) {
-    overallStatus = 'stored_forever';
-  } else if (hasWeb2Storage) {
-    overallStatus = 'web2_only';
-  } else {
-    overallStatus = 'web2_only';
-  }
+  fatLogger.debug(`🔍 [STORAGE STATUS] Memory ${memory.id} - Found ${edges.length} storage edges:`, 'be', edges);
+
+  // Extract unique storage locations from the edges
+  const storageLocations = new Set<string>();
+
+  edges.forEach(edge => {
+    // Add metadata location if present
+    if (edge.locationMetadata) {
+      storageLocations.add(edge.locationMetadata);
+    }
+    // Add asset location if present
+    if (edge.locationAsset) {
+      storageLocations.add(edge.locationAsset);
+    }
+  });
+
+  const finalLocations = Array.from(storageLocations);
+  fatLogger.debug(`📊 [STORAGE STATUS] Memory ${memory.id} - Final storage locations:`, 'be', finalLocations);
 
   return {
     ...memory,
     storageStatus: {
-      metaNeon: hasWeb2Storage,
-      assetBlob: hasWeb2Storage,
-      metaIcp: hasIcpStorage,
-      assetIcp: hasIcpStorage,
-      overallStatus,
+      storageLocations: finalLocations,
     },
   };
 }
@@ -50,7 +54,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     });
 
     if (!allUserRecord) {
-      logger.error('No allUsers record found for user:', undefined, { data: session.user.id });
+      fatLogger.error('No allUsers record found for user:', 'be', { data: session.user.id });
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
@@ -76,7 +80,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       data: memoryWithStorageStatus,
     });
   } catch (error) {
-    logger.error('Error fetching memory:', undefined, { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Error fetching memory:', 'be', { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to fetch memory' }, { status: 500 });
   }
 }
@@ -96,7 +100,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     });
 
     if (!allUserRecord) {
-      logger.error('No allUsers record found for user:', undefined, { data: session.user.id });
+      fatLogger.error('No allUsers record found for user:', 'be', { data: session.user.id });
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
@@ -134,7 +138,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       data: updatedMemory,
     });
   } catch (error) {
-    logger.error('Error updating memory:', undefined, { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Error updating memory:', 'be', { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to update memory' }, { status: 500 });
   }
 }
@@ -154,13 +158,13 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     });
 
     if (!allUserRecord) {
-      logger.error('No allUsers record found for user:', undefined, { data: session.user.id });
+      fatLogger.error('No allUsers record found for user:', 'be', { data: session.user.id });
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
     const { id: memoryId } = await params;
 
-    logger.info(`🗑️ [Individual Route] Deleting memory: ${memoryId}`);
+    fatLogger.info(`🗑️ [Individual Route] Deleting memory: ${memoryId}`, 'be');
 
     // 1. FIRST: Get the memory data BEFORE deletion (with all relations)
     const memoryData = await db.query.memories.findFirst({
@@ -184,7 +188,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       | null
       | undefined;
 
-    logger.info('🔧 DEBUG - Individual route memory data retrieved:', undefined, {
+    fatLogger.info('🔧 DEBUG - Individual route memory data retrieved:', 'be', {
       found: !!memoryData,
       memoryId: memoryData?.id,
       type: memoryData?.type,
@@ -195,11 +199,11 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     });
 
     if (!memoryData) {
-      logger.error(`❌ Memory not found: ${memoryId}`);
+      fatLogger.error(`❌ Memory not found: ${memoryId}`, 'be');
       return NextResponse.json({ error: 'Memory not found' }, { status: 404 });
     }
 
-    logger.info(`📋 Individual route - Retrieved memory data for cleanup:`, undefined, {
+    fatLogger.info(`📋 Individual route - Retrieved memory data for cleanup:`, 'be', {
       id: memoryData.id,
       type: memoryData.type,
       hasMetadata: !!typedMetadata,
@@ -213,14 +217,14 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const deletedMemories = await db.delete(memories).where(eq(memories.id, memoryId)).returning();
 
     if (!deletedMemories || deletedMemories.length === 0) {
-      logger.error(`❌ Failed to delete memory: ${memoryId}`);
+      fatLogger.error(`❌ Failed to delete memory: ${memoryId}`, 'be');
       return NextResponse.json({ error: 'Failed to delete memory' }, { status: 500 });
     }
 
-    logger.info(`✅ Individual route - Deleted memory from database: ${memoryId}`);
+    fatLogger.info(`✅ Individual route - Deleted memory from database: ${memoryId}`, 'be');
 
     // Debug: Log what we're about to pass to cleanup
-    logger.info('🔧 DEBUG - Individual route - About to call cleanup with:', undefined, {
+    fatLogger.info('🔧 DEBUG - Individual route - About to call cleanup with:', 'be', {
       memoryId,
       memoryType: memoryData.type,
       memoryDataProvided: !!memoryData,
@@ -238,10 +242,12 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     });
 
     if (!cleanupResult.success) {
-      logger.error(`❌ Individual route - Storage cleanup failed for ${memoryId}:`, undefined, { data: cleanupResult.error });
+      fatLogger.error(`❌ Individual route - Storage cleanup failed for ${memoryId}:`, 'be', {
+        data: cleanupResult.error,
+      });
       // Don't fail the entire operation if cleanup fails
     } else {
-      logger.info(`✅ Individual route - Storage cleanup completed for ${memoryId}`, undefined, {
+      fatLogger.info(`✅ Individual route - Storage cleanup completed for ${memoryId}`, 'be', {
         deletedS3Objects: cleanupResult.deletedS3Count,
         deletedEdges: cleanupResult.deletedCount,
       });
@@ -257,7 +263,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       },
     });
   } catch (error) {
-    logger.error('Error deleting individual memory:', undefined, { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Error deleting individual memory:', 'be', { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to delete memory' }, { status: 500 });
   }
 }

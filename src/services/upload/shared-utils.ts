@@ -82,7 +82,7 @@ export async function checkICPAuthentication(): Promise<void> {
 // 413 Solution: Extract folder name from files
 export function extractFolderName(file: File): string {
   const fileWithPath = file as File & { webkitRelativePath?: string };
-  logger.upload().info('DEBUG: extractFolderName for file', {
+  fatLogger.info('DEBUG: extractFolderName for file', 'be', {
     name: file.name,
     webkitRelativePath: fileWithPath.webkitRelativePath,
     hasWebkitRelativePath: !!fileWithPath.webkitRelativePath,
@@ -91,11 +91,11 @@ export function extractFolderName(file: File): string {
   if (fileWithPath.webkitRelativePath) {
     const pathParts = fileWithPath.webkitRelativePath.split('/');
     const folderName = pathParts.length > 1 ? pathParts[0] : 'Ungrouped';
-    logger.upload().info('DEBUG: Extracted folder name from webkitRelativePath', { folderName });
+    fatLogger.info('DEBUG: Extracted folder name from webkitRelativePath', 'be', { folderName });
     return folderName;
   }
 
-  logger.upload().info("DEBUG: No webkitRelativePath, returning 'Ungrouped'");
+  fatLogger.info("DEBUG: No webkitRelativePath, returning 'Ungrouped'", 'be');
   return 'Ungrouped';
 }
 
@@ -143,7 +143,7 @@ export function handleUploadError(
     }
   }
 
-  logger.error('Upload error', 'upload:fe', { error });
+  fatLogger.error('Upload error', 'fe', { error });
   showToast({ variant: 'destructive', title, description });
 }
 
@@ -166,7 +166,7 @@ import {
   UPLOAD_LIMITS_IPFS,
 } from '@/config/upload-limits';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 
 // Type for upload limits that support file count and total size validation
 type UploadLimitsWithCountAndTotal = {

@@ -5,7 +5,7 @@ import { eq, and } from 'drizzle-orm';
 import { galleries, allUsers, galleryShares } from '@/db/schema';
 import { randomUUID } from 'crypto';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     });
 
     if (!allUserRecord) {
-      logger.error('No allUsers record found for user:', undefined, { userId: session.user.id });
+      fatLogger.error('No allUsers record found for user:', 'be', { userId: session.user.id });
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       })
       .returning();
 
-    // logger.info("Created gallery share:", newShare[0]);
+    // fatLogger.info("Created gallery share:", newShare[0]);
 
     return NextResponse.json(
       {
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       { status: 201 }
     );
   } catch (error) {
-    logger.error('Error sharing gallery:', undefined, { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Error sharing gallery:', 'be', { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to share gallery' }, { status: 500 });
   }
 }
@@ -106,7 +106,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     });
 
     if (!allUserRecord) {
-      logger.error('No allUsers record found for user:', undefined, { userId: session.user.id });
+      fatLogger.error('No allUsers record found for user:', 'be', { userId: session.user.id });
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
@@ -126,13 +126,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       where: eq(galleryShares.galleryId, galleryId),
     });
 
-    // logger.info("Fetched gallery shares:", gallerySharesList.length);
+    // fatLogger.info("Fetched gallery shares:", gallerySharesList.length);
 
     return NextResponse.json({
       shares: gallerySharesList,
     });
   } catch (error) {
-    logger.error('Error fetching gallery shares:', undefined, { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Error fetching gallery shares:', 'be', { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to fetch gallery shares' }, { status: 500 });
   }
 }

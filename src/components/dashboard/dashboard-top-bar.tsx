@@ -17,8 +17,8 @@ interface SearchAndFilterBarProps {
   onUploadSuccess?: () => void;
   onUploadError?: (error: Error) => void;
   onClearAllMemories?: () => void;
-  dataSource: "neon" | "icp";
-  onDataSourceChange: (source: "neon" | "icp") => void;
+  dataSource: 'neon' | 'icp';
+  onDataSourceChange: (source: 'neon' | 'icp') => void;
 }
 
 export function DashboardTopBar({
@@ -67,7 +67,10 @@ export function DashboardTopBar({
 
       {/* Database Toggle Switch */}
       <div className="flex items-center gap-2 px-3 py-1 border rounded-md bg-background">
-        <Switch checked={dataSource === 'icp'} onCheckedChange={checked => onDataSourceChange(checked ? 'icp' : 'neon')} />
+        <Switch
+          checked={dataSource === 'icp'}
+          onCheckedChange={checked => onDataSourceChange(checked ? 'icp' : 'neon')}
+        />
         <span className="text-xs font-medium">{dataSource === 'icp' ? 'ICP' : 'Neon'}</span>
       </div>
     </>

@@ -11,10 +11,10 @@ import { generatedGalleries, getGeneratedGallery } from '../../scripts/mock-data
 // import { icpGalleryService, type GalleryData, type StoreGalleryResponse } from './icp-gallery';
 // import { Principal } from '@dfinity/principal';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 // Analytics tracking shim for future implementation
 export const trackGalleryEvent = (event: string, _properties: Record<string, unknown> = {}) => {
-  // logger.info("Gallery Analytics:", undefined, { event, properties: _properties, timestamp: new Date().toISOString() });
+  // fatLogger.info("Gallery Analytics:", undefined, { event, properties: _properties, timestamp: new Date().toISOString() });
   // TODO: Implement actual analytics tracking
   // This could send data to PostHog, Google Analytics, or other analytics services
 };
@@ -73,7 +73,7 @@ export const galleryService = {
       const response = await fetch(`/api/galleries?page=${page}&limit=${limit}`);
       return await handleApiResponse(response);
     } catch (error) {
-      logger.error('Error listing galleries', 'gallery:be', { error });
+      fatLogger.error('Error listing galleries', 'be', { error });
       throw new Error('Failed to load galleries');
     }
   },
@@ -99,7 +99,7 @@ export const galleryService = {
       const response = await fetch(`/api/galleries/${id}`);
       return await handleApiResponse(response);
     } catch (error) {
-      logger.error('Error getting gallery', 'gallery:be', { error });
+      fatLogger.error('Error getting gallery', 'be', { error });
       throw new Error('Failed to load gallery');
     }
   },
@@ -142,7 +142,7 @@ export const galleryService = {
         isPublic,
       };
 
-      // logger.info("Sending request to API:", request);
+      // fatLogger.info("Sending request to API:", request);
 
       const response = await fetch('/api/galleries', {
         method: 'POST',
@@ -150,14 +150,14 @@ export const galleryService = {
         body: JSON.stringify(request),
       });
 
-      // logger.info("API response status:", response.status);
+      // fatLogger.info("API response status:", response.status);
 
       const result = await handleApiResponse(response);
-      // logger.info("API response result:", result);
-      // logger.info("Gallery items count:", result.gallery?.items?.length || 0);
+      // fatLogger.info("API response result:", result);
+      // fatLogger.info("Gallery items count:", result.gallery?.items?.length || 0);
       return result.gallery;
     } catch (error) {
-      logger.error('Error creating gallery from folder', 'gallery:be', { error });
+      fatLogger.error('Error creating gallery from folder', 'be', { error });
       throw new Error('Failed to create gallery from folder');
     }
   },
@@ -209,7 +209,7 @@ export const galleryService = {
       const result = await handleApiResponse(response);
       return result.gallery;
     } catch (error) {
-      logger.error('Error creating gallery from memories', 'gallery:be', { error });
+      fatLogger.error('Error creating gallery from memories', 'be', { error });
       throw new Error('Failed to create gallery from memories');
     }
   },
@@ -247,7 +247,7 @@ export const galleryService = {
       const result = await handleApiResponse(response);
       return result.gallery;
     } catch (error) {
-      logger.error('Error creating gallery', 'gallery:be', { error });
+      fatLogger.error('Error creating gallery', 'be', { error });
       throw new Error('Failed to create gallery');
     }
   },
@@ -283,7 +283,7 @@ export const galleryService = {
       const result = await handleApiResponse(response);
       return result.gallery;
     } catch (error) {
-      logger.error('Error updating gallery', 'gallery:be', { error });
+      fatLogger.error('Error updating gallery', 'be', { error });
       throw new Error('Failed to update gallery');
     }
   },
@@ -307,7 +307,7 @@ export const galleryService = {
         throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
     } catch (error) {
-      logger.error('Error deleting gallery', 'gallery:be', { error });
+      fatLogger.error('Error deleting gallery', 'be', { error });
       throw new Error('Failed to delete gallery');
     }
   },
@@ -337,7 +337,7 @@ export const galleryService = {
         throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
     } catch (error) {
-      logger.error('Error sharing gallery', 'gallery:be', { error });
+      fatLogger.error('Error sharing gallery', 'be', { error });
       throw new Error('Failed to share gallery');
     }
   },
@@ -357,7 +357,7 @@ export const galleryService = {
       const response = await fetch('/api/galleries/folders');
       return await handleApiResponse(response);
     } catch (error) {
-      logger.error('Error getting folders', 'gallery:be', { error });
+      fatLogger.error('Error getting folders', 'be', { error });
       // Return empty array instead of throwing for now
       return [];
     }
@@ -405,7 +405,7 @@ export const galleryService = {
 
       return result;
     } catch (error) {
-      logger.error('Error storing gallery forever', 'gallery:be', { error });
+      fatLogger.error('Error storing gallery forever', 'be', { error });
       trackGalleryEvent('gallery_store_forever_failed', {
         galleryId: gallery.id,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -461,7 +461,7 @@ export const galleryService = {
       trackGalleryEvent('icp_galleries_retrieved', { count: web2Galleries.length });
       return web2Galleries;
     } catch (error) {
-      logger.error('Error getting ICP galleries', 'gallery:be', { error });
+      fatLogger.error('Error getting ICP galleries', 'be', { error });
       trackGalleryEvent('icp_galleries_failed', {
         error: error instanceof Error ? error.message : 'Unknown error',
       });
@@ -478,7 +478,7 @@ export const galleryService = {
       const { icpGalleryService } = await import('./icp-gallery');
       return await icpGalleryService.checkCapsuleStatus();
     } catch (error) {
-      logger.error('Error checking ICP capsule status', 'gallery:be', { error });
+      fatLogger.error('Error checking ICP capsule status', 'be', { error });
       return false;
     }
   },
@@ -525,9 +525,9 @@ async function updateStorageEdgesAfterICPSuccess(gallery: GalleryWithItems): Pro
       });
     }
 
-    // logger.info(`Updated storage edges for ${gallery.items?.length || 0} memories in gallery ${gallery.id}`);
+    // fatLogger.info(`Updated storage edges for ${gallery.items?.length || 0} memories in gallery ${gallery.id}`);
   } catch (error) {
-    logger.error('Error updating storage edges after ICP success', 'gallery:be', { error });
+    fatLogger.error('Error updating storage edges after ICP success', 'be', { error });
     // Don't throw - this is a side effect, not critical to the main operation
   }
 }

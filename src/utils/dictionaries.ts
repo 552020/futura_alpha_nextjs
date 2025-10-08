@@ -1,6 +1,6 @@
 import { locales } from '@/middleware';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 /**
  * Dictionary type definition for internationalization.
  *
@@ -294,7 +294,7 @@ export const getDictionary = async (
   try {
     // Check if the locale is supported
     if (!locales.includes(locale)) {
-      logger.warn(`Locale ${locale} not supported, falling back to English`);
+      fatLogger.warn(`Locale ${locale} not supported, falling back to English`, 'fe');
       locale = 'en';
     }
 
@@ -313,7 +313,7 @@ export const getDictionary = async (
           result = { ...result, ...onboardingDict };
         }
       } catch (error) {
-        logger.error(`Error loading onboarding dictionary:`, undefined, { data: error instanceof Error ? error : undefined });
+        fatLogger.error(`Error loading onboarding dictionary:`, 'fe', { data: error instanceof Error ? error : undefined });
       }
     }
 
@@ -333,7 +333,7 @@ export const getDictionary = async (
           result = { ...result, ...segmentDict };
         }
       } catch (error) {
-        logger.error(`Error loading segment dictionary for ${options.segment}:`, undefined, { data: error instanceof Error ? error : undefined });
+        fatLogger.error(`Error loading segment dictionary for ${options.segment}:`, 'fe', { data: error instanceof Error ? error : undefined });
         // Continue with just the base dictionary if there's an error
       }
     }
@@ -354,7 +354,7 @@ export const getDictionary = async (
           result = { ...result, ...aboutDict };
         }
       } catch (error) {
-        logger.error(`Error loading about dictionary for ${locale}:`, undefined, { data: error instanceof Error ? error : undefined });
+        fatLogger.error(`Error loading about dictionary for ${locale}:`, 'fe', { data: error instanceof Error ? error : undefined });
         // Continue without about content if there's an error
       }
     }
@@ -375,14 +375,14 @@ export const getDictionary = async (
           result = { ...result, ...faqDict };
         }
       } catch (error) {
-        logger.error(`Error loading FAQ dictionary for ${locale}:`, undefined, { data: error instanceof Error ? error : undefined });
+        fatLogger.error(`Error loading FAQ dictionary for ${locale}:`, 'fe', { data: error instanceof Error ? error : undefined });
         // Continue without FAQ content if there's an error
       }
     }
 
     return result;
   } catch (error) {
-    logger.error(`Error loading dictionaries:`, undefined, { data: error instanceof Error ? error : undefined });
+    fatLogger.error(`Error loading dictionaries:`, 'fe', { data: error instanceof Error ? error : undefined });
     throw error;
   }
 };

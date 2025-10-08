@@ -3,7 +3,7 @@
 import { useCallback } from 'react';
 import type { BackendActor } from '@/ic/backend';
 import { getAuthClient } from '@/ic/ii';
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 
 /**
  * Global actor management hook
@@ -46,10 +46,10 @@ export const useAuthenticatedActor = () => {
       // Cache the actor globally
       globalActorRef = actor;
 
-      logger.info('Created and cached authenticated backend actor');
+      fatLogger.info('Created and cached authenticated backend actor', 'fe');
       return actor;
     } catch (error) {
-      logger.error('Failed to get authenticated actor:', undefined, {
+      fatLogger.error('Failed to get authenticated actor:', 'fe', {
         data: error instanceof Error ? error : undefined,
       });
       throw error;
@@ -63,7 +63,7 @@ export const useAuthenticatedActor = () => {
    */
   const clearActor = useCallback(() => {
     globalActorRef = null;
-    logger.info('Cleared cached authenticated backend actor');
+    fatLogger.info('Cleared cached authenticated backend actor', 'fe');
   }, []);
 
   /**

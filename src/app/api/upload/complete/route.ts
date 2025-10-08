@@ -5,7 +5,7 @@ import { memories, memoryAssets, allUsers, type MemoryType, type AssetType, type
 import { randomBytes } from 'crypto';
 import { randomUUID } from 'crypto';
 import { eq, and } from 'drizzle-orm';
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 // Drizzle ORM imports are used in the where clause
 
 interface FileMetadata {
@@ -101,7 +101,7 @@ export async function POST(request: Request) {
     // Handle legacy formats (Format 1 & 2)
     return await handleLegacyComplete(requestData, allUserId);
   } catch (error) {
-    logger.error('Error completing upload:', undefined, { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Error completing upload:', 'be', { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to complete upload' }, { status: 500 });
   }
 }
@@ -112,9 +112,9 @@ export async function POST(request: Request) {
 async function handleParallelProcessingFinalize(request: FinalizeRequest, allUserId: string) {
   const { memoryId, assets, parentFolderId } = request;
 
-  logger.info(`🔄 Processing parallel finalize for memory: ${memoryId} with ${assets.length} assets`);
+  fatLogger.info(`🔄 Processing parallel finalize for memory: ${memoryId} with ${assets.length} assets`, 'be');
   if (parentFolderId) {
-    logger.info(`📁 Linking memory to folder: ${parentFolderId}`);
+    fatLogger.info(`📁 Linking memory to folder: ${parentFolderId}`, 'be');
   }
 
   // Verify the memory exists and belongs to the user
@@ -138,7 +138,7 @@ async function handleParallelProcessingFinalize(request: FinalizeRequest, allUse
       })
       .where(eq(memories.id, memoryId));
 
-    logger.info(`✅ Updated memory ${memoryId} with parentFolderId: ${parentFolderId}`);
+    fatLogger.info(`✅ Updated memory ${memoryId} with parentFolderId: ${parentFolderId}`, 'be');
   }
 
   // Process each asset with idempotent upserts
@@ -171,7 +171,7 @@ async function handleParallelProcessingFinalize(request: FinalizeRequest, allUse
           })
           .where(and(eq(memoryAssets.memoryId, memoryId), eq(memoryAssets.assetType, asset.assetType)));
 
-        logger.info(`✅ Updated existing asset: ${asset.assetType} -> ${asset.processingStatus}`);
+        fatLogger.info(`✅ Updated existing asset: ${asset.assetType} -> ${asset.processingStatus}`, 'be');
       } else {
         // Create new asset
         const assetId = randomUUID();
@@ -195,7 +195,7 @@ async function handleParallelProcessingFinalize(request: FinalizeRequest, allUse
           updatedAt: new Date(),
         });
 
-        logger.info(`✅ Created new asset: ${asset.assetType} -> ${asset.processingStatus}`);
+        fatLogger.info(`✅ Created new asset: ${asset.assetType} -> ${asset.processingStatus}`, 'be');
       }
 
       processedAssets.push({
@@ -204,7 +204,7 @@ async function handleParallelProcessingFinalize(request: FinalizeRequest, allUse
         url: asset.url,
       });
     } catch (error) {
-      logger.error(`❌ Failed to process asset ${asset.assetType}:`, undefined, {
+      fatLogger.error(`❌ Failed to process asset ${asset.assetType}:`, 'be', {
         data: error instanceof Error ? error : undefined,
       });
       // Continue processing other assets even if one fails
@@ -250,7 +250,7 @@ async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserI
         const tokenData = JSON.parse(requestData.token);
         metadata.userId = tokenData.userId || metadata.userId;
       } catch (e) {
-        logger.warn('Failed to parse token data', undefined, { error: e instanceof Error ? e : undefined });
+        fatLogger.warn('Failed to parse token data', 'be', { error: e instanceof Error ? e : undefined });
       }
     }
   } else {

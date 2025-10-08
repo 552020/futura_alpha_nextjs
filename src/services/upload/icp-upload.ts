@@ -29,7 +29,7 @@ import type { AssetMetadata, _SERVICE } from '@/ic/declarations/backend/backend.
 import type { HostingPreferences } from '@/hooks/use-hosting-preferences';
 import { UPLOAD_LIMITS_ICP } from '@/config/upload-limits';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 
 // Generate idempotency key for uploads
 function generateIdempotencyKey(): string {
@@ -686,7 +686,7 @@ export async function uploadFolderToICP(
 
       results.push(result);
     } catch (error) {
-      logger.error(`Failed to upload file ${file.name}:`, undefined, {
+      fatLogger.error(`Failed to upload file ${file.name}:`, 'be', {
         data: error instanceof Error ? error : undefined,
       });
       // Continue with other files, but log the error
