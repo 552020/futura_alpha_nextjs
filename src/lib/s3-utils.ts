@@ -42,7 +42,7 @@ async function objectExists(key: string): Promise<boolean> {
     }
     fatLogger.error('Unexpected error checking if S3 object exists', 'be', {
       key,
-      error: err
+      error: err,
     });
     return false;
   }
@@ -66,7 +66,7 @@ export async function deleteS3Object(key: string): Promise<boolean> {
     const exists = await objectExists(key);
     fatLogger.info('Object existence check completed', 'be', {
       key,
-      exists
+      exists,
     });
 
     if (!exists) {
@@ -76,7 +76,7 @@ export async function deleteS3Object(key: string): Promise<boolean> {
 
     fatLogger.info('Attempting to delete S3 object', 'be', {
       key,
-      bucket
+      bucket,
     });
 
     const command = new DeleteObjectCommand({
@@ -127,13 +127,14 @@ export async function deleteS3Object(key: string): Promise<boolean> {
     fatLogger.error('Unexpected error deleting S3 object', 'be', {
       key,
       url: fullUrl,
-      error: error instanceof Error
-        ? {
-            name: error.name,
-            message: error.message,
-            stack: error.stack,
-          }
-        : String(error),
+      error:
+        error instanceof Error
+          ? {
+              name: error.name,
+              message: error.message,
+              stack: error.stack,
+            }
+          : String(error),
       timestamp: new Date().toISOString(),
     });
     return false;

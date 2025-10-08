@@ -91,11 +91,11 @@ async function finalizeAssets(request: FinalizeRequest): Promise<void> {
   const assetCount = request.assets.length;
   const memoryId = request.memoryId;
   const assetStatuses = request.assets.map(a => `${a.assetType}=${a.processingStatus}`).join(', ');
-  
+
   fatLogger.info('Finalizing assets', 'be', {
     assetCount,
     memoryId,
-    assetStatuses
+    assetStatuses,
   });
 
   const response = await fetch('/api/upload/complete', {

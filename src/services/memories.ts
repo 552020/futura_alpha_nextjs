@@ -61,7 +61,9 @@ export const fetchMemories = async (
     try {
       return await fetchMemoriesFromICP(page);
     } catch (error) {
-      fatLogger.warn(`⚠️ ICP fetch failed, falling back to Neon:`, 'be', { error: error instanceof Error ? error.message : String(error) });
+      fatLogger.warn(`⚠️ ICP fetch failed, falling back to Neon:`, 'be', {
+        error: error instanceof Error ? error.message : String(error),
+      });
       // Gracefully fall back to Neon when ICP fails
       return await fetchMemoriesFromNeon(page);
     }
@@ -156,7 +158,9 @@ const fetchMemoriesFromICP = async (page: number): Promise<FetchMemoriesResult> 
       throw new Error(`ICP canister error: ${JSON.stringify(result.Err)}`);
     }
   } catch (error) {
-    fatLogger.error('Failed to fetch memories from ICP:', 'be', { data: error instanceof Error ? error : new Error(String(error)) });
+    fatLogger.error('Failed to fetch memories from ICP:', 'be', {
+      data: error instanceof Error ? error : new Error(String(error)),
+    });
     throw error;
   }
 };

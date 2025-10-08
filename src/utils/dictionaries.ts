@@ -313,7 +313,9 @@ export const getDictionary = async (
           result = { ...result, ...onboardingDict };
         }
       } catch (error) {
-        fatLogger.error(`Error loading onboarding dictionary:`, 'fe', { data: error instanceof Error ? error : undefined });
+        fatLogger.error(`Error loading onboarding dictionary:`, 'fe', {
+          data: error instanceof Error ? error : undefined,
+        });
       }
     }
 
@@ -333,7 +335,9 @@ export const getDictionary = async (
           result = { ...result, ...segmentDict };
         }
       } catch (error) {
-        fatLogger.error(`Error loading segment dictionary for ${options.segment}:`, 'fe', { data: error instanceof Error ? error : undefined });
+        fatLogger.error(`Error loading segment dictionary for ${options.segment}:`, 'fe', {
+          data: error instanceof Error ? error : undefined,
+        });
         // Continue with just the base dictionary if there's an error
       }
     }
@@ -354,7 +358,9 @@ export const getDictionary = async (
           result = { ...result, ...aboutDict };
         }
       } catch (error) {
-        fatLogger.error(`Error loading about dictionary for ${locale}:`, 'fe', { data: error instanceof Error ? error : undefined });
+        fatLogger.error(`Error loading about dictionary for ${locale}:`, 'fe', {
+          data: error instanceof Error ? error : undefined,
+        });
         // Continue without about content if there's an error
       }
     }
@@ -375,7 +381,9 @@ export const getDictionary = async (
           result = { ...result, ...faqDict };
         }
       } catch (error) {
-        fatLogger.error(`Error loading FAQ dictionary for ${locale}:`, 'fe', { data: error instanceof Error ? error : undefined });
+        fatLogger.error(`Error loading FAQ dictionary for ${locale}:`, 'fe', {
+          data: error instanceof Error ? error : undefined,
+        });
         // Continue without FAQ content if there's an error
       }
     }

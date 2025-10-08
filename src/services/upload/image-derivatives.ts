@@ -172,7 +172,8 @@ export async function processImageDerivativesWithWorkerPure(file: File): Promise
 
     return processedBlobs;
   } catch (error) {
-    fatLogger.error(`Failed to process derivatives for ${file.name}`, 'be', { data: error as Error,
+    fatLogger.error(`Failed to process derivatives for ${file.name}`, 'be', {
+      data: error as Error,
       fileName: file.name,
       fileSize: file.size,
       fileType: file.type,
@@ -233,7 +234,9 @@ export async function processImageDerivativesWithWorker(file: File, grant: Grant
 
     return processedAssets;
   } catch (error) {
-    fatLogger.error(`Failed to process derivatives for ${file.name}`, 'be', { data: error instanceof Error ? error : new Error(String(error)) });
+    fatLogger.error(`Failed to process derivatives for ${file.name}`, 'be', {
+      data: error instanceof Error ? error : new Error(String(error)),
+    });
 
     // Return failed status for all derivatives
     return {
@@ -267,7 +270,8 @@ async function handleProcessedAssets(response: ProcessResponse, grant: GrantResp
         url: displayUrl,
       };
     } catch (error) {
-      fatLogger.error('Failed to upload display asset to S3', 'be', { data: error as Error,
+      fatLogger.error('Failed to upload display asset to S3', 'be', {
+        data: error as Error,
         fileKey: grant.display.fileKey,
         bytes: response.display.bytes,
       });
@@ -292,7 +296,9 @@ async function handleProcessedAssets(response: ProcessResponse, grant: GrantResp
         url: thumbUrl,
       };
     } catch (error) {
-      fatLogger.error('Failed to upload thumb asset to S3', 'be', { data: error instanceof Error ? error : new Error(String(error)) });
+      fatLogger.error('Failed to upload thumb asset to S3', 'be', {
+        data: error instanceof Error ? error : new Error(String(error)),
+      });
       results.thumb = { assetType: 'thumb', processingStatus: 'failed' };
     }
   }
@@ -378,7 +384,9 @@ export async function uploadProcessedAssetsToS3(
         url: displayUrl,
       };
     } catch (error) {
-      fatLogger.error('Failed to upload display asset', 'be', { data: error instanceof Error ? error : new Error(String(error)) });
+      fatLogger.error('Failed to upload display asset', 'be', {
+        data: error instanceof Error ? error : new Error(String(error)),
+      });
       results.display = {
         assetType: 'display',
         processingStatus: 'failed',
@@ -410,7 +418,9 @@ export async function uploadProcessedAssetsToS3(
         url: thumbUrl,
       };
     } catch (error) {
-      fatLogger.error('Failed to upload thumb asset', 'be', { data: error instanceof Error ? error : new Error(String(error)) });
+      fatLogger.error('Failed to upload thumb asset', 'be', {
+        data: error instanceof Error ? error : new Error(String(error)),
+      });
       results.thumb = {
         assetType: 'thumb',
         processingStatus: 'failed',
