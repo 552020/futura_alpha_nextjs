@@ -1,14 +1,14 @@
 import { FatLogger } from './fat-logger';
 
 export const fatLogger = new FatLogger({
-  enabled: true,
-  frontend: true,
-  backend: true,
+  enabled: false,
+  frontend: false,
+  backend: false,
   levels: {
-    debug: true,
-    info: true,
-    warn: true,
-    error: true,
+    debug: false,
+    info: false,
+    warn: false,
+    error: false,
   },
   enabledTags: [],
   excludedTags: [],
