@@ -1,16 +1,16 @@
 import { FatLogger } from './fat-logger';
 
 export const fatLogger = new FatLogger({
-  enabled: false,
-  frontend: false,
-  backend: false,
+  enabled: true,
+  frontend: true,
+  backend: true,
   levels: {
-    debug: false,
-    info: false,
-    warn: false,
-    error: false,
+    debug: true,
+    info: true,
+    warn: true,
+    error: true,
   },
-  enabledTags: [],
+  enabledTags: ['icp:upload:init', 'icp:routing', 'icp:auth', 'icp:processing'],
   excludedTags: [],
 });
 

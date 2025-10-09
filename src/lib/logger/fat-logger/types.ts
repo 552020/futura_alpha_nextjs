@@ -13,6 +13,25 @@ export const TAG_NAMESPACES = {
   ENV: 'env',
 } as const;
 
+// ICP-specific tags for upload flow tracking
+export const ICP_TAGS = {
+  UPLOAD_INIT: "icp:upload:init",
+  ROUTING: "icp:routing",
+  AUTH: "icp:auth",
+  PROCESSING: "icp:processing",
+  LANES: "icp:lanes",
+  CANISTER: "icp:canister",
+  SESSION: "icp:session",
+  CHUNKS: "icp:chunks",
+  MEMORY: "icp:memory",
+  DATABASE: "icp:database",
+  EDGES: "icp:edges",
+  DUAL_STORAGE: "icp:dual-storage",
+  DASHBOARD: "icp:dashboard",
+  RENDERING: "icp:rendering",
+  DISPLAY: "icp:display",
+} as const;
+
 // Helper function for creating namespaced tags
 export function createTag(namespace: keyof typeof TAG_NAMESPACES, value: string): string {
   return `${TAG_NAMESPACES[namespace]}:${value}`;
