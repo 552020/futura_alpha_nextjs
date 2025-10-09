@@ -5,7 +5,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useAuthGuard } from '@/utils/authentication';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Globe, Lock, Trash2, Maximize2, HardDrive, Eye } from 'lucide-react';
+import { Globe, Lock, Trash2, Maximize2, HardDrive, Eye, Check } from 'lucide-react';
 import { galleryService } from '@/services/gallery';
 import { GalleryWithItems } from '@/types/gallery';
 import { Memory } from '@/types/memory';
@@ -149,16 +149,18 @@ function GalleryViewContent() {
   }, [searchParams]);
 
   const _toggleSelectionMode = () => {
-    if (isSelecting) {
-      // Exit selection mode
+    const newIsSelecting = !isSelecting;
+    
+    if (newIsSelecting) {
+      // Entering selection mode
+      setShowSidePanel(true);
+    } else {
+      // Exiting selection mode
       setSelectedImages([]);
       setActiveTab('all');
-      setShowSidePanel(false);
-    } else {
-      // Enter selection mode
-      setShowSidePanel(true);
     }
-    setIsSelecting(!isSelecting);
+    
+    setIsSelecting(newIsSelecting);
   };
 
   // Filter items based on active tab and hidden state
@@ -577,6 +579,15 @@ function GalleryViewContent() {
                 {gallery.isPublic ? 'Make Private' : 'Make Public'}
               </Button>
 
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={_toggleSelectionMode} 
+                className={`flex items-center gap-2 ${isSelecting ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800' : ''}`}
+              >
+                <Check className="h-4 w-4" />
+                {isSelecting ? 'Cancel' : 'Select'}
+              </Button>
               <Button variant="outline" size="sm" onClick={handleFullScreenView} className="flex items-center gap-2">
                 <Maximize2 className="h-4 w-4" />
                 Full Screen
