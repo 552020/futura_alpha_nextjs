@@ -279,6 +279,7 @@ export const idlFactory = ({ IDL }) => {
     'id' : IDL.Text,
     'inline_assets' : IDL.Vec(MemoryAssetInline),
     'access' : MemoryAccess,
+    'capsule_id' : IDL.Text,
     'metadata' : MemoryMetadata,
     'blob_internal_assets' : IDL.Vec(MemoryAssetBlobInternal),
     'blob_external_assets' : IDL.Vec(MemoryAssetBlobExternal),
@@ -446,6 +447,7 @@ export const idlFactory = ({ IDL }) => {
     'title' : IDL.Opt(IDL.Text),
     'updated_at' : IDL.Nat64,
     'sharing_status' : IDL.Text,
+    'capsule_id' : IDL.Text,
     'memory_type' : MemoryType,
     'name' : IDL.Text,
     'size' : IDL.Nat64,
@@ -713,6 +715,11 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'memories_list_assets' : IDL.Func([IDL.Text], [Result_17], ['query']),
+    'memories_list_by_capsule' : IDL.Func(
+        [IDL.Text, IDL.Opt(IDL.Text), IDL.Opt(IDL.Nat32)],
+        [Result_16],
+        ['query'],
+      ),
     'memories_ping' : IDL.Func([IDL.Vec(IDL.Text)], [Result_18], ['query']),
     'memories_read' : IDL.Func([IDL.Text], [Result_19], ['query']),
     'memories_read_asset' : IDL.Func(

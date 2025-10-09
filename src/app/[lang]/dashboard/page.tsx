@@ -40,6 +40,7 @@ import { ExtendedMemory } from '@/types/dashboard';
 import { TawkChat } from '@/components/chat/tawk-chat';
 import { DashboardTopBar } from '@/components/dashboard/dashboard-top-bar';
 import { sampleDashboardMemories } from '../../../../scripts/mock-data/create-dashboard-sample-data';
+import { useHostingPreferences, getRecommendedDashboardDataSource } from '@/hooks/use-hosting-preferences';
 
 // Demo flag - set to true to use mock data for demo
 // 📝 Sample data generation script: scripts/mock-data/create-dashboard-sample-data.ts
@@ -54,8 +55,28 @@ export default function VaultPage() {
   const [filteredMemories, setFilteredMemories] = useState<DashboardItem[]>([]);
   const params = useParams();
 
+  // Get hosting preferences to determine recommended data source
+  const { data: hostingPreferences } = useHostingPreferences();
+
   // Database source state for switching between ICP and Neon
-  const [dataSource, setDataSource] = useState<'neon' | 'icp'>('neon');
+  // Automatically set based on hosting preferences
+  const [dataSource, setDataSource] = useState<'neon' | 'icp' | null>(null);
+  const [isAutoSelected, setIsAutoSelected] = useState(true); // Track if data source was auto-selected
+
+  // Update data source when hosting preferences change
+  useEffect(() => {
+    if (hostingPreferences) {
+      const recommendedDataSource = getRecommendedDashboardDataSource(hostingPreferences);
+      setDataSource(recommendedDataSource);
+      setIsAutoSelected(true); // Mark as auto-selected when preferences change
+    }
+  }, [hostingPreferences]);
+
+  // Handle manual data source changes
+  const handleDataSourceChange = useCallback((newDataSource: 'neon' | 'icp') => {
+    setDataSource(newDataSource);
+    setIsAutoSelected(false); // Mark as manually selected
+  }, []);
 
   // React Query for dashboard data
   const {
@@ -66,11 +87,13 @@ export default function VaultPage() {
     fetchNextPage,
   } = useInfiniteQuery({
     queryKey: qk.memories.dashboard(userId, params.lang as string, dataSource),
-    queryFn: ({ pageParam = 1 }) => fetchMemories(pageParam as number, dataSource),
+    queryFn: ({ pageParam = 1 }) => {
+      return fetchMemories(pageParam as number, dataSource!);
+    },
+    enabled: dataSource !== null && Boolean(!USE_MOCK_DATA && isAuthorized && !isLoading && userId), // Only run when dataSource is determined AND user is authorized
     initialPageParam: 1,
     getNextPageParam: () => undefined, // No pagination for now
     placeholderData: keepPreviousData,
-    enabled: Boolean(!USE_MOCK_DATA && isAuthorized && !isLoading && userId),
   });
 
   // Process items from React Query or mock data
@@ -241,12 +264,14 @@ export default function VaultPage() {
         onUploadSuccess={handleUploadSuccess}
         onUploadError={handleUploadError}
         onClearAllMemories={handleClearAllMemories}
-        dataSource={dataSource}
-        onDataSourceChange={setDataSource}
+        dataSource={dataSource || 'neon'}
+        onDataSourceChange={handleDataSourceChange}
+        isAutoSelected={isAutoSelected}
+        hostingPreferences={hostingPreferences}
       />
 
       {/* Show loading state while fetching */}
-      {isLoadingMemories ? (
+      {dataSource === null || isLoadingMemories ? (
         <div className="flex justify-center items-center py-16">
           <Loader2 className="h-8 w-8 animate-spin mr-2" />
           <span>Loading memories...</span>

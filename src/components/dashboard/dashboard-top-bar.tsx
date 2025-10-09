@@ -5,6 +5,7 @@ import { ExtendedMemory } from '@/types/dashboard';
 import { ItemUploadButton } from '@/components/memory/item-upload-button';
 import { BaseTopBar } from '@/components/common/base-top-bar';
 import { Switch } from '@/components/ui/switch';
+import { canSwitchDashboardDataSources, type HostingPreferences } from '@/hooks/use-hosting-preferences';
 
 interface SearchAndFilterBarProps {
   memories: ExtendedMemory[];
@@ -19,6 +20,8 @@ interface SearchAndFilterBarProps {
   onClearAllMemories?: () => void;
   dataSource: 'neon' | 'icp';
   onDataSourceChange: (source: 'neon' | 'icp') => void;
+  isAutoSelected?: boolean; // Whether the data source was automatically selected
+  hostingPreferences?: HostingPreferences; // Hosting preferences to check if switching is allowed
 }
 
 export function DashboardTopBar({
@@ -34,6 +37,7 @@ export function DashboardTopBar({
   onClearAllMemories,
   dataSource,
   onDataSourceChange,
+  hostingPreferences,
 }: SearchAndFilterBarProps) {
   // Create left action buttons
   const leftActions = (
@@ -66,10 +70,15 @@ export function DashboardTopBar({
       )}
 
       {/* Database Toggle Switch */}
-      <div className="flex items-center gap-2 px-3 py-1 border rounded-md bg-background">
+      <div
+        className={`flex items-center gap-2 px-3 py-1 border rounded-md ${
+          !canSwitchDashboardDataSources(hostingPreferences) ? 'bg-muted' : 'bg-background'
+        }`}
+      >
         <Switch
           checked={dataSource === 'icp'}
           onCheckedChange={checked => onDataSourceChange(checked ? 'icp' : 'neon')}
+          disabled={!canSwitchDashboardDataSources(hostingPreferences)}
         />
         <span className="text-xs font-medium">{dataSource === 'icp' ? 'ICP' : 'Neon'}</span>
       </div>

@@ -260,6 +260,7 @@ export interface Memory {
   'id' : string,
   'inline_assets' : Array<MemoryAssetInline>,
   'access' : MemoryAccess,
+  'capsule_id' : string,
   'metadata' : MemoryMetadata,
   'blob_internal_assets' : Array<MemoryAssetBlobInternal>,
   'blob_external_assets' : Array<MemoryAssetBlobExternal>,
@@ -340,6 +341,7 @@ export interface MemoryHeader {
   'title' : [] | [string],
   'updated_at' : bigint,
   'sharing_status' : string,
+  'capsule_id' : string,
   'memory_type' : MemoryType,
   'name' : string,
   'size' : bigint,
@@ -616,6 +618,10 @@ export interface _SERVICE {
     Result_16
   >,
   'memories_list_assets' : ActorMethod<[string], Result_17>,
+  'memories_list_by_capsule' : ActorMethod<
+    [string, [] | [string], [] | [number]],
+    Result_16
+  >,
   'memories_ping' : ActorMethod<[Array<string>], Result_18>,
   'memories_read' : ActorMethod<[string], Result_19>,
   'memories_read_asset' : ActorMethod<[string, number], Result_1>,

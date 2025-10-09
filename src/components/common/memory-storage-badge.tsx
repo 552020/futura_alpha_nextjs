@@ -5,6 +5,7 @@ import { useMemoryStorageStatus, type MemoryStorageStatus } from '@/hooks/use-me
 interface MemoryStorageBadgeProps {
   memoryId: string;
   memoryType: string;
+  dataSource?: 'neon' | 'icp';
   size?: 'xs' | 'sm';
   className?: string;
   showTooltip?: boolean;
@@ -13,11 +14,12 @@ interface MemoryStorageBadgeProps {
 export function MemoryStorageBadge({
   memoryId,
   memoryType,
+  dataSource,
   size = 'xs',
   className = '',
   showTooltip = true,
 }: MemoryStorageBadgeProps) {
-  const { status, data: presenceData } = useMemoryStorageStatus(memoryId, memoryType);
+  const { status, data: presenceData } = useMemoryStorageStatus(memoryId, memoryType, dataSource);
 
   // Safety check: don't render if required props are missing
   if (!memoryId || !memoryType) {

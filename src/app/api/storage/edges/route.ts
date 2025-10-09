@@ -52,8 +52,8 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Validate UUID format for memoryId
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    // Validate UUID format for memoryId (accepts both UUID v4 and custom UUID v7)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(memoryId)) {
       return NextResponse.json({ error: 'Invalid memoryId format. Must be a valid UUID' }, { status: 400 });
     }

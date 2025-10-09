@@ -1,5 +1,8 @@
 import { FatLogger } from './fat-logger';
 
+// Simple ICP upload tracking flag
+export const ICP_DEBUG = true; // Set to false to disable ICP logs
+
 export const fatLogger = new FatLogger({
   enabled: true,
   frontend: true,
@@ -10,7 +13,7 @@ export const fatLogger = new FatLogger({
     warn: true,
     error: true,
   },
-  enabledTags: ['icp:upload:init', 'icp:routing', 'icp:auth', 'icp:processing'],
+  enabledTags: [],
   excludedTags: [],
 });
 

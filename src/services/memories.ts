@@ -58,15 +58,7 @@ export const fetchMemories = async (
   fatLogger.info(`🔍 Fetching memories for page ${page} from ${dataSource}...`, 'be');
 
   if (dataSource === 'icp') {
-    try {
-      return await fetchMemoriesFromICP(page);
-    } catch (error) {
-      fatLogger.warn(`⚠️ ICP fetch failed, falling back to Neon:`, 'be', {
-        error: error instanceof Error ? error.message : String(error),
-      });
-      // Gracefully fall back to Neon when ICP fails
-      return await fetchMemoriesFromNeon(page);
-    }
+    return await fetchMemoriesFromICP(page);
   } else {
     return await fetchMemoriesFromNeon(page);
   }
@@ -128,38 +120,83 @@ const fetchMemoriesFromNeon = async (page: number): Promise<FetchMemoriesResult>
 const fetchMemoriesFromICP = async (page: number): Promise<FetchMemoriesResult> => {
   try {
     const { backendActor } = await import('@/ic/backend');
-    const actor = await backendActor();
+    const { getAuthClient } = await import('@/ic/ii');
+
+    // Get authenticated identity
+    const authClient = await getAuthClient();
+    if (!authClient.isAuthenticated()) {
+      throw new Error('Please connect your Internet Identity to fetch ICP memories');
+    }
+
+    const identity = authClient.getIdentity();
+    const actor = await backendActor(identity);
 
     // Get user's capsule ID
     const capsuleResult = await actor.capsules_read_basic([]);
     if (!('Ok' in capsuleResult)) {
-      throw new Error('Failed to get user capsule');
+      console.log('Capsule result (expected for new users):', capsuleResult);
+
+      // Check if this is a "no capsule" error (expected for new users)
+      if (capsuleResult.Err && typeof capsuleResult.Err === 'object' && 'NotFound' in capsuleResult.Err) {
+        console.log('No capsule found - user likely has no memories yet, returning empty result');
+        return {
+          memories: [],
+          hasMore: false,
+        };
+      }
+
+      // For any other capsule errors, also return empty result (don't throw)
+      console.log('Capsule error, returning empty result:', capsuleResult.Err);
+      return {
+        memories: [],
+        hasMore: false,
+      };
     }
     const capsuleId = capsuleResult.Ok.capsule_id;
+    console.log('Using capsule ID:', capsuleId);
 
     // Calculate cursor from page (ICP uses cursor-based pagination)
     const limit: [] | [number] = [12];
     const cursor: [] | [string] = page > 1 ? [((page - 1) * 12).toString()] : [];
 
-    // Call ICP canister
-    const result = await actor.memories_list(capsuleId, cursor, limit);
+    // Call ICP canister using the new memories_list_by_capsule function
+    console.log('Calling memories_list_by_capsule with:', { capsuleId, cursor, limit });
+    const result = await actor.memories_list_by_capsule(capsuleId, cursor, limit);
+    console.log('memories_list_by_capsule result:', result);
 
     if ('Ok' in result) {
       const icpPage = result.Ok;
 
       // Transform ICP MemoryHeader to Neon MemoryWithFolder format
-      const memories = icpPage.items.map(header => transformICPMemoryHeaderToNeon(header));
+      const memories = icpPage.items.map((header: MemoryHeader) => transformICPMemoryHeaderToNeon(header));
 
       return {
         memories,
         hasMore: icpPage.next_cursor !== null,
       };
     } else {
-      throw new Error(`ICP canister error: ${JSON.stringify(result.Err)}`);
+      console.log('ICP canister result (expected for new users):', result.Err);
+
+      // Check if this is a "no capsule" error (expected for new users)
+      if (result.Err && typeof result.Err === 'object' && 'NotFound' in result.Err) {
+        console.log('No capsule found - user likely has no memories yet, returning empty result');
+        return {
+          memories: [],
+          hasMore: false,
+        };
+      }
+
+      // For any other errors, also return empty result (don't throw)
+      console.log('ICP canister error, returning empty result:', result.Err);
+      return {
+        memories: [],
+        hasMore: false,
+      };
     }
   } catch (error) {
     fatLogger.error('Failed to fetch memories from ICP:', 'be', {
-      data: error instanceof Error ? error : new Error(String(error)),
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
     });
     throw error;
   }

@@ -19,7 +19,7 @@ interface MemoryStatusMap {
 }
 
 // Hook for single memory storage status
-export function useMemoryStorageStatus(memoryId: string, memoryType: string) {
+export function useMemoryStorageStatus(memoryId: string, memoryType: string, dataSource?: 'neon' | 'icp') {
   const [status, setStatus] = useState<MemoryStorageStatus>('loading');
   const [data, setData] = useState<MemoryPresenceData | null>(null);
 
@@ -32,47 +32,158 @@ export function useMemoryStorageStatus(memoryId: string, memoryType: string) {
 
       try {
         setStatus('loading');
-        const response = await fetch(`/api/memories/${memoryId}`);
 
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
+        // Use dataSource to determine which API to call
+        if (dataSource === 'neon') {
+          // For Neon memories, try the Neon API first
+          const response = await fetch(`/api/memories/${memoryId}`);
 
-        const result = await response.json();
+          if (response.ok) {
+            const result = await response.json();
 
-        fatLogger.debug(`🔍 [STORAGE STATUS HOOK] Memory ${memoryId} - API Response:`, 'fe', {
-          success: result.success,
-          hasData: !!result.data,
-          hasStorageStatus: !!result.data?.storageStatus,
-          storageStatus: result.data?.storageStatus,
-        });
+            fatLogger.debug(`🔍 [STORAGE STATUS HOOK] Memory ${memoryId} - Neon API Response:`, 'fe', {
+              success: result.success,
+              hasData: !!result.data,
+              hasStorageStatus: !!result.data?.storageStatus,
+              storageStatus: result.data?.storageStatus,
+            });
 
-        if (result.success && result.data && result.data.storageStatus) {
-          // Transform the response to match the expected format
-          const storageStatus = result.data.storageStatus;
-          const presenceData: MemoryPresenceData = {
-            memoryId,
-            memoryType,
-            storageStatus: {
-              storageLocations: storageStatus.storageLocations || [],
-            },
-          };
-          setData(presenceData);
-          setStatus(storageStatus.storageLocations || []);
+            if (result.success && result.data && result.data.storageStatus) {
+              // Transform the response to match the expected format
+              const storageStatus = result.data.storageStatus;
+              const presenceData: MemoryPresenceData = {
+                memoryId,
+                memoryType,
+                storageStatus: {
+                  storageLocations: storageStatus.storageLocations || [],
+                },
+              };
+              setData(presenceData);
+              setStatus(storageStatus.storageLocations || []);
 
-          fatLogger.debug(
-            `✅ [STORAGE STATUS HOOK] Memory ${memoryId} - Set status:`,
-            storageStatus.storageLocations || []
-          );
+              fatLogger.debug(
+                `✅ [STORAGE STATUS HOOK] Memory ${memoryId} - Set status:`,
+                storageStatus.storageLocations || []
+              );
+              return;
+            }
+          }
+        } else if (dataSource === 'icp') {
+          // For ICP memories, go directly to storage edges API
+          const storageResponse = await fetch(`/api/storage/edges?memoryId=${memoryId}`);
+          if (storageResponse.ok) {
+            const storageResult = await storageResponse.json();
+            if (storageResult.success && storageResult.data) {
+              const storageLocations = (
+                storageResult.data as Array<{ locationMetadata?: string; locationAsset?: string }>
+              )
+                .map(edge => edge.locationMetadata || edge.locationAsset)
+                .filter(
+                  (location: string | undefined): location is string =>
+                    typeof location === 'string' && location.length > 0
+                );
+              const presenceData: MemoryPresenceData = {
+                memoryId,
+                memoryType,
+                storageStatus: {
+                  storageLocations: [...new Set(storageLocations)], // Remove duplicates
+                },
+              };
+              setData(presenceData);
+              setStatus(presenceData.storageStatus.storageLocations);
+              return;
+            }
+          }
         } else {
-          fatLogger.debug(`❌ [STORAGE STATUS HOOK] Memory ${memoryId} - No storage status data`, 'fe');
-          setStatus('error');
+          // Fallback: Check if this is a UUID format (our new universal format)
+          const isUuidV7 = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(memoryId);
+
+          if (isUuidV7) {
+            // For UUID v7 format without dataSource, try the Neon API first (most memories will be in Neon)
+            const response = await fetch(`/api/memories/${memoryId}`);
+
+            if (response.ok) {
+              const result = await response.json();
+
+              if (result.success && result.data && result.data.storageStatus) {
+                // Transform the response to match the expected format
+                const storageStatus = result.data.storageStatus;
+                const presenceData: MemoryPresenceData = {
+                  memoryId,
+                  memoryType,
+                  storageStatus: {
+                    storageLocations: storageStatus.storageLocations || [],
+                  },
+                };
+                setData(presenceData);
+                setStatus(storageStatus.storageLocations || []);
+                return;
+              }
+            }
+
+            // If Neon API fails, try ICP storage edges API
+            const storageResponse = await fetch(`/api/storage/edges?memoryId=${memoryId}`);
+            if (storageResponse.ok) {
+              const storageResult = await storageResponse.json();
+              if (storageResult.success && storageResult.data) {
+                const storageLocations = (
+                  storageResult.data as Array<{ locationMetadata?: string; locationAsset?: string }>
+                )
+                  .map(edge => edge.locationMetadata || edge.locationAsset)
+                  .filter(
+                    (location: string | undefined): location is string =>
+                      typeof location === 'string' && location.length > 0
+                  );
+                const presenceData: MemoryPresenceData = {
+                  memoryId,
+                  memoryType,
+                  storageStatus: {
+                    storageLocations: [...new Set(storageLocations)], // Remove duplicates
+                  },
+                };
+                setData(presenceData);
+                setStatus(presenceData.storageStatus.storageLocations);
+                return;
+              }
+            }
+          } else {
+            // For old compound ID format, try storage edges API directly
+            const storageResponse = await fetch(`/api/storage/edges?memoryId=${memoryId}`);
+            if (storageResponse.ok) {
+              const storageResult = await storageResponse.json();
+              if (storageResult.success && storageResult.data) {
+                const storageLocations = (
+                  storageResult.data as Array<{ locationMetadata?: string; locationAsset?: string }>
+                )
+                  .map(edge => edge.locationMetadata || edge.locationAsset)
+                  .filter(
+                    (location: string | undefined): location is string =>
+                      typeof location === 'string' && location.length > 0
+                  );
+                const presenceData: MemoryPresenceData = {
+                  memoryId,
+                  memoryType,
+                  storageStatus: {
+                    storageLocations: [...new Set(storageLocations)], // Remove duplicates
+                  },
+                };
+                setData(presenceData);
+                setStatus(presenceData.storageStatus.storageLocations);
+                return;
+              }
+            }
+          }
         }
+
+        // If all else fails, set error status
+        fatLogger.debug(`❌ [STORAGE STATUS HOOK] Memory ${memoryId} - No storage status data found`, 'fe');
+        setStatus('error');
       } catch (error) {
         // Only log unexpected errors, not 404s for non-existent memories
         if (error instanceof Error && !error.message.includes('404')) {
           fatLogger.error('Error fetching memory storage status:', 'fe', {
-            data: error,
+            error: error.message,
+            stack: error.stack,
           });
         }
         setStatus('error');
@@ -148,7 +259,8 @@ export function useBatchMemoryStorageStatus(memories: Array<{ id: string; type: 
             // Only log unexpected errors, not 404s for non-existent memories
             if (error instanceof Error && !error.message.includes('404')) {
               fatLogger.error(`Error fetching status for memory ${memory.id}:`, 'fe', {
-                data: error,
+                error: error.message,
+                stack: error.stack,
               });
             }
             return { key, status: 'error' as MemoryStorageStatus, data: null };
@@ -170,7 +282,8 @@ export function useBatchMemoryStorageStatus(memories: Array<{ id: string; type: 
         });
       } catch (error) {
         fatLogger.error('Error in batch memory status fetch:', 'fe', {
-          data: error instanceof Error ? error : undefined,
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
         });
         // Set all to error state
         setStatusMap(prevMap => {

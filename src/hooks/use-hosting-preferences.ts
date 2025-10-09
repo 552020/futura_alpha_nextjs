@@ -50,6 +50,47 @@ export function canSwitchDatabase(preferences?: HostingPreferences): boolean {
   return isAdvancedDatabaseSwitchingEnabled(preferences) && getAvailableDatabases(preferences).length > 1;
 }
 
+// Check if both data sources are available for switching in dashboard
+export function canSwitchDashboardDataSources(preferences?: HostingPreferences): boolean {
+  if (!preferences) return false;
+  return preferences.databaseHosting.includes('neon') && preferences.databaseHosting.includes('icp');
+}
+
+// ---- automatic data source selection for dashboard ----
+export function getRecommendedDashboardDataSource(preferences?: HostingPreferences): 'neon' | 'icp' {
+  if (!preferences) return 'neon';
+
+  const { backendHosting, databaseHosting } = preferences;
+
+  // If backend is ICP, prefer ICP data source
+  if (backendHosting === 'icp') {
+    return 'icp';
+  }
+
+  // If backend is Vercel but only ICP database is available, use ICP
+  if (backendHosting === 'vercel' && databaseHosting.length === 1 && databaseHosting[0] === 'icp') {
+    return 'icp';
+  }
+
+  // If both databases are available, prefer Neon (default)
+  if (databaseHosting.includes('neon') && databaseHosting.includes('icp')) {
+    return 'neon';
+  }
+
+  // If only Neon is available, use Neon
+  if (databaseHosting.includes('neon')) {
+    return 'neon';
+  }
+
+  // If only ICP is available, use ICP
+  if (databaseHosting.includes('icp')) {
+    return 'icp';
+  }
+
+  // Fallback to Neon
+  return 'neon';
+}
+
 // ---- hosting stack helpers (for checkbox logic) ----
 export function getWeb2Enabled(preferences?: HostingPreferences): boolean {
   return !!(preferences?.backendHosting === 'vercel' || preferences?.databaseHosting?.includes('neon'));
