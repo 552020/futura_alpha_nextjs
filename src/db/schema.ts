@@ -863,47 +863,8 @@ export type FamilyRelationshipType = (typeof FAMILY_RELATIONSHIP_TYPES)[number];
 // DEPRECATED: OLD SHARING TABLES (Replaced by Universal Resource Sharing)
 // ============================================================================
 
-// ❌ DEPRECATED: This table supports three types of sharing:
-// 1. Direct user sharing (sharedWithId)
-// 2. Group sharing (groupId)
-// 3. Relationship-based sharing (sharedRelationshipType)
-// Only one of these sharing methods should be used per record.
-// Relationship-based sharing is dynamic - access is determined by current relationships
-// rather than static lists, making it more maintainable and accurate.
-// Note: Application logic must enforce that exactly one of sharedWithId, groupId, or sharedRelationshipType is set.
-//
+// ❌ DEPRECATED: Memory sharing table - replaced by universal resource sharing system
 // ✅ REPLACED BY: resourceMembership table (universal sharing system)
-//
-// COMMENTED OUT TO FORCE MIGRATION TO NEW UNIVERSAL SHARING SYSTEM
-// TEMPORARILY UNCOMMENTED FOR BUILD FIX
-export const memoryShares = pgTable('memory_share', {
-  id: text('id')
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  memoryId: uuid('memory_id').notNull(), // The ID of the memory (e.g., image, note, document)
-  memoryType: text('memory_type', { enum: MEMORY_TYPES }).notNull(), // Type of memory (e.g., "image", "note", "document", "video")
-  ownerId: text('owner_id') // The user who originally created (or owns) the memory
-    .notNull()
-    .references(() => allUsers.id, { onDelete: 'cascade' }),
-
-  sharedWithType: text('shared_with_type', {
-    enum: ['user', 'group', 'relationship'],
-  }).notNull(),
-
-  sharedWithId: text('shared_with_id') // For direct user sharing
-    .references(() => allUsers.id, { onDelete: 'cascade' }),
-  groupId: text('group_id') // For group sharing
-    .references(() => group.id, { onDelete: 'cascade' }),
-  sharedRelationshipType: text('shared_relationship_type', {
-    // For relationship-based sharing
-    enum: SHARING_RELATIONSHIP_TYPES,
-  }),
-
-  accessLevel: text('access_level', { enum: ACCESS_LEVELS }).default('read').notNull(),
-  inviteeSecureCode: text('invitee_secure_code').notNull(), // For invitee to access the memory
-  inviteeSecureCodeCreatedAt: timestamp('secure_code_created_at', { mode: 'date' }).notNull().defaultNow(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-});
 
 // This table is for shared groups where all members see the same group composition
 // (e.g., book clubs, work teams, shared family groups).
@@ -1150,10 +1111,7 @@ export type NewDBSession = typeof sessions.$inferInsert;
 // Old per-type table types removed - replaced by unified memory types
 
 // ❌ DEPRECATED: Old memory sharing types (replaced by universal resource sharing)
-// COMMENTED OUT TO FORCE MIGRATION TO NEW UNIVERSAL SHARING SYSTEM
-// TEMPORARILY UNCOMMENTED FOR BUILD FIX
-export type DBMemoryShare = typeof memoryShares.$inferSelect;
-export type NewDBMemoryShare = typeof memoryShares.$inferInsert;
+// ✅ REPLACED BY: DBResourceMembership types (universal sharing system)
 
 export type DBGroup = typeof group.$inferSelect;
 export type NewDBGroup = typeof group.$inferInsert;
@@ -1166,49 +1124,14 @@ export type NewDBGroupMember = typeof groupMember.$inferInsert;
 export type DBGallery = typeof galleries.$inferSelect;
 export type NewDBGallery = typeof galleries.$inferInsert;
 
-// ❌ DEPRECATED: Gallery sharing table - similar to memoryShares but for galleries
+// ❌ DEPRECATED: Gallery sharing table - replaced by universal resource sharing system
 // ✅ REPLACED BY: resourceMembership table (universal sharing system)
-//
-// COMMENTED OUT TO FORCE MIGRATION TO NEW UNIVERSAL SHARING SYSTEM
-// TEMPORARILY UNCOMMENTED FOR BUILD FIX
-export const galleryShares = pgTable('gallery_share', {
-  id: text('id')
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  galleryId: text('gallery_id')
-    .notNull()
-    .references(() => galleries.id, { onDelete: 'cascade' }),
-  ownerId: text('owner_id') // The user who owns the gallery
-    .notNull()
-    .references(() => allUsers.id, { onDelete: 'cascade' }),
-
-  sharedWithType: text('shared_with_type', {
-    enum: ['user', 'group', 'relationship'],
-  }).notNull(),
-
-  sharedWithId: text('shared_with_id') // For direct user sharing
-    .references(() => allUsers.id, { onDelete: 'cascade' }),
-  groupId: text('group_id') // For group sharing
-    .references(() => group.id, { onDelete: 'cascade' }),
-  sharedRelationshipType: text('shared_relationship_type', {
-    // For relationship-based sharing
-    enum: SHARING_RELATIONSHIP_TYPES,
-  }),
-
-  accessLevel: text('access_level', { enum: ACCESS_LEVELS }).default('read').notNull(),
-  inviteeSecureCode: text('invitee_secure_code').notNull(), // For invitee to access the gallery
-  inviteeSecureCodeCreatedAt: timestamp('secure_code_created_at', { mode: 'date' }).notNull().defaultNow(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-});
 
 export type DBGalleryItem = typeof galleryItems.$inferSelect;
 export type NewDBGalleryItem = typeof galleryItems.$inferInsert;
 
 // ❌ DEPRECATED: Old gallery sharing types (replaced by universal resource sharing)
-// COMMENTED OUT TO FORCE MIGRATION TO NEW UNIVERSAL SHARING SYSTEM
-// TEMPORARILY UNCOMMENTED FOR BUILD FIX
-export type DBGalleryShare = typeof galleryShares.$inferSelect;
-export type NewDBGalleryShare = typeof galleryShares.$inferInsert;
+// ✅ REPLACED BY: DBResourceMembership types (universal sharing system)
 
 // Internet Identity nonce table for canister-first signup
 export const iiNonces = pgTable(
