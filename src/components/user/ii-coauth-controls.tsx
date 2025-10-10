@@ -28,7 +28,7 @@ interface IICoAuthControlsProps {
 }
 
 export function IICoAuthControls({ className = '' }: IICoAuthControlsProps) {
-  const { update, data: session } = useSession();
+  const { data: session } = useSession();
   const router = useRouter();
 
   // New hooks
@@ -49,7 +49,7 @@ export function IICoAuthControls({ className = '' }: IICoAuthControlsProps) {
   const isSignedInWithGoogleInApp = authStatus.isSignedInWithGoogle;
 
   // Use session principal as fallback if no active II session
-  const _displayPrincipal = currentIIPrincipal || authStatus.activeIcPrincipal;
+  // const _displayPrincipal = currentIIPrincipal || authStatus.activeIcPrincipal;
 
   // Placeholder disconnect function (will be implemented later)
   const disconnectII = async () => {
@@ -82,39 +82,39 @@ export function IICoAuthControls({ className = '' }: IICoAuthControlsProps) {
   };
 
   // Handle linking II account (inline authentication)
-  const _handleLinkIIInline = async () => {
-    try {
-      // Use the unified authentication flow
-      const { handleInternetIdentityAuth } = await import('@/lib/ii-auth-utils');
+  // const _handleLinkIIInline = async () => {
+  //   try {
+  // Use the unified authentication flow
+  // const { handleInternetIdentityAuth } = await import('@/lib/ii-auth-utils');
 
-      await handleInternetIdentityAuth(
-        window.location.href, // callbackUrl
-        _principal => {
-          // Success callback - show success message
-          toast({
-            title: 'II Authentication Successful',
-            description: 'Your Internet Identity is now active for this session',
-          });
-        },
-        errorMessage => {
-          // Error callback - show error
-          toast({
-            title: 'Authentication Failed',
-            description: errorMessage,
-            variant: 'destructive',
-          });
-        },
-        update // Pass the session update function
-      );
-    } catch (error) {
-      fatLogger.error('Failed to authenticate with II:', 'fe', { data: error instanceof Error ? error : undefined });
-      toast({
-        title: 'Authentication Failed',
-        description: 'Failed to authenticate with Internet Identity. Please try again.',
-        variant: 'destructive',
-      });
-    }
-  };
+  // await handleInternetIdentityAuth(
+  //   window.location.href, // callbackUrl
+  //   _principal => {
+  //     // Success callback - show success message
+  //     toast({
+  //       title: 'II Authentication Successful',
+  //       description: 'Your Internet Identity is now active for this session',
+  //     });
+  //   },
+  //   errorMessage => {
+  //     // Error callback - show error
+  //     toast({
+  //       title: 'Authentication Failed',
+  //       description: errorMessage,
+  //       variant: 'destructive',
+  //     });
+  //   },
+  //   update // Pass the session update function
+  // );
+  // } catch (error) {
+  //   fatLogger.error('Failed to authenticate with II:', 'fe', { data: error instanceof Error ? error : undefined });
+  //   toast({
+  //     title: 'Authentication Failed',
+  //     description: 'Failed to authenticate with Internet Identity. Please try again.',
+  //     variant: 'destructive',
+  //   });
+  // }
+  // };
 
   // Handle II disconnection
   const handleDisconnectII = async () => {

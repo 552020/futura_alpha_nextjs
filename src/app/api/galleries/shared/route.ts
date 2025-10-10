@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
-import { allUsers, galleries, galleryShares, users, temporaryUsers } from '@/db/schema';
+import { allUsers, galleries, users, temporaryUsers, resourceMembership } from '@/db/schema';
 import { addStorageStatusToGallery } from '../utils';
-import { eq, desc, sql } from 'drizzle-orm';
+import { eq, and, desc, sql } from 'drizzle-orm';
 
 import { fatLogger } from '@/lib/logger';
 /**
@@ -65,29 +65,31 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '12');
     const offset = (page - 1) * limit;
 
-    // Get all gallery shares for this user
-    const shares = await db.query.galleryShares.findMany({
-      where: eq(galleryShares.sharedWithId, allUserId),
-      orderBy: desc(galleryShares.createdAt),
+    // Get all gallery shares for this user using the new universal resource sharing system
+    const shares = await db.query.resourceMembership.findMany({
+      where: and(eq(resourceMembership.allUserId, allUserId), eq(resourceMembership.resourceType, 'gallery')),
+      orderBy: desc(resourceMembership.createdAt),
     });
 
     // Fetch the actual galleries
     const sharedGalleries = await Promise.all(
       shares.map(async share => {
         const gallery = await db.query.galleries.findFirst({
-          where: eq(galleries.id, share.galleryId),
+          where: eq(galleries.id, share.resourceId),
         });
         if (!gallery) return null;
 
-        // Get total share count for this gallery
+        // Get total share count for this gallery using the new universal resource sharing system
         const shareCount = await db
           .select({ count: sql<number>`count(*)` })
-          .from(galleryShares)
-          .where(eq(galleryShares.galleryId, share.galleryId));
+          .from(resourceMembership)
+          .where(
+            and(eq(resourceMembership.resourceId, share.resourceId), eq(resourceMembership.resourceType, 'gallery'))
+          );
 
-        // Get owner name
+        // Get owner name from the gallery itself
         const owner = await db.query.allUsers.findFirst({
-          where: eq(allUsers.id, share.ownerId),
+          where: eq(allUsers.id, gallery.ownerId),
         });
 
         // Add storage status to the gallery
@@ -96,10 +98,10 @@ export async function GET(request: NextRequest) {
         return {
           ...galleryWithStorageStatus,
           sharedBy: {
-            id: share.ownerId,
-            name: owner?.userId ? await getOwnerName(share.ownerId) : 'Unknown',
+            id: gallery.ownerId,
+            name: owner?.userId ? await getOwnerName(gallery.ownerId) : 'Unknown',
           },
-          accessLevel: share.accessLevel,
+          accessLevel: share.role === 'member' ? 'write' : 'read',
           status: 'shared' as const,
           sharedWithCount: shareCount[0].count,
         };

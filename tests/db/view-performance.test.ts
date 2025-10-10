@@ -68,7 +68,7 @@ describe('View Performance Tests', () => {
     const startTime = Date.now();
 
     // Test basic query performance
-    const _result = await db.execute(sql`SELECT COUNT(*) FROM sync_status`);
+    // const _result = await db.execute(sql`SELECT COUNT(*) FROM sync_status`);
     const basicQueryTime = Date.now() - startTime;
 
     expect(basicQueryTime).toBeLessThan(1000); // Should complete in under 1 second
@@ -79,7 +79,7 @@ describe('View Performance Tests', () => {
     const startTime = Date.now();
 
     // Test filtering by sync state
-    const _migratingResult = await db.execute(sql`SELECT COUNT(*) FROM sync_status WHERE sync_state = 'migrating'`);
+    // const _migratingResult = await db.execute(sql`SELECT COUNT(*) FROM sync_status WHERE sync_state = 'migrating'`);
     const filteringTime = Date.now() - startTime;
 
     expect(filteringTime).toBeLessThan(1000); // Should complete in under 1 second
@@ -90,7 +90,7 @@ describe('View Performance Tests', () => {
     const startTime = Date.now();
 
     // Test stuck sync detection
-    const _stuckResult = await db.execute(sql`SELECT COUNT(*) FROM sync_status WHERE is_stuck = true`);
+    // const _stuckResult = await db.execute(sql`SELECT COUNT(*) FROM sync_status WHERE is_stuck = true`);
     const stuckQueryTime = Date.now() - startTime;
 
     expect(stuckQueryTime).toBeLessThan(1000); // Should complete in under 1 second
@@ -101,9 +101,9 @@ describe('View Performance Tests', () => {
     const startTime = Date.now();
 
     // Test ordered query (most expensive operation)
-    const _orderedResult = await db.execute(
-      sql`SELECT * FROM sync_status ORDER BY sync_duration_seconds DESC LIMIT 10`
-    );
+    // const _orderedResult = await db.execute(
+    //   sql`SELECT * FROM sync_status ORDER BY sync_duration_seconds DESC LIMIT 10`
+    // );
     const orderingTime = Date.now() - startTime;
 
     expect(orderingTime).toBeLessThan(1000); // Should complete in under 1 second

@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { db } from '@/db/db';
-import { memoryShares, allUsers } from '@/db/schema';
+import { resourceMembership, allUsers } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { findMemory } from '@/app/api/memories/utils/memory';
 import { MemoryViewer } from '@/components/memory/memory-viewer';
@@ -70,18 +70,22 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
       timestamp: new Date().toISOString(),
     });
 
-    // Check if the user has access to this memory
-    const share = await db.query.memoryShares.findFirst({
-      where: and(eq(memoryShares.memoryId, id), eq(memoryShares.sharedWithId, allUserRecord.id)),
+    // Check if the user has access to this memory using the new universal resource sharing system
+    const share = await db.query.resourceMembership.findFirst({
+      where: and(
+        eq(resourceMembership.resourceId, id),
+        eq(resourceMembership.resourceType, 'memory'),
+        eq(resourceMembership.allUserId, allUserRecord.id)
+      ),
     });
 
     fatLogger.info('🔍 DEBUG SharedMemoryPage - Share Check:', 'fe', {
       hasShare: !!share,
       shareDetails: share
         ? {
-            accessLevel: share.accessLevel,
-            sharedWithId: share.sharedWithId,
-            memoryId: share.memoryId,
+            accessLevel: 'read', // Default access level for shared memories
+            allUserId: share.allUserId,
+            resourceId: share.resourceId,
           }
         : null,
       timestamp: new Date().toISOString(),
@@ -104,11 +108,11 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
 
     fatLogger.info('✅ DEBUG SharedMemoryPage - Access Granted:', 'fe', {
       reason: isOwner ? 'User is owner' : 'User has share record',
-      accessLevel: isOwner ? 'write' : share?.accessLevel || 'read',
+      accessLevel: isOwner ? 'write' : share?.role === 'member' ? 'write' : 'read',
       timestamp: new Date().toISOString(),
     });
 
-    const accessLevel = isOwner ? 'write' : share?.accessLevel || 'read';
+    const accessLevel = isOwner ? 'write' : share?.role === 'member' ? 'write' : 'read';
 
     return (
       <div className="container mx-auto py-8">

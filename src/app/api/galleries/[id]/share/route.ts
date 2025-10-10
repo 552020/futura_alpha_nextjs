@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
 import { eq, and } from 'drizzle-orm';
-import { galleries, allUsers, galleryShares } from '@/db/schema';
+import { galleries, allUsers, resourceMembership } from '@/db/schema';
 import { randomUUID } from 'crypto';
 
 import { fatLogger } from '@/lib/logger';
@@ -61,26 +61,25 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // Generate secure code for access
     const inviteeSecureCode = randomUUID();
 
-    // Create gallery share record
+    // Create gallery share record using the new universal resource sharing system
     const newShare = await db
-      .insert(galleryShares)
+      .insert(resourceMembership)
       .values({
-        galleryId,
-        ownerId: allUserRecord.id,
-        sharedWithType,
-        sharedWithId: sharedWithType === 'user' ? sharedWithId : null,
-        groupId: sharedWithType === 'group' ? groupId : null,
-        sharedRelationshipType: sharedWithType === 'relationship' ? sharedRelationshipType : null,
-        accessLevel,
-        inviteeSecureCode,
+        resourceId: galleryId,
+        resourceType: 'gallery',
+        allUserId: sharedWithType === 'user' ? sharedWithId : null,
+        role: accessLevel === 'write' ? 'member' : 'guest',
+        grantSource: 'user',
+        createdAt: new Date(),
       })
       .returning();
 
-    // fatLogger.info("Created gallery share:", newShare[0]);
+    fatLogger.info('Created gallery share:', JSON.stringify(newShare[0]));
 
     return NextResponse.json(
       {
         share: newShare[0],
+        inviteeSecureCode,
       },
       { status: 201 }
     );
@@ -121,12 +120,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Gallery not found' }, { status: 404 });
     }
 
-    // Get all shares for this gallery
-    const gallerySharesList = await db.query.galleryShares.findMany({
-      where: eq(galleryShares.galleryId, galleryId),
+    // Get all shares for this gallery using the new universal resource sharing system
+    const gallerySharesList = await db.query.resourceMembership.findMany({
+      where: and(eq(resourceMembership.resourceId, galleryId), eq(resourceMembership.resourceType, 'gallery')),
     });
 
-    // fatLogger.info("Fetched gallery shares:", gallerySharesList.length);
+    fatLogger.info('Fetched gallery shares:', gallerySharesList.length.toString());
 
     return NextResponse.json({
       shares: gallerySharesList,
