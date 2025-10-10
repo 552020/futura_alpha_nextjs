@@ -515,8 +515,8 @@ export function ContentCard({
         renderDescription={() => gallery.description}
         renderStorageBadge={() => (
           <div className="flex items-center gap-2">
-            <Badge variant={gallery.isPublic ? 'default' : 'secondary'} className="text-xs">
-              {gallery.isPublic ? (
+            <Badge variant={gallery.sharingStatus === 'public' ? 'default' : 'secondary'} className="text-xs">
+              {gallery.sharingStatus === 'public' ? (
                 <>
                   <Globe className="h-3 w-3 mr-1" />
                   Public
@@ -536,8 +536,8 @@ export function ContentCard({
           </div>
         )}
         renderLeftStatus={() => (
-          <Badge variant={gallery.isPublic ? 'default' : 'secondary'} className="text-xs">
-            {gallery.isPublic ? (
+          <Badge variant={gallery.sharingStatus === 'public' ? 'default' : 'secondary'} className="text-xs">
+            {gallery.sharingStatus === 'public' ? (
               <>
                 <Globe className="h-3 w-3 mr-1" />
                 Public

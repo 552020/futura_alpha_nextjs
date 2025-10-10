@@ -22,7 +22,7 @@ async function checkMemoryAccess(
 
     if (gallery) {
       // Gallery override: if gallery is public, all memories are accessible
-      if (gallery.isPublic) {
+      if (gallery.sharingStatus === 'public') {
         return true;
       }
 
@@ -64,7 +64,7 @@ async function checkMemoryAccess(
   }
 
   // Check if memory is public
-  if (memory.isPublic) {
+  if (memory.sharingStatus === 'public') {
     return true;
   }
 
@@ -96,7 +96,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     if (!allUserRecord) {
       fatLogger.error('No allUsers record found for user', 'be', {
-        userId: session.user.id
+        userId: session.user.id,
       });
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
@@ -124,7 +124,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     } else {
       // Check if gallery exists and is public (gallery override)
       const publicGallery = await db.query.galleries.findFirst({
-        where: and(eq(galleries.id, galleryId), eq(galleries.isPublic, true)),
+        where: and(eq(galleries.id, galleryId), eq(galleries.sharingStatus, 'public')),
       });
 
       if (publicGallery) {
@@ -306,7 +306,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     });
   } catch (error) {
     fatLogger.error('Error fetching gallery', 'be', {
-      error: error instanceof Error ? error : undefined
+      error: error instanceof Error ? error : undefined,
     });
     fatLogger.error('Error details', 'be', {
       message: error instanceof Error ? error.message : 'Unknown error',
@@ -332,7 +332,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     if (!allUserRecord) {
       fatLogger.error('No allUsers record found for user', 'be', {
-        userId: session.user.id
+        userId: session.user.id,
       });
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
@@ -356,7 +356,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       .set({
         title: title !== undefined ? title : existingGallery.title,
         description: description !== undefined ? description : existingGallery.description,
-        isPublic: isPublic !== undefined ? isPublic : existingGallery.isPublic,
+        sharingStatus: isPublic !== undefined ? (isPublic ? 'public' : 'private') : existingGallery.sharingStatus,
         updatedAt: new Date(),
       })
       .where(eq(galleries.id, galleryId))
@@ -420,7 +420,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     });
   } catch (error) {
     fatLogger.error('Error updating gallery', 'be', {
-      error: error instanceof Error ? error : undefined
+      error: error instanceof Error ? error : undefined,
     });
     return NextResponse.json({ error: 'Failed to update gallery' }, { status: 500 });
   }
@@ -442,7 +442,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     if (!allUserRecord) {
       fatLogger.error('No allUsers record found for user', 'be', {
-        userId: session.user.id
+        userId: session.user.id,
       });
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
@@ -468,7 +468,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     });
   } catch (error) {
     fatLogger.error('Error deleting gallery', 'be', {
-      error: error instanceof Error ? error : undefined
+      error: error instanceof Error ? error : undefined,
     });
     return NextResponse.json({ error: 'Failed to delete gallery' }, { status: 500 });
   }

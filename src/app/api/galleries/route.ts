@@ -174,11 +174,14 @@ export async function POST(request: NextRequest) {
         title: title || (type === 'from-folder' ? `Gallery from ${folderName}` : 'My Gallery'),
         description:
           description || (type === 'from-folder' ? `Gallery created from folder: ${folderName}` : 'Custom gallery'),
-        isPublic,
+        sharingStatus: isPublic ? 'public' : 'private',
         // Storage status fields - will be calculated from memories
         totalMemories: galleryMemories.length,
-        averageStorageDuration: null, // Will be calculated from memories
-        storageDistribution: {}, // Will be calculated from memories
+        name: (title || (type === 'from-folder' ? `Gallery from ${folderName}` : 'My Gallery'))
+          .toLowerCase()
+          .replace(/\s+/g, '-'),
+        sharedCount: 0,
+        storageLocation: ['s3'],
       })
       .returning();
 
@@ -205,7 +208,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Calculate storage distribution
-    const storageDistribution: Record<string, number> = {};
+    const _storageDistribution: Record<string, number> = {};
     let totalDuration = 0;
     let permanentCount = 0;
 
@@ -220,19 +223,13 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    const averageStorageDuration =
+    const _averageStorageDuration =
       permanentCount === memoriesWithStorage.length
         ? null
         : Math.round(totalDuration / (memoriesWithStorage.length - permanentCount));
 
     // Update gallery with calculated storage status
-    await db
-      .update(galleries)
-      .set({
-        averageStorageDuration,
-        storageDistribution,
-      })
-      .where(eq(galleries.id, gallery.id));
+    await db.update(galleries).set({}).where(eq(galleries.id, gallery.id));
 
     // fatLogger.info("Created gallery:", undefined, {
     //   type,

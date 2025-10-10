@@ -13,15 +13,8 @@ export type GalleryWithStorageStatus = DBGallery & {
 export function addStorageStatusToGallery(gallery: DBGallery): GalleryWithStorageStatus {
   const totalMemories = gallery.totalMemories ?? 0;
 
-  // Extract storage locations from storageDistribution
-  const storageLocations: string[] = [];
-  if (gallery.storageDistribution) {
-    Object.keys(gallery.storageDistribution).forEach(location => {
-      if (gallery.storageDistribution![location] > 0) {
-        storageLocations.push(location);
-      }
-    });
-  }
+  // Extract storage locations from storageLocation
+  const storageLocations: string[] = gallery.storageLocation || [];
 
   return {
     ...gallery,

@@ -1,5 +1,5 @@
 import { LogEngine } from './engine';
-import { LoggerConfig, LogLevel, Context, ServiceFlags } from './types';
+import { LoggerConfig, LogLevel, Context } from './types';
 import { ServiceLogger } from './service-logger';
 
 /**

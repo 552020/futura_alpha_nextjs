@@ -150,7 +150,7 @@ function GalleryViewContent() {
 
   const _toggleSelectionMode = () => {
     const newIsSelecting = !isSelecting;
-    
+
     if (newIsSelecting) {
       // Entering selection mode
       setShowSidePanel(true);
@@ -159,7 +159,7 @@ function GalleryViewContent() {
       setSelectedImages([]);
       setActiveTab('all');
     }
-    
+
     setIsSelecting(newIsSelecting);
   };
 
@@ -362,7 +362,7 @@ function GalleryViewContent() {
       setIsUpdating(true);
       const updatedGallery = await galleryService.updateGallery(
         gallery.id,
-        { isPublic: !gallery.isPublic },
+        { isPublic: gallery.sharingStatus === 'public' ? false : true },
         USE_MOCK_DATA
       );
       setGallery(updatedGallery);
@@ -555,7 +555,7 @@ function GalleryViewContent() {
 
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="text-xs font-normal">
-                {gallery.isPublic ? (
+                {gallery.sharingStatus === 'public' ? (
                   <>
                     <Globe className="h-3 w-3 mr-1" />
                     Public
@@ -575,14 +575,14 @@ function GalleryViewContent() {
                 disabled={isUpdating}
                 className="flex items-center gap-2"
               >
-                {gallery.isPublic ? <Globe className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-                {gallery.isPublic ? 'Make Private' : 'Make Public'}
+                {gallery.sharingStatus === 'public' ? <Globe className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+                {gallery.sharingStatus === 'public' ? 'Make Private' : 'Make Public'}
               </Button>
 
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={_toggleSelectionMode} 
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={_toggleSelectionMode}
                 className={`flex items-center gap-2 ${isSelecting ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800' : ''}`}
               >
                 <Check className="h-4 w-4" />

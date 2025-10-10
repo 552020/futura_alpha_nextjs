@@ -1,5 +1,4 @@
 import { FatLogger } from './fat-logger';
-import { LoggerConfig, ServiceFlags } from './types';
 
 // Simple ICP upload tracking flag
 export const ICP_DEBUG = true; // Set to false to disable ICP logs
