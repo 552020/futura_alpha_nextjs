@@ -213,7 +213,7 @@ const transformICPMemoryHeaderToNeon = (header: MemoryHeader): MemoryWithFolder 
     type: mapICPMemoryTypeToNeon(header.memory_type),
     title: (header.title.length > 0 ? header.title[0] : null) || header.name || 'Untitled',
     description: header.description.length > 0 ? header.description[0] : undefined,
-    isPublic: header.is_public,
+    isPublic: 'Public' in header.sharing_status,
 
     // Organization
     parentFolderId: header.parent_folder_id.length > 0 ? header.parent_folder_id[0] : undefined,
@@ -233,7 +233,7 @@ const transformICPMemoryHeaderToNeon = (header: MemoryHeader): MemoryWithFolder 
     },
 
     // Sharing information (from pre-computed fields)
-    status: header.sharing_status as 'public' | 'shared' | 'private',
+    status: 'Public' in header.sharing_status ? 'public' : 'Private' in header.sharing_status ? 'private' : 'shared',
     sharedWithCount: header.shared_count,
 
     // Folder information

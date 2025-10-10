@@ -204,10 +204,9 @@ export async function uploadToICPWithProcessing(
 
         // Create memory metadata for ICP
         const memoryMetadata: MemoryMetadata = {
-          is_public: false,
           title: [file.name.split('.')[0] || 'Untitled'],
           updated_at: BigInt(Date.now()),
-          sharing_status: 'private',
+          sharing_status: { Private: null },
           date_of_memory: [],
           memory_type: { Image: null } as MemoryType,
           tags: [],
@@ -380,10 +379,9 @@ export async function uploadMultipleToICPWithProcessing(
 
             // Create memory metadata for ICP
             const memoryMetadata: MemoryMetadata = {
-              is_public: false,
               title: [file.name.split('.')[0] || 'Untitled'],
               updated_at: BigInt(Date.now()),
-              sharing_status: 'private',
+              sharing_status: { Private: null },
               date_of_memory: [],
               memory_type: { Image: null } as MemoryType,
               tags: [],
