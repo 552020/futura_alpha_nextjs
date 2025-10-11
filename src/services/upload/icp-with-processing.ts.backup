@@ -9,7 +9,7 @@
  * Mirrors the S3 architecture pattern from s3-with-processing.ts
  */
 
-// import { randomUUID } from 'crypto'; // Not used in this file
+import { randomUUID } from 'crypto';
 
 import { detectMemoryTypeFromFile } from '@/utils/memory-type';
 import { processImageDerivativesPure, type ProcessedBlobs } from './image-derivatives';
@@ -41,41 +41,63 @@ import type {
  */
 async function uploadOriginalToICP(
   files: File[],
-  onProgress?: (progress: number) => void
+  _onProgress?: (progress: number) => void
 ): Promise<UploadServiceResult[]> {
-  const isSingleFile = files.length === 1;
+  // const isSingleFile = files.length === 1;
 
   const uploadPromises = files.map(async (file, _index) => {
-    // 1. Upload original file using ICP chunked upload
-    const uploadResult = await uploadFileToICPWithProgress(file, progress => {
-      if (isSingleFile) {
-        onProgress?.(progress);
-      } else {
-        // For multiple files, we could calculate overall progress here
-        // For now, just call with the current file's progress
-        onProgress?.(progress);
-      }
+    // Upload original file using ICP chunked upload
+    // const _uploadResult = await uploadFileToICPWithProgress(file, progress => {
+    //   if (isSingleFile) {
+    //     onProgress?.(progress);
+    //   } else {
+    //     // For multiple files, we could calculate overall progress here
+    //     // For now, just call with the current file's progress
+    //     onProgress?.(progress);
+    //   }
+    // });
+
+    // Generate a unique memory ID for this ICP upload
+    const icpMemoryId = randomUUID();
+
+    // Determine memory type from file
+    const memoryType = detectMemoryTypeFromFile(file);
+
+    // Create storage edge for ICP memory
+    const edgeResponse = await fetch('/api/storage/edges', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        memoryId: icpMemoryId,
+        memoryType: memoryType,
+        artifact: 'asset',
+        backend: 'icp-canister',
+        present: true,
+        location: `icp://memory/${icpMemoryId}`,
+        contentHash: null, // TODO: Add SHA256 hash if available
+        sizeBytes: file.size,
+        syncState: 'idle',
+      }),
     });
 
-    // 2. Create ICP memory record with the original blob
-    const icpMemoryId = await createICPMemoryWithOriginalBlob(file, uploadResult.uploadResult.blob_id);
+    if (!edgeResponse.ok) {
+      const error = await edgeResponse.json();
+      throw new Error(error.error || 'Failed to create storage edge');
+    }
 
-    // 3. Process and upload derivative assets (display, thumb, placeholder)
-    const derivativeAssets = await processAndUploadDerivatives(file, icpMemoryId);
-
-    // 4. Create storage edges for all artifacts
-    await createStorageEdgesForAllAssets(icpMemoryId, file, uploadResult.uploadResult.blob_id, derivativeAssets);
+    // Verify the response was successful (we don't need the actual data)
+    await edgeResponse.json();
 
     return {
       data: { id: icpMemoryId },
       results: [
         {
           memoryId: icpMemoryId,
-          blobId: uploadResult.uploadResult.blob_id,
+          blobId: `icp-${icpMemoryId}`,
           size: BigInt(file.size),
           checksumSha256: undefined,
           storageBackend: 'icp' as const,
-          storageLocation: `icp://blob/${uploadResult.uploadResult.blob_id}`,
+          storageLocation: `icp://memory/${icpMemoryId}`,
           uploadedAt: BigInt(Date.now()),
           expiresAt: undefined,
         },
@@ -980,310 +1002,4 @@ function dataURLtoBytes(dataURL: string): Uint8Array {
     u8arr[n] = bstr.charCodeAt(n);
   }
   return u8arr;
-}
-
-// Helper function to convert data URL to Blob
-function dataURLtoBlob(dataURL: string): Blob {
-  const arr = dataURL.split(',');
-  const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/webp';
-  const bstr = atob(arr[1]);
-  let n = bstr.length;
-  const u8arr = new Uint8Array(n);
-  while (n--) {
-    u8arr[n] = bstr.charCodeAt(n);
-  }
-  return new Blob([u8arr], { type: mime });
-}
-
-/**
- * Create ICP memory record with original blob
- */
-async function createICPMemoryWithOriginalBlob(file: File, originalBlobId: string): Promise<string> {
-  try {
-    console.log(`🔗 Creating ICP memory with original blob: ${originalBlobId}`);
-
-    // Get authenticated backend actor
-    const authClient = await getAuthClient();
-    if (!authClient.isAuthenticated()) {
-      throw new Error('Please connect your Internet Identity to create ICP memory records');
-    }
-
-    const identity = authClient.getIdentity();
-    const backend = await backendActor(identity);
-
-    // Get capsule ID
-    const capsuleResult = await backend.capsules_read_basic([]);
-    if (!('Ok' in capsuleResult)) {
-      throw new Error('Failed to get user capsule');
-    }
-    const capsuleId = capsuleResult.Ok.capsule_id;
-
-    // Create memory metadata
-    const memoryMetadata: MemoryMetadata = {
-      title: [file.name.split('.')[0] || 'Untitled'],
-      updated_at: BigInt(Date.now()),
-      sharing_status: { Private: null },
-      date_of_memory: [],
-      memory_type: { Image: null } as MemoryType,
-      tags: [],
-      has_thumbnails: true,
-      content_type: file.type,
-      people_in_memory: [],
-      has_previews: true,
-      database_storage_edges: [{ Neon: null } as DatabaseHosting],
-      description: [],
-      created_at: BigInt(Date.now()),
-      created_by: [],
-      total_size: BigInt(file.size),
-      thumbnail_url: [],
-      parent_folder_id: [],
-      asset_count: 1,
-      deleted_at: [],
-      primary_asset_url: [],
-      shared_count: 0,
-      file_created_at: [],
-      location: [],
-      memory_notes: [],
-      uploaded_at: BigInt(Date.now()),
-    };
-
-    // Create asset metadata for original blob
-    const assetMetadata: AssetMetadata = {
-      Image: {
-        dpi: [],
-        color_space: [],
-        base: {
-          url: [],
-          height: [],
-          updated_at: BigInt(Date.now()),
-          asset_type: { Original: null } as AssetType,
-          sha256: [],
-          name: file.name,
-          storage_key: [],
-          tags: [],
-          processing_error: [],
-          mime_type: file.type,
-          description: [],
-          created_at: BigInt(Date.now()),
-          deleted_at: [],
-          bytes: BigInt(file.size),
-          asset_location: [],
-          width: [],
-          processing_status: [],
-          bucket: [],
-        },
-        exif_data: [],
-        compression_ratio: [],
-        orientation: [],
-      },
-    };
-
-    // Create memory with original blob
-    const result = await backend.memories_create_with_internal_blobs(
-      capsuleId,
-      memoryMetadata,
-      [{ blob_id: originalBlobId, metadata: assetMetadata }],
-      `memory-${Date.now()}` // idempotency key
-    );
-
-    if ('Ok' in result) {
-      const icpMemoryId = result.Ok;
-      console.log(`✅ ICP memory created: ${icpMemoryId} with original blob: ${originalBlobId}`);
-      return icpMemoryId;
-    } else {
-      throw new Error(`Failed to create ICP memory: ${JSON.stringify(result.Err)}`);
-    }
-  } catch (error) {
-    console.log('❌ Failed to create ICP memory record:', error instanceof Error ? error.message : 'Unknown error');
-    throw error;
-  }
-}
-
-/**
- * Process and upload derivative assets
- */
-async function processAndUploadDerivatives(
-  file: File,
-  icpMemoryId: string
-): Promise<{
-  display?: { blobId: string; size: number };
-  thumb?: { blobId: string; size: number };
-  placeholder?: { blobId: string; size: number };
-}> {
-  const memoryType = detectMemoryTypeFromFile(file);
-
-  // Only process derivatives for images
-  if (memoryType !== 'image') {
-    return {};
-  }
-
-  try {
-    console.log(`🖼️ Processing derivatives for memory: ${icpMemoryId}`);
-
-    // Process image derivatives
-    const processedBlobs = await processImageDerivativesPure(file);
-    const derivativeAssets: {
-      display?: { blobId: string; size: number };
-      thumb?: { blobId: string; size: number };
-      placeholder?: { blobId: string; size: number };
-    } = {};
-
-    // Upload display derivative
-    if (processedBlobs.display) {
-      const displayFile = new File([processedBlobs.display.blob], `display-${file.name}`, {
-        type: processedBlobs.display.mimeType,
-      });
-      const displayUploadResult = await uploadFileToICPWithProgress(displayFile, () => {});
-      derivativeAssets.display = {
-        blobId: displayUploadResult.uploadResult.blob_id,
-        size: processedBlobs.display.bytes,
-      };
-    }
-
-    // Upload thumb derivative
-    if (processedBlobs.thumb) {
-      const thumbFile = new File([processedBlobs.thumb.blob], `thumb-${file.name}`, {
-        type: processedBlobs.thumb.mimeType,
-      });
-      const thumbUploadResult = await uploadFileToICPWithProgress(thumbFile, () => {});
-      derivativeAssets.thumb = {
-        blobId: thumbUploadResult.uploadResult.blob_id,
-        size: processedBlobs.thumb.bytes,
-      };
-    }
-
-    // Upload placeholder derivative
-    if (processedBlobs.placeholder) {
-      // Convert data URL to blob for placeholder
-      const placeholderBlob = dataURLtoBlob(processedBlobs.placeholder.dataUrl);
-      const placeholderFile = new File([placeholderBlob], `placeholder-${file.name}`, {
-        type: 'image/webp',
-      });
-      const placeholderUploadResult = await uploadFileToICPWithProgress(placeholderFile, () => {});
-      derivativeAssets.placeholder = {
-        blobId: placeholderUploadResult.uploadResult.blob_id,
-        size: placeholderBlob.size,
-      };
-    }
-
-    console.log(`✅ Derivatives processed and uploaded for memory: ${icpMemoryId}`);
-    return derivativeAssets;
-  } catch (error) {
-    console.log('❌ Failed to process derivatives:', error instanceof Error ? error.message : 'Unknown error');
-    return {};
-  }
-}
-
-/**
- * Create storage edges for all artifacts
- */
-async function createStorageEdgesForAllAssets(
-  icpMemoryId: string,
-  file: File,
-  originalBlobId: string,
-  derivativeAssets: {
-    display?: { blobId: string; size: number };
-    thumb?: { blobId: string; size: number };
-    placeholder?: { blobId: string; size: number };
-  }
-): Promise<void> {
-  try {
-    console.log(`🔗 Creating storage edges for memory: ${icpMemoryId}`);
-
-    const memoryType = detectMemoryTypeFromFile(file);
-    const edges = [];
-
-    // 1. Metadata edge for ICP canister
-    edges.push({
-      memoryId: icpMemoryId,
-      memoryType: memoryType,
-      artifact: 'metadata',
-      backend: 'icp-canister',
-      present: true,
-      location: `icp://memory/${icpMemoryId}`,
-      contentHash: null,
-      sizeBytes: null,
-      syncState: 'idle',
-      syncError: null,
-    });
-
-    // 2. Original asset edge
-    edges.push({
-      memoryId: icpMemoryId,
-      memoryType: memoryType,
-      artifact: 'asset',
-      backend: 'icp-canister',
-      present: true,
-      location: `icp://blob/${originalBlobId}`,
-      contentHash: null,
-      sizeBytes: file.size,
-      syncState: 'idle',
-      syncError: null,
-    });
-
-    // 3. Derivative asset edges
-    if (derivativeAssets.display) {
-      edges.push({
-        memoryId: icpMemoryId,
-        memoryType: memoryType,
-        artifact: 'asset',
-        backend: 'icp-canister',
-        present: true,
-        location: `icp://blob/${derivativeAssets.display.blobId}`,
-        contentHash: null,
-        sizeBytes: derivativeAssets.display.size,
-        syncState: 'idle',
-        syncError: null,
-      });
-    }
-
-    if (derivativeAssets.thumb) {
-      edges.push({
-        memoryId: icpMemoryId,
-        memoryType: memoryType,
-        artifact: 'asset',
-        backend: 'icp-canister',
-        present: true,
-        location: `icp://blob/${derivativeAssets.thumb.blobId}`,
-        contentHash: null,
-        sizeBytes: derivativeAssets.thumb.size,
-        syncState: 'idle',
-        syncError: null,
-      });
-    }
-
-    if (derivativeAssets.placeholder) {
-      edges.push({
-        memoryId: icpMemoryId,
-        memoryType: memoryType,
-        artifact: 'asset',
-        backend: 'icp-canister',
-        present: true,
-        location: `icp://blob/${derivativeAssets.placeholder.blobId}`,
-        contentHash: null,
-        sizeBytes: derivativeAssets.placeholder.size,
-        syncState: 'idle',
-        syncError: null,
-      });
-    }
-
-    // Create storage edges via API endpoint
-    for (const edge of edges) {
-      const response = await fetch('/api/storage/edges', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(edge),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(`Failed to create storage edge: ${error.error || 'Unknown error'}`);
-      }
-    }
-
-    console.log(`✅ Created ${edges.length} storage edges for memory: ${icpMemoryId}`);
-  } catch (error) {
-    console.log('❌ Failed to create storage edges:', error instanceof Error ? error.message : 'Unknown error');
-    throw error;
-  }
 }
