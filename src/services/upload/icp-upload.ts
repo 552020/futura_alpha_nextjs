@@ -1,5 +1,7 @@
 'use client';
 
+import { detectMemoryTypeFromFile } from '@/utils/memory-type';
+
 /**
  * Frontend ICP Upload Service - 2-Lane + 4-Asset System Integration
  *
@@ -348,55 +350,63 @@ async function createNeonDatabaseRecord(
       });
     }
 
-    const requestBody = {
-      // Use legacy format (Format 2) that creates the memory
-      fileKey: `icp-${icpMemoryId}`, // Generate ICP-specific file key
-      originalName: file.name,
-      size: file.size,
-      type: file.type,
-    };
+    // Determine memory type from file
+    const memoryType = detectMemoryTypeFromFile(file);
 
-    console.log('📤 Calling /api/upload/complete endpoint', { requestBody });
+    console.log('📤 Creating storage edge for ICP memory', {
+      memoryId: icpMemoryId,
+      memoryType,
+      fileSize: file.size,
+    });
 
-    // Call the complete endpoint to create database records
-    const response = await fetch('/api/upload/complete', {
-      method: 'POST',
+    // Create storage edge for the original asset
+    const storageEdgeResponse = await fetch('/api/storage/edges', {
+      method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(requestBody),
+      body: JSON.stringify({
+        memoryId: icpMemoryId,
+        memoryType: memoryType,
+        artifact: 'asset',
+        backend: 'icp-canister',
+        present: true,
+        location: `icp://memory/${icpMemoryId}`, // ICP blob location
+        contentHash: null, // TODO: Add SHA256 hash if available
+        sizeBytes: file.size,
+        syncState: 'idle',
+      }),
     });
 
-    console.log('📥 Received response from /api/upload/complete', {
-      status: response.status,
-      statusText: response.statusText,
-      ok: response.ok,
+    console.log('📥 Received response from /api/storage/edges', {
+      status: storageEdgeResponse.status,
+      statusText: storageEdgeResponse.statusText,
+      ok: storageEdgeResponse.ok,
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.log('❌ Failed to create database record - API error', {
-        status: response.status,
-        statusText: response.statusText,
+    if (!storageEdgeResponse.ok) {
+      const errorText = await storageEdgeResponse.text();
+      console.log('❌ Failed to create storage edge - API error', {
+        status: storageEdgeResponse.status,
+        statusText: storageEdgeResponse.statusText,
         errorText,
       });
-      throw new Error(`Failed to create database record: ${response.statusText}`);
+      throw new Error(`Failed to create storage edge: ${storageEdgeResponse.statusText}`);
     }
 
-    const result = await response.json();
+    const edgeResult = await storageEdgeResponse.json();
 
-    console.log('✅ Successfully created Neon database records with all 4 assets', {
-      memoryId: result.data.memoryId,
-      assetId: result.data.assets[0]?.id || 'unknown',
-      icpMemoryId: icpMemoryId,
-      totalAssets: assets.length,
-      assetTypes: assets.map(a => a.assetType),
+    console.log('✅ Successfully created storage edge for ICP memory', {
+      memoryId: icpMemoryId,
+      edgeId: edgeResult.data.id,
+      memoryType: memoryType,
+      backend: 'icp-canister',
       timestamp: new Date().toISOString(),
     });
 
     return {
-      memoryId: result.data.memoryId,
-      assetId: result.data.assets[0]?.id || 'unknown',
+      memoryId: icpMemoryId,
+      assetId: edgeResult.data.id, // Use edge ID as asset ID
     };
   } catch (error) {
     console.log('❌ Failed to create Neon database record', {

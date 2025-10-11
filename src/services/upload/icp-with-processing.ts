@@ -9,6 +9,9 @@
  * Mirrors the S3 architecture pattern from s3-with-processing.ts
  */
 
+import { randomUUID } from 'crypto';
+
+import { detectMemoryTypeFromFile } from '@/utils/memory-type';
 import { processImageDerivativesPure, type ProcessedBlobs } from './image-derivatives';
 // import { finalizeAllAssets, type ProcessedAssets } from './finalize'; // Not used for ICP-only uploads
 import { type ProcessedAssets } from './finalize';
@@ -54,40 +57,52 @@ async function uploadOriginalToICP(
     //   }
     // });
 
-    // Commit to database
-    const commitResponse = await fetch('/api/upload/complete', {
-      method: 'POST',
+    // Generate a unique memory ID for this ICP upload
+    const icpMemoryId = randomUUID();
+
+    // Determine memory type from file
+    const memoryType = detectMemoryTypeFromFile(file);
+
+    // Create storage edge for ICP memory
+    const edgeResponse = await fetch('/api/storage/edges', {
+      method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        fileKey: `icp-${Date.now()}-${file.name}`, // Generate ICP-specific key
-        originalName: file.name,
-        size: file.size,
-        type: file.type,
+        memoryId: icpMemoryId,
+        memoryType: memoryType,
+        artifact: 'asset',
+        backend: 'icp-canister',
+        present: true,
+        location: `icp://memory/${icpMemoryId}`,
+        contentHash: null, // TODO: Add SHA256 hash if available
+        sizeBytes: file.size,
+        syncState: 'idle',
       }),
     });
 
-    if (!commitResponse.ok) {
-      const error = await commitResponse.json();
-      throw new Error(error.error || 'Failed to commit upload');
+    if (!edgeResponse.ok) {
+      const error = await edgeResponse.json();
+      throw new Error(error.error || 'Failed to create storage edge');
     }
 
-    const commitData = await commitResponse.json();
+    // Verify the response was successful (we don't need the actual data)
+    await edgeResponse.json();
 
     return {
-      data: { id: commitData.data.id },
+      data: { id: icpMemoryId },
       results: [
         {
-          memoryId: commitData.data.id,
-          blobId: `icp-${Date.now()}-${file.name}`,
+          memoryId: icpMemoryId,
+          blobId: `icp-${icpMemoryId}`,
           size: BigInt(file.size),
           checksumSha256: undefined,
           storageBackend: 'icp' as const,
-          storageLocation: '', // Will be set after memory edge creation
+          storageLocation: `icp://memory/${icpMemoryId}`,
           uploadedAt: BigInt(Date.now()),
           expiresAt: undefined,
         },
       ],
-      userId: commitData.data.ownerId || '',
+      userId: '', // TODO: Get from session if needed
       totalFiles: files.length,
       totalSize: files.reduce((sum, f) => sum + f.size, 0),
       processingTime: 0, // Will be calculated

@@ -10,6 +10,7 @@
 import { getGrants, type GrantResponse } from './s3-grant';
 import { processImageDerivativesPure, uploadProcessedAssetsToS3 } from './image-derivatives';
 import { finalizeAllAssets, type ProcessedAssets } from './finalize';
+import { detectMemoryTypeFromFile } from '@/utils/memory-type';
 import {
   uploadFileWithProgress,
   extractFolderName,
@@ -105,7 +106,7 @@ export async function uploadToS3WithProcessing(
     const laneAPromise = uploadOriginalToS3([file], [grant], onProgress).then(results => results[0]);
 
     let laneBPromise: Promise<ProcessedAssets> | null = null;
-    if (file.type.startsWith('image/')) {
+    if (detectMemoryTypeFromFile(file) === 'image') {
       // Lane B processes original File object immediately
       laneBPromise = processImageDerivativesPure(file).then(processedBlobs =>
         uploadProcessedAssetsToS3(processedBlobs, grant)
@@ -161,7 +162,7 @@ export async function uploadMultipleToS3WithProcessing(
     });
 
     // 2.2. Start Lane B: Process derivatives for image files
-    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    const imageFiles = files.filter(file => detectMemoryTypeFromFile(file) === 'image');
     let laneBPromise: Promise<ProcessedAssets[]> | null = null;
 
     if (imageFiles.length > 0) {

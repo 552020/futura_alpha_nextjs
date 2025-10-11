@@ -423,34 +423,15 @@ export const resolveOwnerId = async (
   }
 };
 
+import { detectMemoryType as _detectMemoryType } from '@/utils/memory-type';
+
 /**
  * Extract memory type from MIME type or file extension
+ * @deprecated Use detectMemoryType from @/utils/memory-type instead
  */
 export const extractMemoryType = (mimeType: string, fileName?: string): MemoryType => {
-  if (mimeType.startsWith('image/')) {
-    return 'image';
-  }
-  if (mimeType.startsWith('video/')) {
-    return 'video';
-  }
-  if (mimeType.startsWith('audio/')) {
-    return 'audio';
-  }
-
-  // Fallback to file extension if MIME type is not specific
-  if (fileName) {
-    if (fileName.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)) {
-      return 'image';
-    }
-    if (fileName.match(/\.(mp4|webm|mov|avi|wmv|flv|mkv)$/i)) {
-      return 'video';
-    }
-    if (fileName.match(/\.(mp3|wav|ogg|m4a|flac|aac)$/i)) {
-      return 'audio';
-    }
-  }
-
-  return 'document';
+  // Re-export the utility function for backward compatibility
+  return _detectMemoryType(mimeType, fileName);
 };
 
 /**

@@ -46,24 +46,7 @@ interface UploadResponse {
 
 type UploadMode = 'multiple-files' | 'single' | 'directory';
 
-/**
- * Get memory type from file extension
- */
-function getMemoryTypeFromFile(file: File): 'image' | 'video' | 'document' | 'note' | 'audio' {
-  const extension = file.name.split('.').pop()?.toLowerCase();
-
-  if (!extension) return 'document';
-
-  const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'tiff'];
-  const videoExtensions = ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv'];
-  const audioExtensions = ['mp3', 'wav', 'flac', 'aac', 'ogg', 'm4a'];
-
-  if (imageExtensions.includes(extension)) return 'image';
-  if (videoExtensions.includes(extension)) return 'video';
-  if (audioExtensions.includes(extension)) return 'audio';
-
-  return 'document';
-}
+import { detectMemoryTypeFromFile } from '@/utils/memory-type';
 
 export async function uploadFileToVercelBlob(
   file: File,
@@ -104,7 +87,7 @@ export async function uploadFileToVercelBlob(
       success: true,
       data: {
         id: memoryId,
-        type: getMemoryTypeFromFile(file),
+        type: detectMemoryTypeFromFile(file),
         title: file.name.split('.')[0] || 'Untitled',
         description: '',
         fileCreatedAt: new Date().toISOString(),
@@ -135,7 +118,7 @@ export async function uploadFileToVercelBlob(
       success: true,
       data: {
         id: 'temp-id', // Temporary ID - file won't appear in dashboard
-        type: getMemoryTypeFromFile(file),
+        type: detectMemoryTypeFromFile(file),
         title: file.name.split('.')[0] || 'Untitled',
         description: '',
         fileCreatedAt: new Date().toISOString(),
@@ -386,7 +369,7 @@ async function createMemoryWithUnifiedCompletion(
   // First, create the memory record using our unified createMemory function
   const { createMemory } = await import('@/app/api/memories/utils/memory-creation');
 
-  const memoryType = getMemoryTypeFromFile(file);
+  const memoryType = detectMemoryTypeFromFile(file);
   const title = file.name.split('.')[0] || 'Untitled';
 
   // Prepare assets array

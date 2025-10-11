@@ -248,14 +248,14 @@ export async function createMemory(params: CreateMemoryParams): Promise<CreateMe
   }
 }
 
+import { detectMemoryType } from '@/utils/memory-type';
+
 /**
  * Extract memory type from MIME type
+ * @deprecated Use detectMemoryType from @/utils/memory-type instead
  */
 function extractMemoryType(contentType: string): 'image' | 'video' | 'document' | 'note' | 'audio' {
-  if (contentType.startsWith('image/')) return 'image';
-  if (contentType.startsWith('video/')) return 'video';
-  if (contentType.startsWith('audio/')) return 'audio';
-  return 'document';
+  return detectMemoryType(contentType);
 }
 
 /**
