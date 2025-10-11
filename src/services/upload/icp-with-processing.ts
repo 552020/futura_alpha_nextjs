@@ -12,7 +12,7 @@
 import { processImageDerivativesPure, type ProcessedBlobs } from './image-derivatives';
 // import { finalizeAllAssets, type ProcessedAssets } from './finalize'; // Not used for ICP-only uploads
 import { type ProcessedAssets } from './finalize';
-import { extractFolderName } from './shared-utils';
+// import { extractFolderName } from './shared-utils';
 import { type UploadServiceResult } from './types';
 // import { fatLogger } from '@/lib/logger';
 import { getAuthClient } from '@/ic/ii';
@@ -38,21 +38,21 @@ import type {
  */
 async function uploadOriginalToICP(
   files: File[],
-  onProgress?: (progress: number) => void
+  _onProgress?: (progress: number) => void
 ): Promise<UploadServiceResult[]> {
-  const isSingleFile = files.length === 1;
+  // const isSingleFile = files.length === 1;
 
   const uploadPromises = files.map(async (file, _index) => {
     // Upload original file using ICP chunked upload
-    const _uploadResult = await uploadFileToICPWithProgress(file, progress => {
-      if (isSingleFile) {
-        onProgress?.(progress);
-      } else {
-        // For multiple files, we could calculate overall progress here
-        // For now, just call with the current file's progress
-        onProgress?.(progress);
-      }
-    });
+    // const _uploadResult = await uploadFileToICPWithProgress(file, progress => {
+    //   if (isSingleFile) {
+    //     onProgress?.(progress);
+    //   } else {
+    //     // For multiple files, we could calculate overall progress here
+    //     // For now, just call with the current file's progress
+    //     onProgress?.(progress);
+    //   }
+    // });
 
     // Commit to database
     const commitResponse = await fetch('/api/upload/complete', {
@@ -122,25 +122,25 @@ export async function uploadToICPWithProcessing(
 
     // 4. Single finalize with all assets and precise statuses
     // Convert UploadServiceResult to the format expected by finalizeAllAssets
-    const _laneAResultForFinalize =
-      laneAResult.status === 'fulfilled'
-        ? {
-            status: 'fulfilled' as const,
-            value: {
-              data: laneAResult.value.data,
-              results: laneAResult.value.results.map(r => ({
-                memoryId: r.memoryId,
-                size: Number(r.size),
-                checksum_sha256: r.checksumSha256
-                  ? Array.from(r.checksumSha256)
-                      .map(b => b.toString(16).padStart(2, '0'))
-                      .join('')
-                  : null,
-              })),
-              userId: laneAResult.value.userId,
-            },
-          }
-        : laneAResult;
+    // const _laneAResultForFinalize =
+    // laneAResult.status === 'fulfilled'
+    //   ? {
+    //       status: 'fulfilled' as const,
+    //       value: {
+    //         data: laneAResult.value.data,
+    //         results: laneAResult.value.results.map(r => ({
+    //           memoryId: r.memoryId,
+    //           size: Number(r.size),
+    //           checksum_sha256: r.checksumSha256
+    //             ? Array.from(r.checksumSha256)
+    //                 .map(b => b.toString(16).padStart(2, '0'))
+    //                 .join('')
+    //             : null,
+    //         })),
+    //         userId: laneAResult.value.userId,
+    //       },
+    //     }
+    //   : laneAResult;
 
     // For ICP-only uploads, we don't create memory records in Neon database
     // We only create storage edges to track where the ICP memory is stored
@@ -204,10 +204,9 @@ export async function uploadToICPWithProcessing(
 
         // Create memory metadata for ICP
         const memoryMetadata: MemoryMetadata = {
-          is_public: false,
           title: [file.name.split('.')[0] || 'Untitled'],
           updated_at: BigInt(Date.now()),
-          sharing_status: 'private',
+          sharing_status: { Private: null },
           date_of_memory: [],
           memory_type: { Image: null } as MemoryType,
           tags: [],
@@ -289,37 +288,37 @@ export async function uploadMultipleToICPWithProcessing(
     const laneBResult = laneBPromise ? await Promise.allSettled([laneBPromise]).then(results => results[0]) : null;
 
     // 4. Create folder if needed (for directory mode)
-    const _parentFolderId = await createFolderIfNeeded(mode, files);
+    // const _parentFolderId = await createFolderIfNeeded(mode, files);
 
     // 5. Finalize all assets for each file
     if (laneAResult.status === 'fulfilled' && laneBResult?.status === 'fulfilled') {
       // Finalize each file's assets
-      const _finalizePromises = files.map(async (file, index) => {
-        const _laneAResultForFile = {
-          status: 'fulfilled' as const,
-          value: {
-            data: laneAResult.value[index].data,
-            results: laneAResult.value[index].results.map(r => ({
-              memoryId: r.memoryId,
-              size: Number(r.size),
-              checksum_sha256: r.checksumSha256
-                ? Array.from(r.checksumSha256)
-                    .map(b => b.toString(16).padStart(2, '0'))
-                    .join('')
-                : null,
-            })),
-            userId: laneAResult.value[index].userId,
-          },
-        };
+      // const _finalizePromises = files.map(async (file, index) => {
+      //   const _laneAResultForFile = {
+      //     status: 'fulfilled' as const,
+      //     value: {
+      //       data: laneAResult.value[index].data,
+      //       results: laneAResult.value[index].results.map(r => ({
+      //         memoryId: r.memoryId,
+      //         size: Number(r.size),
+      //         checksum_sha256: r.checksumSha256
+      //           ? Array.from(r.checksumSha256)
+      //               .map(b => b.toString(16).padStart(2, '0'))
+      //               .join('')
+      //           : null,
+      //       })),
+      //       userId: laneAResult.value[index].userId,
+      //     },
+      //   };
 
-        const _laneBResultForFile = {
-          status: 'fulfilled' as const,
-          value: laneBResult.value[index] || {},
-        };
+      //   const _laneBResultForFile = {
+      //     status: 'fulfilled' as const,
+      //     value: laneBResult.value[index] || {},
+      //   };
 
-        // For ICP-only uploads, we don't create memory records in Neon database
-        // We only create storage edges to track where the ICP memories are stored
-      });
+      //   // For ICP-only uploads, we don't create memory records in Neon database
+      //   // We only create storage edges to track where the ICP memories are stored
+      // });
 
       // CRITICAL: Create ICP memory records and storage edges (no Neon memory records)
       if (laneAResult.status === 'fulfilled') {
@@ -380,10 +379,9 @@ export async function uploadMultipleToICPWithProcessing(
 
             // Create memory metadata for ICP
             const memoryMetadata: MemoryMetadata = {
-              is_public: false,
               title: [file.name.split('.')[0] || 'Untitled'],
               updated_at: BigInt(Date.now()),
-              sharing_status: 'private',
+              sharing_status: { Private: null },
               date_of_memory: [],
               memory_type: { Image: null } as MemoryType,
               tags: [],
@@ -447,29 +445,29 @@ export async function uploadMultipleToICPWithProcessing(
  * Create folder for directory mode uploads
  * STEP 4 of the upload pipeline (uploadMultipleToICPWithProcessing in icp-with-processing.ts)
  */
-async function createFolderIfNeeded(mode: 'directory' | 'multiple-files', files: File[]): Promise<string | undefined> {
-  if (mode !== 'directory') {
-    return undefined;
-  }
+// async function createFolderIfNeeded(mode: 'directory' | 'multiple-files', files: File[]): Promise<string | undefined> {
+//   if (mode !== 'directory') {
+//     return undefined;
+//   }
 
-  const folderName = extractFolderName(files[0]);
+//   const folderName = extractFolderName(files[0]);
 
-  const folderResponse = await fetch('/api/folders', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ folderName }),
-  });
+//   const folderResponse = await fetch('/api/folders', {
+//     method: 'POST',
+//     headers: {
+//       'Content-Type': 'application/json',
+//     },
+//     body: JSON.stringify({ folderName }),
+//   });
 
-  if (!folderResponse.ok) {
-    const error = await folderResponse.json();
-    throw new Error(error.error || 'Failed to create folder');
-  }
+//   if (!folderResponse.ok) {
+//     const error = await folderResponse.json();
+//     throw new Error(error.error || 'Failed to create folder');
+//   }
 
-  const { folder } = await folderResponse.json();
-  return folder.id;
-}
+//   const { folder } = await folderResponse.json();
+//   return folder.id;
+// }
 
 /**
  * Process image derivatives for multiple files using pure processing + ICP upload

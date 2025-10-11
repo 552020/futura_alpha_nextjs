@@ -19,6 +19,12 @@ import {
   sessions,
   userSettings,
   userHostingPreferences,
+  serviceDeployments,
+  // Universal resource sharing tables
+  resourceMembership,
+  resourcePublicPolicy,
+  magicLink,
+  magicLinkConsumption,
 } from './tables';
 
 /**
@@ -174,6 +180,65 @@ export const userSettingsRelations = relations(userSettings, ({ one }) => ({
   user: one(users, {
     fields: [userSettings.userId],
     references: [users.id],
+  }),
+}));
+
+// User hosting preferences relations
+export const userHostingPreferencesRelations = relations(userHostingPreferences, ({ one }) => ({
+  user: one(users, {
+    fields: [userHostingPreferences.userId],
+    references: [users.id],
+  }),
+}));
+
+// Service deployments relations
+export const serviceDeploymentsRelations = relations(serviceDeployments, ({ one }) => ({
+  user: one(users, {
+    fields: [serviceDeployments.userId],
+    references: [users.id],
+  }),
+}));
+
+// ============================================================================
+// UNIVERSAL RESOURCE SHARING RELATIONS
+// ============================================================================
+
+// Resource membership relations
+export const resourceMembershipRelations = relations(resourceMembership, ({ one }) => ({
+  user: one(allUsers, {
+    fields: [resourceMembership.allUserId],
+    references: [allUsers.id],
+  }),
+  invitedBy: one(allUsers, {
+    fields: [resourceMembership.invitedByAllUserId],
+    references: [allUsers.id],
+  }),
+}));
+
+// Resource public policy relations
+export const resourcePublicPolicyRelations = relations(resourcePublicPolicy, ({ one: _one }) => ({
+  // Note: No direct relations to resources since they're generic
+  // Use resourceType + resourceId to find the actual resource
+}));
+
+// Magic link relations
+export const magicLinkRelations = relations(magicLink, ({ one, many }) => ({
+  inviter: one(allUsers, {
+    fields: [magicLink.inviterAllUserId],
+    references: [allUsers.id],
+  }),
+  consumptions: many(magicLinkConsumption),
+}));
+
+// Magic link consumption relations
+export const magicLinkConsumptionRelations = relations(magicLinkConsumption, ({ one }) => ({
+  magicLink: one(magicLink, {
+    fields: [magicLinkConsumption.magicLinkId],
+    references: [magicLink.id],
+  }),
+  user: one(allUsers, {
+    fields: [magicLinkConsumption.allUserId],
+    references: [allUsers.id],
   }),
 }));
 

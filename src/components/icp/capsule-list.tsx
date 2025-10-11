@@ -7,7 +7,7 @@ import { useICPIdentity } from '@/hooks/use-icp-identity';
 import { getAuthClient } from '@/ic/ii';
 import { CapsuleInfo, Capsule, CapsuleListItem, adaptCapsuleHeader } from '@/types/capsule';
 import CapsuleDisplay from '@/components/icp/capsule-display';
-import { getCapsuleFull } from '@/services/capsule';
+import { readCapsule } from '@/services/capsule';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -126,7 +126,7 @@ export default function CapsuleList({ refreshTrigger }: CapsuleListProps = {}) {
         // Toggle on - show the capsule view
         setState(prev => ({ ...prev, isLoading: true }));
 
-        const result = await getCapsuleFull(getActor, clearActor);
+        const result = await readCapsule(capsuleId, getActor, clearActor);
 
         setState(prev => ({
           ...prev,

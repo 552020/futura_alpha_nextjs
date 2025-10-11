@@ -8,7 +8,7 @@ import { useHostingPreferences } from '@/hooks/use-hosting-preferences';
 import { processSingleFile } from '@/services/upload/single-file-processor';
 import { processMultipleFiles } from '@/services/upload/multiple-files-processor';
 import { checkICPAuthentication } from '@/services/upload/shared-utils';
-import { fatLogger, ICP_DEBUG } from '@/lib/logger/fat-logger';
+import { fatLogger, ICP_DEBUG } from '@/lib/logger';
 import type { UseFileUploadProps } from '@/types/upload';
 
 export function useFileUpload({ isOnboarding = false, mode = 'directory', onSuccess, onError }: UseFileUploadProps) {

@@ -16,7 +16,6 @@ import {
   peopleInMemories,
   memoryLikes,
   memoryComments,
-  memoryShares,
   group,
   groupMember,
   relationship,
@@ -25,12 +24,19 @@ import {
   familyMember,
   galleries,
   galleryItems,
-  galleryShares,
   iiNonces,
   storageEdges,
   userHostingPreferences,
   serviceDeployments,
   userSettings,
+  // Universal resource sharing tables
+  PERM,
+  roleTemplates,
+  resourceRegistry,
+  resourceMembership,
+  resourcePublicPolicy,
+  magicLink,
+  magicLinkConsumption,
 } from './tables';
 
 // User-related types
@@ -106,9 +112,8 @@ export type NewDBMemoryLikes = typeof memoryLikes.$inferInsert;
 export type DBMemoryComments = typeof memoryComments.$inferSelect;
 export type NewDBMemoryComments = typeof memoryComments.$inferInsert;
 
-// Sharing types
-export type DBMemoryShare = typeof memoryShares.$inferSelect;
-export type NewDBMemoryShare = typeof memoryShares.$inferInsert;
+// ❌ DEPRECATED: Old memory sharing types (replaced by universal resource sharing)
+// ✅ REPLACED BY: DBResourceMembership types (universal sharing system)
 
 // Group types
 export type DBGroup = typeof group.$inferSelect;
@@ -137,8 +142,40 @@ export type NewDBGallery = typeof galleries.$inferInsert;
 export type DBGalleryItem = typeof galleryItems.$inferSelect;
 export type NewDBGalleryItem = typeof galleryItems.$inferInsert;
 
-export type DBGalleryShare = typeof galleryShares.$inferSelect;
-export type NewDBGalleryShare = typeof galleryShares.$inferInsert;
+// ============================================================================
+// UNIVERSAL RESOURCE SHARING TYPES
+// ============================================================================
+
+// Permission types
+export type Permission = keyof typeof PERM;
+export type PermissionMask = number;
+
+// Role types
+export type ResourceRole = 'owner' | 'superadmin' | 'admin' | 'member' | 'guest';
+export type ResourceType = 'gallery' | 'memory' | 'folder';
+export type GrantSource = 'user' | 'group' | 'magic_link' | 'public_mode' | 'system';
+export type PublicMode = 'private' | 'public_auth' | 'public_link';
+export type MagicLinkType = 'admin_invite' | 'guest_share';
+export type MagicLinkResult = 'success' | 'expired' | 'revoked' | 'limit_exceeded';
+
+// Table types
+export type DBRoleTemplate = typeof roleTemplates.$inferSelect;
+export type NewDBRoleTemplate = typeof roleTemplates.$inferInsert;
+
+export type DBResourceRegistry = typeof resourceRegistry.$inferSelect;
+export type NewDBResourceRegistry = typeof resourceRegistry.$inferInsert;
+
+export type DBResourceMembership = typeof resourceMembership.$inferSelect;
+export type NewDBResourceMembership = typeof resourceMembership.$inferInsert;
+
+export type DBResourcePublicPolicy = typeof resourcePublicPolicy.$inferSelect;
+export type NewDBResourcePublicPolicy = typeof resourcePublicPolicy.$inferInsert;
+
+export type DBMagicLink = typeof magicLink.$inferSelect;
+export type NewDBMagicLink = typeof magicLink.$inferInsert;
+
+export type DBMagicLinkConsumption = typeof magicLinkConsumption.$inferSelect;
+export type NewDBMagicLinkConsumption = typeof magicLinkConsumption.$inferInsert;
 
 // Authentication and security types
 export type DBIINonce = typeof iiNonces.$inferSelect;

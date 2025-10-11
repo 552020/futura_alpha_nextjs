@@ -1,5 +1,5 @@
 import { db } from '@/db/db';
-import { allUsers, users, memories, memoryAssets, memoryShares } from '@/db/schema';
+import { allUsers, users, memories, memoryAssets } from '@/db/schema';
 import { faker } from '@faker-js/faker';
 import { inArray } from 'drizzle-orm';
 import { uploadFileToStorage } from '@/app/api/memories/utils/storage';
@@ -135,7 +135,7 @@ async function createMemory(memory: Memory, ownerId: string) {
           title: memory.title,
           description: memory.description,
           ownerSecureCode: faker.string.alphanumeric(12),
-          isPublic: false,
+          sharingStatus: 'private',
         })
         .returning();
 
@@ -163,7 +163,7 @@ async function createMemory(memory: Memory, ownerId: string) {
           title: memory.title,
           description: memory.content || '',
           ownerSecureCode: faker.string.alphanumeric(12),
-          isPublic: false,
+          sharingStatus: 'private',
         })
         .returning();
       return { id: note.id, type: 'note' as const };
@@ -179,7 +179,7 @@ async function createMemory(memory: Memory, ownerId: string) {
           title: memory.title,
           description: memory.description,
           ownerSecureCode: faker.string.alphanumeric(12),
-          isPublic: false,
+          sharingStatus: 'private',
         })
         .returning();
 
@@ -207,7 +207,7 @@ async function createMemory(memory: Memory, ownerId: string) {
           title: memory.title,
           description: memory.description,
           ownerSecureCode: faker.string.alphanumeric(12),
-          isPublic: false,
+          sharingStatus: 'private',
         })
         .returning();
 
@@ -230,16 +230,18 @@ async function createMemory(memory: Memory, ownerId: string) {
 }
 
 async function shareMemory(memoryId: string, memoryType: MemoryType, ownerId: string, sharedWithId: string) {
-  await db.insert(memoryShares).values({
-    id: faker.string.uuid(),
-    memoryId,
-    memoryType,
-    ownerId,
-    sharedWithType: 'user',
-    sharedWithId,
-    accessLevel: 'read',
-    inviteeSecureCode: faker.string.alphanumeric(12),
-  });
+  // TODO: Update to use new universal resource sharing system
+  // await db.insert(resourceMembership).values({
+  //   id: faker.string.uuid(),
+  //   resourceId: memoryId,
+  //   resourceType: 'memory',
+  //   allUserId: sharedWithId,
+  //   accessLevel: 'read',
+  //   createdAt: new Date(),
+  // });
+  
+  // Temporarily skip sharing until migration is complete
+  console.log(`Skipping share for memory ${memoryId} with user ${sharedWithId}`);
 }
 
 export async function seedTenenbaum() {
@@ -270,7 +272,8 @@ export async function seedTenenbaum() {
 
     // Delete related data in correct order
     if (allUserIds.length > 0) {
-      await db.delete(memoryShares).where(inArray(memoryShares.ownerId, allUserIds));
+      // TODO: Update to use new universal resource sharing system
+      // await db.delete(resourceMembership).where(inArray(resourceMembership.allUserId, allUserIds));
       await db.delete(memories).where(inArray(memories.ownerId, allUserIds));
     }
 

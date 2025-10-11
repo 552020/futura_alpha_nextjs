@@ -191,7 +191,7 @@ export function useMemoryStorageStatus(memoryId: string, memoryType: string, dat
     }
 
     fetchStatus();
-  }, [memoryId, memoryType]);
+  }, [memoryId, memoryType, dataSource]);
 
   return { status, data };
 }

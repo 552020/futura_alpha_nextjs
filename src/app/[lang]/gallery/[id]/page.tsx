@@ -150,7 +150,7 @@ function GalleryViewContent() {
 
   const _toggleSelectionMode = () => {
     const newIsSelecting = !isSelecting;
-    
+
     if (newIsSelecting) {
       // Entering selection mode
       setShowSidePanel(true);
@@ -159,7 +159,7 @@ function GalleryViewContent() {
       setSelectedImages([]);
       setActiveTab('all');
     }
-    
+
     setIsSelecting(newIsSelecting);
   };
 
@@ -374,10 +374,10 @@ function GalleryViewContent() {
     }
   };
 
-  const _handleEditGallery = () => {
-    // TODO: Navigate to edit page or open edit modal
-    // fatLogger.info("Edit gallery:", gallery?.id);
-  };
+  // const _handleEditGallery = () => {
+  //   // TODO: Navigate to edit page or open edit modal
+  //   // fatLogger.info("Edit gallery:", gallery?.id);
+  // };
 
   const handleStoreForever = () => {
     // TODO: Implement store forever functionality
@@ -579,10 +579,10 @@ function GalleryViewContent() {
                 {gallery.isPublic ? 'Make Private' : 'Make Public'}
               </Button>
 
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={_toggleSelectionMode} 
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={_toggleSelectionMode}
                 className={`flex items-center gap-2 ${isSelecting ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800' : ''}`}
               >
                 <Check className="h-4 w-4" />

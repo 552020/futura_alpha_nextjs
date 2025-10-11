@@ -3,45 +3,22 @@
 import { backendActor } from '@/ic/backend';
 import { Identity } from '@dfinity/agent';
 import { Principal } from '@dfinity/principal';
+import type {
+  GalleryItem,
+  Gallery,
+  GalleryData,
+  GalleryMemoryEntry,
+  MemoryType,
+  Memory,
+  Error,
+  BlobHosting,
+} from '@/ic/declarations/backend/backend.did';
 
 import { fatLogger } from '@/lib/logger';
+
 // ============================================================================
-// TYPES - Will be updated when declarations are regenerated
+// FRONTEND-SPECIFIC TYPES (not available in backend declarations)
 // ============================================================================
-
-// Gallery types - matching backend declarations
-export interface GalleryMemoryEntry {
-  memory_id: string;
-  position: number;
-  gallery_caption: [] | [string]; // opt text in backend
-  is_featured: boolean;
-  gallery_metadata: string;
-}
-
-export interface Gallery {
-  id: string;
-  owner_principal: Principal;
-  title: string;
-  description: [] | [string]; // opt text in backend
-  is_public: boolean;
-  created_at: bigint;
-  updated_at: bigint;
-  storage_location: GalleryStorageLocation;
-  memory_entries: GalleryMemoryEntry[];
-  bound_to_neon: boolean;
-}
-
-export type GalleryStorageLocation =
-  | { Web2Only: null }
-  | { ICPOnly: null }
-  | { Both: null }
-  | { Migrating: null }
-  | { Failed: null };
-
-export interface GalleryData {
-  gallery: Gallery;
-  owner_principal: Principal;
-}
 
 export interface GalleryUpdateData {
   title?: string;
@@ -50,58 +27,7 @@ export interface GalleryUpdateData {
   memory_entries?: GalleryMemoryEntry[];
 }
 
-// Memory types
-export interface MemoryInfo {
-  name: string;
-  memory_type: MemoryType;
-  content_type: string;
-  created_at: bigint;
-  updated_at: bigint;
-  uploaded_at: bigint;
-  date_of_memory?: bigint;
-}
-
-export type MemoryType = { Note: null } | { Image: null } | { Document: null } | { Audio: null } | { Video: null };
-
-export interface MemoryMetadataBase {
-  date_of_memory?: string;
-  size: bigint;
-  people_in_memory?: string[];
-  mime_type: string;
-  original_name: string;
-  uploaded_at: string;
-  format?: string;
-}
-
-export interface ImageMetadata {
-  base: MemoryMetadataBase;
-  dimensions?: [number, number];
-}
-
-export type MemoryMetadata =
-  | { Note: { base: MemoryMetadataBase; tags?: string[] } }
-  | { Image: ImageMetadata }
-  | { Document: { base: MemoryMetadataBase } }
-  | {
-      Audio: {
-        base: MemoryMetadataBase;
-        duration?: number;
-        channels?: number;
-        sample_rate?: number;
-        bitrate?: number;
-        format?: string;
-      };
-    }
-  | { Video: { base: MemoryMetadataBase; width?: number; height?: number; duration?: number; thumbnail?: string } };
-
-export type MemoryAccess =
-  | { Private: null }
-  | { Public: null }
-  | { Custom: { groups: string[]; individuals: string[] } }
-  | { Scheduled: { access: MemoryAccess; accessible_after: bigint } }
-  | { EventTriggered: { access: MemoryAccess; trigger_event: string } };
-
-// Sync types for gallery memory synchronization
+// Sync types for gallery memory synchronization (frontend-specific)
 export interface MemorySyncRequest {
   memory_id: string;
   memory_type: MemoryType;
@@ -142,42 +68,13 @@ export interface BatchMemorySyncResponse {
   error?: Error;
 }
 
-export type Error =
-  | { Internal: string }
-  | { NotFound: null }
-  | { Unauthorized: null }
-  | { InvalidArgument: string }
-  | { ResourceExhausted: null }
-  | { Conflict: string };
-
-export interface BlobRef {
-  kind: MemoryBlobKind;
-  locator: string;
-  hash: [] | [Uint8Array]; // opt blob in backend
-}
-
-export type MemoryBlobKind = { ICPCapsule: null } | { MemoryBlobKindExternal: null };
-
-export interface MemoryData {
-  blob_ref: BlobRef;
-  data: [] | [Uint8Array]; // opt blob in backend
-}
-
-export interface Memory {
-  id: string;
-  info: MemoryInfo;
-  metadata: MemoryMetadata;
-  access: MemoryAccess;
-  data: MemoryData;
-}
-
 // Response types
 export interface StoreGalleryResponse {
   success: boolean;
   gallery_id?: string;
   icp_gallery_id?: string;
   message: string;
-  storage_location: GalleryStorageLocation;
+  storage_location: BlobHosting;
 }
 
 export interface UpdateGalleryResponse {
@@ -242,7 +139,7 @@ export class ICPGalleryService {
         return {
           success: false,
           message: `Failed to create gallery: ${errorMessage}`,
-          storage_location: { Failed: null },
+          storage_location: { S3: null }, // Default to S3 on error
         };
       }
 
@@ -252,14 +149,14 @@ export class ICPGalleryService {
         gallery_id: gallery.id,
         icp_gallery_id: gallery.id,
         message: 'Gallery created successfully',
-        storage_location: gallery.storage_location,
+        storage_location: gallery.metadata.storage_location[0] || { S3: null },
       };
     } catch (error) {
       fatLogger.error('Error storing gallery forever:', 'be', { data: error instanceof Error ? error : undefined });
       return {
         success: false,
         message: `Failed to store gallery: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        storage_location: { Failed: null },
+        storage_location: { S3: null }, // Default to S3 on error
       };
     }
   }
@@ -362,7 +259,7 @@ export class ICPGalleryService {
   /**
    * Create a new memory
    */
-  async createMemory(_memoryData: MemoryData): Promise<MemoryOperationResponse> {
+  async createMemory(_memoryData: Record<string, unknown>): Promise<MemoryOperationResponse> {
     try {
       // const actor = await backendActor(this.identity);
 
@@ -500,25 +397,33 @@ export class ICPGalleryService {
     web2Items: Record<string, unknown>[],
     ownerPrincipal: Principal
   ): GalleryData {
-    const memoryEntries: GalleryMemoryEntry[] = web2Items.map((item, index) => ({
+    const items: GalleryItem[] = web2Items.map((item, index) => ({
       memory_id: (item.memory_id as string) || `memory_${index}`,
       position: (item.position as number) || index,
-      gallery_caption: item.caption ? [item.caption as string] : [],
-      is_featured: (item.is_featured as boolean) || false,
-      gallery_metadata: JSON.stringify(item.metadata || {}),
+      caption: item.caption ? [item.caption as string] : [],
+      memory_type: { Image: null }, // Default to Image type
+      metadata: [], // Empty metadata array
     }));
 
     const gallery: Gallery = {
       id: String(web2Gallery.id || 'unknown'),
-      owner_principal: ownerPrincipal,
-      title: String(web2Gallery.title || 'Untitled Gallery'),
-      description: web2Gallery.description ? [String(web2Gallery.description)] : [],
-      is_public: Boolean(web2Gallery.is_public),
-      created_at: BigInt((web2Gallery.created_at as number) || Date.now()),
       updated_at: BigInt((web2Gallery.updated_at as number) || Date.now()),
-      storage_location: { Web2Only: null },
-      memory_entries: memoryEntries,
-      bound_to_neon: false, // Default to false for web2 galleries
+      capsule_id: 'default-capsule', // TODO: Get actual capsule ID
+      metadata: {
+        total_memories: web2Items.length,
+        title: [String(web2Gallery.title || 'Untitled Gallery')],
+        sharing_status: Boolean(web2Gallery.is_public) ? { Public: null } : { Private: null },
+        storage_location: [{ S3: null }], // Default to S3
+        name: String(web2Gallery.title || 'Untitled Gallery')
+          .toLowerCase()
+          .replace(/\s+/g, '-'),
+        description: web2Gallery.description ? [String(web2Gallery.description)] : [],
+        shared_count: 0,
+      },
+      cover_memory_id: web2Items.length > 0 ? [web2Items[0].memory_id as string] : [],
+      created_at: BigInt((web2Gallery.created_at as number) || Date.now()),
+      items,
+      access_entries: [], // Empty access entries for now
     };
 
     return {

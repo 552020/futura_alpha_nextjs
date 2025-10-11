@@ -109,9 +109,9 @@ function StickyHeader({
               {isPublishing ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
-                  {gallery.isPublic ? 'Hiding...' : 'Publishing...'}
-                </>
-              ) : gallery.isPublic ? (
+                  {gallery.isPublic ? 'Hiding...' : 'Publishing...'}                 
+                </>               
+              ) : gallery.isPublic ? (                
                 'Hide'
               ) : (
                 'Publish'
@@ -341,7 +341,14 @@ function GalleryPreviewContent() {
       await galleryService.updateGallery(gallery.id, { isPublic: !gallery.isPublic });
 
       // Update local state
-      setGallery(prev => (prev ? { ...prev, isPublic: !prev.isPublic } : null));
+      setGallery(prev =>
+        prev
+          ? {
+              ...prev,
+              isPublic: !prev.isPublic,
+            }
+          : null
+      );
 
       // Show success message (you can add toast notification here)
       // fatLogger.info(`Gallery ${gallery.isPublic ? "hidden" : "published"} successfully`);

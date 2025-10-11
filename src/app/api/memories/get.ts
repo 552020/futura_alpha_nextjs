@@ -17,7 +17,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
-import { allUsers, memories, memoryAssets, memoryShares } from '@/db/schema';
+import { allUsers, memories, memoryAssets, resourceMembership } from '@/db/schema';
 import { eq, desc, sql, and } from 'drizzle-orm';
 import { fetchMemoriesWithGalleries } from './utils/queries';
 import { generateBestAssetUrl } from '@/lib/presigned-url-utils';
@@ -139,13 +139,28 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
     // Calculate share counts for each memory
     const memoriesWithShareInfo = await Promise.all(
       userMemories.map(async memory => {
-        const shareCount = await db
-          .select({ count: sql<number>`count(*)` })
-          .from(memoryShares)
-          .where(eq(memoryShares.memoryId, memory.id));
+        let sharedWithCount = 0;
+        
+        try {
+          const shareCount = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(resourceMembership)
+            .where(
+              and(
+                eq(resourceMembership.resourceType, 'memory'),
+                eq(resourceMembership.resourceId, memory.id)
+              )
+            );
+          sharedWithCount = shareCount[0]?.count || 0;
+        } catch (error) {
+          // Table might not exist yet, default to 0 shares
+          fatLogger.warn('resourceMembership table not found, defaulting to 0 shares', 'be', {
+            memoryId: memory.id,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+        }
 
-        const sharedWithCount = shareCount[0]?.count || 0;
-        const status = memory.isPublic ? 'public' : sharedWithCount > 0 ? 'shared' : 'private';
+        const status = sharedWithCount > 0 ? 'shared' : 'private';
 
         return {
           ...memory,

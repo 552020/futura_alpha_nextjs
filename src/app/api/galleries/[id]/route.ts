@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
 import { eq, and, inArray } from 'drizzle-orm';
-import { galleries, allUsers, galleryShares, galleryItems, memories } from '@/db/schema';
+import { galleries, allUsers, galleryItems, memories, resourceMembership } from '@/db/schema';
 import { addStorageStatusToGallery } from '../utils';
 import { generateBestAssetUrl } from '@/lib/presigned-url-utils';
 
@@ -31,18 +31,20 @@ async function checkMemoryAccess(
         return true;
       }
 
-      // Check if gallery is shared with user
-      const galleryShare = await db.query.galleryShares.findFirst({
+      // Check if gallery is shared with user using the new universal resource sharing system
+      const galleryShare = await db.query.resourceMembership.findFirst({
         where: and(
-          eq(galleryShares.galleryId, galleryId),
-          eq(galleryShares.sharedWithType, 'user'),
-          eq(galleryShares.sharedWithId, allUserId)
+          eq(resourceMembership.resourceId, galleryId),
+          eq(resourceMembership.resourceType, 'gallery'),
+          eq(resourceMembership.allUserId, allUserId)
         ),
       });
 
       if (galleryShare) {
         return true;
       }
+      
+      return false;
     }
   }
 
@@ -96,7 +98,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     if (!allUserRecord) {
       fatLogger.error('No allUsers record found for user', 'be', {
-        userId: session.user.id
+        userId: session.user.id,
       });
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
@@ -137,12 +139,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         });
 
         if (sharedGallery) {
-          // Check if gallery is shared with this user
-          const shareRecord = await db.query.galleryShares.findFirst({
+          // Check if gallery is shared with this user using the new universal resource sharing system
+          const shareRecord = await db.query.resourceMembership.findFirst({
             where: and(
-              eq(galleryShares.galleryId, galleryId),
-              eq(galleryShares.sharedWithType, 'user'),
-              eq(galleryShares.sharedWithId, allUserRecord.id)
+              eq(resourceMembership.resourceId, galleryId),
+              eq(resourceMembership.resourceType, 'gallery'),
+              eq(resourceMembership.allUserId, allUserRecord.id)
             ),
           });
 
@@ -306,7 +308,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     });
   } catch (error) {
     fatLogger.error('Error fetching gallery', 'be', {
-      error: error instanceof Error ? error : undefined
+      error: error instanceof Error ? error : undefined,
     });
     fatLogger.error('Error details', 'be', {
       message: error instanceof Error ? error.message : 'Unknown error',
@@ -332,7 +334,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     if (!allUserRecord) {
       fatLogger.error('No allUsers record found for user', 'be', {
-        userId: session.user.id
+        userId: session.user.id,
       });
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
@@ -420,7 +422,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     });
   } catch (error) {
     fatLogger.error('Error updating gallery', 'be', {
-      error: error instanceof Error ? error : undefined
+      error: error instanceof Error ? error : undefined,
     });
     return NextResponse.json({ error: 'Failed to update gallery' }, { status: 500 });
   }
@@ -442,7 +444,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     if (!allUserRecord) {
       fatLogger.error('No allUsers record found for user', 'be', {
-        userId: session.user.id
+        userId: session.user.id,
       });
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
@@ -468,7 +470,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     });
   } catch (error) {
     fatLogger.error('Error deleting gallery', 'be', {
-      error: error instanceof Error ? error : undefined
+      error: error instanceof Error ? error : undefined,
     });
     return NextResponse.json({ error: 'Failed to delete gallery' }, { status: 500 });
   }

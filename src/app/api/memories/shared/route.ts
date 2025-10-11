@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
-import { allUsers, memories, memoryShares } from '@/db/schema';
-import { eq, desc, sql } from 'drizzle-orm';
+import { allUsers, memories, resourceMembership } from '@/db/schema';
+import { eq, desc, sql, and } from 'drizzle-orm';
 
 import { fatLogger } from '@/lib/logger';
 /**
@@ -67,14 +67,15 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit;
     const orderBy = searchParams.get('orderBy') || 'sharedAt'; // "sharedAt" or "createdAt"
 
-    // Get all memory shares for this user with ordering
-    const shares = await db.query.memoryShares.findMany({
-      where: eq(memoryShares.sharedWithId, allUserId),
-      orderBy: orderBy === 'sharedAt' ? desc(memoryShares.createdAt) : desc(memoryShares.createdAt),
+    // Get all memory shares for this user with ordering using the new universal resource sharing system
+    const shares = await db.query.resourceMembership.findMany({
+      where: eq(resourceMembership.allUserId, allUserId),
+      orderBy: orderBy === 'sharedAt' ? desc(resourceMembership.createdAt) : desc(resourceMembership.createdAt),
     });
 
-    // Get memory IDs from shares (already ordered)
-    const memoryIds = shares.map(share => share.memoryId);
+    // Filter for memory resources only and get memory IDs from shares (already ordered)
+    const memoryShares = shares.filter(share => share.resourceType === 'memory');
+    const memoryIds = memoryShares.map(share => share.resourceId);
 
     if (memoryIds.length === 0) {
       return NextResponse.json({
@@ -109,21 +110,21 @@ export async function GET(request: NextRequest) {
     const memoriesWithShareInfo = await Promise.all(
       paginatedMemories.map(async memory => {
         // Find the share record for this memory and user
-        const share = shares.find(s => s.memoryId === memory.id);
+        // const _share = memoryShares.find(s => s.resourceId === memory.id);
 
-        // Get total share count for this memory
+        // Get total share count for this memory using the new universal resource sharing system
         const shareCount = await db
           .select({ count: sql<number>`count(*)` })
-          .from(memoryShares)
-          .where(eq(memoryShares.memoryId, memory.id));
+          .from(resourceMembership)
+          .where(and(eq(resourceMembership.resourceType, 'memory'), eq(resourceMembership.resourceId, memory.id)));
 
         return {
           ...memory,
           sharedBy: {
-            id: share?.ownerId || memory.ownerId,
-            name: await getOwnerName(share?.ownerId || memory.ownerId),
+            id: memory.ownerId,
+            name: await getOwnerName(memory.ownerId),
           },
-          accessLevel: share?.accessLevel || 'read',
+          accessLevel: 'read', // Default access level for shared memories
           status: 'shared' as const,
           sharedWithCount: shareCount[0]?.count || 0,
         };

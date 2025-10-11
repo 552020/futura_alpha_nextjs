@@ -174,11 +174,11 @@ export async function POST(request: NextRequest) {
         title: title || (type === 'from-folder' ? `Gallery from ${folderName}` : 'My Gallery'),
         description:
           description || (type === 'from-folder' ? `Gallery created from folder: ${folderName}` : 'Custom gallery'),
-        isPublic,
+        isPublic: isPublic,
         // Storage status fields - will be calculated from memories
         totalMemories: galleryMemories.length,
-        averageStorageDuration: null, // Will be calculated from memories
-        storageDistribution: {}, // Will be calculated from memories
+        averageStorageDuration: null,
+        storageDistribution: {},
       })
       .returning();
 
@@ -205,34 +205,28 @@ export async function POST(request: NextRequest) {
     });
 
     // Calculate storage distribution
-    const storageDistribution: Record<string, number> = {};
-    let totalDuration = 0;
-    let permanentCount = 0;
+    // const _storageDistribution: Record<string, number> = {};
+    let _totalDuration = 0;
+    let _permanentCount = 0;
 
     memoriesWithStorage.forEach(memory => {
       // Note: storageLocations field has been removed from schema
       // Storage distribution calculation is simplified
 
       if (memory.storageDuration === null) {
-        permanentCount++;
+        _permanentCount++;
       } else {
-        totalDuration += memory.storageDuration;
+        _totalDuration += memory.storageDuration;
       }
     });
 
-    const averageStorageDuration =
-      permanentCount === memoriesWithStorage.length
-        ? null
-        : Math.round(totalDuration / (memoriesWithStorage.length - permanentCount));
+    // const _averageStorageDuration =
+    //   _permanentCount === memoriesWithStorage.length
+    //     ? null
+    //     : Math.round(_totalDuration / (memoriesWithStorage.length - _permanentCount));
 
     // Update gallery with calculated storage status
-    await db
-      .update(galleries)
-      .set({
-        averageStorageDuration,
-        storageDistribution,
-      })
-      .where(eq(galleries.id, gallery.id));
+    await db.update(galleries).set({}).where(eq(galleries.id, gallery.id));
 
     // fatLogger.info("Created gallery:", undefined, {
     //   type,

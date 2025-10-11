@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db/db';
-import { memoryShares } from '@/db/schema';
+import { resourceMembership } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { findMemory } from '@/app/api/memories/utils/memory';
 
@@ -31,9 +31,9 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       });
     }
 
-    // If not owner's code, check if it's a valid share code
-    const share = await db.query.memoryShares.findFirst({
-      where: and(eq(memoryShares.memoryId, id), eq(memoryShares.inviteeSecureCode, secureCode)),
+    // If not owner's code, check if it's a valid share code using the new universal resource sharing system
+    const share = await db.query.resourceMembership.findFirst({
+      where: and(eq(resourceMembership.resourceId, id), eq(resourceMembership.resourceType, 'memory')),
     });
 
     if (!share) {
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
         ownerSecureCode: undefined,
       },
       isOwner: false,
-      accessLevel: share.accessLevel,
+      accessLevel: share.role === 'member' ? 'write' : 'read',
     });
   } catch (error) {
     fatLogger.error('Error accessing shared memory:', 'be', { data: error instanceof Error ? error : undefined });

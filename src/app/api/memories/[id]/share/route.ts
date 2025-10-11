@@ -1,18 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
-import { memoryShares, relationship, familyRelationship, allUsers, users, temporaryUsers } from '@/db/schema';
+import { allUsers, users, temporaryUsers } from '@/db/schema';
 import { findMemory } from '@/app/api/memories/utils/memory';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 // import { sendInvitationEmail, sendSharedMemoryEmail } from "@/app/api/memories/utils/email";
 import type { RelationshipType, FamilyRelationshipType } from '@/db/schema';
-import crypto from 'crypto';
+// import crypto from 'crypto';
+
+// function _generateSecureCode(): string {
+//   return crypto.randomBytes(12).toString('hex');
+// }
 
 import { fatLogger } from '@/lib/logger';
-// Dummy function for generating secure code
-function generateSecureCode(): string {
-  return crypto.randomUUID();
-}
 
 type ShareTarget = {
   type: 'user' | 'group';
@@ -44,8 +44,8 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
 
     const {
       target,
-      relationship: relationshipInfo,
-      sendEmail = false,
+      relationship: _relationshipInfo,
+      sendEmail: _sendEmail = false,
       isInviteeNew = false,
       isOnboarding = false,
       ownerAllUserId,
@@ -138,44 +138,21 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     }
     fatLogger.info('📧 Will send email to:', 'be', { userEmail, isInviteeNew });
 
+    // TODO: Update to use new universal resource sharing system
     // Create share record
-    const [share] = await db
-      .insert(memoryShares)
-      .values({
-        memoryId: memoryId,
-        memoryType: memory.type,
-        ownerId: memory.ownerId,
-        sharedWithType: target.type,
-        sharedWithId: target.type === 'user' ? target.allUserId! : target.groupId!,
-        inviteeSecureCode: generateSecureCode(), // For invitee to access the memory
-      })
-      .returning();
+    // const [share] = await db
+    //   .insert(resourceMembership)
+    //   .values({
+    //     resourceId: memoryId,
+    //     resourceType: 'memory',
+    //     allUserId: target.type === 'user' ? target.allUserId! : target.groupId!,
+    //     accessLevel: 'read',
+    //     createdAt: new Date(),
+    //   })
+    //   .returning();
 
-    // Create relationship if provided
-    if (relationshipInfo && target.type === 'user') {
-      await createRelationship(memory.ownerId, target.allUserId!, relationshipInfo);
-    }
-
-    // Generate magic links for both owner and invitee
-    const ownerMagicLink = `${process.env.NEXT_PUBLIC_APP_URL}/memories/${memoryId}/share-link?code=${memory.ownerSecureCode}`;
-    const inviteeMagicLink = `${process.env.NEXT_PUBLIC_APP_URL}/memories/${memoryId}/share-link?code=${share.inviteeSecureCode}`;
-
-    // Send email if requested
-    // TODO: Implement email functions for new unified schema
-    if (sendEmail && target.type === 'user') {
-      fatLogger.info('📧 Email sending not implemented yet for new schema', 'be');
-      // if (isInviteeNew) {
-      //   await sendInvitationEmail(userEmail, memory, memory.ownerId, { useTemplate: false });
-      // } else {
-      //   await sendSharedMemoryEmail(userEmail, memory, memory.ownerId, inviteeMagicLink, { useTemplate: false });
-      // }
-    }
-
-    return NextResponse.json({
-      share,
-      ownerMagicLink,
-      inviteeMagicLink,
-    });
+    // Temporarily return error until sharing system is fully migrated
+    return NextResponse.json({ error: 'Sharing system under migration' }, { status: 503 });
   } catch (error) {
     fatLogger.error('🔴 Error sharing memory:', 'be', {
       error: error instanceof Error ? error : undefined,
@@ -192,42 +169,42 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
   }
 }
 
-async function createRelationship(
-  userId: string,
-  relatedUserId: string,
-  relationshipInfo: NonNullable<ShareRequest['relationship']>
-) {
-  // Check if relationship already exists
-  const existingRelationship = await db.query.relationship.findFirst({
-    where: and(eq(relationship.userId, userId), eq(relationship.relatedUserId, relatedUserId)),
-  });
+// async function createRelationship(
+//   userId: string,
+//   relatedUserId: string,
+//   relationshipInfo: NonNullable<ShareRequest['relationship']>
+// ) {
+//   // Check if relationship already exists
+//   const existingRelationship = await db.query.relationship.findFirst({
+//     where: and(eq(relationship.userId, userId), eq(relationship.relatedUserId, relatedUserId)),
+//   });
 
-  if (existingRelationship) {
-    return existingRelationship;
-  }
+//   if (existingRelationship) {
+//     return existingRelationship;
+//   }
 
-  // Create new relationship
-  const [newRelationship] = await db
-    .insert(relationship)
-    .values({
-      userId,
-      relatedUserId,
-      type: relationshipInfo.type,
-      note: relationshipInfo.note,
-      status: 'pending',
-      createdAt: new Date(),
-    })
-    .returning();
+//   // Create new relationship
+//   const [newRelationship] = await db
+//     .insert(relationship)
+//     .values({
+//       userId,
+//       relatedUserId,
+//       type: relationshipInfo.type,
+//       note: relationshipInfo.note,
+//       status: 'pending',
+//       createdAt: new Date(),
+//     })
+//     .returning();
 
-  // If it's a family relationship, create the family relationship record
-  if (relationshipInfo.type === 'family' && relationshipInfo.familyRole) {
-    await db.insert(familyRelationship).values({
-      relationshipId: newRelationship.id,
-      familyRole: relationshipInfo.familyRole,
-      relationshipClarity: 'fuzzy', // Default to fuzzy as per schema
-      createdAt: new Date(),
-    });
-  }
+//   // If it's a family relationship, create the family relationship record
+//   if (relationshipInfo.type === 'family' && relationshipInfo.familyRole) {
+//     await db.insert(familyRelationship).values({
+//       relationshipId: newRelationship.id,
+//       familyRole: relationshipInfo.familyRole,
+//       relationshipClarity: 'fuzzy', // Default to fuzzy as per schema
+//       createdAt: new Date(),
+//     });
+//   }
 
-  return newRelationship;
-}
+//   return newRelationship;
+// }

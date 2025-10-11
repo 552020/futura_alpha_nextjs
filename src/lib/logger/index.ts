@@ -9,5 +9,5 @@
 export { tinyLogger, setLoggerFilter, toggleLogger } from './tiny-logger';
 
 // Export fatLogger and its types
-export { fatLogger } from './fat-logger';
+export { fatLogger, ICP_DEBUG } from './fat-logger';
 export type { LogLevel, Context, LogEntry, LoggerConfig } from './fat-logger';

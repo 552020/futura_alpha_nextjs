@@ -93,7 +93,7 @@ export default function FileDetailEditor({ fileDetails }: { fileDetails: FileDet
   // Form fields
   const [caption, setCaption] = useState(fileDetails.type === 'image' ? fileDetails.data.description || '' : '');
   const [filename, setFilename] = useState(fileDetails.type === 'document' ? fileDetails.data.title || '' : '');
-  const [isPublic, setIsPublic] = useState(fileDetails.data.isPublic === true);
+  const [isPublic, setIsPublic] = useState(fileDetails.data.isPublic || false);
   const [title, setTitle] = useState(fileDetails.type === 'note' ? fileDetails.data.title || '' : '');
   const [content, setContent] = useState(fileDetails.type === 'note' ? fileDetails.data.content || '' : '');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);

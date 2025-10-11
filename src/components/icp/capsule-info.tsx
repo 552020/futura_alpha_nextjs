@@ -6,7 +6,7 @@ import { CreateCapsuleModal } from '@/components/icp/create-capsule-modal';
 import { useToast } from '@/hooks/use-toast';
 import { getAuthClient } from '@/ic/ii';
 import { useAuthenticatedActor } from '@/hooks/use-authenticated-actor';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { CapsuleInfo, CapsuleState, CapsuleError, Capsule } from '@/types/capsule';
 import { getCapsuleFull } from '@/services/capsule';
 
@@ -30,7 +30,7 @@ export function CapsuleInfo() {
 
   // Track if user has a self-capsule
   const [hasSelfCapsule, setHasSelfCapsule] = useState(false);
-  
+
   // Refresh trigger for capsule list
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
@@ -38,7 +38,7 @@ export function CapsuleInfo() {
   const { toast } = useToast();
 
   // Shared helper functions to eliminate duplication
-  const checkAuthentication = async (): Promise<boolean> => {
+  const checkAuthentication = useCallback(async (): Promise<boolean> => {
     const authClient = await getAuthClient();
     const isAuthenticated = await authClient.isAuthenticated();
 
@@ -51,77 +51,80 @@ export function CapsuleInfo() {
       return false;
     }
     return true;
-  };
+  }, [toast]);
 
-  const handleCapsuleOperation = async (
-    operation: () => Promise<unknown>,
-    successMessage: string,
-    successTitle: string = 'Success'
-  ): Promise<unknown | null> => {
-    if (state.isLoading) return null;
+  const handleCapsuleOperation = useCallback(
+    async (
+      operation: () => Promise<unknown>,
+      successMessage: string,
+      successTitle: string = 'Success'
+    ): Promise<unknown | null> => {
+      if (state.isLoading) return null;
 
-    setState(s => ({ ...s, isLoading: true, error: undefined }));
+      setState(s => ({ ...s, isLoading: true, error: undefined }));
 
-    try {
-      if (!(await checkAuthentication())) {
-        setState(s => ({ ...s, isLoading: false }));
+      try {
+        if (!(await checkAuthentication())) {
+          setState(s => ({ ...s, isLoading: false }));
+          return null;
+        }
+
+        const result = await operation();
+
+        if (result) {
+          setState(s => ({ ...s, capsule: result as Capsule, isLoading: false }));
+          toast({
+            title: successTitle,
+            description: successMessage,
+          });
+          return result;
+        } else {
+          setState(s => ({ ...s, capsule: null, isLoading: false }));
+          return null;
+        }
+      } catch (error) {
+        const capsuleError = error as CapsuleError;
+        setState(s => ({ ...s, error: capsuleError, isLoading: false }));
+
+        // Handle different error types
+        if (capsuleError.kind === 'connection') {
+          toast({
+            title: 'Backend Connection Failed',
+            description: capsuleError.message,
+            variant: 'destructive',
+          });
+        } else if (capsuleError.kind === 'authExpired') {
+          toast({
+            title: 'Session Expired',
+            description: capsuleError.message,
+            variant: 'destructive',
+          });
+        } else if (capsuleError.kind === 'notFound') {
+          toast({
+            title: 'Capsule Not Found',
+            description: capsuleError.message,
+            variant: 'destructive',
+          });
+        } else if (capsuleError.kind === 'unauthorized') {
+          toast({
+            title: 'Access Denied',
+            description: capsuleError.message,
+            variant: 'destructive',
+          });
+        } else {
+          toast({
+            title: 'Operation Failed',
+            description: capsuleError.message,
+            variant: 'destructive',
+          });
+        }
         return null;
       }
+    },
+    [state.isLoading, toast, checkAuthentication]
+  );
 
-      const result = await operation();
-
-      if (result) {
-        setState(s => ({ ...s, capsule: result as Capsule, isLoading: false }));
-        toast({
-          title: successTitle,
-          description: successMessage,
-        });
-        return result;
-      } else {
-        setState(s => ({ ...s, capsule: null, isLoading: false }));
-        return null;
-      }
-    } catch (error) {
-      const capsuleError = error as CapsuleError;
-      setState(s => ({ ...s, error: capsuleError, isLoading: false }));
-
-      // Handle different error types
-      if (capsuleError.kind === 'connection') {
-        toast({
-          title: 'Backend Connection Failed',
-          description: capsuleError.message,
-          variant: 'destructive',
-        });
-      } else if (capsuleError.kind === 'authExpired') {
-        toast({
-          title: 'Session Expired',
-          description: capsuleError.message,
-          variant: 'destructive',
-        });
-      } else if (capsuleError.kind === 'notFound') {
-        toast({
-          title: 'Capsule Not Found',
-          description: capsuleError.message,
-          variant: 'destructive',
-        });
-      } else if (capsuleError.kind === 'unauthorized') {
-        toast({
-          title: 'Access Denied',
-          description: capsuleError.message,
-          variant: 'destructive',
-        });
-      } else {
-        toast({
-          title: 'Operation Failed',
-          description: capsuleError.message,
-          variant: 'destructive',
-        });
-      }
-      return null;
-    }
-  };
-
-  const handleGetCapsuleInfo = async () => {
+  const handleGetCapsuleInfo = useCallback(async () => {
     const result = await handleCapsuleOperation(
       () => getCapsuleFull(getActor, clearActor),
       'Successfully fetched your capsule information',
@@ -141,7 +144,7 @@ export function CapsuleInfo() {
         variant: 'destructive',
       });
     }
-  };
+  }, [handleCapsuleOperation, getActor, clearActor, toast]);
 
   // Auto-load capsule when component mounts (if authenticated and no capsule loaded)
   useEffect(() => {
@@ -161,7 +164,7 @@ export function CapsuleInfo() {
     };
 
     autoLoadCapsule();
-  }, [handleGetCapsuleInfo, state.capsule, state.isLoading]); // Include all dependencies
+  }, [handleGetCapsuleInfo, state.capsule, state.isLoading]); // handleGetCapsuleInfo is now stable due to useCallback
 
   return (
     <div className="space-y-6">

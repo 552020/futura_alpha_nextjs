@@ -19,9 +19,18 @@ export async function GET(): Promise<NextResponse> {
     }
 
     // Get user's hosting preferences
-    const preferences = await db.query.userHostingPreferences.findFirst({
-      where: eq(userHostingPreferences.userId, session.user.id),
-    });
+    let preferences;
+    try {
+      preferences = await db.query.userHostingPreferences.findFirst({
+        where: eq(userHostingPreferences.userId, session.user.id),
+      });
+    } catch (error) {
+      // Table might not exist yet, return defaults
+      fatLogger.warn('userHostingPreferences table not found, returning defaults', 'be', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      preferences = null;
+    }
 
     // If no preferences exist, return defaults
     if (!preferences) {
@@ -77,9 +86,18 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     }
 
     // Check if preferences already exist
-    const existingPreferences = await db.query.userHostingPreferences.findFirst({
-      where: eq(userHostingPreferences.userId, session.user.id),
-    });
+    let existingPreferences;
+    try {
+      existingPreferences = await db.query.userHostingPreferences.findFirst({
+        where: eq(userHostingPreferences.userId, session.user.id),
+      });
+    } catch (error) {
+      // Table might not exist yet
+      fatLogger.warn('userHostingPreferences table not found, will attempt to create', 'be', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      existingPreferences = null;
+    }
 
     let updatedPreferences;
 

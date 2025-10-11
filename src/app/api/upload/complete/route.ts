@@ -60,12 +60,15 @@ interface CompleteUploadRequest {
 
 export async function POST(request: Request) {
   try {
+    console.log('🔍 [DEBUG] Starting upload complete request');
     const session = await auth();
     if (!session?.user?.id) {
+      console.log('❌ [DEBUG] No session or user ID');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const userId = session.user.id;
+    console.log('✅ [DEBUG] User authenticated:', userId);
 
     // Check if the user exists in the all_user table
     const existingUser = await db.query.allUsers.findFirst({
@@ -92,15 +95,21 @@ export async function POST(request: Request) {
     }
 
     const requestData = (await request.json()) as CompleteUploadRequest;
+    console.log('📋 [DEBUG] Request data:', JSON.stringify(requestData, null, 2));
 
     // Handle new parallel processing format (Format 3)
     if (requestData.memoryId && requestData.assets) {
+      console.log('🔄 [DEBUG] Using Format 3 (parallel processing)');
       return await handleParallelProcessingFinalize(requestData as FinalizeRequest, allUserId);
     }
 
     // Handle legacy formats (Format 1 & 2)
+    console.log('🔄 [DEBUG] Using legacy format (Format 1 or 2)');
     return await handleLegacyComplete(requestData, allUserId);
   } catch (error) {
+    console.log('❌ [DEBUG] Error in upload complete:', error);
+    console.log('❌ [DEBUG] Error message:', error instanceof Error ? error.message : 'Unknown error');
+    console.log('❌ [DEBUG] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     fatLogger.error('Error completing upload:', 'be', { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to complete upload' }, { status: 500 });
   }
@@ -224,6 +233,7 @@ async function handleParallelProcessingFinalize(request: FinalizeRequest, allUse
  * Handle legacy complete formats (backward compatibility)
  */
 async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserId: string) {
+  console.log('🔍 [DEBUG] Starting handleLegacyComplete with allUserId:', allUserId);
   // Handle both request formats
   let fileKey: string;
   let originalName: string;
@@ -264,8 +274,11 @@ async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserI
   }
 
   if (!size) {
+    console.log('❌ [DEBUG] Missing required field: size');
     return NextResponse.json({ error: 'Missing required field: size' }, { status: 400 });
   }
+
+  console.log('✅ [DEBUG] Parsed request data:', { fileKey, originalName, size, mimeType, metadata });
 
   // Determine memory type from content type or file extension
   const memoryType: MemoryType = mimeType.startsWith('image/')
@@ -290,58 +303,74 @@ async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserI
     fileUrl = requestData.url || `/${fileKey}`;
   }
   const memoryId = randomUUID();
+  console.log('🆔 [DEBUG] Generated memoryId:', memoryId);
 
   // Create memory record
-  await db
-    .insert(memories)
-    .values({
-      id: memoryId,
-      ownerId: allUserId,
-      type: memoryType,
-      title: originalName.split('.')[0] || 'Untitled',
-      description: '',
-      fileCreatedAt: new Date(),
-      isPublic: false,
-      ownerSecureCode: randomBytes(16).toString('hex'),
-      parentFolderId: null,
-      tags: [],
-      recipients: [],
-      unlockDate: null,
-      metadata: {
-        originalPath: originalName,
-        custom: Object.entries(metadata).reduce<Record<string, unknown>>((acc, [key, value]) => {
-          if (key !== 'width' && key !== 'height') {
-            acc[key] = value;
-          }
-          return acc;
-        }, {}),
-      },
-      storageDuration: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      deletedAt: null,
-    })
-    .returning();
+  console.log('💾 [DEBUG] About to create memory record in database');
+  try {
+    await db
+      .insert(memories)
+      .values({
+        id: memoryId,
+        ownerId: allUserId,
+        type: memoryType,
+        title: originalName.split('.')[0] || 'Untitled',
+        description: '',
+        fileCreatedAt: new Date(),
+        isPublic: false,
+        ownerSecureCode: randomBytes(16).toString('hex'),
+        parentFolderId: null,
+        tags: [],
+        recipients: [],
+        unlockDate: null,
+        metadata: {
+          originalPath: originalName,
+          custom: Object.entries(metadata).reduce<Record<string, unknown>>((acc, [key, value]) => {
+            if (key !== 'width' && key !== 'height') {
+              acc[key] = value;
+            }
+            return acc;
+          }, {}),
+        },
+        storageDuration: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        deletedAt: null,
+      })
+      .returning();
+    console.log('✅ [DEBUG] Memory record created successfully');
+  } catch (error) {
+    console.log('❌ [DEBUG] Error creating memory record:', error);
+    throw error;
+  }
 
   // Create asset record
-  await db.insert(memoryAssets).values({
-    memoryId: memoryId,
-    assetType: 'original',
-    variant: null,
-    url: fileUrl,
-    assetLocation: 's3',
-    storageKey: fileKey,
-    bucket: process.env.AWS_S3_BUCKET || 'futura0',
-    bytes: size,
-    width: metadata.width ? Number(metadata.width) : null,
-    height: metadata.height ? Number(metadata.height) : null,
-    mimeType: mimeType,
-    processingStatus: 'completed' as const,
-    processingError: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  });
+  console.log('💾 [DEBUG] About to create asset record in database');
+  try {
+    await db.insert(memoryAssets).values({
+      memoryId: memoryId,
+      assetType: 'original',
+      variant: null,
+      url: fileUrl,
+      assetLocation: 's3',
+      storageKey: fileKey,
+      bucket: process.env.AWS_S3_BUCKET || 'futura0',
+      bytes: size,
+      width: metadata.width ? Number(metadata.width) : null,
+      height: metadata.height ? Number(metadata.height) : null,
+      mimeType: mimeType,
+      processingStatus: 'completed' as const,
+      processingError: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    console.log('✅ [DEBUG] Asset record created successfully');
+  } catch (error) {
+    console.log('❌ [DEBUG] Error creating asset record:', error);
+    throw error;
+  }
 
+  console.log('🎉 [DEBUG] Both memory and asset records created successfully');
   return NextResponse.json({
     success: true,
     data: {
