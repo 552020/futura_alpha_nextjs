@@ -1095,7 +1095,7 @@ async function addDerivativeAssetsToMemory(
     // Add placeholder as inline asset if available
     if (derivativeAssets.placeholder?.url) {
       const placeholderBytes = dataURLtoBytes(derivativeAssets.placeholder.url);
-      
+
       const placeholderAssetMetadata: AssetMetadata = {
         Image: {
           dpi: [],
@@ -1144,7 +1144,10 @@ async function addDerivativeAssetsToMemory(
 
     console.log(`✅ Successfully added derivative assets to memory: ${icpMemoryId}`);
   } catch (error) {
-    console.log('❌ Failed to add derivative assets to memory:', error instanceof Error ? error.message : 'Unknown error');
+    console.log(
+      '❌ Failed to add derivative assets to memory:',
+      error instanceof Error ? error.message : 'Unknown error'
+    );
     throw error;
   }
 }
