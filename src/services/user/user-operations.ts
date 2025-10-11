@@ -271,7 +271,7 @@ export const getTemporaryUserId = async (providedAllUserId: string): Promise<Use
       return { success: false, error: 'Invalid temporary user' };
     }
 
-    const allUser = allUserResult.data;
+    const allUser = allUserResult.data as { type: string; id: string };
     if (allUser.type !== 'temporary') {
       return { success: false, error: 'Invalid temporary user' };
     }
