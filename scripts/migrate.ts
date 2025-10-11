@@ -22,11 +22,11 @@ import { glob } from 'glob';
 // Load environment variables
 config({ path: '.env.local' });
 
-interface MigrationStep {
-  name: string;
-  description: string;
-  execute: () => Promise<void>;
-}
+// interface _MigrationStep {
+//   name: string;
+//   description: string;
+//   execute: () => Promise<void>;
+// }
 
 async function runDrizzleMigrations(): Promise<void> {
   console.log('🔄 Running Drizzle migrations...');

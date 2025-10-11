@@ -17,7 +17,7 @@ import { allUsers, users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { auth } from '@/auth';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 /**
  * Helper function to get allUserId for both authenticated and temporary users
  * This centralizes the user lookup logic used across multiple endpoints
@@ -31,7 +31,7 @@ export async function getAllUserId(request: NextRequest): Promise<{ allUserId: s
     const [permanentUser] = await db.select().from(users).where(eq(users.id, session.user.id));
 
     if (!permanentUser) {
-      logger.error('Permanent user not found', 'auth:be');
+      fatLogger.error('Permanent user not found', 'be');
       return { allUserId: '', error: NextResponse.json({ error: 'User not found' }, { status: 404 }) };
     }
 
@@ -39,7 +39,7 @@ export async function getAllUserId(request: NextRequest): Promise<{ allUserId: s
     const [allUserRecord] = await db.select().from(allUsers).where(eq(allUsers.userId, permanentUser.id));
 
     if (!allUserRecord) {
-      logger.error('No all_users record found for permanent user', 'auth:be');
+      fatLogger.error('No all_users record found for permanent user', 'be');
       return { allUserId: '', error: NextResponse.json({ error: 'User record not found' }, { status: 404 }) };
     }
 
@@ -51,27 +51,27 @@ export async function getAllUserId(request: NextRequest): Promise<{ allUserId: s
       const providedAllUserId = formData.get('userId') as string;
 
       if (providedAllUserId) {
-        logger.info('Using provided allUserId for temporary user', 'auth:be');
+        fatLogger.info('Using provided allUserId for temporary user', 'be');
         // For temporary users, directly check the allUsers table
         const [tempUser] = await db.select().from(allUsers).where(eq(allUsers.id, providedAllUserId));
-        logger.info('Found temporary user', 'auth:be', {
+        fatLogger.info('Found temporary user', 'be', {
           allUserId: tempUser?.id,
-          type: tempUser?.type
+          type: tempUser?.type,
         });
 
         if (!tempUser || tempUser.type !== 'temporary') {
-          logger.error('Valid temporary user not found', 'auth:be');
+          fatLogger.error('Valid temporary user not found', 'be');
           return { allUserId: '', error: NextResponse.json({ error: 'Invalid temporary user' }, { status: 404 }) };
         }
 
         return { allUserId: tempUser.id };
       } else {
-        logger.error('No valid user identification provided', 'auth:be');
+        fatLogger.error('No valid user identification provided', 'be');
         return { allUserId: '', error: NextResponse.json({ error: 'User identification required' }, { status: 401 }) };
       }
     } catch {
       // If form parsing fails, it might be a JSON request - return auth error
-      logger.error('No valid user identification provided', 'auth:be');
+      fatLogger.error('No valid user identification provided', 'be');
       return { allUserId: '', error: NextResponse.json({ error: 'User identification required' }, { status: 401 }) };
     }
   }
@@ -88,26 +88,26 @@ export async function getUserIdForUpload(params: {
 
   try {
     const session = await auth();
-    logger.info('Auth session data', 'auth:be', {
+    fatLogger.info('Auth session data', 'be', {
       hasUser: !!session?.user,
       userId: session?.user?.id,
-      userEmail: session?.user?.email
+      userEmail: session?.user?.email,
     });
 
     if (session?.user?.id) {
-      logger.info('Looking up authenticated user in users table', 'auth:be');
+      fatLogger.info('Looking up authenticated user in users table', 'be');
       // First get the user from users table
       const [permanentUser] = await db.select().from(users).where(eq(users.id, session.user.id));
-      logger.info('Found permanent user', 'auth:be', { userId: permanentUser?.id });
+      fatLogger.info('Found permanent user', 'be', { userId: permanentUser?.id });
 
       if (!permanentUser) {
-        logger.error('Permanent user not found in database', 'auth:be');
-        logger.error('Session user ID', 'auth:be', { userId: session.user.id });
-        logger.error('User email', 'auth:be', { email: session.user.email });
+        fatLogger.error('Permanent user not found in database', 'be');
+        fatLogger.error('Session user ID', 'be', { userId: session.user.id });
+        fatLogger.error('User email', 'be', { email: session.user.email });
 
         // Try to create the user if they don't exist
         try {
-          logger.info('Attempting to create user from session data', 'auth:be');
+          fatLogger.info('Attempting to create user from session data', 'be');
           const [newUser] = await db
             .insert(users)
             .values({
@@ -119,8 +119,8 @@ export async function getUserIdForUpload(params: {
             .returning();
 
           if (newUser) {
-            logger.info('Successfully created user from session', 'auth:be', {
-              userId: newUser.id
+            fatLogger.info('Successfully created user from session', 'be', {
+              userId: newUser.id,
             });
             // Create corresponding all_users entry
             const [allUserRecord] = await db
@@ -137,7 +137,7 @@ export async function getUserIdForUpload(params: {
             }
           }
         } catch (createError) {
-          logger.error('Failed to create user', 'auth:be', { error: createError });
+          fatLogger.error('Failed to create user', 'be', { error: createError });
         }
 
         return {
@@ -155,41 +155,44 @@ export async function getUserIdForUpload(params: {
 
       // Then get their allUserId
       const [allUserRecord] = await db.select().from(allUsers).where(eq(allUsers.userId, permanentUser.id));
-      logger.info('Found all_users record', 'auth:be', { allUserId: allUserRecord?.id });
+      fatLogger.info('Found all_users record', 'be', { allUserId: allUserRecord?.id });
 
       if (!allUserRecord) {
-        logger.error('No all_users record found for permanent user', 'auth:be');
+        fatLogger.error('No all_users record found for permanent user', 'be');
         return {
-          allUserId: '', error: NextResponse.json({ error: 'User record not found' }, { status: 404 }),
+          allUserId: '',
+          error: NextResponse.json({ error: 'User record not found' }, { status: 404 }),
         };
       }
 
       return { allUserId: allUserRecord.id, error: null };
     } else if (providedUserId) {
-      logger.info('Using provided allUserId for temporary user', 'auth:be');
+      fatLogger.info('Using provided allUserId for temporary user', 'be');
       // For temporary users, directly check the allUsers table
       const [tempUser] = await db.select().from(allUsers).where(eq(allUsers.id, providedUserId));
-      logger.info('Found temporary user', 'auth:be', {
+      fatLogger.info('Found temporary user', 'be', {
         allUserId: tempUser?.id,
-        type: tempUser?.type
+        type: tempUser?.type,
       });
 
       if (!tempUser || tempUser.type !== 'temporary') {
-        logger.error('Valid temporary user not found', 'auth:be');
+        fatLogger.error('Valid temporary user not found', 'be');
         return {
-          allUserId: '', error: NextResponse.json({ error: 'Invalid temporary user' }, { status: 404 }),
+          allUserId: '',
+          error: NextResponse.json({ error: 'Invalid temporary user' }, { status: 404 }),
         };
       }
 
       return { allUserId: tempUser.id, error: null };
     } else {
-      logger.error('No valid user identification provided', 'auth:be');
+      fatLogger.error('No valid user identification provided', 'be');
       return {
-        allUserId: '', error: NextResponse.json({ error: 'User identification required' }, { status: 401 }),
+        allUserId: '',
+        error: NextResponse.json({ error: 'User identification required' }, { status: 401 }),
       };
     }
   } catch (error) {
-    logger.error('Error getting user ID for upload', 'auth:be', { error });
+    fatLogger.error('Error getting user ID for upload', 'be', { error });
     return {
       allUserId: '',
       error: NextResponse.json(
@@ -208,12 +211,12 @@ export async function createTemporaryUserWithErrorHandling(
   createTemporaryUserBase: (role: 'inviter' | 'invitee') => Promise<{ allUser: { id: string } }>
 ): Promise<{ allUser: { id: string }; error: string | null }> {
   try {
-    // logger.info("👤 Creating temporary user...");
+    // fatLogger.info("👤 Creating temporary user...");
     const { allUser } = await createTemporaryUserBase('inviter');
-    // logger.info("✅ Temporary user created:", undefined, { userId: allUser.id });
+    // fatLogger.info("✅ Temporary user created:", undefined, { userId: allUser.id });
     return { allUser, error: null };
   } catch (userError) {
-    logger.error('User creation error', 'auth:be', { error: userError });
+    fatLogger.error('User creation error', 'be', { error: userError });
     return {
       allUser: { id: '' },
       error: userError instanceof Error ? userError.message : String(userError),

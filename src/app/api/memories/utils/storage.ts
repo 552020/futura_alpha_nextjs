@@ -14,7 +14,7 @@ import { put } from '@vercel/blob';
 import { generateBlobFilename } from '@/lib/storage/blob-config';
 import { uploadToS3 } from '@/lib/s3';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 export async function uploadFileToStorage(
   file: File,
   existingBuffer?: Buffer,
@@ -22,7 +22,7 @@ export async function uploadFileToStorage(
   userId?: string
 ): Promise<string> {
   if (storageBackend === 's3') {
-    logger.info('☁️ Using S3 storage backend for file:', undefined, { fileName: file.name });
+    fatLogger.info('☁️ Using S3 storage backend for file:', 'be', { fileName: file.name });
 
     try {
       // Use the existing S3 utility function
@@ -34,16 +34,16 @@ export async function uploadFileToStorage(
 
       // Upload to S3 with the clean file name and user ID
       const url = await uploadToS3(s3File, undefined, userId);
-      logger.info('✅ Successfully uploaded to S3:', undefined, { url });
+      fatLogger.info('✅ Successfully uploaded to S3:', 'be', { url });
       return url;
     } catch (error) {
-      logger.error('❌ S3 upload error:', undefined, { data: error instanceof Error ? error : undefined });
+      fatLogger.error('❌ S3 upload error:', 'be', { data: error instanceof Error ? error : undefined });
       throw new Error(`S3 upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
   // Default to Vercel Blob for other cases
-  logger.info('☁️ Using Vercel Blob storage for file:', undefined, { fileName: file.name });
+  fatLogger.info('☁️ Using Vercel Blob storage for file:', 'be', { fileName: file.name });
   try {
     const safeFileName = file.name.replace(/[^a-zA-Z0-9-_\.]/g, '_');
     const buffer = existingBuffer || Buffer.from(await file.arrayBuffer());
@@ -53,7 +53,7 @@ export async function uploadFileToStorage(
     });
     return url;
   } catch (error) {
-    logger.error('❌ Vercel Blob upload error:', undefined, { data: error instanceof Error ? error : undefined });
+    fatLogger.error('❌ Vercel Blob upload error:', 'be', { data: error instanceof Error ? error : undefined });
     throw new Error(`Vercel Blob upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
@@ -70,12 +70,12 @@ export async function uploadFileToStorageWithErrorHandling(
   userId?: string
 ): Promise<{ url: string; error: null } | { url: null; error: string }> {
   try {
-    logger.info(`📤 Starting ${storageBackend} file upload for:`, undefined, { fileName: file.name });
+    fatLogger.info(`📤 Starting ${storageBackend} file upload for:`, 'be', { fileName: file.name });
     const url = await uploadFn(file, buffer, storageBackend, userId);
-    logger.info(`✅ File uploaded successfully to ${storageBackend}:`, undefined, { url });
+    fatLogger.info(`✅ File uploaded successfully to ${storageBackend}:`, 'be', { url });
     return { url, error: null };
   } catch (uploadError) {
-    logger.error(`❌ ${storageBackend} upload error:`, undefined, { data: uploadError });
+    fatLogger.error(`❌ ${storageBackend} upload error:`, 'be', { data: uploadError });
     return {
       url: null,
       error: uploadError instanceof Error ? uploadError.message : String(uploadError),

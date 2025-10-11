@@ -46,8 +46,8 @@ export function GalleryTopBar({
         { value: 'private', label: 'Private' },
       ]}
       filterLogic={(gallery, filterType) => {
-        if (filterType === 'public') return gallery.isPublic;
-        if (filterType === 'private') return !gallery.isPublic;
+        if (filterType === 'public') return gallery.sharingStatus === 'public';
+        if (filterType === 'private') return gallery.sharingStatus !== 'public';
         return true;
       }}
       sortOptions={[

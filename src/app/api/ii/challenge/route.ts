@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createNonce, type NonceContext } from '@/lib/ii-nonce';
 import { headers } from 'next/headers';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 // Rate limiting store (in production, use Redis or similar)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
@@ -120,13 +120,13 @@ export async function POST(request: NextRequest) {
 
     // Security Check 1: Origin/Referer validation (CSRF protection)
     if (!checkOrigin(request)) {
-      logger.warn(`II Challenge: Invalid origin/referer from IP ${ipAddress}`);
+      fatLogger.warn(`II Challenge: Invalid origin/referer from IP ${ipAddress}`, 'be');
       return NextResponse.json({ error: 'Invalid origin' }, { status: 403 });
     }
 
     // Security Check 2: Rate limiting
     if (!checkRateLimit(ipAddress)) {
-      logger.warn(`II Challenge: Rate limit exceeded for IP ${ipAddress}`);
+      fatLogger.warn(`II Challenge: Rate limit exceeded for IP ${ipAddress}`, 'be');
       return NextResponse.json({ error: 'Rate limit exceeded. Please try again later.' }, { status: 429 });
     }
 
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (callbackUrl && !isValidCallbackUrl(callbackUrl)) {
-      logger.warn(`II Challenge: Invalid callbackUrl attempted: ${callbackUrl} from IP ${ipAddress}`);
+      fatLogger.warn(`II Challenge: Invalid callbackUrl attempted: ${callbackUrl} from IP ${ipAddress}`, 'be');
       return NextResponse.json(
         { error: 'Invalid callbackUrl. Must be a relative path or same-origin URL.' },
         { status: 400 }
@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
     const result = await createNonce(context);
 
     // Security logging (never log raw nonce)
-    // logger.info(
+    // fatLogger.info(
     //   `II Challenge created: nonceId=${result.nonceId}, ttl=${
     //     result.ttlSeconds
     //   }s, ip=${ipAddress}, ua=${userAgent?.substring(0, 50)}...`
@@ -178,7 +178,7 @@ export async function POST(request: NextRequest) {
       ttlSeconds: result.ttlSeconds,
     });
   } catch (error) {
-    logger.error('Error creating II challenge nonce:', undefined, { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Error creating II challenge nonce:', 'be', { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to create challenge nonce' }, { status: 500 });
   }
 }

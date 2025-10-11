@@ -1,4 +1,4 @@
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 
 /**
  * Image Processing Web Worker
@@ -56,7 +56,7 @@ self.onmessage = async (e: MessageEvent<ProcessMessage>) => {
       return;
     }
 
-    logger.info(`🖼️ Worker processing: ${file.name} (${file.type})`);
+    fatLogger.info(`🖼️ Worker processing: ${file.name} (${file.type})`, 'fe');
 
     // Create image from file
     const image = await createImageFromFile(file);
@@ -80,7 +80,7 @@ self.onmessage = async (e: MessageEvent<ProcessMessage>) => {
 
     self.postMessage(response);
   } catch (error) {
-    logger.error('Worker processing error', undefined, { data: error as Error });
+    fatLogger.error('Worker processing error', 'fe', { data: error as Error });
     const response: ProcessResponse = {
       kind: 'process',
       ok: false,

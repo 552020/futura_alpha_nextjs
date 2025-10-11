@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Share2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 interface ShareDialogProps {
   memoryId: string;
   onShare?: () => void;
@@ -51,7 +51,7 @@ export function ShareDialog({ memoryId, onShare }: ShareDialogProps) {
       }
 
       await response.json();
-      // logger.info("🎉 SHARE SUCCESS - Memory shared successfully!");
+      // fatLogger.info("🎉 SHARE SUCCESS - Memory shared successfully!");
       toast({
         title: 'Success!',
         description: 'Memory shared successfully!',
@@ -59,7 +59,7 @@ export function ShareDialog({ memoryId, onShare }: ShareDialogProps) {
       setIsOpen(false);
       onShare?.();
     } catch (error) {
-      logger.error('Error sharing memory:', undefined, { data: error instanceof Error ? error : undefined });
+      fatLogger.error('Error sharing memory:', 'fe', { data: error instanceof Error ? error : undefined });
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to share memory',

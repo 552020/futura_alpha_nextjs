@@ -18,7 +18,7 @@ import { db } from '@/db/db';
 import { memories } from '@/db/schema';
 import { randomUUID } from 'crypto';
 import type { NewDBMemory } from '@/db/schema';
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 
 // Schema-based interfaces for memory creation
 export interface CreateMemoryParams {
@@ -86,7 +86,8 @@ async function resolveOwnerId(
 
     return { success: true, ownerId: temporaryOwnerId };
   } catch (error) {
-    logger.database('be').error('Failed to create temporary user for onboarding', error, {
+    fatLogger.error('Failed to create temporary user for onboarding', 'be', {
+      error: error,
       operation: 'create_temporary_user',
       isOnboarding: true,
     });
@@ -113,7 +114,7 @@ async function createMemoryRecord(
       title: params.title,
       description: params.description || '',
       fileCreatedAt: params.fileCreatedAt || new Date(),
-      isPublic: params.isPublic || false,
+      sharingStatus: params.isPublic ? 'public' : 'private',
       ownerSecureCode: randomUUID(),
       parentFolderId: params.parentFolderId || null,
       tags: params.tags || [],
@@ -124,15 +125,16 @@ async function createMemoryRecord(
     };
     const [createdMemory] = await db.insert(memories).values(newMemory).returning();
 
-    logger.database('be').info('Memory created', {
+    fatLogger.info('Memory created', 'be', {
       memoryId: createdMemory.id || 'unknown',
       title: createdMemory.title || 'Untitled',
       type: createdMemory.type,
-      operation: 'memory_created'
+      operation: 'memory_created',
     });
     return { success: true, memory: createdMemory };
   } catch (error) {
-    logger.database('be').error('Failed to create memory record', error, {
+    fatLogger.error('Failed to create memory record', 'be', {
+      error: error,
       operation: 'create_memory_record',
       ownerId: ownerId,
     });
@@ -172,14 +174,15 @@ async function createMemoryAssets(
 
     const createdAssets = await db.insert(memoryAssets).values(assetData).returning();
 
-    logger.database('be').info('Created assets for memory', {
+    fatLogger.info('Created assets for memory', 'be', {
       operation: 'create_memory_assets',
       memoryId,
       count: createdAssets.length,
     });
     return { success: true, assets: createdAssets };
   } catch (error) {
-    logger.database('be').error('Failed to create memory assets', error, {
+    fatLogger.error('Failed to create memory assets', 'be', {
+      error: error,
       operation: 'create_memory_assets',
       memoryId,
     });
@@ -231,7 +234,8 @@ export async function createMemory(params: CreateMemoryParams): Promise<CreateMe
       memoryId: createdMemory.id || '',
     };
   } catch (error) {
-    logger.database('be').error('Failed to create memory', error, {
+    fatLogger.error('Failed to create memory', 'be', {
+      error: error,
       operation: 'create_memory',
       ownerId: params.ownerId,
       type: params.type,
@@ -316,12 +320,13 @@ export async function createMemoryFromBlob(
     // Use the unified createMemory function
     return await createMemory(params);
   } catch (error) {
-    logger.database('be').error('Failed to create memory from blob', {
+    fatLogger.error('Failed to create memory from blob', 'be', {
+      error: error,
       operation: 'create_memory_from_blob',
       url: blob.url,
       size: blob.size,
       contentType: blob.contentType,
-      error: error instanceof Error ? error.message : String(error)
+      errorMessage: error instanceof Error ? error.message : String(error),
     });
     return {
       success: false,

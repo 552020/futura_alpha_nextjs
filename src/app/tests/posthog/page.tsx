@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import posthog from 'posthog-js';
 import { useEffect, useState } from 'react';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 type PostHogEventProperties = {
   property?: string;
   button_type?: string;
@@ -57,7 +57,7 @@ export default function PostHogTestPage() {
   const handleTestEvent = (eventName: string, properties: PostHogEventProperties) => {
     posthog.capture(eventName, properties);
     setLastEvent(`Event &ldquo;${eventName}&rdquo; sent at ${new Date().toLocaleTimeString('en-US')}`);
-    logger.info('PostHog event sent:', undefined, { eventName, properties });
+    fatLogger.info('PostHog event sent:', 'fe', { eventName, properties });
   };
 
   return (

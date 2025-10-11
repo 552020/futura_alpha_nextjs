@@ -1,5 +1,5 @@
 import { db } from '@/db/db';
-import { allUsers, users, memories, memoryAssets, memoryShares } from '@/db/schema';
+import { allUsers, users, memories, memoryAssets } from '@/db/schema';
 import { faker } from '@faker-js/faker';
 import { inArray } from 'drizzle-orm';
 import { uploadFileToStorage } from '@/app/api/memories/utils/storage';
@@ -7,7 +7,7 @@ import { validateFile } from '@/app/api/memories/utils/file-processing';
 import { join } from 'path';
 import { readFileSync } from 'fs';
 import { hash } from 'bcrypt';
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 import margotData from './margot.json' assert { type: 'json' };
 import richieData from './richie.json' assert { type: 'json' };
 import wesData from './wes.json' assert { type: 'json' };
@@ -81,7 +81,7 @@ async function uploadAsset(filename: string): Promise<{ url: string; size: numbe
     const url = await uploadFileToStorage(file, validationResult.buffer);
     return { url, size: buffer.length, mimeType };
   } catch (error) {
-    logger.error(`Failed to upload asset ${filename}:`, undefined, { data: error instanceof Error ? error : undefined });
+    fatLogger.error(`Failed to upload asset ${filename}:`, 'be', { data: error instanceof Error ? error : undefined });
     throw error;
   }
 }
@@ -135,7 +135,7 @@ async function createMemory(memory: Memory, ownerId: string) {
           title: memory.title,
           description: memory.description,
           ownerSecureCode: faker.string.alphanumeric(12),
-          isPublic: false,
+          sharingStatus: 'private',
         })
         .returning();
 
@@ -163,7 +163,7 @@ async function createMemory(memory: Memory, ownerId: string) {
           title: memory.title,
           description: memory.content || '',
           ownerSecureCode: faker.string.alphanumeric(12),
-          isPublic: false,
+          sharingStatus: 'private',
         })
         .returning();
       return { id: note.id, type: 'note' as const };
@@ -179,7 +179,7 @@ async function createMemory(memory: Memory, ownerId: string) {
           title: memory.title,
           description: memory.description,
           ownerSecureCode: faker.string.alphanumeric(12),
-          isPublic: false,
+          sharingStatus: 'private',
         })
         .returning();
 
@@ -207,7 +207,7 @@ async function createMemory(memory: Memory, ownerId: string) {
           title: memory.title,
           description: memory.description,
           ownerSecureCode: faker.string.alphanumeric(12),
-          isPublic: false,
+          sharingStatus: 'private',
         })
         .returning();
 
@@ -230,20 +230,22 @@ async function createMemory(memory: Memory, ownerId: string) {
 }
 
 async function shareMemory(memoryId: string, memoryType: MemoryType, ownerId: string, sharedWithId: string) {
-  await db.insert(memoryShares).values({
-    id: faker.string.uuid(),
-    memoryId,
-    memoryType,
-    ownerId,
-    sharedWithType: 'user',
-    sharedWithId,
-    accessLevel: 'read',
-    inviteeSecureCode: faker.string.alphanumeric(12),
-  });
+  // TODO: Update to use new universal resource sharing system
+  // await db.insert(resourceMembership).values({
+  //   id: faker.string.uuid(),
+  //   resourceId: memoryId,
+  //   resourceType: 'memory',
+  //   allUserId: sharedWithId,
+  //   accessLevel: 'read',
+  //   createdAt: new Date(),
+  // });
+  
+  // Temporarily skip sharing until migration is complete
+  console.log(`Skipping share for memory ${memoryId} with user ${sharedWithId}`);
 }
 
 export async function seedTenenbaum() {
-  logger.info('🌱 Seeding Tenenbaum family data...');
+  fatLogger.info('🌱 Seeding Tenenbaum family data...', 'be');
 
   try {
     // Safety check - only proceed if these are test emails
@@ -256,7 +258,7 @@ export async function seedTenenbaum() {
     ];
 
     // Clean up only Tenenbaum-related test data
-    logger.info('🧹 Cleaning up existing Tenenbaum test data...');
+    fatLogger.info('🧹 Cleaning up existing Tenenbaum test data...', 'be');
 
     // First get the user IDs
     const existingUsers = await db.select().from(users).where(inArray(users.email, tenenBaumEmails));
@@ -270,7 +272,8 @@ export async function seedTenenbaum() {
 
     // Delete related data in correct order
     if (allUserIds.length > 0) {
-      await db.delete(memoryShares).where(inArray(memoryShares.ownerId, allUserIds));
+      // TODO: Update to use new universal resource sharing system
+      // await db.delete(resourceMembership).where(inArray(resourceMembership.allUserId, allUserIds));
       await db.delete(memories).where(inArray(memories.ownerId, allUserIds));
     }
 
@@ -279,16 +282,16 @@ export async function seedTenenbaum() {
       await db.delete(users).where(inArray(users.id, userIds));
     }
 
-    logger.info('✅ Tenenbaum test data cleaned');
+    fatLogger.info('✅ Tenenbaum test data cleaned', 'be');
 
     // Create users
-    logger.info('👥 Creating Tenenbaum users...');
+    fatLogger.info('👥 Creating Tenenbaum users...', 'be');
     const margot = await createUser(margotData as UserData);
     const richie = await createUser(richieData as UserData);
     // const chas = await createUser(chasData as UserData);
     const wes = await createUser(wesData as UserData);
     const eli = await createUser(eliData as UserData);
-    logger.info('✅ Tenenbaum users created');
+    fatLogger.info('✅ Tenenbaum users created', 'be');
 
     // Create memories for each user
     const margotMemories = await Promise.all(
@@ -327,9 +330,11 @@ export async function seedTenenbaum() {
     await shareMemory(eliMemories[0].id, eliMemories[0].type, eli.allUser.id, margot.allUser.id);
     await shareMemory(eliMemories[1].id, eliMemories[1].type, eli.allUser.id, margot.allUser.id);
 
-    logger.info('✅ Tenenbaum family data seeded successfully');
+    fatLogger.info('✅ Tenenbaum family data seeded successfully', 'be');
   } catch (error) {
-    logger.error('❌ Error seeding Tenenbaum family data:', undefined, { data: error instanceof Error ? error : undefined });
+    fatLogger.error('❌ Error seeding Tenenbaum family data:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
     throw error;
   }
 }

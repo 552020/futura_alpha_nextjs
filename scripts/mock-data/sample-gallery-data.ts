@@ -231,9 +231,10 @@ export const generateSampleGalleries = (): GalleryWithItems[] => {
       updatedAt: new Date(createdAt),
       ownerId: 'mock-user-1',
       totalMemories: config.imageCount,
-      storageLocations: [],
-      averageStorageDuration: null,
-      storageDistribution: {},
+      name: config.title.toLowerCase().replace(/\s+/g, '-'),
+      sharingStatus: 'private',
+      sharedCount: 0,
+      storageLocation: ['s3'],
       items: memories.map((memory, index) => ({
         id: `item-${config.id}-${index}`,
         galleryId: config.id,

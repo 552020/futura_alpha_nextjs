@@ -7,7 +7,7 @@
 
 import type { AssetType, ProcessingStatus } from '@/db/schema';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 export interface FinalizeAsset {
   assetType: AssetType;
   assetLocation?: 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs' | 'neon';
@@ -49,7 +49,7 @@ export async function finalizeAllAssets(
   const memoryId = laneAResult.status === 'fulfilled' ? laneAResult.value.data.id : null;
 
   if (!memoryId) {
-    logger.error('Cannot finalize: Lane A failed - no memoryId available', 'upload:be');
+    fatLogger.error('Cannot finalize: Lane A failed - no memoryId available', 'be');
     return;
   }
 
@@ -71,7 +71,7 @@ export async function finalizeAllAssets(
     if (placeholder) assets.push(placeholder);
   } else {
     // Lane B failed or was skipped - mark derivatives as failed/pending
-    logger.warn('Lane B failed or skipped, marking derivatives as failed', 'upload:be');
+    fatLogger.warn('Lane B failed or skipped, marking derivatives as failed', 'be');
     assets.push(
       { assetType: 'display', processingStatus: 'failed' },
       { assetType: 'thumb', processingStatus: 'failed' },
@@ -80,7 +80,7 @@ export async function finalizeAllAssets(
   }
 
   // Single finalize call
-  logger.upload().info('Finalizing assets for memory', { memoryId, parentFolderId });
+  fatLogger.info('Finalizing assets for memory', 'be', { memoryId, parentFolderId });
   await finalizeAssets({ memoryId, assets, parentFolderId });
 }
 
@@ -91,11 +91,11 @@ async function finalizeAssets(request: FinalizeRequest): Promise<void> {
   const assetCount = request.assets.length;
   const memoryId = request.memoryId;
   const assetStatuses = request.assets.map(a => `${a.assetType}=${a.processingStatus}`).join(', ');
-  
-  logger.upload().info('Finalizing assets', {
+
+  fatLogger.info('Finalizing assets', 'be', {
     assetCount,
     memoryId,
-    assetStatuses
+    assetStatuses,
   });
 
   const response = await fetch('/api/upload/complete', {
@@ -111,5 +111,5 @@ async function finalizeAssets(request: FinalizeRequest): Promise<void> {
     throw new Error(error.error || 'Failed to finalize assets');
   }
 
-  logger.upload().info(`Assets finalized for memory: ${request.memoryId}`);
+  fatLogger.info(`Assets finalized for memory: ${request.memoryId}`, 'be');
 }

@@ -33,7 +33,7 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 interface FeedItem extends Memory {
   status: 'shared';
   sharedBy: { id: string; name: string };
@@ -130,7 +130,7 @@ export default function FeedPage({ params }: { params: Promise<{ lang: string }>
       });
       setHasMore(data.hasMore);
     } catch (error) {
-      logger.error('Error fetching feed items', undefined, { data: error as Error });
+      fatLogger.error('Error fetching feed items', 'fe', { data: error as Error });
       toast({
         title: 'Error',
         description: 'Failed to load feed items. Please try again.',

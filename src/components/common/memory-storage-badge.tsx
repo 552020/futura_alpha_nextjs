@@ -1,11 +1,3 @@
-/**
- * NOTE: This component is currently NOT USED in memory cards.
- * Storage location info has been moved to the description area for consistency with galleries.
- *
- * This component is kept for potential future use (e.g., overlay badges, detailed tooltips, etc.)
- * but is not actively rendered in the current UI.
- */
-
 import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
 import { useMemoryStorageStatus, type MemoryStorageStatus } from '@/hooks/use-memory-storage-status';
@@ -13,6 +5,7 @@ import { useMemoryStorageStatus, type MemoryStorageStatus } from '@/hooks/use-me
 interface MemoryStorageBadgeProps {
   memoryId: string;
   memoryType: string;
+  dataSource?: 'neon' | 'icp';
   size?: 'xs' | 'sm';
   className?: string;
   showTooltip?: boolean;
@@ -21,11 +14,12 @@ interface MemoryStorageBadgeProps {
 export function MemoryStorageBadge({
   memoryId,
   memoryType,
+  dataSource,
   size = 'xs',
   className = '',
   showTooltip = true,
 }: MemoryStorageBadgeProps) {
-  const { status, data: presenceData } = useMemoryStorageStatus(memoryId, memoryType);
+  const { status, data: presenceData } = useMemoryStorageStatus(memoryId, memoryType, dataSource);
 
   // Safety check: don't render if required props are missing
   if (!memoryId || !memoryType) {
@@ -33,46 +27,80 @@ export function MemoryStorageBadge({
   }
 
   const getBadgeConfig = () => {
-    switch (status) {
-      case 'stored_forever':
+    if (status === 'loading') {
+      return {
+        text: '',
+        variant: 'secondary' as const,
+        className: 'bg-gray-100 text-gray-500 border-gray-200',
+        tooltip: 'Loading storage status...',
+      };
+    }
+
+    if (status === 'error') {
+      return {
+        text: '?',
+        variant: 'secondary' as const,
+        className: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900 dark:text-red-100 dark:border-red-800',
+        tooltip: 'Error loading storage status',
+      };
+    }
+
+    // Handle array of storage locations
+    if (Array.isArray(status)) {
+      const locations = status;
+      const hasIcp = locations.includes('icp');
+      const hasNeon = locations.includes('neon');
+      const hasOther = locations.some(loc => !['icp', 'neon'].includes(loc));
+
+      if (hasIcp && hasNeon) {
+        return {
+          text: 'ICP+NEON',
+          variant: 'default' as const,
+          className:
+            'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-100 dark:border-blue-800',
+          tooltip: `Stored on: ${locations.join(', ')}`,
+        };
+      } else if (hasIcp) {
         return {
           text: 'ICP',
           variant: 'default' as const,
           className:
             'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900 dark:text-green-100 dark:border-green-800',
-          tooltip: 'Stored permanently on Internet Computer',
+          tooltip: `Stored on: ${locations.join(', ')}`,
         };
-      case 'partially_stored':
-        return {
-          text: 'ICP*',
-          variant: 'secondary' as const,
-          className:
-            'bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200 dark:bg-orange-900 dark:text-orange-100 dark:border-orange-800',
-          tooltip: 'Partially stored on Internet Computer',
-        };
-      case 'web2_only':
+      } else if (hasNeon) {
         return {
           text: 'NEON',
           variant: 'secondary' as const,
           className:
             'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700',
-          tooltip: 'Stored in standard database',
+          tooltip: `Stored on: ${locations.join(', ')}`,
         };
-      case 'loading':
+      } else if (hasOther) {
         return {
-          text: '',
+          text: locations[0]?.toUpperCase() || 'OTHER',
+          variant: 'secondary' as const,
+          className:
+            'bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-200 dark:bg-purple-900 dark:text-purple-100 dark:border-purple-800',
+          tooltip: `Stored on: ${locations.join(', ')}`,
+        };
+      } else {
+        return {
+          text: 'UNKNOWN',
           variant: 'secondary' as const,
           className: 'bg-gray-100 text-gray-500 border-gray-200',
-          tooltip: 'Loading storage status...',
+          tooltip: 'Storage location unknown',
         };
-      case 'error':
-        return {
-          text: '?',
-          variant: 'secondary' as const,
-          className: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900 dark:text-red-100 dark:border-red-800',
-          tooltip: 'Error loading storage status',
-        };
+      }
     }
+
+    // Fallback for unexpected status
+    return {
+      text: '?',
+      variant: 'secondary' as const,
+      className: 'bg-gray-100 text-gray-500 border-gray-200',
+      tooltip: 'Unknown storage status',
+    };
   };
 
   const config = getBadgeConfig();
@@ -100,11 +128,8 @@ export function MemoryStorageBadge({
       {badge}
       <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 text-xs text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-20">
         {config.tooltip}
-        {presenceData && status !== 'loading' && status !== 'error' && (
-          <div className="text-[10px] text-gray-300 mt-1">
-            Meta: {presenceData.metaIcp ? 'ICP' : 'Neon'} | Asset:{' '}
-            {presenceData.assetIcp ? 'ICP' : presenceData.assetBlob ? 'Blob' : 'None'}
-          </div>
+        {presenceData && Array.isArray(status) && status.length > 0 && (
+          <div className="text-[10px] text-gray-300 mt-1">Locations: {status.join(', ')}</div>
         )}
       </div>
     </div>
@@ -113,21 +138,9 @@ export function MemoryStorageBadge({
 
 // Helper function to get memory storage status from memory data
 export function getMemoryStorageStatusFromData(memory: {
-  storageStatus?: { overallStatus: string };
-  overallStatus?: string;
+  storageStatus?: { storageLocations?: string[] };
 }): MemoryStorageStatus {
-  const status = memory.storageStatus?.overallStatus || memory.overallStatus;
-
-  switch (status) {
-    case 'stored_forever':
-      return 'stored_forever';
-    case 'partially_stored':
-      return 'partially_stored';
-    case 'web2_only':
-      return 'web2_only';
-    default:
-      return 'web2_only';
-  }
+  return memory.storageStatus?.storageLocations || [];
 }
 
 // Export the type for use in other components

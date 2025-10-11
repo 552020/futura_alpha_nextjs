@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 // Add these constants at the top of the file
 const ONBOARDING_STATE_KEY = 'onboarding_state';
 const ONBOARDING_STEP_KEY = 'onboarding_step';
@@ -81,7 +81,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
           setCurrentStep(savedStep as OnboardingStep);
         }
       } catch (error) {
-        logger.error('Error loading onboarding state:', undefined, { data: error instanceof Error ? error : undefined });
+        fatLogger.error('Error loading onboarding state:', 'fe', { data: error instanceof Error ? error : undefined });
       }
     }
   }, []);
@@ -98,7 +98,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
       );
       localStorage.setItem(ONBOARDING_STEP_KEY, currentStep);
     } catch (error) {
-      logger.error('Error saving onboarding state:', undefined, { data: error instanceof Error ? error : undefined });
+      fatLogger.error('Error saving onboarding state:', 'fe', { data: error instanceof Error ? error : undefined });
     }
   }, [currentStep, userData, onboardingStatus]);
 

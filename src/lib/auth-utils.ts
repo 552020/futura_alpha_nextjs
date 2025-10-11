@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { auth } from '../../auth';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 export type SessionLike = {
   user: User;
   expires?: string;
@@ -31,7 +31,7 @@ export async function getUserId(req: NextRequest): Promise<string | null> {
     const session = await requireAuth(req);
     return session?.user?.id || null;
   } catch (error) {
-    logger.error('Error getting user ID:', undefined, { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Error getting user ID:', 'fe', { data: error instanceof Error ? error : undefined });
     return null;
   }
 }
@@ -46,7 +46,7 @@ export async function getUser(req: NextRequest): Promise<User | null> {
     const session = await requireAuth(req);
     return session?.user || null;
   } catch (error) {
-    logger.error('Error getting user:', undefined, { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Error getting user:', 'fe', { data: error instanceof Error ? error : undefined });
     return null;
   }
 }

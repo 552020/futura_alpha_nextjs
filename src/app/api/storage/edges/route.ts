@@ -3,7 +3,7 @@ import { db } from '@/db/db';
 import { storageEdges } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
@@ -52,8 +52,8 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Validate UUID format for memoryId
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    // Validate UUID format for memoryId (accepts both UUID v4 and custom UUID v7)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(memoryId)) {
       return NextResponse.json({ error: 'Invalid memoryId format. Must be a valid UUID' }, { status: 400 });
     }
@@ -103,7 +103,7 @@ export async function PUT(request: NextRequest) {
       data: result[0],
     });
   } catch (error) {
-    logger.error('Error upserting storage edge:', undefined, { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Error upserting storage edge:', 'be', { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -156,7 +156,7 @@ export async function GET(request: NextRequest) {
       data: result,
     });
   } catch (error) {
-    logger.error('Error querying storage edges:', undefined, { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Error querying storage edges:', 'be', { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

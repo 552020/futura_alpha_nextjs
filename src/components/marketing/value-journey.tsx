@@ -5,7 +5,7 @@ import { Dictionary } from '@/utils/dictionaries';
 import Link from 'next/link';
 import { useRef, useEffect, useState } from 'react';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 // Define valid journey types
 type JourneyType = 'family' | 'black-mirror' | 'creatives' | 'wedding';
 
@@ -34,7 +34,7 @@ const ValueJourney: React.FC<ValueJourneyProps> = ({ dict, lang, segment = 'fami
     const journeyDict = dict?.valueJourney;
 
     if (!journeyDict) {
-      logger.error(`Missing valueJourney content for segment: ${segment}`);
+      fatLogger.error(`Missing valueJourney content for segment: ${segment}`, 'fe');
       return []; // Return empty array, component will handle this gracefully
     }
 

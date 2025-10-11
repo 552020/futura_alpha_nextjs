@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db/db';
 import { syncStatus, getSyncStatusByState, getStuckSyncs, getSyncStatusByBackend } from '@/db/schema';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error('Error querying sync status:', undefined, { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Error querying sync status:', 'be', { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

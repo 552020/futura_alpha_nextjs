@@ -18,8 +18,8 @@ export function createAgent(identity?: Identity): Promise<HttpAgent> {
           try {
             await agent.fetchRootKey();
           } catch {
-            logger.warn('⚠️ ICP replica not available. ICP features will be disabled.');
-            logger.warn('To enable ICP features, run: dfx start');
+            fatLogger.warn('⚠️ ICP replica not available. ICP features will be disabled.', 'fe');
+            fatLogger.warn('To enable ICP features, run: dfx start', 'fe');
             // Don't throw - let the app continue without ICP functionality
           }
         }
@@ -73,8 +73,8 @@ export function clearAgentCache(): void {
 //   if (process.env.NEXT_PUBLIC_DFX_NETWORK !== "ic") {
 //     // only for local replica
 //     agent.fetchRootKey().catch((err) => {
-//       logger.warn("fetchRootKey failed; is local replica running?");
-//       logger.error(err);
+//       fatLogger.warn("fetchRootKey failed; is local replica running?");
+//       fatLogger.error(err);
 //     });
 //   }
 
@@ -87,7 +87,7 @@ export function clearAgentCache(): void {
 
 // import { HttpAgent } from "@dfinity/agent";
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 // export async function createAgent() {
 //   const host =
 //     process.env.NEXT_PUBLIC_IC_HOST ??
@@ -98,8 +98,8 @@ import { logger } from '@/lib/logger';
 //   if (process.env.NEXT_PUBLIC_DFX_NETWORK !== "ic") {
 //     // only for local replica
 //     agent.fetchRootKey().catch((err) => {
-//       logger.warn("fetchRootKey failed; is local replica running?");
-//       logger.error(err);
+//       fatLogger.warn("fetchRootKey failed; is local replica running?");
+//       fatLogger.error(err);
 //     });
 //   }
 

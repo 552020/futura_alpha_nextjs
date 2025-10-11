@@ -6,7 +6,7 @@ import { Share2, Twitter, Instagram, Facebook } from 'lucide-react';
 import { useInterface } from '@/contexts/interface-context';
 import { useToast } from '@/hooks/use-toast';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 export default function Footer({ dict, lang }: { dict?: Dictionary; lang?: string }) {
   const { mode } = useInterface();
   const { toast } = useToast();
@@ -27,16 +27,16 @@ export default function Footer({ dict, lang }: { dict?: Dictionary; lang?: strin
           text: 'Check out Futura - Live Forever. Now.',
           url: window.location.href,
         });
-        // logger.info("Content shared successfully");
+        // fatLogger.info("Content shared successfully");
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') {
-          // logger.info("Web Share API not supported");
+          // fatLogger.info("Web Share API not supported");
           return;
         }
-        logger.error('Error sharing content:', undefined, { data: error instanceof Error ? error : undefined });
+        fatLogger.error('Error sharing content:', 'fe', { data: error instanceof Error ? error : undefined });
       }
     } else {
-      // logger.info("Share was canceled by the user");
+      // fatLogger.info("Share was canceled by the user");
       // Fallback: copy to clipboard
       try {
         await navigator.clipboard.writeText(window.location.href);
@@ -45,7 +45,7 @@ export default function Footer({ dict, lang }: { dict?: Dictionary; lang?: strin
           description: 'The link has been copied to your clipboard.',
         });
       } catch (error) {
-        logger.error('Failed to copy link:', undefined, { data: error instanceof Error ? error : undefined });
+        fatLogger.error('Failed to copy link:', 'fe', { data: error instanceof Error ? error : undefined });
         toast({
           title: 'Error',
           description: 'Failed to copy link to clipboard.',

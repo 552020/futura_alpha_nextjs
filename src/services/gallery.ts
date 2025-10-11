@@ -7,13 +7,14 @@ import {
   UpdateGalleryRequest,
 } from '@/types/gallery';
 import { generatedGalleries, getGeneratedGallery } from '../../scripts/mock-data/generated-gallery-data';
-import { icpGalleryService, type GalleryData, type StoreGalleryResponse } from './icp-gallery';
-import { Principal } from '@dfinity/principal';
+// Lazy imports to avoid ICP actor creation during static generation
+// import { icpGalleryService, type GalleryData, type StoreGalleryResponse } from './icp-gallery';
+// import { Principal } from '@dfinity/principal';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 // Analytics tracking shim for future implementation
 export const trackGalleryEvent = (event: string, _properties: Record<string, unknown> = {}) => {
-  // logger.info("Gallery Analytics:", undefined, { event, properties: _properties, timestamp: new Date().toISOString() });
+  // fatLogger.info("Gallery Analytics:", undefined, { event, properties: _properties, timestamp: new Date().toISOString() });
   // TODO: Implement actual analytics tracking
   // This could send data to PostHog, Google Analytics, or other analytics services
 };
@@ -72,7 +73,7 @@ export const galleryService = {
       const response = await fetch(`/api/galleries?page=${page}&limit=${limit}`);
       return await handleApiResponse(response);
     } catch (error) {
-      logger.error('Error listing galleries', 'gallery:be', { error });
+      fatLogger.error('Error listing galleries', 'be', { error });
       throw new Error('Failed to load galleries');
     }
   },
@@ -98,7 +99,7 @@ export const galleryService = {
       const response = await fetch(`/api/galleries/${id}`);
       return await handleApiResponse(response);
     } catch (error) {
-      logger.error('Error getting gallery', 'gallery:be', { error });
+      fatLogger.error('Error getting gallery', 'be', { error });
       throw new Error('Failed to load gallery');
     }
   },
@@ -118,13 +119,14 @@ export const galleryService = {
         id: `mock-gallery-${Date.now()}`,
         title: title || `Gallery from ${folderName}`,
         description: description || `Gallery created from folder: ${folderName}`,
-        isPublic,
+        sharingStatus: isPublic ? 'public' : 'private',
         createdAt: new Date(),
         updatedAt: new Date(),
         ownerId: 'mock-user-1',
         totalMemories: 0,
-        averageStorageDuration: null,
-        storageDistribution: {},
+        name: (title || `Gallery from ${folderName}`).toLowerCase().replace(/\s+/g, '-'),
+        sharedCount: 0,
+        storageLocation: ['s3'],
         items: [],
         imageCount: 0,
         isOwner: true,
@@ -141,7 +143,7 @@ export const galleryService = {
         isPublic,
       };
 
-      // logger.info("Sending request to API:", request);
+      // fatLogger.info("Sending request to API:", request);
 
       const response = await fetch('/api/galleries', {
         method: 'POST',
@@ -149,14 +151,14 @@ export const galleryService = {
         body: JSON.stringify(request),
       });
 
-      // logger.info("API response status:", response.status);
+      // fatLogger.info("API response status:", response.status);
 
       const result = await handleApiResponse(response);
-      // logger.info("API response result:", result);
-      // logger.info("Gallery items count:", result.gallery?.items?.length || 0);
+      // fatLogger.info("API response result:", result);
+      // fatLogger.info("Gallery items count:", result.gallery?.items?.length || 0);
       return result.gallery;
     } catch (error) {
-      logger.error('Error creating gallery from folder', 'gallery:be', { error });
+      fatLogger.error('Error creating gallery from folder', 'be', { error });
       throw new Error('Failed to create gallery from folder');
     }
   },
@@ -176,13 +178,14 @@ export const galleryService = {
         id: `mock-gallery-${Date.now()}`,
         title: title || 'Custom Gallery',
         description: description || 'Gallery created from selected memories',
-        isPublic,
+        sharingStatus: isPublic ? 'public' : 'private',
         createdAt: new Date(),
         updatedAt: new Date(),
         ownerId: 'mock-user-1',
         totalMemories: memories.length,
-        averageStorageDuration: null,
-        storageDistribution: {},
+        name: (title || 'My Gallery').toLowerCase().replace(/\s+/g, '-'),
+        sharedCount: 0,
+        storageLocation: ['s3'],
         items: [],
         imageCount: memories.length,
         isOwner: true,
@@ -208,7 +211,7 @@ export const galleryService = {
       const result = await handleApiResponse(response);
       return result.gallery;
     } catch (error) {
-      logger.error('Error creating gallery from memories', 'gallery:be', { error });
+      fatLogger.error('Error creating gallery from memories', 'be', { error });
       throw new Error('Failed to create gallery from memories');
     }
   },
@@ -222,13 +225,14 @@ export const galleryService = {
         id: `mock-gallery-${Date.now()}`,
         title: request.title,
         description: request.description || '',
-        isPublic: request.isPublic || false,
+        sharingStatus: request.isPublic ? 'public' : 'private',
         createdAt: new Date(),
         updatedAt: new Date(),
         ownerId: 'mock-user-1',
         totalMemories: 0,
-        averageStorageDuration: null,
-        storageDistribution: {},
+        name: (request.title || 'My Gallery').toLowerCase().replace(/\s+/g, '-'),
+        sharedCount: 0,
+        storageLocation: ['s3'],
         items: [],
         imageCount: 0,
         isOwner: true,
@@ -246,7 +250,7 @@ export const galleryService = {
       const result = await handleApiResponse(response);
       return result.gallery;
     } catch (error) {
-      logger.error('Error creating gallery', 'gallery:be', { error });
+      fatLogger.error('Error creating gallery', 'be', { error });
       throw new Error('Failed to create gallery');
     }
   },
@@ -282,7 +286,7 @@ export const galleryService = {
       const result = await handleApiResponse(response);
       return result.gallery;
     } catch (error) {
-      logger.error('Error updating gallery', 'gallery:be', { error });
+      fatLogger.error('Error updating gallery', 'be', { error });
       throw new Error('Failed to update gallery');
     }
   },
@@ -306,7 +310,7 @@ export const galleryService = {
         throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
     } catch (error) {
-      logger.error('Error deleting gallery', 'gallery:be', { error });
+      fatLogger.error('Error deleting gallery', 'be', { error });
       throw new Error('Failed to delete gallery');
     }
   },
@@ -336,7 +340,7 @@ export const galleryService = {
         throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
     } catch (error) {
-      logger.error('Error sharing gallery', 'gallery:be', { error });
+      fatLogger.error('Error sharing gallery', 'be', { error });
       throw new Error('Failed to share gallery');
     }
   },
@@ -356,7 +360,7 @@ export const galleryService = {
       const response = await fetch('/api/galleries/folders');
       return await handleApiResponse(response);
     } catch (error) {
-      logger.error('Error getting folders', 'gallery:be', { error });
+      fatLogger.error('Error getting folders', 'be', { error });
       // Return empty array instead of throwing for now
       return [];
     }
@@ -369,17 +373,24 @@ export const galleryService = {
   /**
    * Store a gallery forever in the ICP canister
    */
-  storeGalleryForever: async (gallery: GalleryWithItems, ownerPrincipal?: string): Promise<StoreGalleryResponse> => {
+  storeGalleryForever: async (
+    gallery: GalleryWithItems,
+    ownerPrincipal?: string
+  ): Promise<{ success: boolean; message: string; storage_location: unknown }> => {
     trackGalleryEvent('gallery_store_forever_requested', { galleryId: gallery.id });
 
     try {
+      // Dynamic imports to avoid ICP actor creation during static generation
+      const { icpGalleryService } = await import('./icp-gallery');
+      const { Principal } = await import('@dfinity/principal');
+
       // Convert Web2 gallery to ICP format
-      const galleryData: GalleryData = icpGalleryService.convertWeb2GalleryToICP(
+      const principal = ownerPrincipal ? Principal.fromText(ownerPrincipal) : Principal.anonymous();
+
+      const galleryData = icpGalleryService.convertWeb2GalleryToICP(
         gallery as unknown as Record<string, unknown>,
         (gallery.items || []) as unknown as Record<string, unknown>[],
-        ownerPrincipal
-          ? ({ Principal: ownerPrincipal } as unknown as Principal)
-          : ({ Principal: 'anonymous' } as unknown as Principal)
+        principal
       );
 
       // Store in ICP canister
@@ -397,7 +408,7 @@ export const galleryService = {
 
       return result;
     } catch (error) {
-      logger.error('Error storing gallery forever', 'gallery:be', { error });
+      fatLogger.error('Error storing gallery forever', 'be', { error });
       trackGalleryEvent('gallery_store_forever_failed', {
         galleryId: gallery.id,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -418,27 +429,29 @@ export const galleryService = {
     trackGalleryEvent('icp_galleries_requested');
 
     try {
+      // Dynamic import to avoid ICP actor creation during static generation
+      const { icpGalleryService } = await import('./icp-gallery');
       const icpGalleries = await icpGalleryService.getMyGalleries();
 
       // Convert ICP galleries to Web2 format for frontend compatibility
       const web2Galleries = icpGalleries.map(icpGallery => ({
         id: icpGallery.id,
-        title: icpGallery.title,
-        description: icpGallery.description || '',
-        isPublic: icpGallery.is_public,
+        title: icpGallery.metadata.title[0] || '',
+        description: icpGallery.metadata.description[0] || '',
+        isPublic: 'Public' in icpGallery.metadata.sharing_status,
         createdAt: new Date(Number(icpGallery.created_at)),
         updatedAt: new Date(Number(icpGallery.updated_at)),
-        imageCount: icpGallery.memory_entries.length,
+        imageCount: icpGallery.items.length,
         isOwner: true, // ICP galleries are owned by the current user
-        ownerId: icpGallery.owner_principal.toString(),
-        items: icpGallery.memory_entries.map(entry => ({
-          id: entry.memory_id,
-          position: entry.position,
-          caption: entry.gallery_caption || '',
-          isFeatured: entry.is_featured,
+        ownerId: 'icp-user', // TODO: Get actual owner from access_entries
+        items: icpGallery.items.map(item => ({
+          id: item.memory_id,
+          position: item.position,
+          caption: item.caption[0] || '',
+          isFeatured: false, // TODO: Determine from metadata or separate field
           memory: {
-            id: entry.memory_id,
-            title: `Memory ${entry.memory_id}`,
+            id: item.memory_id,
+            title: `Memory ${item.memory_id}`,
             url: '', // Will be populated when we load memory data
             thumbnail: '', // Will be populated when we load memory data
             type: 'image',
@@ -451,7 +464,7 @@ export const galleryService = {
       trackGalleryEvent('icp_galleries_retrieved', { count: web2Galleries.length });
       return web2Galleries;
     } catch (error) {
-      logger.error('Error getting ICP galleries', 'gallery:be', { error });
+      fatLogger.error('Error getting ICP galleries', 'be', { error });
       trackGalleryEvent('icp_galleries_failed', {
         error: error instanceof Error ? error.message : 'Unknown error',
       });
@@ -464,9 +477,11 @@ export const galleryService = {
    */
   checkICPCapsuleStatus: async (): Promise<boolean> => {
     try {
+      // Dynamic import to avoid ICP actor creation during static generation
+      const { icpGalleryService } = await import('./icp-gallery');
       return await icpGalleryService.checkCapsuleStatus();
     } catch (error) {
-      logger.error('Error checking ICP capsule status', 'gallery:be', { error });
+      fatLogger.error('Error checking ICP capsule status', 'be', { error });
       return false;
     }
   },
@@ -513,9 +528,9 @@ async function updateStorageEdgesAfterICPSuccess(gallery: GalleryWithItems): Pro
       });
     }
 
-    // logger.info(`Updated storage edges for ${gallery.items?.length || 0} memories in gallery ${gallery.id}`);
+    // fatLogger.info(`Updated storage edges for ${gallery.items?.length || 0} memories in gallery ${gallery.id}`);
   } catch (error) {
-    logger.error('Error updating storage edges after ICP success', 'gallery:be', { error });
+    fatLogger.error('Error updating storage edges after ICP success', 'be', { error });
     // Don't throw - this is a side effect, not critical to the main operation
   }
 }

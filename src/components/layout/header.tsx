@@ -16,7 +16,7 @@ import { Dictionary } from '@/utils/dictionaries';
 import { usePathname } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 // Define a proper type for the dictionary with optional fields
 type HeaderDictionary = Dictionary;
 
@@ -43,16 +43,16 @@ export default function Header({ dict, lang }: { dict: HeaderDictionary; lang?: 
           text: 'I found this interesting content and wanted to share it with you.',
           url: window.location.href,
         });
-        // logger.info("Content shared successfully");
+        // fatLogger.info("Content shared successfully");
       } catch (error) {
         if ((error as Error).name === 'AbortError') {
-          // logger.info("Web Share API not supported");
+          // fatLogger.info("Web Share API not supported");
         } else {
-          logger.error('Error sharing content:', undefined, { data: error instanceof Error ? error : undefined });
+          fatLogger.error('Error sharing content:', 'fe', { data: error instanceof Error ? error : undefined });
         }
       }
     } else {
-      // logger.info("Share was canceled by the user");
+      // fatLogger.info("Share was canceled by the user");
       // Fallback: copy to clipboard
       try {
         await navigator.clipboard.writeText(window.location.href);
@@ -61,7 +61,7 @@ export default function Header({ dict, lang }: { dict: HeaderDictionary; lang?: 
           description: 'The link has been copied to your clipboard.',
         });
       } catch (error) {
-        logger.error('Failed to copy link:', undefined, { data: error instanceof Error ? error : undefined });
+        fatLogger.error('Failed to copy link:', 'fe', { data: error instanceof Error ? error : undefined });
         toast({
           title: 'Error',
           description: 'Failed to copy link to clipboard.',
@@ -152,14 +152,24 @@ export default function Header({ dict, lang }: { dict: HeaderDictionary; lang?: 
                     <div className="flex flex-col space-y-2">
                       {/* Settings in footer section (only when authenticated) */}
                       {status === 'authenticated' && session?.user ? (
-                        <SheetClose asChild>
-                          <Link
-                            href={`/${currentLang}/user/settings`}
-                            className="transition-all duration-200 ease-in-out px-4 py-3 hover:text-primary hover:bg-muted rounded-none focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 text-base w-full flex items-center text-muted-foreground"
-                          >
-                            Settings
-                          </Link>
-                        </SheetClose>
+                        <>
+                          <SheetClose asChild>
+                            <Link
+                              href={`/${currentLang}/user/settings`}
+                              className="transition-all duration-200 ease-in-out px-4 py-3 hover:text-primary hover:bg-muted rounded-none focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 text-base w-full flex items-center text-muted-foreground"
+                            >
+                              Settings
+                            </Link>
+                          </SheetClose>
+                          <SheetClose asChild>
+                            <Link
+                              href={`/${currentLang}/user/icp`}
+                              className="transition-all duration-200 ease-in-out px-4 py-3 hover:text-primary hover:bg-muted rounded-none focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 text-base w-full flex items-center text-muted-foreground"
+                            >
+                              ICP
+                            </Link>
+                          </SheetClose>
+                        </>
                       ) : null}
                       <SheetClose asChild>
                         <Link

@@ -4,7 +4,7 @@ import { temporaryUsers, relationship, familyRelationship } from '@/db/schema';
 import { createTemporaryUserBase } from '../utils';
 import { eq } from 'drizzle-orm';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 // POST /api/users
 // We use this endpoint to create only temporary users, normal users will be created by the sign-in success callback
 
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
       allUser,
     });
   } catch (error) {
-    logger.error('Error creating user:', undefined, { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Error creating user:', 'be', { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
   }
 }

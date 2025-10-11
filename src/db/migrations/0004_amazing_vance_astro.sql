@@ -1,0 +1,2 @@
+ALTER TABLE "user_hosting_preferences" ADD COLUMN "advanced_database_switching" boolean DEFAULT false;--> statement-breakpoint
+ALTER TABLE "user_hosting_preferences" ADD COLUMN "current_database_view" "database_hosting_t";

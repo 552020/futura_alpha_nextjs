@@ -8,7 +8,7 @@
 import { auth } from '@/auth';
 import { requiresIIReAuth, checkIICoAuthTTL } from './ii-coauth-ttl';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 // Extended session user interface for II co-auth
 interface ExtendedSessionUser {
   linkedIcPrincipal?: string;
@@ -89,7 +89,7 @@ export async function verifyIICoAuth(): Promise<IICoAuthVerificationResult> {
       ttlStatus,
     };
   } catch (error) {
-    logger.error('II co-auth verification failed:', undefined, { data: error instanceof Error ? error : undefined });
+    fatLogger.error('II co-auth verification failed:', 'fe', { data: error instanceof Error ? error : undefined });
     return {
       isValid: false,
       requiresReAuth: false,
@@ -128,7 +128,9 @@ export async function hasLinkedIIAccount(): Promise<boolean> {
     const linkedIcPrincipal = (session.user as ExtendedSessionUser).linkedIcPrincipal;
     return !!linkedIcPrincipal;
   } catch (error) {
-    logger.error('Failed to check linked II account:', undefined, { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Failed to check linked II account:', 'fe', {
+      data: error instanceof Error ? error : undefined,
+    });
     return false;
   }
 }
@@ -154,7 +156,7 @@ export async function getIIAccountInfo(): Promise<{
       loginProvider: (session.user as ExtendedSessionUser).loginProvider,
     };
   } catch (error) {
-    logger.error('Failed to get II account info:', undefined, { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Failed to get II account info:', 'fe', { data: error instanceof Error ? error : undefined });
     return null;
   }
 }

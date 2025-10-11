@@ -12,10 +12,10 @@
 
 import type { FileInputAttributeMode } from '@/types/upload';
 import type { HostingPreferences } from '@/hooks/use-hosting-preferences';
-import { getDefaultHostingPreferences } from '@/hooks/use-hosting-preferences';
-import { validateUploadFiles } from './shared-utils';
+// import { getDefaultHostingPreferences } from '@/hooks/use-hosting-preferences'; // Not used with ICP processing
+import { validateUploadFiles, checkICPAuthentication } from './shared-utils';
 import { uploadToS3WithProcessing } from './s3-with-processing';
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 
 export interface ProcessSingleFileOptions {
   file: File;
@@ -44,16 +44,17 @@ export async function processSingleFile(options: ProcessSingleFileOptions): Prom
     onProgress,
   } = options;
 
+  // Basic validation using general upload limits
   if (!validateUploadFiles([file], showToast)) {
     return;
   }
 
   try {
     // Route to appropriate upload service based on user preferences
-    const userBlobHostingPreferences = preferences?.blobHosting || ['s3']; // Default to S3 (413 solution)
+    const userBlobHostingPreferences = preferences?.blobHosting || ['s3'];
 
     // Log upload routing decision
-    logger.upload().info('📤 Single file upload routing decision', {
+    fatLogger.info('📤 Single file upload routing decision', 'be', {
       selectedProvider: userBlobHostingPreferences[0],
       availableProviders: userBlobHostingPreferences,
       fileName: file.name,
@@ -71,21 +72,85 @@ export async function processSingleFile(options: ProcessSingleFileOptions): Prom
 
     // Upload routing based on storage preferences (check if preference is in array)
     if (userBlobHostingPreferences.includes('icp')) {
+      // Double-check ICP authentication (safety net for multiple upload flows)
+      try {
+        await checkICPAuthentication();
+      } catch (_error) {
+        showToast({
+          variant: 'destructive',
+          title: 'Authentication Required',
+          description: 'Please connect your Internet Identity to upload to ICP',
+        });
+        return;
+      }
+
+      // ICP upload with parallel processing (Lane A + Lane B + finalizeAllAssets)
       // NOTE: For ICP users, isOnboarding is ignored because ICP always requires Internet Identity auth
       // Even "onboarding" users must authenticate with II to interact with ICP canister
-      const { uploadToICP } = await import('./icp-upload');
-      const results = await uploadToICP([file], preferences || getDefaultHostingPreferences(), onProgress);
-      data = results[0]; // Get first (and only) result
+      const { uploadToICPWithProcessing } = await import('./icp-with-processing');
+      const uploadResult = await uploadToICPWithProcessing(file, onProgress);
+      data = {
+        data: uploadResult.data,
+        results: uploadResult.results.map(result => ({
+          memoryId: result.memoryId,
+          size: Number(result.size),
+          checksum_sha256: result.checksumSha256
+            ? Array.from(result.checksumSha256)
+                .map(b => b.toString(16).padStart(2, '0'))
+                .join('')
+            : null,
+        })),
+        userId: uploadResult.userId,
+      };
     } else if (userBlobHostingPreferences.includes('vercel_blob')) {
       const { uploadToVercelBlob } = await import('./vercel-blob-upload');
       const results = await uploadToVercelBlob([file], isOnboarding, existingUserId, mode);
-      data = results[0]; // Get first (and only) result
+      const vercelResult = results[0]; // Get first (and only) result
+      data = {
+        data: vercelResult.data,
+        results: vercelResult.results.map(result => ({
+          memoryId: result.memoryId,
+          size: Number(result.size),
+          checksum_sha256: result.checksumSha256
+            ? Array.from(result.checksumSha256)
+                .map(b => b.toString(16).padStart(2, '0'))
+                .join('')
+            : null,
+        })),
+        userId: vercelResult.userId,
+      };
     } else if (userBlobHostingPreferences.includes('s3')) {
       // S3 with parallel processing (Lane A + Lane B)
-      data = await uploadToS3WithProcessing(file, onProgress);
+      const uploadResult = await uploadToS3WithProcessing(file, onProgress);
+      data = {
+        data: uploadResult.data,
+        results: uploadResult.results.map(result => ({
+          memoryId: result.memoryId,
+          size: Number(result.size),
+          checksum_sha256: result.checksumSha256
+            ? Array.from(result.checksumSha256)
+                .map(b => b.toString(16).padStart(2, '0'))
+                .join('')
+            : null,
+        })),
+        userId: uploadResult.userId,
+      };
     } else {
       // Default to S3 with parallel processing for unknown preferences
-      data = await uploadToS3WithProcessing(file, onProgress);
+      const uploadResult = await uploadToS3WithProcessing(file, onProgress);
+      data = {
+        data: uploadResult.data,
+        results: uploadResult.results.map(result => ({
+          memoryId: result.memoryId,
+          size: Number(result.size),
+          checksum_sha256: result.checksumSha256
+            ? Array.from(result.checksumSha256)
+                .map(b => b.toString(16).padStart(2, '0'))
+                .join('')
+            : null,
+        })),
+        userId: uploadResult.userId,
+      };
     }
 
     // Set userId for all upload services (normalize response)

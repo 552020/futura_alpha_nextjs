@@ -1,4 +1,4 @@
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 
 /**
  * Grant service for single grant pattern
@@ -31,7 +31,7 @@ export interface GrantResponse {
  * STEP 1 of the upload pipeline (uploadMultipleToS3WithProcessing in s3-with-processing.ts)
  */
 export async function getGrants(files: File[]): Promise<GrantResponse[]> {
-  logger.upload().info(`Getting grants for ${files.length} file(s)`, { fileNames: files.map(f => f.name) });
+  fatLogger.info(`Getting grants for ${files.length} file(s)`, 'be', { fileNames: files.map(f => f.name) });
 
   const response = await fetch('/api/upload/s3/presign', {
     method: 'POST',
@@ -53,7 +53,7 @@ export async function getGrants(files: File[]): Promise<GrantResponse[]> {
   }
 
   const { grants } = await response.json();
-  logger.upload().info(`Grants received for ${files.length} file(s)`);
+  fatLogger.info(`Grants received for ${files.length} file(s)`, 'be');
 
   return grants;
 }

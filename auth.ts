@@ -9,14 +9,49 @@ import { db } from '@/db/db';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { compare } from 'bcrypt'; // make sure bcrypt is installed
 import { allUsers, temporaryUsers, users, accounts, iiNonces } from '@/db/schema';
-import { eq, and, isNull, gt } from 'drizzle-orm';
-import { backendActor } from '@/ic/backend';
-import { validateNonce, consumeNonce } from '@/lib/ii-nonce';
+import { eq } from 'drizzle-orm';
+import { consumeNonce } from '@/lib/ii-nonce';
+import { getLinkedPrincipalsFromDB } from '@/lib/get-linked-principals';
 
-// console.log("--------------------------------");
-// console.log("auth.ts");
-// console.log("--------------------------------");
-// console.log("NODE_ENV:", process.env.NODE_ENV);
+/**
+ * Links Internet Identity to an existing user session if one exists.
+ *
+ * TODO: Extend this to all authentication providers for complete account linking.
+ *
+ * PROBLEMS TO SOLVE:
+ * - Google/GitHub: Use `profile()` function, not `authorize()` - need custom logic
+ * - Email/Password: Already uses existing user lookup (correct behavior)
+ * - Need to modify OAuth providers to check for active session before creating new user
+ * - DrizzleAdapter handles OAuth linking automatically, but we need session-aware linking
+ *
+ * @param principal - The Internet Identity principal
+ * @returns User data if linking succeeds, null if no active session
+ */
+async function linkInternetIdentityToActiveSession(principal: string) {
+  try {
+    const activeSession = await auth();
+    if (activeSession?.user?.id) {
+      // Link II principal to existing user
+      await db.insert(accounts).values({
+        userId: activeSession.user.id,
+        type: 'oidc',
+        provider: 'internet-identity',
+        providerAccountId: principal,
+      });
+
+      return {
+        id: activeSession.user.id,
+        email: activeSession.user.email,
+        name: activeSession.user.name,
+        role: activeSession.user.role,
+        icpPrincipal: principal,
+      };
+    }
+  } catch (sessionError) {
+    console.warn('Failed to check active session for Internet Identity linking, creating new user:', sessionError);
+  }
+  return null;
+}
 
 declare module 'next-auth' {
   interface User {
@@ -27,26 +62,18 @@ declare module 'next-auth' {
     user: User & {
       id: string;
       businessUserId?: string;
-
-      /** ICP Principal Co-Auth System */
-      icpPrincipal?: string; // Only when II co-auth is active (activeIcPrincipal)
-      linkedIcPrincipal?: string; // Always available if user has linked II
-      loginProvider?: string; // Base session provider for UI logic
+      loginProvider?: string;
+      linkedIcPrincipals?: string[];
     } & DefaultSession['user'];
   }
 }
 
 declare module 'next-auth/jwt' {
   interface JWT {
-    /** Add role to JWT */
     role?: string;
     businessUserId?: string;
-
-    /** ICP Principal Co-Auth System */
-    loginProvider?: string; // Base session provider (e.g., "google") - authoritative on each fresh sign-in
-    activeIcPrincipal?: string; // II co-auth flag - only when II is currently proven
-    activeIcPrincipalAssertedAt?: number; // When II proof was last verified (for TTL) - timestamp
-    linkedIcPrincipal?: string; // Stored Principal from DB (identifier only, not proof)
+    loginProvider?: string;
+    linkedIcPrincipals?: string[];
   }
 }
 
@@ -72,11 +99,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       clientSecret: process.env.AUTH_GOOGLE_SECRET!,
 
       profile(profile) {
-        // console.log("--------------------------------");
-        // console.log("Google profile:", profile);
-        // console.log("--------------------------------");
         return {
-          id: profile.sub, // ✅ crucial line!
+          id: profile.sub,
           email: profile.email,
           name: profile.name,
           image: profile.picture,
@@ -132,16 +156,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
       async authorize(credentials) {
         const { principal, nonceId, nonce } = credentials;
-        // console.log("[II] authorize:start", { principal, nonceId });
 
         // Validate inputs
         if (!principal || typeof principal !== 'string' || principal.length < 5) {
-          // console.log("[II] authorize:invalid-principal", { principal });
           throw new Error('Invalid principal provided. Please try signing in again.');
         }
 
         if (!nonceId || typeof nonceId !== 'string') {
-          // console.log("[II] authorize:invalid-nonceId", { nonceId });
           throw new Error('Invalid authentication challenge. Please try signing in again.');
         }
 
@@ -152,29 +173,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         });
 
         if (!nonceRecord) {
-          // console.log("[II] authorize:nonce-not-found", { nonceId });
           throw new Error('Authentication challenge not found. Please try signing in again.');
         }
 
         if (nonceRecord.usedAt) {
-          // console.log("[II] authorize:nonce-already-used", { nonceId });
           throw new Error('Authentication challenge already used. Please try signing in again.');
         }
 
         if (nonceRecord.expiresAt < new Date()) {
-          // console.log("[II] authorize:nonce-expired", { nonceId });
           throw new Error('Authentication challenge expired. Please try signing in again.');
         }
 
         // 5.3: Call API route to verify nonce proof
         try {
           if (!nonce) {
-            // console.log("[II] authorize:no-nonce-provided", { nonceId, principal });
             throw new Error('Authentication nonce not provided. Please try signing in again.');
           }
 
           const nonceStr = nonce as string;
-          // console.log("[II] authorize:verifying-nonce", { nonceId, principal, nonceLength: nonceStr.length });
 
           // Call our API route to verify the nonce
           const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
@@ -185,29 +201,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           });
 
           if (!response.ok) {
-            // console.error("[II] authorize:api-error", { status: response.status, statusText: response.statusText });
             throw new Error('Authentication verification service unavailable. Please try signing in again.');
           }
 
           const result = await response.json();
 
           if (!result.success) {
-            // console.log("[II] authorize:verification-failed", { error: result.error });
             throw new Error('Authentication proof verification failed. Please try signing in again.');
           }
 
           const provedPrincipal = result.principal;
           if (provedPrincipal !== principal) {
-            // console.log("[II] authorize:principal-mismatch", {
-            //   claimed: principal,
-            //   proved: provedPrincipal,
-            // });
             throw new Error('Authentication proof mismatch. Please try signing in again.');
           }
-
-          // console.log("[II] authorize:nonce-verified", { principal, nonceId });
-        } catch (error) {
-          // console.error("[II] authorize:verification-error", error);
+        } catch (_error) {
           throw new Error('Unable to verify authentication. Please try signing in again.');
         }
 
@@ -226,10 +233,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               where: (u, { eq }) => eq(u.id, existingAccount.userId),
             });
             if (existingUser) {
-              // console.log("[II] authorize:found-existing", { userId: existingUser.id, principal });
               return {
                 id: existingUser.id,
                 email: existingUser.email,
+                // name: existingUser.name ?? null,
                 name: existingUser.name,
                 role: existingUser.role,
                 icpPrincipal: principal,
@@ -237,7 +244,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             }
           }
 
-          // Create a new user and account mapping
+          // NEW: Check for active session to link Internet Identity to existing user
+          const linkedUser = await linkInternetIdentityToActiveSession(principal);
+          if (linkedUser) {
+            return linkedUser;
+          }
+
+          // Create a new user and account mapping (fallback)
           const insertedUsers = await db
             .insert(users)
             .values({})
@@ -254,17 +267,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           // Ensure allUsers entry exists for business linkage
           await db.insert(allUsers).values({ type: 'user', userId: newUser.id }).onConflictDoNothing?.();
 
-          // console.log("[II] authorize:created", { userId: newUser.id, principal });
-
           return {
             id: newUser.id,
             email: newUser.email,
-            name: newUser.name,
+            name: newUser.name ?? null,
             role: newUser.role,
             icpPrincipal: principal,
           };
-        } catch (error) {
-          // console.error("[II] authorize:db-error", error);
+        } catch (_error) {
           throw new Error('Unable to create user account. Please try signing in again.');
         }
       },
@@ -284,32 +294,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (isLoginFlow) {
         // Extract language from URL if available, default to 'en'
         let lang = 'en'; // default fallback
-        let urlParseSuccess = false;
 
         try {
           const urlObj = new URL(url);
           lang = urlObj.searchParams.get('lang') || 'en';
-          urlParseSuccess = true;
-          // console.log("[NextAuth] Successfully parsed URL:", { url, lang });
-        } catch (error) {
-          // console.warn("[NextAuth] Invalid URL in redirect callback - using fallback:", {
-          //   invalidUrl: url,
-          //   error: error instanceof Error ? error.message : String(error),
-          //   fallbackLang: "en",
-          //   baseUrl,
-          // });
+        } catch (_error) {
           // Fallback to default language if URL is invalid
           lang = 'en';
         }
 
         const redirectTo = `${baseUrl}/${lang}/dashboard`;
-        // console.log("[NextAuth] Redirecting after login:", {
-        //   redirectTo,
-        //   urlParseSuccess,
-        //   originalUrl: url,
-        //   baseUrl,
-        //   lang,
-        // });
         return redirectTo;
       }
 
@@ -319,7 +313,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
     authorized({ request, auth }) {
       const { pathname } = request.nextUrl;
-      // console.log("NextAuth authorized callback called with pathname:", pathname);
 
       // Tests route check
       if (pathname.startsWith('/tests')) {
@@ -340,68 +333,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
 
     async jwt({ token, account, user, trigger, session }) {
-      // console.log('🔐 [JWT] Callback triggered with:'n
-      //   trigger,
-      //   hasUser: !!user,
-      //   tokenKeys: Object.keys(token),
-      //   userKeys: user ? Object.keys(user) : 'no user',
-      // });
-
-      // 🚫 CRITICAL: NO database writes in JWT callback
-      // Linking/unlinking happens in API routes or events.linkAccount/unlinkAccount
-
-      // Handle fresh sign-in (new session) - v5
+      // Handle fresh sign-in (new session)
       if (trigger === 'signIn' && account) {
-        // console.log('🆕 [JWT] Fresh sign-in detected (v5)');
-
         // Set base session provider (authoritative on each fresh sign-in)
         token.loginProvider = account.provider;
-        // console.log('🔑 [JWT] Set loginProvider:', token.loginProvider);
 
-        // Clear any existing II co-auth flags on fresh sign-in
-        if (account.provider !== 'internet-identity') {
-          // console.log('🧹 [JWT] Clearing II co-auth flags (non-II sign-in)');
-          delete token.activeIcPrincipal;
-          delete token.activeIcPrincipalAssertedAt;
-        }
-
-        // One-time fetch of linkedIcPrincipal from DB (avoid first-pass race)
-        if (!token.linkedIcPrincipal) {
-          const uid = (user?.id as string | undefined) ?? (token.sub as string | undefined);
-          if (uid) {
-            try {
-              const iiAccount = await db.query.accounts.findFirst({
-                where: (a, { and, eq }) => and(eq(a.userId, uid), eq(a.provider, 'internet-identity')),
-                columns: { providerAccountId: true },
-              });
-              if (iiAccount?.providerAccountId) {
-                token.linkedIcPrincipal = iiAccount.providerAccountId;
-                // console.log('🔗 [JWT] Set linkedIcPrincipal from DB:', token.linkedIcPrincipal);
-              }
-            } catch (error) {
-              console.warn('⚠️ [JWT] Failed to fetch linkedIcPrincipal:', error);
-            }
-          }
+        // On any sign-in, (re)load linked principals once from DB
+        const uid = (user?.id as string | undefined) ?? (token.sub as string | undefined);
+        if (uid) {
+          token.linkedIcPrincipals = await getLinkedPrincipalsFromDB(uid);
         }
       }
 
-      // Handle session update (II co-auth activation/clearing) - NextAuth v5
-      if (trigger === 'update' && session) {
-        // console.log('🔄 [JWT] Session update triggered (v5)');
-
-        // Set co-auth when provided
-        if ((session as any).activeIcPrincipal) {
-          token.activeIcPrincipal = (session as any).activeIcPrincipal as string;
-          token.activeIcPrincipalAssertedAt = Date.now();
-          // console.log('✅ [JWT] Set activeIcPrincipal via update():', token.activeIcPrincipal);
-        }
-
-        // Clear co-auth when explicitly requested
-        if ((session as any).clearActiveIc === true) {
-          delete token.activeIcPrincipal;
-          delete token.activeIcPrincipalAssertedAt;
-          // console.log('🧹 [JWT] Cleared activeIcPrincipal via update()');
-        }
+      // Handle session update (link/unlink operations)
+      if (trigger === 'update' && session?.linkedIcPrincipals) {
+        token.linkedIcPrincipals = session.linkedIcPrincipals;
       }
 
       // Standard token updates
@@ -422,15 +368,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           });
           if (allUser?.id) {
             token.businessUserId = allUser.id;
-            // console.log("[Auth] ✅ Business user ID added to token:", {
-            //   authUserId: user.id,
-            //   businessUserId: allUser.id,
-            // });
-          } else {
-            // console.warn("[Auth] ⚠️ No allUsers entry found for Auth.js user:", user.id);
           }
-        } catch (error) {
-          // console.error("[Auth] ❌ Error looking up business user ID:", error);
+        } catch (_error) {
+          // console.error("[Auth] ❌ Error looking up business user ID:", _error);
         }
       }
 
@@ -438,11 +378,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
 
     session({ session, token }) {
-      //   console.log("--------------------------------");
-      //   console.log("NextAuth session callback called with session:", session);
-      //   console.log("NextAuth session callback called with token:", token);
-      //   console.log("--------------------------------");
-
       if (session.user) {
         session.user.role = token.role as string;
         session.user.id = token.sub as string;
@@ -451,37 +386,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (token.businessUserId && typeof token.businessUserId === 'string') {
           (session.user as { businessUserId?: string }).businessUserId = token.businessUserId;
         }
-        // Add ICP Principal Co-Auth System fields
+
+        // Add login provider
         if (token.loginProvider) {
           (session.user as { loginProvider?: string }).loginProvider = token.loginProvider;
         }
 
-        if (token.linkedIcPrincipal) {
-          (session.user as { linkedIcPrincipal?: string }).linkedIcPrincipal = token.linkedIcPrincipal;
-        }
-
-        // Only expose icpPrincipal when II co-auth is active
-        if (token.activeIcPrincipal && token.activeIcPrincipalAssertedAt) {
-          (session.user as { icpPrincipal?: string; icpPrincipalAssertedAt?: number }).icpPrincipal =
-            token.activeIcPrincipal;
-          (session.user as { icpPrincipal?: string; icpPrincipalAssertedAt?: number }).icpPrincipalAssertedAt =
-            token.activeIcPrincipalAssertedAt;
-        } else {
-          delete (session.user as any).icpPrincipal;
-          delete (session.user as any).icpPrincipalAssertedAt;
+        // Add linked principals array
+        if (token.linkedIcPrincipals) {
+          (session.user as { linkedIcPrincipals?: string[] }).linkedIcPrincipals = token.linkedIcPrincipals;
         }
       }
+
       if (token.accessToken) {
         session.accessToken = token.accessToken as string;
       }
+
       return session;
     },
   },
   debug: true,
   events: {
     async createUser({ user }) {
-      // console.log("[Auth] ✅ User created:", user);
-
       // Check if there's a temporary user with the same email
       const temporaryUser = await db.query.temporaryUsers.findFirst({
         where: (temporaryUsers, { eq }) => eq(temporaryUsers.email, user.email!),
@@ -495,13 +421,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         : null;
 
       if (temporaryUser && allUserEntry) {
-        // console.log("[Auth] 🚀 Promoting temporary user to permanent user:", {
-        //   temporaryUserId: temporaryUser.id,
-        //   newUserId: user.id,
-        //   allUserId: allUserEntry.id,
-        //   email: user.email,
-        // });
-
         // Update the allUsers entry to point to the new permanent user
         await db
           .update(allUsers)
@@ -514,42 +433,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         // Delete the temporary user since we've migrated their data
         await db.delete(temporaryUsers).where(eq(temporaryUsers.id, temporaryUser.id));
-
-        // console.log("[Auth] ✅ Successfully promoted user");
-      } else if (temporaryUser) {
-        // console.log("[Auth] ⚠️ Found temporary user but no corresponding allUsers entry:", {
-        //   temporaryUserId: temporaryUser.id,
-        //   email: user.email,
-        // });
       } else {
         // No temporary user found, create a new allUsers entry
-        // console.log("[Auth] 🆕 Creating new allUsers entry for:", {
-        //   userId: user.id,
-        //   email: user.email,
-        // });
-
         await db.insert(allUsers).values({
           type: 'user',
           userId: user.id,
         });
-
-        // console.log("[Auth] ✅ Successfully created allUsers entry");
       }
     },
     async linkAccount(account) {
       console.log('[Auth] 🔗 Account linked:', account);
-      // Note: linkedIcPrincipal will be fetched on next sign-in
-      // No need to update token here - JWT callback handles it
     },
-    async signIn({ user, account, profile }) {
-      // console.log("[Auth] 👋 User signed in:", { user, account, profile });
-    },
-    async signOut(message) {
-      if ('session' in message) {
-        // console.log("[Auth] User signed out, session object:", message.session);
-      } else if ('token' in message) {
-        // console.log("[Auth] User signed out, JWT token:", message.token);
-      }
-    },
+    async signIn({ user: _user, account: _account, profile: _profile }) {},
+    async signOut(_message) {},
   },
 });

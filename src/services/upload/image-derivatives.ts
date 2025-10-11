@@ -7,7 +7,7 @@
 
 import type { GrantResponse } from './s3-grant';
 import type { ProcessedAssets } from './finalize';
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 // Web Worker types
 interface ProcessMessage {
   kind: 'process';
@@ -77,7 +77,7 @@ export async function processImageDerivatives(file: File, grant: GrantResponse):
   const supportedFormats = ['image/jpeg', 'image/png', 'image/webp'];
 
   if (!supportedFormats.includes(file.type)) {
-    logger.asset('be').info(`Skipping derivatives for unsupported format: ${file.type}`);
+    fatLogger.info(`Skipping derivatives for unsupported format: ${file.type}`, 'be');
     // Return skipped status for unsupported formats
     return {
       display: { assetType: 'display', processingStatus: 'skipped' },
@@ -86,7 +86,7 @@ export async function processImageDerivatives(file: File, grant: GrantResponse):
     };
   }
 
-  logger.asset('be').info(`Processing derivatives for supported format: ${file.type}`);
+  fatLogger.info(`Processing derivatives for supported format: ${file.type}`, 'be');
   // Process supported formats using Web Worker
   return await processImageDerivativesWithWorker(file, grant);
 }
@@ -172,7 +172,8 @@ export async function processImageDerivativesWithWorkerPure(file: File): Promise
 
     return processedBlobs;
   } catch (error) {
-    logger.asset('be').error(`Failed to process derivatives for ${file.name}`, error as Error, {
+    fatLogger.error(`Failed to process derivatives for ${file.name}`, 'be', {
+      data: error as Error,
       fileName: file.name,
       fileSize: file.size,
       fileType: file.type,
@@ -233,7 +234,9 @@ export async function processImageDerivativesWithWorker(file: File, grant: Grant
 
     return processedAssets;
   } catch (error) {
-    logger.asset('be').error(`Failed to process derivatives for ${file.name}`, error instanceof Error ? error : new Error(String(error)));
+    fatLogger.error(`Failed to process derivatives for ${file.name}`, 'be', {
+      data: error instanceof Error ? error : new Error(String(error)),
+    });
 
     // Return failed status for all derivatives
     return {
@@ -267,7 +270,8 @@ async function handleProcessedAssets(response: ProcessResponse, grant: GrantResp
         url: displayUrl,
       };
     } catch (error) {
-      logger.s3('be').error('Failed to upload display asset to S3', error as Error, {
+      fatLogger.error('Failed to upload display asset to S3', 'be', {
+        data: error as Error,
         fileKey: grant.display.fileKey,
         bytes: response.display.bytes,
       });
@@ -292,7 +296,9 @@ async function handleProcessedAssets(response: ProcessResponse, grant: GrantResp
         url: thumbUrl,
       };
     } catch (error) {
-      logger.s3('be').error('Failed to upload thumb asset to S3', error instanceof Error ? error : new Error(String(error)));
+      fatLogger.error('Failed to upload thumb asset to S3', 'be', {
+        data: error instanceof Error ? error : new Error(String(error)),
+      });
       results.thumb = { assetType: 'thumb', processingStatus: 'failed' };
     }
   }
@@ -313,7 +319,7 @@ async function handleProcessedAssets(response: ProcessResponse, grant: GrantResp
       height: 24, // Standard placeholder dimensions
       mimeType: 'image/webp', // Consistent with decision
     };
-    logger.asset('be').info(`Generated placeholder data URL (${dataUrlBytes} bytes)`);
+    fatLogger.info(`Generated placeholder data URL (${dataUrlBytes} bytes)`, 'be');
   }
 
   return results;
@@ -323,7 +329,7 @@ async function handleProcessedAssets(response: ProcessResponse, grant: GrantResp
  * Upload asset blob to S3 using presigned URL
  */
 async function uploadAssetToS3(blob: Blob, uploadUrl: string): Promise<void> {
-  logger.s3('be').info(`S3 PUT request: ${blob.size} bytes, ${blob.type}`);
+  fatLogger.info(`S3 PUT request: ${blob.size} bytes, ${blob.type}`, 'be');
 
   const response = await fetch(uploadUrl, {
     method: 'PUT',
@@ -334,11 +340,11 @@ async function uploadAssetToS3(blob: Blob, uploadUrl: string): Promise<void> {
   });
 
   if (!response.ok) {
-    logger.s3('be').error(`S3 upload failed: ${response.status} ${response.statusText}`);
+    fatLogger.error(`S3 upload failed: ${response.status} ${response.statusText}`, 'be');
     throw new Error(`S3 upload failed: ${response.status} ${response.statusText}`);
   }
 
-  logger.s3('be').info(`S3 upload successful: ${response.status} ${response.statusText}`);
+  fatLogger.info(`S3 upload successful: ${response.status} ${response.statusText}`, 'be');
 }
 
 /**
@@ -378,7 +384,9 @@ export async function uploadProcessedAssetsToS3(
         url: displayUrl,
       };
     } catch (error) {
-      logger.s3('be').error('Failed to upload display asset', error instanceof Error ? error : new Error(String(error)));
+      fatLogger.error('Failed to upload display asset', 'be', {
+        data: error instanceof Error ? error : new Error(String(error)),
+      });
       results.display = {
         assetType: 'display',
         processingStatus: 'failed',
@@ -410,7 +418,9 @@ export async function uploadProcessedAssetsToS3(
         url: thumbUrl,
       };
     } catch (error) {
-      logger.s3('be').error('Failed to upload thumb asset', error instanceof Error ? error : new Error(String(error)));
+      fatLogger.error('Failed to upload thumb asset', 'be', {
+        data: error instanceof Error ? error : new Error(String(error)),
+      });
       results.thumb = {
         assetType: 'thumb',
         processingStatus: 'failed',

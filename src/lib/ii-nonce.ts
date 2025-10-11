@@ -3,7 +3,7 @@ import { db } from '@/db/db';
 import { iiNonces, type NewDBIINonce } from '@/db/schema';
 import { eq, and, lt, gt, isNull, isNotNull, gte, count, sql } from 'drizzle-orm';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 /**
  * Enhanced nonce management for Internet Identity authentication
  *
@@ -342,7 +342,9 @@ export async function opportunisticCleanup(): Promise<void> {
       await cleanupExpiredNonces();
     } catch (error) {
       // Don't let cleanup failures affect the main operation
-      logger.warn('Opportunistic nonce cleanup failed:', undefined, { error: error instanceof Error ? error : undefined });
+      fatLogger.warn('Opportunistic nonce cleanup failed:', 'fe', {
+        error: error instanceof Error ? error : undefined,
+      });
     }
   }
 }

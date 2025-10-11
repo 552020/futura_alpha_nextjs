@@ -3,7 +3,7 @@ import request from 'supertest';
 import { testDb } from '@/db/test-db';
 import { users, allUsers } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 import {
   generateGoogleUserJWT,
   generateIIUserJWT,
@@ -19,7 +19,8 @@ describe('Hybrid Authentication Testing - Database + JWT', () => {
   let testUser3Id: string;
 
   beforeAll(async () => {
-    logger.info(`
+    fatLogger.info(
+      `
 🎯 SETTING UP HYBRID AUTHENTICATION TESTING
 
 We're combining:
@@ -28,7 +29,9 @@ We're combining:
 3. Supertest for endpoint testing
 
 This should give us realistic authentication testing!
-    `);
+    `,
+      'be'
+    );
 
     try {
       // Create test users in the database
@@ -86,16 +89,19 @@ This should give us realistic authentication testing!
       testUser2Id = testUser2.id;
       testUser3Id = testUser3.id;
 
-      logger.info(`
+      fatLogger.info(
+        `
 ✅ TEST USERS CREATED SUCCESSFULLY:
 - User 1: ${testUser1.email} (ID: ${testUser1.id}) - Role: ${testUser1.role}
 - User 2: ${testUser2.email} (ID: ${testUser2.id}) - Role: ${testUser2.role}
 - User 3: ${testUser3.email} (ID: ${testUser3.id}) - Role: ${testUser3.role}
 
 Now let's test authentication with JWT tokens!
-      `);
+      `,
+        'be'
+      );
     } catch (error) {
-      logger.error('❌ Error creating test users:', undefined, { data: error instanceof Error ? error : undefined });
+      fatLogger.error('❌ Error creating test users:', 'be', { data: error instanceof Error ? error : undefined });
       throw error;
     }
   });
@@ -106,9 +112,9 @@ Now let's test authentication with JWT tokens!
       await testDb.delete(users).where(eq(users.id, testUser1Id));
       await testDb.delete(users).where(eq(users.id, testUser2Id));
       await testDb.delete(users).where(eq(users.id, testUser3Id));
-      logger.info('🧹 Test users cleaned up successfully');
+      fatLogger.info('🧹 Test users cleaned up successfully', 'be');
     } catch (error) {
-      logger.error('❌ Error cleaning up test users:', undefined, { data: error instanceof Error ? error : undefined });
+      fatLogger.error('❌ Error cleaning up test users:', 'be', { data: error instanceof Error ? error : undefined });
     }
   });
 
@@ -268,7 +274,8 @@ Now let's test authentication with JWT tokens!
 
   describe('Next Steps: Testing Real ICP Endpoints', () => {
     it('should outline how to test ICP endpoints', () => {
-      logger.info(`
+      fatLogger.info(
+        `
 🎯 NEXT STEPS: TESTING REAL ICP ENDPOINTS WITH HYBRID AUTH
 
 Now that we have hybrid authentication working, we can test:
@@ -294,7 +301,9 @@ Now that we have hybrid authentication working, we can test:
    - TTL expiration testing
 
 💡 READY TO TEST: We now have the foundation to test your real ICP authentication system!
-      `);
+      `,
+        'be'
+      );
 
       expect(true).toBe(true);
     });

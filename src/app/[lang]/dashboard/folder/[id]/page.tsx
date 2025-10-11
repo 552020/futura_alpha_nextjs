@@ -13,7 +13,7 @@ import { TawkChat } from '@/components/chat/tawk-chat';
 import { fetchMemories, deleteMemory, type MemoryWithFolder, type DashboardItem } from '@/services/memories';
 import { Memory } from '@/types/memory';
 import { sampleDashboardMemories } from '../../../../../../scripts/mock-data/create-dashboard-sample-data';
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -29,9 +29,9 @@ import {
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_FOLDER === 'true';
 
 export default function FolderPage() {
-  // logger.info("🔍 Folder page component rendered");
+  // fatLogger.info("🔍 Folder page component rendered");
   const { isAuthorized, userId, redirectToSignIn, isLoading } = useAuthGuard();
-  // logger.info("🔍 Folder page auth state:", undefined, { isAuthorized, isTemporaryUser, userId, isLoading });
+  // fatLogger.info("🔍 Folder page auth state:", undefined, { isAuthorized, isTemporaryUser, userId, isLoading });
 
   const router = useRouter();
   const params = useParams();
@@ -42,16 +42,16 @@ export default function FolderPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const folderId = params.id as string;
-  // logger.info("🔍 Folder ID:", folderId);
+  // fatLogger.info("🔍 Folder ID:", folderId);
 
   const fetchFolderMemories = useCallback(async () => {
-    // logger.info("🚀 ENTERING fetchFolderMemories function");
+    // fatLogger.info("🚀 ENTERING fetchFolderMemories function");
 
     if (USE_MOCK_DATA) {
-      // logger.info("🎭 MOCK DATA - Using sample data for folder");
-      // logger.info("🔍 Looking for folder:", folderId);
-      // logger.info("🔍 Available memories:", sampleDashboardMemories.length);
-      // logger.info(
+      // fatLogger.info("🎭 MOCK DATA - Using sample data for folder");
+      // fatLogger.info("🔍 Looking for folder:", folderId);
+      // fatLogger.info("🔍 Available memories:", sampleDashboardMemories.length);
+      // fatLogger.info(
       //   "🔍 Sample memories with metadata:",
       //   sampleDashboardMemories
       //     .filter((m) => m.metadata?.folderName)
@@ -63,7 +63,7 @@ export default function FolderPage() {
         memory => memory.parentFolderId === folderId || memory.metadata?.folderName === folderId
       );
 
-      // logger.info("🔍 Mock folder memories found:", folderMemories.length);
+      // fatLogger.info("🔍 Mock folder memories found:", folderMemories.length);
 
       if (folderMemories.length > 0) {
         // Use folder name from new structure or fallback to old structure
@@ -72,7 +72,7 @@ export default function FolderPage() {
         setFolderName(folderName);
         setMemories(folderMemories);
       } else {
-        // logger.info("❌ No mock memories found for folder:", folderId);
+        // fatLogger.info("❌ No mock memories found for folder:", folderId);
         toast({
           title: 'Folder not found',
           description: "This folder doesn't exist or is empty.",
@@ -94,20 +94,20 @@ export default function FolderPage() {
         memory => memory.parentFolderId === folderId || memory.metadata?.folderName === folderId
       );
 
-      // logger.info("🔍 Folder memories found:", folderMemories.length);
-      // logger.info("🔍 Folder ID:", folderId);
-      // logger.info("🔍 Cleaned folder ID:", folderId.replace("folder-", ""));
-      // logger.info("🔍 First memory folder name:", folderMemories[0]?.folder?.name);
+      // fatLogger.info("🔍 Folder memories found:", folderMemories.length);
+      // fatLogger.info("🔍 Folder ID:", folderId);
+      // fatLogger.info("🔍 Cleaned folder ID:", folderId.replace("folder-", ""));
+      // fatLogger.info("🔍 First memory folder name:", folderMemories[0]?.folder?.name);
 
       if (folderMemories.length > 0) {
         // Use folder name from new structure or fallback to old structure
         const actualFolderName =
           (folderMemories[0] as MemoryWithFolder)?.folder?.name || folderMemories[0]?.metadata?.folderName || folderId;
-        // logger.info("🔍 Setting folder name to:", actualFolderName);
+        // fatLogger.info("🔍 Setting folder name to:", actualFolderName);
         setFolderName(actualFolderName);
         setMemories(folderMemories);
       } else {
-        // logger.info("❌ No memories found for folder:", folderId);
+        // fatLogger.info("❌ No memories found for folder:", folderId);
         toast({
           title: 'Folder not found',
           description: "This folder doesn't exist or is empty.",
@@ -116,7 +116,7 @@ export default function FolderPage() {
         router.push(`/${params.lang}/dashboard`);
       }
     } catch (error) {
-      logger.error('FETCH FOLDER MEMORIES ERROR', undefined, { data: error as Error });
+      fatLogger.error('FETCH FOLDER MEMORIES ERROR', 'fe', { data: error as Error });
       toast({
         title: 'Error',
         description: 'Failed to load folder contents. Please try again.',
@@ -125,7 +125,7 @@ export default function FolderPage() {
     } finally {
       setIsLoadingMemories(false);
     }
-    // logger.info("🚀 EXITING fetchFolderMemories function");
+    // fatLogger.info("🚀 EXITING fetchFolderMemories function");
   }, [folderId, params.lang, router, toast]);
 
   useEffect(() => {
@@ -135,13 +135,13 @@ export default function FolderPage() {
   }, [isAuthorized, redirectToSignIn]);
 
   useEffect(() => {
-    // logger.info("🔍 Folder useEffect - Auth check:", undefined, { isAuthorized, userId, isLoading });
+    // fatLogger.info("🔍 Folder useEffect - Auth check:", undefined, { isAuthorized, userId, isLoading });
     if (isAuthorized && !isLoading && folderId) {
-      // logger.info("🚀 CALLING fetchFolderMemories");
+      // fatLogger.info("🚀 CALLING fetchFolderMemories");
       fetchFolderMemories();
-      // logger.info("✅ EXITED fetchFolderMemories");
+      // fatLogger.info("✅ EXITED fetchFolderMemories");
     } else {
-      // logger.info("🔍 Folder useEffect - Not authorized, still loading, or no folderId");
+      // fatLogger.info("🔍 Folder useEffect - Not authorized, still loading, or no folderId");
     }
   }, [isAuthorized, isLoading, userId, folderId, fetchFolderMemories]);
 
@@ -154,7 +154,7 @@ export default function FolderPage() {
         description: 'Memory deleted successfully.',
       });
     } catch (error) {
-      logger.error('Error deleting memory', undefined, { data: error as Error });
+      fatLogger.error('Error deleting memory', 'fe', { data: error as Error });
       toast({
         title: 'Error',
         description: 'Failed to delete memory. Please try again.',
@@ -170,7 +170,7 @@ export default function FolderPage() {
 
   const handleEdit = (memoryId: string) => {
     // TODO: Implement edit functionality
-    logger.dashboard().info('Edit memory', { memoryId });
+    fatLogger.info('Edit memory', 'fe', { memoryId });
     toast({
       title: 'Edit',
       description: 'Edit functionality coming soon!',

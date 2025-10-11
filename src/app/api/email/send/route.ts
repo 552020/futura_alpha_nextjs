@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { sendEmail } from '@/utils/mailgun';
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 
 type EmailRequest = {
   to: string | string[];
@@ -14,25 +14,19 @@ type EmailRequest = {
 
 export async function POST(request: NextRequest) {
   const requestId = Math.random().toString(36).substring(2, 9);
-  logger.info(`[${requestId}] Starting email send request`);
+  fatLogger.info(`[${requestId}] Starting email send request`, 'be');
 
   try {
     const session = await auth();
     if (!session?.user) {
-      return NextResponse.json(
-        { error: 'Unauthorized', requestId },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized', requestId }, { status: 401 });
     }
 
     const body: EmailRequest = await request.json();
     const { to, subject, text, html, templateName, templateVars } = body;
 
     if (!to || !subject || (!text && !html)) {
-      return NextResponse.json(
-        { error: 'Missing required fields', requestId },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Missing required fields', requestId }, { status: 400 });
     }
 
     const emailData: {
@@ -58,20 +52,16 @@ export async function POST(request: NextRequest) {
     }
 
     const emailResponse = await sendEmail(emailData);
-    
+
     return NextResponse.json({
       success: true,
       requestId,
       emailId: emailResponse.id,
     });
-
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    logger.error(`[${requestId}] Error: ${errorMessage}`);
-    
-    return NextResponse.json(
-      { error: 'Failed to process request', requestId },
-      { status: 500 }
-    );
+    fatLogger.error(`[${requestId}] Error: ${errorMessage}`, 'be');
+
+    return NextResponse.json({ error: 'Failed to process request', requestId }, { status: 500 });
   }
 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSideActor } from '@/lib/server-actor';
 
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 // Rate limiting store (in production, use Redis or similar)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
@@ -88,13 +88,13 @@ export async function POST(request: NextRequest) {
 
     // Security Check 1: Origin/Referer validation (CSRF protection)
     if (!checkOrigin(request)) {
-      logger.warn(`II Verify: Invalid origin/referer from IP ${ipAddress}`);
+      fatLogger.warn(`II Verify: Invalid origin/referer from IP ${ipAddress}`, 'be');
       return NextResponse.json({ error: 'Invalid origin' }, { status: 403 });
     }
 
     // Security Check 2: Rate limiting
     if (!checkRateLimit(ipAddress)) {
-      logger.warn(`II Verify: Rate limit exceeded for IP ${ipAddress}`);
+      fatLogger.warn(`II Verify: Rate limit exceeded for IP ${ipAddress}`, 'be');
       return NextResponse.json({ error: 'Rate limit exceeded. Please try again later.' }, { status: 429 });
     }
 
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Security logging (never log raw nonce)
-    // logger.info(`II Verify: Attempting verification for nonce length ${nonce.length} from IP ${ipAddress}`);
+    // fatLogger.info(`II Verify: Attempting verification for nonce length ${nonce.length} from IP ${ipAddress}`);
 
     // Call canister to verify nonce
     const actor = await createServerSideActor();
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
     const nonceResult = (await actor.verify_nonce(nonce)) as { Ok: any } | { Err: any };
 
     if ('Err' in nonceResult) {
-      // logger.info(`II Verify: No proof found for nonce from IP ${ipAddress}`);
+      // fatLogger.info(`II Verify: No proof found for nonce from IP ${ipAddress}`);
       return NextResponse.json({
         success: false,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -130,14 +130,14 @@ export async function POST(request: NextRequest) {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const principalStr = (nonceResult as { Ok: any }).Ok.toString();
-    // logger.info(`II Verify: Successfully verified nonce for principal ${principalStr} from IP ${ipAddress}`);
+    // fatLogger.info(`II Verify: Successfully verified nonce for principal ${principalStr} from IP ${ipAddress}`);
 
     return NextResponse.json({
       success: true,
       principal: principalStr,
     });
   } catch (error) {
-    logger.error('Error verifying II nonce:', undefined, { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Error verifying II nonce:', 'be', { data: error instanceof Error ? error : undefined });
     return NextResponse.json(
       {
         success: false,

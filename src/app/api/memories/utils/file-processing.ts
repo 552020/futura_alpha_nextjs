@@ -1,4 +1,4 @@
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 
 /**
  * FILE PROCESSING UTILITIES
@@ -160,22 +160,22 @@ export async function validateFileWithErrorHandling(
 }> {
   let validationResult;
   try {
-    // logger.info("🔍 Starting file validation...");
+    // fatLogger.info("🔍 Starting file validation...");
     validationResult = await validateFile(file);
     if (!validationResult.isValid) {
-      logger.error('❌ File validation failed:', undefined, { data: validationResult.error });
+      fatLogger.error('❌ File validation failed:', 'be', { data: validationResult.error });
       return {
         validationResult: null,
         error: validationResult.error || 'File validation failed',
       };
     }
-    // logger.info("✅ File validation successful:", undefined, {
+    // fatLogger.info("✅ File validation successful:", undefined, {
     //   type: file.type,
     //   size: file.size,
     // });
     return { validationResult, error: null };
   } catch (validationError) {
-    logger.error('❌ Validation error:', undefined, { data: validationError });
+    fatLogger.error('❌ Validation error:', 'be', { data: validationError });
     return {
       validationResult: null,
       error: validationError instanceof Error ? validationError.message : String(validationError),
@@ -189,7 +189,7 @@ export async function validateFileWithErrorHandling(
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function logFileDetails(file: File): void {
-  // logger.info("📄 File details:", {
+  // fatLogger.info("📄 File details:", {
   //   name: file.name,
   //   type: file.type,
   //   size: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
@@ -202,7 +202,7 @@ export function logFileDetails(file: File): void {
  */
 export function logMultipleFileDetails(files: File[]): void {
   files.forEach((_file, _index) => {
-    // logger.info(`  ${_index + 1}. `);
+    // fatLogger.info(`  ${_index + 1}. `);
   });
 }
 

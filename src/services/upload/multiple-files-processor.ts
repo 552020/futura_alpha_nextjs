@@ -12,10 +12,10 @@
  */
 
 import type { HostingPreferences } from '@/hooks/use-hosting-preferences';
-import { getDefaultHostingPreferences } from '@/hooks/use-hosting-preferences';
-import { validateUploadFiles } from './shared-utils';
+// import { getDefaultHostingPreferences } from '@/hooks/use-hosting-preferences'; // Not used with ICP processing
+import { validateUploadFiles, checkICPAuthentication } from './shared-utils';
 import { uploadMultipleToS3WithProcessing } from './s3-with-processing';
-import { logger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger';
 
 export interface ProcessMultipleFilesOptions {
   files: File[];
@@ -48,17 +48,17 @@ export async function processMultipleFiles(options: ProcessMultipleFilesOptions)
     onProgress,
   } = options;
 
-  // Validate files using shared validation function
+  // Basic validation using general upload limits
   if (!validateUploadFiles(files, showToast)) {
     return;
   }
 
   try {
     // Route to appropriate upload service based on user preferences
-    const userBlobHostingPreference = preferences?.blobHosting[0] || 's3'; // Default to S3 (413 solution)
+    const userBlobHostingPreference = preferences?.blobHosting?.[0] || 's3';
 
     // Log upload routing decision
-    logger.upload().info('📤 Multiple files upload routing decision', {
+    fatLogger.info('📤 Multiple files upload routing decision', 'be', {
       selectedProvider: userBlobHostingPreference,
       availableProviders: preferences?.blobHosting || ['s3'],
       fileCount: files.length,
@@ -81,22 +81,36 @@ export async function processMultipleFiles(options: ProcessMultipleFilesOptions)
 
     // Upload routing based on storage preference
     if (userBlobHostingPreference === 'icp') {
+      // Double-check ICP authentication (safety net for multiple upload flows)
+      try {
+        await checkICPAuthentication();
+      } catch (_error) {
+        showToast({
+          variant: 'destructive',
+          title: 'Authentication Required',
+          description: 'Please connect your Internet Identity to upload to ICP',
+        });
+        return;
+      }
+
+      // ICP upload with parallel processing (Lane A + Lane B + finalizeAllAssets)
       // NOTE: For ICP users, isOnboarding is ignored because ICP always requires Internet Identity auth
       // Even "onboarding" users must authenticate with II to interact with ICP canister
-      const { uploadToICP } = await import('./icp-upload');
-      const results = await uploadToICP(files, preferences || getDefaultHostingPreferences(), progress => {
+      const { uploadMultipleToICPWithProcessing } = await import('./icp-with-processing');
+      const uploadResult = await uploadMultipleToICPWithProcessing(files, mode, (file, progress) => {
         // Convert overall progress to per-file progress for compatibility
-        onProgress?.(files[0], progress);
+        onProgress?.(file, progress);
       });
 
       // Convert results to expected format
       data = {
-        results: results.map(result => ({
-          memoryId: result.data.id,
-          size: result.results[0]?.size,
-          checksum_sha256: result.results[0]?.checksum_sha256,
-        })),
-        successfulUploads: results.length,
+        results:
+          uploadResult.results?.map(result => ({
+            memoryId: result.memoryId,
+            size: result.size,
+            checksum_sha256: result.checksum_sha256,
+          })) || [],
+        successfulUploads: uploadResult.successfulUploads || 0,
       };
     } else if (userBlobHostingPreference === 'vercel_blob') {
       const { uploadToVercelBlob } = await import('./vercel-blob-upload');
@@ -109,8 +123,12 @@ export async function processMultipleFiles(options: ProcessMultipleFilesOptions)
       data = {
         results: results.map(result => ({
           memoryId: result.data.id,
-          size: result.results[0]?.size,
-          checksum_sha256: result.results[0]?.checksum_sha256,
+          size: result.results[0]?.size ? Number(result.results[0].size) : undefined,
+          checksum_sha256: result.results[0]?.checksumSha256
+            ? Array.from(result.results[0].checksumSha256)
+                .map(b => b.toString(16).padStart(2, '0'))
+                .join('')
+            : undefined,
         })),
         successfulUploads: results.length,
       };
