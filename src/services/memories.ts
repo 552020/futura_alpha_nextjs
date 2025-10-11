@@ -252,6 +252,42 @@ const transformICPMemoryHeaderToNeon = (header: MemoryHeader): MemoryWithFolder 
     // Legacy fields
     thumbnail: header.thumbnail_url.length > 0 ? header.thumbnail_url[0] : undefined,
     url: header.primary_asset_url.length > 0 ? header.primary_asset_url[0] : undefined,
+
+    // NEW: Storage location information
+    storageStatus: (() => {
+      // DEBUG: Log the raw storage edges data
+      console.log('🔍 [transformICPMemoryHeaderToNeon] memoryId:', header.id);
+      console.log(
+        '🔍 [transformICPMemoryHeaderToNeon] database_storage_edges length:',
+        header.database_storage_edges.length
+      );
+      console.log('🔍 [transformICPMemoryHeaderToNeon] database_storage_edges:', header.database_storage_edges);
+
+      const storageLocations = header.database_storage_edges.map((edge, index) => {
+        console.log(`🔍 [transformICPMemoryHeaderToNeon] Edge ${index}:`, edge);
+        console.log(`🔍 [transformICPMemoryHeaderToNeon] Edge ${index} has 'Icp':`, 'Icp' in edge);
+        console.log(`🔍 [transformICPMemoryHeaderToNeon] Edge ${index} has 'Neon':`, 'Neon' in edge);
+
+        return 'Icp' in edge ? 'icp' : 'Neon' in edge ? 'neon' : 'unknown';
+      });
+
+      console.log('🔍 [transformICPMemoryHeaderToNeon] mapped storageLocations:', storageLocations);
+
+      // TEMPORARY FIX: If this is an ICP memory (UUID v7 format) and we get 'neon' storage locations,
+      // it's likely a backend bug where ICP memories are incorrectly marked as Neon.
+      // For now, force ICP memories to show as 'icp' storage.
+      const isUuidV7 = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(header.id);
+      const finalStorageLocations =
+        isUuidV7 && storageLocations.includes('neon') && !storageLocations.includes('icp')
+          ? ['icp'] // Force ICP memories to show as 'icp' storage
+          : storageLocations;
+
+      console.log('🔍 [transformICPMemoryHeaderToNeon] final storageLocations:', finalStorageLocations);
+
+      return {
+        storageLocations: finalStorageLocations,
+      };
+    })(),
   };
 };
 

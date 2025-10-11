@@ -369,7 +369,7 @@ async function createNeonDatabaseRecord(
         memoryId: icpMemoryId,
         memoryType: memoryType,
         artifact: 'asset',
-        backend: 'icp-canister',
+        locationAsset: 'icp',
         present: true,
         location: `icp://memory/${icpMemoryId}`, // ICP blob location
         contentHash: null, // TODO: Add SHA256 hash if available

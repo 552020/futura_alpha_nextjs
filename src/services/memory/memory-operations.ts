@@ -4,6 +4,7 @@ import { eq, and, desc, asc, isNull } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import { randomBytes } from 'crypto';
 import { fatLogger } from '@/lib/logger';
+import type { MemoryWithGalleries } from './types';
 
 export interface CreateMemoryParams {
   title: string;
@@ -59,7 +60,9 @@ export interface MemoryOperationResult<T = unknown> {
  * ⚠️  NOTE: This only creates a DATABASE record.
  * The actual files must be uploaded to storage separately.
  */
-export const createMemoryRecord = async (params: CreateMemoryParams): Promise<MemoryOperationResult> => {
+export const createMemoryRecord = async (
+  params: CreateMemoryParams
+): Promise<MemoryOperationResult<typeof memories.$inferSelect>> => {
   try {
     // Resolve owner ID (handles onboarding case)
     const ownerResult = await resolveOwnerId(params.ownerId, params.isOnboarding);
@@ -274,6 +277,201 @@ export const getMemoryRecordsByType = async (
   includeAssets = false
 ): Promise<MemoryOperationResult> => {
   return getMemoryRecords({ type }, includeAssets);
+};
+
+/**
+ * Get memory records with their associated galleries
+ * This function performs a complex JOIN query to get memories with gallery information
+ */
+export const getMemoryRecordsWithGalleries = async (
+  ownerId: string
+): Promise<MemoryOperationResult<MemoryWithGalleries[]>> => {
+  try {
+    const { sql } = await import('drizzle-orm');
+
+    const { rows } = await db.execute(sql`
+      SELECT
+        m.type,
+        m.id,
+        m.owner_id,
+        m.title,
+        m.description,
+        m.url,
+        m.created_at,
+        m.updated_at,
+        COALESCE(
+          JSON_AGG(
+            JSON_BUILD_OBJECT('id', g.id, 'title', g.title)
+          ) FILTER (WHERE g.id IS NOT NULL),
+          '[]'::json
+        ) AS galleries
+      FROM "memories" m
+      LEFT JOIN "gallery_item" gi
+        ON gi.memory_id = m.id AND gi.memory_type = m.type
+      LEFT JOIN "gallery" g
+        ON g.id = gi.gallery_id
+      WHERE m.owner_id = ${ownerId}
+      GROUP BY
+        m.type, m.id, m.owner_id, m.title, m.description, m.url, m.created_at, m.updated_at
+      ORDER BY m.created_at DESC
+    `);
+
+    // Normalize the data to typed structure
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const memoriesWithGalleries = rows.map((r: any) => ({
+      id: r.id,
+      type: r.type,
+      owner_id: r.owner_id,
+      title: r.title ?? null,
+      description: r.description ?? null,
+      url: r.url ?? '',
+      created_at: r.created_at?.toISOString ? r.created_at.toISOString() : String(r.created_at),
+      updated_at: r.updated_at ? (r.updated_at.toISOString ? r.updated_at.toISOString() : String(r.updated_at)) : null,
+      galleries: Array.isArray(r.galleries) ? r.galleries : JSON.parse(r.galleries ?? '[]'),
+    })) as MemoryWithGalleries[];
+
+    fatLogger.info('Retrieved memories with galleries', 'be', {
+      operation: 'get_memories_with_galleries',
+      ownerId,
+      count: memoriesWithGalleries.length,
+    });
+
+    return { success: true, data: memoriesWithGalleries };
+  } catch (error) {
+    fatLogger.error('Failed to get memories with galleries', 'be', {
+      error: error instanceof Error ? error : undefined,
+      operation: 'get_memories_with_galleries',
+      ownerId,
+    });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+};
+
+/**
+ * Create a memory with assets in a single operation
+ * This is a higher-level function that combines memory and asset creation
+ */
+export const createMemoryWithAssets = async (params: {
+  // Memory parameters
+  title: string;
+  type: MemoryType;
+  ownerId: string;
+  description?: string;
+  fileCreatedAt?: Date;
+  isPublic?: boolean;
+  parentFolderId?: string | null;
+  tags?: string[];
+  recipients?: string[];
+  unlockDate?: Date | null;
+  metadata?: Record<string, unknown>;
+  storageDuration?: number | null;
+  isOnboarding?: boolean;
+  mode?: string;
+
+  // Asset parameters
+  assets?: Array<{
+    assetType: 'original' | 'display' | 'thumb' | 'placeholder' | 'poster' | 'waveform';
+    variant?: string;
+    url: string;
+    assetLocation: 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs' | 'neon';
+    bucket?: string;
+    storageKey: string;
+    bytes: number;
+    width?: number;
+    height?: number;
+    mimeType: string;
+    sha256?: string;
+    processingStatus?: 'failed' | 'pending' | 'processing' | 'completed';
+    processingError?: string;
+  }>;
+}): Promise<MemoryOperationResult<{ memoryId: string; assets?: unknown[] }>> => {
+  try {
+    // Import asset operations
+    const { createAssetRecord } = await import('./asset-operations');
+
+    // Create memory record
+    const memoryResult = await createMemoryRecord({
+      title: params.title,
+      type: params.type,
+      ownerId: params.ownerId,
+      parentFolderId: params.parentFolderId,
+      tags: params.tags,
+      recipients: params.recipients,
+      unlockDate: params.unlockDate,
+      metadata: params.metadata,
+      storageDuration: params.storageDuration,
+      isOnboarding: params.isOnboarding,
+    });
+
+    if (!memoryResult.success || !memoryResult.data) {
+      return { success: false, error: memoryResult.error || 'Failed to create memory' };
+    }
+
+    const createdMemory = memoryResult.data;
+    const createdAssets: unknown[] = [];
+
+    // Create assets if provided
+    if (params.assets && params.assets.length > 0 && createdMemory) {
+      for (const asset of params.assets) {
+        const assetResult = await createAssetRecord({
+          memoryId: createdMemory.id,
+          assetType: asset.assetType,
+          variant: asset.variant || null,
+          url: asset.url,
+          assetLocation: asset.assetLocation,
+          bucket: asset.bucket || null,
+          storageKey: asset.storageKey,
+          bytes: asset.bytes,
+          width: asset.width || null,
+          height: asset.height || null,
+          mimeType: asset.mimeType,
+          sha256: asset.sha256 || null,
+          processingStatus: asset.processingStatus || 'completed',
+          processingError: asset.processingError || null,
+        });
+
+        if (assetResult.success && assetResult.data) {
+          createdAssets.push(assetResult.data);
+        } else {
+          fatLogger.warn('Failed to create asset', 'be', {
+            operation: 'create_memory_with_assets',
+            memoryId: createdMemory.id,
+            assetType: asset.assetType,
+            error: assetResult.error,
+          });
+        }
+      }
+    }
+
+    fatLogger.info('Created memory with assets', 'be', {
+      operation: 'create_memory_with_assets',
+      memoryId: createdMemory.id,
+      assetsCount: createdAssets.length,
+    });
+
+    return {
+      success: true,
+      data: {
+        memoryId: createdMemory.id,
+        assets: createdAssets.length > 0 ? createdAssets : undefined,
+      },
+    };
+  } catch (error) {
+    fatLogger.error('Failed to create memory with assets', 'be', {
+      error: error instanceof Error ? error : undefined,
+      operation: 'create_memory_with_assets',
+      ownerId: params.ownerId,
+      type: params.type,
+      title: params.title,
+    });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
 };
 
 /**
