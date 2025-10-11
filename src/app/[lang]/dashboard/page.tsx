@@ -37,7 +37,7 @@ import {
   type FolderItem,
 } from '@/services/memories';
 import { ExtendedMemory } from '@/types/dashboard';
-import { TawkChat } from '@/components/chat/tawk-chat';
+// import { TawkChat } from '@/components/chat/tawk-chat';
 import { DashboardTopBar } from '@/components/dashboard/dashboard-top-bar';
 import { sampleDashboardMemories } from '../../../../scripts/mock-data/create-dashboard-sample-data';
 import { useHostingPreferences, getRecommendedDashboardDataSource } from '@/hooks/use-hosting-preferences';
@@ -312,7 +312,7 @@ export default function VaultPage() {
       )}
 
       {/* Tawk.to Chat */}
-      <TawkChat />
+      {/* <TawkChat /> */}
     </div>
   );
 }

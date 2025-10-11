@@ -22,11 +22,15 @@ import { fatLogger } from '@/lib/logger';
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],
+  display: 'swap', // Add font-display: swap for better loading
+  preload: true, // Explicitly enable preloading
 });
 
 const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
   subsets: ['latin'],
+  display: 'swap', // Add font-display: swap for better loading
+  preload: true, // Explicitly enable preloading
 });
 
 // Dynamic metadata based on the current language

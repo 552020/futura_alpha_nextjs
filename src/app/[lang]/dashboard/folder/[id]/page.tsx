@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ItemUploadButton } from '@/components/memory/item-upload-button';
 import { Button } from '@/components/ui/button';
 import { FolderTopBar } from '@/components/dashboard/folder-top-bar';
-import { TawkChat } from '@/components/chat/tawk-chat';
+// import { TawkChat } from '@/components/chat/tawk-chat';
 import { fetchMemories, deleteMemory, type MemoryWithFolder, type DashboardItem } from '@/services/memories';
 import { Memory } from '@/types/memory';
 import { sampleDashboardMemories } from '../../../../../../scripts/mock-data/create-dashboard-sample-data';
@@ -279,7 +279,7 @@ export default function FolderPage() {
       )}
 
       {/* Tawk.to Chat */}
-      <TawkChat />
+      {/* <TawkChat /> */}
     </div>
   );
 }
