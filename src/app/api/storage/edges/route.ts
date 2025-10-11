@@ -1,19 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/db/db';
-import { storageEdges } from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
-
+import { createStorageEdge, getStorageEdges } from '@/services/storage-edges';
 import { fatLogger } from '@/lib/logger';
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { memoryId, memoryType, artifact, backend, present, location, contentHash, sizeBytes, syncState, syncError } =
-      body;
+    const {
+      memoryId,
+      memoryType,
+      artifact,
+      locationMetadata,
+      locationAsset,
+      present,
+      location,
+      contentHash,
+      sizeBytes,
+      syncState,
+      syncError,
+    } = body;
 
     // Validate required fields
-    if (!memoryId || !memoryType || !artifact || !backend) {
+    if (!memoryId || !memoryType || !artifact) {
+      return NextResponse.json({ error: 'Missing required fields: memoryId, memoryType, artifact' }, { status: 400 });
+    }
+
+    // Validate that at least one location field is provided
+    if (!locationMetadata && !locationAsset) {
       return NextResponse.json(
-        { error: 'Missing required fields: memoryId, memoryType, artifact, backend' },
+        { error: 'At least one location field must be provided: locationMetadata or locationAsset' },
         { status: 400 }
       );
     }
@@ -21,7 +34,8 @@ export async function PUT(request: NextRequest) {
     // Validate enum values
     const validMemoryTypes = ['image', 'video', 'note', 'document', 'audio'];
     const validArtifacts = ['metadata', 'asset'];
-    const validBackends = ['neon-db', 'vercel-blob', 'icp-canister'];
+    const validDatabaseHosting = ['neon', 'icp'];
+    const validBlobHosting = ['s3', 'vercel_blob', 'icp', 'arweave', 'ipfs', 'neon'];
     const validSyncStates = ['idle', 'migrating', 'failed'];
 
     if (!validMemoryTypes.includes(memoryType)) {
@@ -38,9 +52,16 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    if (!validBackends.includes(backend)) {
+    if (locationMetadata && !validDatabaseHosting.includes(locationMetadata)) {
       return NextResponse.json(
-        { error: `Invalid backend. Must be one of: ${validBackends.join(', ')}` },
+        { error: `Invalid locationMetadata. Must be one of: ${validDatabaseHosting.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    if (locationAsset && !validBlobHosting.includes(locationAsset)) {
+      return NextResponse.json(
+        { error: `Invalid locationAsset. Must be one of: ${validBlobHosting.join(', ')}` },
         { status: 400 }
       );
     }
@@ -58,49 +79,28 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid memoryId format. Must be a valid UUID' }, { status: 400 });
     }
 
-    // Prepare the data for upsert
-    const edgeData = {
+    // Use the service layer to create storage edge
+    const result = await createStorageEdge({
       memoryId,
       memoryType: memoryType as 'image' | 'video' | 'note' | 'document' | 'audio',
       artifact: artifact as 'metadata' | 'asset',
-      backend: backend as 'neon-db' | 'vercel-blob' | 'icp-canister',
+      locationMetadata: locationMetadata as 'neon' | 'icp' | undefined,
+      locationAsset: locationAsset as 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs' | 'neon' | undefined,
       present: present ?? false,
       location,
       contentHash,
       sizeBytes: sizeBytes ? Number(sizeBytes) : undefined,
       syncState: (syncState as 'idle' | 'migrating' | 'failed') ?? 'idle',
       syncError,
-      updatedAt: new Date(),
-    };
+    });
 
-    // Upsert the storage edge
-    const result = await db
-      .insert(storageEdges)
-      .values(edgeData)
-      .onConflictDoUpdate({
-        target: [
-          storageEdges.memoryId,
-          storageEdges.memoryType,
-          storageEdges.artifact,
-          storageEdges.locationMetadata,
-          storageEdges.locationAsset,
-        ],
-        set: {
-          present: present ?? false,
-          locationUrl: location,
-          contentHash,
-          sizeBytes: sizeBytes ? Number(sizeBytes) : undefined,
-          syncState: (syncState as 'idle' | 'migrating' | 'failed') ?? 'idle',
-          syncError,
-          lastSyncedAt: syncState === 'idle' ? new Date() : undefined,
-          updatedAt: new Date(),
-        },
-      })
-      .returning();
+    if (!result.success) {
+      return NextResponse.json({ error: result.error }, { status: 500 });
+    }
 
     return NextResponse.json({
       success: true,
-      data: result[0],
+      data: result.data,
     });
   } catch (error) {
     fatLogger.error('Error upserting storage edge:', 'be', { data: error instanceof Error ? error : undefined });
@@ -113,47 +113,70 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const memoryId = searchParams.get('memoryId');
     const memoryType = searchParams.get('memoryType');
-    const backend = searchParams.get('backend');
+    const locationMetadata = searchParams.get('locationMetadata');
+    const locationAsset = searchParams.get('locationAsset');
     const artifact = searchParams.get('artifact');
     const syncState = searchParams.get('syncState');
 
-    // Build conditions array
-    const conditions = [];
-    if (memoryId) {
-      conditions.push(eq(storageEdges.memoryId, memoryId));
-    }
-    if (memoryType) {
-      conditions.push(eq(storageEdges.memoryType, memoryType as 'image' | 'video' | 'note' | 'document' | 'audio'));
-    }
-    if (backend) {
-      // Map old backend values to new structure
-      if (backend === 'neon-db') {
-        conditions.push(eq(storageEdges.locationMetadata, 'neon'));
-      } else if (backend === 'vercel-blob') {
-        conditions.push(eq(storageEdges.locationAsset, 'vercel_blob'));
-      } else if (backend === 'icp-canister') {
-        conditions.push(eq(storageEdges.locationAsset, 'icp'));
-      }
-    }
-    if (artifact) {
-      conditions.push(eq(storageEdges.artifact, artifact as 'metadata' | 'asset'));
-    }
-    if (syncState) {
-      conditions.push(eq(storageEdges.syncState, syncState as 'idle' | 'migrating' | 'failed'));
+    // Validate enum values if provided
+    const validMemoryTypes = ['image', 'video', 'note', 'document', 'audio'];
+    const validArtifacts = ['metadata', 'asset'];
+    const validDatabaseHosting = ['neon', 'icp'];
+    const validBlobHosting = ['s3', 'vercel_blob', 'icp', 'arweave', 'ipfs', 'neon'];
+    const validSyncStates = ['idle', 'migrating', 'failed'];
+
+    if (memoryType && !validMemoryTypes.includes(memoryType)) {
+      return NextResponse.json(
+        { error: `Invalid memoryType. Must be one of: ${validMemoryTypes.join(', ')}` },
+        { status: 400 }
+      );
     }
 
-    // Execute query with conditions
-    const result =
-      conditions.length > 0
-        ? await db
-            .select()
-            .from(storageEdges)
-            .where(and(...conditions))
-        : await db.select().from(storageEdges);
+    if (artifact && !validArtifacts.includes(artifact)) {
+      return NextResponse.json(
+        { error: `Invalid artifact. Must be one of: ${validArtifacts.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    if (locationMetadata && !validDatabaseHosting.includes(locationMetadata)) {
+      return NextResponse.json(
+        { error: `Invalid locationMetadata. Must be one of: ${validDatabaseHosting.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    if (locationAsset && !validBlobHosting.includes(locationAsset)) {
+      return NextResponse.json(
+        { error: `Invalid locationAsset. Must be one of: ${validBlobHosting.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    if (syncState && !validSyncStates.includes(syncState)) {
+      return NextResponse.json(
+        { error: `Invalid syncState. Must be one of: ${validSyncStates.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    // Use the service layer to get storage edges
+    const result = await getStorageEdges({
+      memoryId: memoryId || undefined,
+      memoryType: memoryType as 'image' | 'video' | 'note' | 'document' | 'audio' | undefined,
+      artifact: artifact as 'metadata' | 'asset' | undefined,
+      locationMetadata: locationMetadata as 'neon' | 'icp' | undefined,
+      locationAsset: locationAsset as 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs' | 'neon' | undefined,
+      syncState: syncState as 'idle' | 'migrating' | 'failed' | undefined,
+    });
+
+    if (!result.success) {
+      return NextResponse.json({ error: result.error }, { status: 500 });
+    }
 
     return NextResponse.json({
       success: true,
-      data: result,
+      data: result.data,
     });
   } catch (error) {
     fatLogger.error('Error querying storage edges:', 'be', { data: error instanceof Error ? error : undefined });

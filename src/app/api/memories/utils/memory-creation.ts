@@ -1,12 +1,13 @@
 /**
  * MEMORY CREATION UTILITIES
  *
- * This module handles memory creation operations for both JSON and file-based memories.
- * It provides standardized functions for creating memories in the unified schema.
+ * This module provides utility functions for memory creation operations.
+ * All database operations are now handled through the service layer.
  *
  * ARCHITECTURE:
- * - createMemory(): Unified function for all memory creation (schema-based interfaces)
- * - createMemoryFromBlob(): Legacy wrapper for blob-based memory creation
+ * - Uses service layer functions instead of direct database operations
+ * - Maintains the same interface for backward compatibility
+ * - Provides proper error handling and logging
  *
  * USAGE:
  * - Use createMemory() for new code (recommended)
@@ -14,13 +15,10 @@
  * - All functions use schema-based interfaces for type safety
  */
 
-import { db } from '@/db/db';
-import { memories } from '@/db/schema';
-import { randomUUID } from 'crypto';
-import type { NewDBMemory } from '@/db/schema';
+import { createMemoryWithAssets } from '@/services/memory';
 import { fatLogger } from '@/lib/logger';
 
-// Schema-based interfaces for memory creation
+// Schema-based interfaces for memory creation (maintained for backward compatibility)
 export interface CreateMemoryParams {
   // Core memory data (from memories table)
   ownerId: string;
@@ -44,7 +42,7 @@ export interface CreateMemoryParams {
   mode?: string;
 }
 
-// Based on NewDBMemoryAsset from schema.ts
+// Based on NewDBMemoryAsset from schema.ts (maintained for backward compatibility)
 export interface CreateMemoryAssetParams {
   assetType: 'original' | 'display' | 'thumb' | 'placeholder' | 'poster' | 'waveform';
   variant?: string;
@@ -61,185 +59,78 @@ export interface CreateMemoryAssetParams {
   processingError?: string;
 }
 
-// Simple return type
+// Simple return type (maintained for backward compatibility)
 export type CreateMemoryResult = { success: true; memoryId: string } | { success: false; error: string };
-
-/**
- * Resolve the owner ID for memory creation
- * Handles onboarding case by creating temporary users when needed
- */
-async function resolveOwnerId(
-  ownerId: string,
-  isOnboarding?: boolean
-): Promise<{ success: true; ownerId: string } | { success: false; error: string }> {
-  // If we have an owner ID and it's not onboarding, use it directly
-  if (ownerId && !isOnboarding) {
-    return { success: true, ownerId };
-  }
-
-  // Handle onboarding case - create temporary user
-
-  try {
-    const { createTemporaryUserBase } = await import('@/app/api/utils');
-    const result = await createTemporaryUserBase('inviter');
-    const temporaryOwnerId = result.allUser.id;
-
-    return { success: true, ownerId: temporaryOwnerId };
-  } catch (error) {
-    fatLogger.error('Failed to create temporary user for onboarding', 'be', {
-      error: error,
-      operation: 'create_temporary_user',
-      isOnboarding: true,
-    });
-    return {
-      success: false,
-      error: 'Failed to create temporary user for onboarding',
-    };
-  }
-}
-
-/**
- * Create a memory record in the database
- * Returns the created memory with its ID
- */
-async function createMemoryRecord(
-  params: CreateMemoryParams,
-  ownerId: string
-): Promise<{ success: true; memory: NewDBMemory } | { success: false; error: string }> {
-  try {
-    // Create memory record
-    const newMemory: NewDBMemory = {
-      ownerId: ownerId,
-      type: params.type,
-      title: params.title,
-      description: params.description || '',
-      fileCreatedAt: params.fileCreatedAt || new Date(),
-      sharingStatus: params.isPublic ? 'public' : 'private',
-      ownerSecureCode: randomUUID(),
-      parentFolderId: params.parentFolderId || null,
-      tags: params.tags || [],
-      recipients: params.recipients || [],
-      unlockDate: params.unlockDate || null,
-      metadata: params.metadata || {},
-      storageDuration: params.storageDuration || null,
-    };
-    const [createdMemory] = await db.insert(memories).values(newMemory).returning();
-
-    fatLogger.info('Memory created', 'be', {
-      memoryId: createdMemory.id || 'unknown',
-      title: createdMemory.title || 'Untitled',
-      type: createdMemory.type,
-      operation: 'memory_created',
-    });
-    return { success: true, memory: createdMemory };
-  } catch (error) {
-    fatLogger.error('Failed to create memory record', 'be', {
-      error: error,
-      operation: 'create_memory_record',
-      ownerId: ownerId,
-    });
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    };
-  }
-}
-
-/**
- * Create memory assets in the database
- * Returns the created assets
- */
-async function createMemoryAssets(
-  memoryId: string,
-  assets: CreateMemoryAssetParams[]
-): Promise<{ success: true; assets: unknown[] } | { success: false; error: string }> {
-  try {
-    const { memoryAssets } = await import('@/db/schema');
-    const assetData = assets.map(asset => ({
-      memoryId: memoryId,
-      assetType: asset.assetType,
-      variant: asset.variant || null,
-      url: asset.url,
-      assetLocation: asset.assetLocation,
-      bucket: asset.bucket || null,
-      storageKey: asset.storageKey,
-      bytes: asset.bytes,
-      width: asset.width || null,
-      height: asset.height || null,
-      mimeType: asset.mimeType,
-      sha256: asset.sha256 || null,
-      processingStatus: asset.processingStatus || 'completed',
-      processingError: asset.processingError || null,
-    }));
-
-    const createdAssets = await db.insert(memoryAssets).values(assetData).returning();
-
-    fatLogger.info('Created assets for memory', 'be', {
-      operation: 'create_memory_assets',
-      memoryId,
-      count: createdAssets.length,
-    });
-    return { success: true, assets: createdAssets };
-  } catch (error) {
-    fatLogger.error('Failed to create memory assets', 'be', {
-      error: error,
-      operation: 'create_memory_assets',
-      memoryId,
-    });
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    };
-  }
-}
 
 /**
  * Unified memory creation function
  * Creates a memory record with optional assets in the database
  *
+ * This function now uses the service layer instead of direct database operations.
+ * The complex database operations have been moved to the memory service layer.
+ *
  * Note: No runtime validation - relies on TypeScript types for type safety
  */
 export async function createMemory(params: CreateMemoryParams): Promise<CreateMemoryResult> {
   try {
-    // Resolve owner ID (handles onboarding case)
-    const ownerResult = await resolveOwnerId(params.ownerId, params.isOnboarding);
-    if (!ownerResult.success) {
-      return { success: false, error: ownerResult.error };
-    }
-    const ownerId = ownerResult.ownerId;
-
-    // Handle mode logic
-    if (params.mode === 'folder') {
-      // Note: Current folder upload just processes multiple files without creating a folder
-      // TODO: In the future, we could create a folder here and set parentFolderId
-    }
-
-    // Create memory record
-    const memoryResult = await createMemoryRecord(params, ownerId);
-    if (!memoryResult.success) {
-      return { success: false, error: memoryResult.error };
-    }
-    const createdMemory = memoryResult.memory;
-
-    // Create assets if provided
-    if (params.assets && params.assets.length > 0 && createdMemory.id) {
-      const assetsResult = await createMemoryAssets(createdMemory.id, params.assets);
-      if (!assetsResult.success) {
-        return { success: false, error: assetsResult.error };
-      }
-    }
-
-    return {
-      success: true,
-      memoryId: createdMemory.id || '',
-    };
-  } catch (error) {
-    fatLogger.error('Failed to create memory', 'be', {
-      error: error,
+    fatLogger.info('Creating memory with assets', 'be', {
       operation: 'create_memory',
       ownerId: params.ownerId,
       type: params.type,
       title: params.title,
+      hasAssets: !!(params.assets && params.assets.length > 0),
+    });
+
+    // Use the service layer function
+    const result = await createMemoryWithAssets({
+      title: params.title,
+      type: params.type,
+      ownerId: params.ownerId,
+      description: params.description,
+      fileCreatedAt: params.fileCreatedAt,
+      isPublic: params.isPublic,
+      parentFolderId: params.parentFolderId,
+      tags: params.tags,
+      recipients: params.recipients,
+      unlockDate: params.unlockDate,
+      metadata: params.metadata,
+      storageDuration: params.storageDuration,
+      isOnboarding: params.isOnboarding,
+      mode: params.mode,
+      assets: params.assets,
+    });
+
+    if (!result.success) {
+      fatLogger.error('Failed to create memory with assets', 'be', {
+        operation: 'create_memory',
+        ownerId: params.ownerId,
+        type: params.type,
+        title: params.title,
+        error: result.error,
+      });
+      return { success: false, error: result.error || 'Failed to create memory' };
+    }
+
+    fatLogger.info('Successfully created memory with assets', 'be', {
+      operation: 'create_memory',
+      memoryId: result.data?.memoryId,
+      ownerId: params.ownerId,
+      type: params.type,
+      title: params.title,
+      assetsCount: result.data?.assets?.length || 0,
+    });
+
+    return {
+      success: true,
+      memoryId: result.data?.memoryId || '',
+    };
+  } catch (error) {
+    fatLogger.error('Error in createMemory', 'be', {
+      operation: 'create_memory',
+      ownerId: params.ownerId,
+      type: params.type,
+      title: params.title,
+      error: error instanceof Error ? error : undefined,
     });
     return {
       success: false,
@@ -268,6 +159,8 @@ function extractTitleFromPath(pathname: string): string {
 /**
  * Create memory from blob data with automatic type/title extraction
  * This is a convenience wrapper around createMemory()
+ *
+ * This function now uses the service layer instead of direct database operations.
  */
 export async function createMemoryFromBlob(
   blob: {
@@ -285,6 +178,14 @@ export async function createMemoryFromBlob(
   }
 ): Promise<{ success: boolean; memoryId?: string; error?: string }> {
   try {
+    fatLogger.info('Creating memory from blob', 'be', {
+      operation: 'create_memory_from_blob',
+      url: blob.url,
+      size: blob.size,
+      contentType: blob.contentType,
+      allUserId: meta.allUserId,
+    });
+
     // Extract missing information automatically
     const memoryType = extractMemoryType(blob.contentType);
     const title = extractTitleFromPath(blob.pathname);
@@ -317,16 +218,28 @@ export async function createMemoryFromBlob(
       mode: meta.mode,
     };
 
-    // Use the unified createMemory function
-    return await createMemory(params);
+    // Use the unified createMemory function (which now uses the service layer)
+    const result = await createMemory(params);
+
+    if (result.success) {
+      fatLogger.info('Successfully created memory from blob', 'be', {
+        operation: 'create_memory_from_blob',
+        memoryId: result.memoryId,
+        url: blob.url,
+        size: blob.size,
+        contentType: blob.contentType,
+      });
+    }
+
+    return result;
   } catch (error) {
-    fatLogger.error('Failed to create memory from blob', 'be', {
-      error: error,
+    fatLogger.error('Error in createMemoryFromBlob', 'be', {
       operation: 'create_memory_from_blob',
       url: blob.url,
       size: blob.size,
       contentType: blob.contentType,
-      errorMessage: error instanceof Error ? error.message : String(error),
+      allUserId: meta.allUserId,
+      error: error instanceof Error ? error : undefined,
     });
     return {
       success: false,

@@ -11,7 +11,6 @@ export * from './image-processing';
 export * from './image-processing-workflow';
 
 // Database utilities
-export * from './memory-database';
 export * from './queries';
 
 // User management utilities
