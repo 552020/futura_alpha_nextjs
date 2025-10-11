@@ -48,6 +48,9 @@ interface Memory {
     originalPath?: string;
     folderName?: string;
   };
+  storageStatus?: {
+    storageLocations: string[];
+  };
 }
 
 // Allow all possible asset types
@@ -430,7 +433,13 @@ export default function MemoryDetailPage() {
                 <p className="text-sm text-muted-foreground">Saved on {format(new Date(memory.createdAt), 'PPP')}</p>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">Storage:</span>
-                  <MemoryStorageBadge memoryId={memory.id} memoryType={memory.type} size="sm" showTooltip={true} />
+                  <MemoryStorageBadge 
+                    memoryId={memory.id} 
+                    memoryType={memory.type} 
+                    storageStatus={memory.storageStatus}
+                    size="sm" 
+                    showTooltip={true} 
+                  />
                 </div>
               </div>
             </div>

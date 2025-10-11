@@ -9,6 +9,9 @@ interface MemoryStorageBadgeProps {
   size?: 'xs' | 'sm';
   className?: string;
   showTooltip?: boolean;
+  storageStatus?: {
+    storageLocations: string[];
+  };
 }
 
 export function MemoryStorageBadge({
@@ -18,8 +21,29 @@ export function MemoryStorageBadge({
   size = 'xs',
   className = '',
   showTooltip = true,
+  storageStatus,
 }: MemoryStorageBadgeProps) {
-  const { status, data: presenceData } = useMemoryStorageStatus(memoryId, memoryType, dataSource);
+  // DEBUG: Log the incoming props
+  console.log('🔍 [MemoryStorageBadge] memoryId:', memoryId);
+  console.log('🔍 [MemoryStorageBadge] memoryType:', memoryType);
+  console.log('🔍 [MemoryStorageBadge] dataSource:', dataSource);
+  console.log('🔍 [MemoryStorageBadge] hasStorageStatus:', !!storageStatus);
+  console.log('🔍 [MemoryStorageBadge] storageLocations:', storageStatus?.storageLocations);
+
+  // Only call the hook if storageStatus is not provided
+  const { status, data: presenceData } = useMemoryStorageStatus(
+    storageStatus ? '' : memoryId,
+    storageStatus ? '' : memoryType,
+    dataSource
+  );
+
+  // Use provided storageStatus if available, otherwise use hook result
+  const finalStatus: MemoryStorageStatus = storageStatus ? storageStatus.storageLocations : status;
+
+  // DEBUG: Log the final status
+  console.log('🔍 [MemoryStorageBadge] finalStatus:', finalStatus);
+  console.log('🔍 [MemoryStorageBadge] isArray:', Array.isArray(finalStatus));
+  console.log('🔍 [MemoryStorageBadge] statusFromHook:', status);
 
   // Safety check: don't render if required props are missing
   if (!memoryId || !memoryType) {
@@ -27,7 +51,7 @@ export function MemoryStorageBadge({
   }
 
   const getBadgeConfig = () => {
-    if (status === 'loading') {
+    if (finalStatus === 'loading') {
       return {
         text: '',
         variant: 'secondary' as const,
@@ -36,7 +60,7 @@ export function MemoryStorageBadge({
       };
     }
 
-    if (status === 'error') {
+    if (finalStatus === 'error') {
       return {
         text: '?',
         variant: 'secondary' as const,
@@ -46,8 +70,8 @@ export function MemoryStorageBadge({
     }
 
     // Handle array of storage locations
-    if (Array.isArray(status)) {
-      const locations = status;
+    if (Array.isArray(finalStatus)) {
+      const locations = finalStatus;
       const hasIcp = locations.includes('icp');
       const hasNeon = locations.includes('neon');
       const hasOther = locations.some(loc => !['icp', 'neon'].includes(loc));
@@ -115,7 +139,7 @@ export function MemoryStorageBadge({
       variant={config.variant}
       className={`${sizeClasses[size]} font-mono font-medium ${config.className} ${className} flex items-center justify-center`}
     >
-      {status === 'loading' ? <Loader2 className="h-2 w-2 animate-spin" /> : config.text}
+      {finalStatus === 'loading' ? <Loader2 className="h-2 w-2 animate-spin" /> : config.text}
     </Badge>
   );
 
@@ -128,8 +152,8 @@ export function MemoryStorageBadge({
       {badge}
       <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 text-xs text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-20">
         {config.tooltip}
-        {presenceData && Array.isArray(status) && status.length > 0 && (
-          <div className="text-[10px] text-gray-300 mt-1">Locations: {status.join(', ')}</div>
+        {presenceData && Array.isArray(finalStatus) && finalStatus.length > 0 && (
+          <div className="text-[10px] text-gray-300 mt-1">Locations: {finalStatus.join(', ')}</div>
         )}
       </div>
     </div>

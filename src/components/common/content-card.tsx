@@ -271,7 +271,14 @@ function renderStorageBadge(item: FlexibleItem) {
       return <FolderStorageBadge storageSummary={folderItem.storageSummary} size="xs" />;
     } else {
       // Handle individual memory storage badge
-      return <MemoryStorageBadge memoryId={item.id} memoryType={item.type} size="xs" />;
+       return (
+         <MemoryStorageBadge 
+           memoryId={item.id} 
+           memoryType={item.type} 
+           storageStatus={'storageStatus' in item ? item.storageStatus : undefined}
+           size="xs" 
+         />
+       );
     }
   }
   return null;
