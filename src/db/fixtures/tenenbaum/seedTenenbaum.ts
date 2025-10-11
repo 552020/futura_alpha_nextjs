@@ -135,7 +135,7 @@ async function createMemory(memory: Memory, ownerId: string) {
           title: memory.title,
           description: memory.description,
           ownerSecureCode: faker.string.alphanumeric(12),
-          sharingStatus: 'private',
+          isPublic: false,
         })
         .returning();
 
@@ -163,7 +163,7 @@ async function createMemory(memory: Memory, ownerId: string) {
           title: memory.title,
           description: memory.content || '',
           ownerSecureCode: faker.string.alphanumeric(12),
-          sharingStatus: 'private',
+          isPublic: false,
         })
         .returning();
       return { id: note.id, type: 'note' as const };
@@ -179,7 +179,7 @@ async function createMemory(memory: Memory, ownerId: string) {
           title: memory.title,
           description: memory.description,
           ownerSecureCode: faker.string.alphanumeric(12),
-          sharingStatus: 'private',
+          isPublic: false,
         })
         .returning();
 
@@ -207,7 +207,7 @@ async function createMemory(memory: Memory, ownerId: string) {
           title: memory.title,
           description: memory.description,
           ownerSecureCode: faker.string.alphanumeric(12),
-          sharingStatus: 'private',
+          isPublic: false,
         })
         .returning();
 
