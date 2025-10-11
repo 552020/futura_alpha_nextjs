@@ -307,6 +307,10 @@ export interface ImageAssetMetadata {
   'compression_ratio' : [] | [number],
   'orientation' : [] | [number],
 }
+export interface InlineAssetInput {
+  'metadata' : AssetMetadata,
+  'bytes' : Uint8Array | number[],
+}
 export interface InternalBlobAssetInput {
   'metadata' : AssetMetadata,
   'blob_id' : string,
@@ -378,6 +382,7 @@ export interface MemoryHeader {
   'tags' : Array<string>,
   'has_thumbnails' : boolean,
   'has_previews' : boolean,
+  'database_storage_edges' : Array<DatabaseHosting>,
   'description' : [] | [string],
   'created_at' : bigint,
   'thumbnail_url' : [] | [string],
@@ -629,6 +634,14 @@ export interface _SERVICE {
   'list_all_creation_states' : ActorMethod<[], Result_10>,
   'list_all_migration_states' : ActorMethod<[], Result_10>,
   'list_superadmins' : ActorMethod<[], Array<Principal>>,
+  'memories_add_asset' : ActorMethod<
+    [string, InternalBlobAssetInput, string],
+    Result6
+  >,
+  'memories_add_inline_asset' : ActorMethod<
+    [string, InlineAssetInput, string],
+    Result6
+  >,
   'memories_cleanup_assets_all' : ActorMethod<[string], Result_14>,
   'memories_cleanup_assets_bulk' : ActorMethod<[Array<string>], Result_15>,
   'memories_create' : ActorMethod<

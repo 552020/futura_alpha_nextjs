@@ -456,6 +456,14 @@ export const idlFactory = ({ IDL }) => {
     'hosting_preferences' : HostingPreferences,
   });
   const Result_13 = IDL.Variant({ 'Ok' : UserSettingsResponse, 'Err' : Error });
+  const InternalBlobAssetInput = IDL.Record({
+    'metadata' : AssetMetadata,
+    'blob_id' : IDL.Text,
+  });
+  const InlineAssetInput = IDL.Record({
+    'metadata' : AssetMetadata,
+    'bytes' : IDL.Vec(IDL.Nat8),
+  });
   const AssetCleanupResult = IDL.Record({
     'assets_cleaned' : IDL.Nat32,
     'memory_id' : IDL.Text,
@@ -468,10 +476,6 @@ export const idlFactory = ({ IDL }) => {
     'failed' : IDL.Vec(BulkFailure),
   });
   const Result_15 = IDL.Variant({ 'Ok' : BulkResult, 'Err' : Error });
-  const InternalBlobAssetInput = IDL.Record({
-    'metadata' : AssetMetadata,
-    'blob_id' : IDL.Text,
-  });
   const BulkDeleteResult = IDL.Record({
     'deleted_count' : IDL.Nat32,
     'message' : IDL.Text,
@@ -490,6 +494,7 @@ export const idlFactory = ({ IDL }) => {
     'tags' : IDL.Vec(IDL.Text),
     'has_thumbnails' : IDL.Bool,
     'has_previews' : IDL.Bool,
+    'database_storage_edges' : IDL.Vec(DatabaseHosting),
     'description' : IDL.Opt(IDL.Text),
     'created_at' : IDL.Nat64,
     'thumbnail_url' : IDL.Opt(IDL.Text),
@@ -715,6 +720,16 @@ export const idlFactory = ({ IDL }) => {
     'list_all_creation_states' : IDL.Func([], [Result_10], ['query']),
     'list_all_migration_states' : IDL.Func([], [Result_10], ['query']),
     'list_superadmins' : IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
+    'memories_add_asset' : IDL.Func(
+        [IDL.Text, InternalBlobAssetInput, IDL.Text],
+        [Result6],
+        [],
+      ),
+    'memories_add_inline_asset' : IDL.Func(
+        [IDL.Text, InlineAssetInput, IDL.Text],
+        [Result6],
+        [],
+      ),
     'memories_cleanup_assets_all' : IDL.Func([IDL.Text], [Result_14], []),
     'memories_cleanup_assets_bulk' : IDL.Func(
         [IDL.Vec(IDL.Text)],

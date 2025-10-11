@@ -29,6 +29,10 @@ export interface Memory {
     originalPath?: string;
     custom?: Record<string, unknown>;
   };
+  // Storage information
+  storageStatus?: {
+    storageLocations: string[];
+  };
   // Folder-specific properties
   itemCount?: number;
   memories?: Memory[];
