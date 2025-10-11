@@ -150,7 +150,7 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
           );
 
         const sharedWithCount = shareCount[0]?.count || 0;
-        const status = memory.sharingStatus === 'public' ? 'public' : sharedWithCount > 0 ? 'shared' : 'private';
+        const status = sharedWithCount > 0 ? 'shared' : 'private';
 
         return {
           ...memory,
