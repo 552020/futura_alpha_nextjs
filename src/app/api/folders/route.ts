@@ -22,7 +22,6 @@ export async function POST(request: NextRequest) {
       .values({
         ownerId: allUserId,
         name: folderName,
-        title: folderName, // Add required title field
         parentFolderId: parentFolderId || null,
       })
       .returning();

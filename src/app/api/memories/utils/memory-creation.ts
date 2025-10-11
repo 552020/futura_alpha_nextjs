@@ -114,7 +114,7 @@ async function createMemoryRecord(
       title: params.title,
       description: params.description || '',
       fileCreatedAt: params.fileCreatedAt || new Date(),
-      sharingStatus: params.isPublic ? 'public' : 'private',
+      isPublic: params.isPublic || false,
       ownerSecureCode: randomUUID(),
       parentFolderId: params.parentFolderId || null,
       tags: params.tags || [],

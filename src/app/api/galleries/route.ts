@@ -174,14 +174,11 @@ export async function POST(request: NextRequest) {
         title: title || (type === 'from-folder' ? `Gallery from ${folderName}` : 'My Gallery'),
         description:
           description || (type === 'from-folder' ? `Gallery created from folder: ${folderName}` : 'Custom gallery'),
-        sharingStatus: isPublic ? 'public' : 'private',
+        isPublic: isPublic,
         // Storage status fields - will be calculated from memories
         totalMemories: galleryMemories.length,
-        name: (title || (type === 'from-folder' ? `Gallery from ${folderName}` : 'My Gallery'))
-          .toLowerCase()
-          .replace(/\s+/g, '-'),
-        sharedCount: 0,
-        storageLocation: ['s3'],
+        averageStorageDuration: null,
+        storageDistribution: {},
       })
       .returning();
 

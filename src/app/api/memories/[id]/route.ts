@@ -126,7 +126,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         title: title || existingMemory.title,
         description: description !== undefined ? description : existingMemory.description,
         fileCreatedAt: takenAt ? new Date(takenAt) : existingMemory.fileCreatedAt,
-        sharingStatus: isPublic !== undefined ? (isPublic ? 'public' : 'private') : existingMemory.sharingStatus,
+        isPublic: isPublic !== undefined ? isPublic : existingMemory.isPublic,
         parentFolderId: parentFolderId !== undefined ? parentFolderId : existingMemory.parentFolderId,
         updatedAt: new Date(),
       })

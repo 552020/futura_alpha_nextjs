@@ -48,7 +48,7 @@ export function buildNewMemoryAndAsset(
     title: name,
     description: '',
     fileCreatedAt: new Date(),
-    sharingStatus: 'private',
+    isPublic: false,
     parentFolderId: parentFolderId || null,
     ownerSecureCode: randomUUID(),
   };
@@ -162,7 +162,7 @@ export async function storeInNewDatabase(params: {
     title: file.name.split('.')[0],
     description: '',
     fileCreatedAt: new Date(),
-    sharingStatus: 'private',
+    isPublic: false,
     parentFolderId: parentFolderId || null,
     ownerSecureCode: crypto.randomUUID(),
     metadata: {},

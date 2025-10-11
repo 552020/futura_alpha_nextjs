@@ -82,7 +82,7 @@ export const storage_backend_t = pgEnum('storage_backend_t', ['s3', 'vercel_blob
 
 // Constants for application logic
 export const MEMORY_TYPES = ['image', 'document', 'note', 'video', 'audio'] as const;
-export const ACCESS_LEVELS = ['read', 'write'] as const;
+export const _ACCESS_LEVELS = ['read', 'write'] as const;
 export const MEMBER_ROLES = ['admin', 'member'] as const;
 
 // Types of relationships between users (e.g., brother, aunt, friend)
@@ -90,7 +90,7 @@ export const RELATIONSHIP_TYPES = ['friend', 'colleague', 'acquaintance', 'famil
 export type RelationshipType = (typeof RELATIONSHIP_TYPES)[number];
 
 // Types of sharing relationships (based on trust/proximity)
-export const SHARING_RELATIONSHIP_TYPES = [
+export const _SHARING_RELATIONSHIP_TYPES = [
   'close_family', // e.g., parents, siblings
   'family', // extended family
   'partner', // romantic partner
@@ -99,7 +99,7 @@ export const SHARING_RELATIONSHIP_TYPES = [
   'colleague', // work relationships
   'acquaintance', // casual relationships
 ] as const;
-export type SharingRelationshipType = (typeof SHARING_RELATIONSHIP_TYPES)[number];
+export type SharingRelationshipType = (typeof _SHARING_RELATIONSHIP_TYPES)[number];
 
 export const RELATIONSHIP_STATUS = ['pending', 'accepted', 'declined'] as const;
 export type RelationshipStatus = (typeof RELATIONSHIP_STATUS)[number];
@@ -144,7 +144,7 @@ export type CustomMetadata = {
 
 // Type helpers for the enums
 export type MemoryType = (typeof MEMORY_TYPES)[number];
-export type AccessLevel = (typeof ACCESS_LEVELS)[number];
+export type AccessLevel = (typeof _ACCESS_LEVELS)[number];
 export type MemberRole = (typeof MEMBER_ROLES)[number];
 
 // Asset type helpers

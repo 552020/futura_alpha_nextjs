@@ -22,7 +22,7 @@ async function checkMemoryAccess(
 
     if (gallery) {
       // Gallery override: if gallery is public, all memories are accessible
-      if (gallery.sharingStatus === 'public') {
+      if (gallery.isPublic) {
         return true;
       }
 
@@ -66,7 +66,7 @@ async function checkMemoryAccess(
   }
 
   // Check if memory is public
-  if (memory.sharingStatus === 'public') {
+  if (memory.isPublic) {
     return true;
   }
 
@@ -126,7 +126,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     } else {
       // Check if gallery exists and is public (gallery override)
       const publicGallery = await db.query.galleries.findFirst({
-        where: and(eq(galleries.id, galleryId), eq(galleries.sharingStatus, 'public')),
+        where: and(eq(galleries.id, galleryId), eq(galleries.isPublic, true)),
       });
 
       if (publicGallery) {
@@ -358,7 +358,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       .set({
         title: title !== undefined ? title : existingGallery.title,
         description: description !== undefined ? description : existingGallery.description,
-        sharingStatus: isPublic !== undefined ? (isPublic ? 'public' : 'private') : existingGallery.sharingStatus,
+        isPublic: isPublic !== undefined ? isPublic : existingGallery.isPublic,
         updatedAt: new Date(),
       })
       .where(eq(galleries.id, galleryId))

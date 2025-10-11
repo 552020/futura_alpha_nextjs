@@ -362,7 +362,7 @@ function GalleryViewContent() {
       setIsUpdating(true);
       const updatedGallery = await galleryService.updateGallery(
         gallery.id,
-        { isPublic: gallery.sharingStatus === 'public' ? false : true },
+        { isPublic: !gallery.isPublic },
         USE_MOCK_DATA
       );
       setGallery(updatedGallery);
@@ -555,7 +555,7 @@ function GalleryViewContent() {
 
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="text-xs font-normal">
-                {gallery.sharingStatus === 'public' ? (
+                {gallery.isPublic ? (
                   <>
                     <Globe className="h-3 w-3 mr-1" />
                     Public
@@ -575,8 +575,8 @@ function GalleryViewContent() {
                 disabled={isUpdating}
                 className="flex items-center gap-2"
               >
-                {gallery.sharingStatus === 'public' ? <Globe className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-                {gallery.sharingStatus === 'public' ? 'Make Private' : 'Make Public'}
+                {gallery.isPublic ? <Globe className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+                {gallery.isPublic ? 'Make Private' : 'Make Public'}
               </Button>
 
               <Button

@@ -36,6 +36,8 @@ function generateGalleryItem(galleryId: string, index: number, title: string, de
     caption: title,
     isFeatured: index === 0, // First item is featured
     metadata: {},
+    createdAt: new Date('2025-06-03T17:13:04.316Z'),
+    updatedAt: new Date('2025-06-03T17:13:04.316Z'),
     memory: generateMemory(memoryId, title, description),
   };
 }
@@ -50,14 +52,13 @@ function generateGallery(id: string, title: string, description: string, itemCou
     id,
     title,
     description,
-    name: title.toLowerCase().replace(/\s+/g, '-'), // Convert title to URL-safe name
+    isPublic: false,
     createdAt: new Date('2025-06-03T17:13:04.316Z'),
     updatedAt: new Date('2025-06-03T17:13:04.316Z'),
     ownerId: 'mock-user-1',
     totalMemories: itemCount,
-    sharingStatus: 'private',
-    sharedCount: 0,
-    storageLocation: ['s3'],
+    averageStorageDuration: null,
+    storageDistribution: {},
     items,
     imageCount: itemCount,
     isOwner: true,
