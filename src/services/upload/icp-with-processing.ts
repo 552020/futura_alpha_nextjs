@@ -11,7 +11,7 @@
 
 // import { randomUUID } from 'crypto'; // Not used in this file
 
-import { detectMemoryTypeFromFile } from '@/utils/memory-type';
+// import { detectMemoryTypeFromFile } from '@/utils/memory-type'; // Not used in this file
 import { processImageDerivativesPure, type ProcessedBlobs } from './image-derivatives';
 // import { finalizeAllAssets, type ProcessedAssets } from './finalize'; // Not used for ICP-only uploads
 import { type ProcessedAssets } from './finalize';
@@ -113,28 +113,14 @@ export async function uploadFileAndCreateMemoryWithDerivatives(
     const laneAResult = await Promise.allSettled([laneAPromise]).then(results => results[0]);
     const laneBResult = laneBPromise ? await Promise.allSettled([laneBPromise]).then(results => results[0]) : null;
 
-    // 3. Create storage edges for all artifacts (after both lanes complete)
+    // 3. Add derivative assets to existing memory using new endpoints
     if (laneAResult.status === 'fulfilled') {
       const icpMemoryId = laneAResult.value.data.id;
-      const originalResult = laneAResult.value.results[0];
 
-      // Create storage edges for original + derivatives
-      const derivativeAssets =
-        laneBResult?.status === 'fulfilled'
-          ? {
-              display: laneBResult.value.display
-                ? { blobId: laneBResult.value.display.storageKey || '', size: laneBResult.value.display.bytes || 0 }
-                : undefined,
-              thumb: laneBResult.value.thumb
-                ? { blobId: laneBResult.value.thumb.storageKey || '', size: laneBResult.value.thumb.bytes || 0 }
-                : undefined,
-              placeholder: laneBResult.value.placeholder
-                ? { blobId: 'inline', size: laneBResult.value.placeholder.bytes || 0 }
-                : undefined,
-            }
-          : {};
-
-      await createStorageEdgesForAllAssets(icpMemoryId, file, originalResult.blobId, derivativeAssets);
+      // Add derivatives to existing memory using new asset addition endpoints
+      if (laneBResult?.status === 'fulfilled' && laneBResult.value) {
+        await addDerivativeAssetsToMemory(icpMemoryId, laneBResult.value, file);
+      }
     }
 
     // Return Lane A result (original upload + memory creation)
@@ -991,115 +977,177 @@ async function createICPMemoryWithOriginalBlob(file: File, originalBlobId: strin
 }
 
 /**
- * Create storage edges for all artifacts
+ * Add derivative assets to existing memory using new asset addition endpoints
  */
-async function createStorageEdgesForAllAssets(
+async function addDerivativeAssetsToMemory(
   icpMemoryId: string,
-  file: File,
-  originalBlobId: string,
-  derivativeAssets: {
-    display?: { blobId: string; size: number };
-    thumb?: { blobId: string; size: number };
-    placeholder?: { blobId: string; size: number };
-  }
+  derivativeAssets: ProcessedAssets,
+  file: File
 ): Promise<void> {
   try {
-    console.log(`🔗 Creating storage edges for memory: ${icpMemoryId}`);
+    console.log(`🔗 Adding derivative assets to memory: ${icpMemoryId}`);
 
-    const memoryType = detectMemoryTypeFromFile(file);
-    const edges = [];
-
-    // 1. Metadata edge for ICP canister
-    edges.push({
-      memoryId: icpMemoryId,
-      memoryType: memoryType,
-      artifact: 'metadata',
-      locationMetadata: 'icp',
-      present: true,
-      location: `icp://memory/${icpMemoryId}`,
-      contentHash: null,
-      sizeBytes: null,
-      syncState: 'idle',
-      syncError: null,
-    });
-
-    // 2. Original asset edge
-    edges.push({
-      memoryId: icpMemoryId,
-      memoryType: memoryType,
-      artifact: 'asset',
-      locationAsset: 'icp',
-      present: true,
-      location: `icp://blob/${originalBlobId}`,
-      contentHash: null,
-      sizeBytes: file.size,
-      syncState: 'idle',
-      syncError: null,
-    });
-
-    // 3. Derivative asset edges
-    if (derivativeAssets.display) {
-      edges.push({
-        memoryId: icpMemoryId,
-        memoryType: memoryType,
-        artifact: 'asset',
-        locationAsset: 'icp',
-        present: true,
-        location: `icp://blob/${derivativeAssets.display.blobId}`,
-        contentHash: null,
-        sizeBytes: derivativeAssets.display.size,
-        syncState: 'idle',
-        syncError: null,
-      });
+    // Get authenticated backend actor
+    const authClient = await getAuthClient();
+    if (!authClient.isAuthenticated()) {
+      throw new Error('Please connect your Internet Identity to add assets to memory');
     }
 
-    if (derivativeAssets.thumb) {
-      edges.push({
-        memoryId: icpMemoryId,
-        memoryType: memoryType,
-        artifact: 'asset',
-        locationAsset: 'icp',
-        present: true,
-        location: `icp://blob/${derivativeAssets.thumb.blobId}`,
-        contentHash: null,
-        sizeBytes: derivativeAssets.thumb.size,
-        syncState: 'idle',
-        syncError: null,
-      });
-    }
+    const identity = authClient.getIdentity();
+    const backend = await backendActor(identity);
 
-    if (derivativeAssets.placeholder) {
-      edges.push({
-        memoryId: icpMemoryId,
-        memoryType: memoryType,
-        artifact: 'asset',
-        locationAsset: 'icp',
-        present: true,
-        location: `icp://blob/${derivativeAssets.placeholder.blobId}`,
-        contentHash: null,
-        sizeBytes: derivativeAssets.placeholder.size,
-        syncState: 'idle',
-        syncError: null,
-      });
-    }
+    // Add display derivative if available
+    if (derivativeAssets.display?.storageKey) {
+      const displayAssetMetadata: AssetMetadata = {
+        Image: {
+          dpi: [],
+          color_space: [],
+          base: {
+            url: [],
+            height: [derivativeAssets.display.height || 0],
+            updated_at: BigInt(Date.now()),
+            asset_type: { Display: null } as unknown as AssetType,
+            sha256: [],
+            name: `${file.name}_display`,
+            storage_key: [],
+            tags: [],
+            processing_error: [],
+            mime_type: derivativeAssets.display.mimeType || 'image/jpeg',
+            description: [],
+            created_at: BigInt(Date.now()),
+            deleted_at: [],
+            bytes: BigInt(derivativeAssets.display.bytes || 0),
+            asset_location: [],
+            width: [derivativeAssets.display.width || 0],
+            processing_status: [],
+            bucket: [],
+          },
+          exif_data: [],
+          compression_ratio: [],
+          orientation: [],
+        },
+      };
 
-    // Create storage edges via API endpoint
-    for (const edge of edges) {
-      const response = await fetch('/api/storage/edges', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(edge),
-      });
+      const displayResult = await backend.memories_add_asset(
+        icpMemoryId,
+        {
+          blob_id: derivativeAssets.display.storageKey,
+          metadata: displayAssetMetadata,
+        },
+        `display-${Date.now()}`
+      );
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(`Failed to create storage edge: ${error.error || 'Unknown error'}`);
+      if ('Ok' in displayResult) {
+        console.log(`✅ Added display asset to memory: ${displayResult.Ok}`);
+      } else {
+        console.log(`❌ Failed to add display asset: ${JSON.stringify(displayResult.Err)}`);
       }
     }
 
-    console.log(`✅ Created ${edges.length} storage edges for memory: ${icpMemoryId}`);
+    // Add thumb derivative if available
+    if (derivativeAssets.thumb?.storageKey) {
+      const thumbAssetMetadata: AssetMetadata = {
+        Image: {
+          dpi: [],
+          color_space: [],
+          base: {
+            url: [],
+            height: [derivativeAssets.thumb.height || 0],
+            updated_at: BigInt(Date.now()),
+            asset_type: { Thumbnail: null } as unknown as AssetType,
+            sha256: [],
+            name: `${file.name}_thumb`,
+            storage_key: [],
+            tags: [],
+            processing_error: [],
+            mime_type: derivativeAssets.thumb.mimeType || 'image/jpeg',
+            description: [],
+            created_at: BigInt(Date.now()),
+            deleted_at: [],
+            bytes: BigInt(derivativeAssets.thumb.bytes || 0),
+            asset_location: [],
+            width: [derivativeAssets.thumb.width || 0],
+            processing_status: [],
+            bucket: [],
+          },
+          exif_data: [],
+          compression_ratio: [],
+          orientation: [],
+        },
+      };
+
+      const thumbResult = await backend.memories_add_asset(
+        icpMemoryId,
+        {
+          blob_id: derivativeAssets.thumb.storageKey,
+          metadata: thumbAssetMetadata,
+        },
+        `thumb-${Date.now()}`
+      );
+
+      if ('Ok' in thumbResult) {
+        console.log(`✅ Added thumb asset to memory: ${thumbResult.Ok}`);
+      } else {
+        console.log(`❌ Failed to add thumb asset: ${JSON.stringify(thumbResult.Err)}`);
+      }
+    }
+
+    // Add placeholder as inline asset if available
+    if (derivativeAssets.placeholder?.url) {
+      const placeholderBytes = dataURLtoBytes(derivativeAssets.placeholder.url);
+      
+      const placeholderAssetMetadata: AssetMetadata = {
+        Image: {
+          dpi: [],
+          color_space: [],
+          base: {
+            url: [],
+            height: [derivativeAssets.placeholder.height || 0],
+            updated_at: BigInt(Date.now()),
+            asset_type: { Preview: null } as unknown as AssetType,
+            sha256: [],
+            name: `${file.name}_placeholder`,
+            storage_key: [],
+            tags: [],
+            processing_error: [],
+            mime_type: 'image/jpeg',
+            description: [],
+            created_at: BigInt(Date.now()),
+            deleted_at: [],
+            bytes: BigInt(placeholderBytes.length),
+            asset_location: [],
+            width: [derivativeAssets.placeholder.width || 0],
+            processing_status: [],
+            bucket: [],
+          },
+          exif_data: [],
+          compression_ratio: [],
+          orientation: [],
+        },
+      };
+
+      const placeholderResult = await backend.memories_add_inline_asset(
+        icpMemoryId,
+        {
+          bytes: placeholderBytes,
+          metadata: placeholderAssetMetadata,
+        },
+        `placeholder-${Date.now()}`
+      );
+
+      if ('Ok' in placeholderResult) {
+        console.log(`✅ Added placeholder asset to memory: ${placeholderResult.Ok}`);
+      } else {
+        console.log(`❌ Failed to add placeholder asset: ${JSON.stringify(placeholderResult.Err)}`);
+      }
+    }
+
+    console.log(`✅ Successfully added derivative assets to memory: ${icpMemoryId}`);
   } catch (error) {
-    console.log('❌ Failed to create storage edges:', error instanceof Error ? error.message : 'Unknown error');
+    console.log('❌ Failed to add derivative assets to memory:', error instanceof Error ? error.message : 'Unknown error');
     throw error;
   }
 }
+
+// DEPRECATED: createStorageEdgesForAllAssets function removed
+// Now using addDerivativeAssetsToMemory with new memories_add_asset endpoints

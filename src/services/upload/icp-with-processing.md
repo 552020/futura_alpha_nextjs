@@ -8,9 +8,9 @@ This file implements a sophisticated parallel upload system for the Internet Com
 
 ### Parallel Lanes Approach
 
-- **Lane A**: `uploadOriginalToICP()` - **Original upload + memory creation** (uploads original file + creates ICP memory record)
+- **Lane A**: `uploadOriginalAndCreateMemory()` - **Original upload + memory creation** (uploads original file + creates ICP memory record with original blob)
 - **Lane B**: `processImageDerivativesPure()` + `uploadProcessedAssetsToICP()` - **Derivative processing** (processes derivatives + uploads to ICP)
-- **Post-processing**: `createStorageEdgesForAllAssets()` - **Storage edge creation** (creates storage edges for all artifacts after both lanes complete)
+- **Post-processing**: `addDerivativeAssetsToMemory()` - **Asset addition** (adds derivative assets to existing memory using new `memories_add_asset` endpoints)
 - Both lanes run simultaneously for optimal performance
 
 ### Main Functions
@@ -85,6 +85,13 @@ This file implements a sophisticated parallel upload system for the Internet Com
 - **Purpose**: Creates ICP memory record with original blob reference
 - **Backend Function Used**:
   - `backend.memories_create_with_internal_blobs(capsuleId, memoryMetadata, blobAssets, idempotencyKey)`
+
+#### `addDerivativeAssetsToMemory(icpMemoryId, derivativeAssets, file)`
+
+- **Purpose**: Adds derivative assets to existing memory using new asset addition endpoints
+- **Backend Functions Used**:
+  - `backend.memories_add_asset(memoryId, assetInput, idempotencyKey)` - for display and thumb derivatives
+  - `backend.memories_add_inline_asset(memoryId, inlineAssetInput, idempotencyKey)` - for placeholder inline asset
 - **Returns**: ICP memory ID
 
 #### `createICPMemoryRecordAndEdges(trackingMemoryId, blobAssets, placeholderData, memoryMetadata)`
