@@ -11,7 +11,7 @@
 
 // import { randomUUID } from 'crypto'; // Not used in this file
 
-// import { detectMemoryTypeFromFile } from '@/utils/memory-type'; // Not used in this file
+import { detectMemoryTypeFromFile } from '@/utils/memory-type';
 import { processImageDerivativesPure, type ProcessedBlobs } from './image-derivatives';
 // import { finalizeAllAssets, type ProcessedAssets } from './finalize'; // Not used for ICP-only uploads
 import { type ProcessedAssets } from './finalize';
@@ -116,11 +116,30 @@ export async function uploadFileAndCreateMemoryWithDerivatives(
     // 3. Add derivative assets to existing memory using new endpoints
     if (laneAResult.status === 'fulfilled') {
       const icpMemoryId = laneAResult.value.data.id;
+      const originalResult = laneAResult.value.results[0];
 
       // Add derivatives to existing memory using new asset addition endpoints
       if (laneBResult?.status === 'fulfilled' && laneBResult.value) {
         await addDerivativeAssetsToMemory(icpMemoryId, laneBResult.value, file);
       }
+
+      // 4. Create storage edges for all artifacts (after asset addition)
+      const derivativeAssets =
+        laneBResult?.status === 'fulfilled'
+          ? {
+              display: laneBResult.value.display
+                ? { blobId: laneBResult.value.display.storageKey || '', size: laneBResult.value.display.bytes || 0 }
+                : undefined,
+              thumb: laneBResult.value.thumb
+                ? { blobId: laneBResult.value.thumb.storageKey || '', size: laneBResult.value.thumb.bytes || 0 }
+                : undefined,
+              placeholder: laneBResult.value.placeholder
+                ? { blobId: 'inline', size: laneBResult.value.placeholder.bytes || 0 }
+                : undefined,
+            }
+          : {};
+
+      await createStorageEdgesForAllAssets(icpMemoryId, file, originalResult.blobId, derivativeAssets);
     }
 
     // Return Lane A result (original upload + memory creation)
@@ -1152,5 +1171,117 @@ async function addDerivativeAssetsToMemory(
   }
 }
 
-// DEPRECATED: createStorageEdgesForAllAssets function removed
-// Now using addDerivativeAssetsToMemory with new memories_add_asset endpoints
+/**
+ * Create storage edges for all artifacts
+ * This tracks where each asset is stored for storage management and retrieval
+ */
+async function createStorageEdgesForAllAssets(
+  icpMemoryId: string,
+  file: File,
+  originalBlobId: string,
+  derivativeAssets: {
+    display?: { blobId: string; size: number };
+    thumb?: { blobId: string; size: number };
+    placeholder?: { blobId: string; size: number };
+  }
+): Promise<void> {
+  try {
+    console.log(`🔗 Creating storage edges for memory: ${icpMemoryId}`);
+
+    const memoryType = detectMemoryTypeFromFile(file);
+    const edges = [];
+
+    // 1. Metadata edge for ICP canister
+    edges.push({
+      memoryId: icpMemoryId,
+      memoryType: memoryType,
+      artifact: 'metadata',
+      locationMetadata: 'icp',
+      present: true,
+      location: `icp://memory/${icpMemoryId}`,
+      contentHash: null,
+      sizeBytes: null,
+      syncState: 'idle',
+      syncError: null,
+    });
+
+    // 2. Original asset edge
+    edges.push({
+      memoryId: icpMemoryId,
+      memoryType: memoryType,
+      artifact: 'asset',
+      locationAsset: 'icp',
+      present: true,
+      location: `icp://blob/${originalBlobId}`,
+      contentHash: null,
+      sizeBytes: file.size,
+      syncState: 'idle',
+      syncError: null,
+    });
+
+    // 3. Derivative asset edges
+    if (derivativeAssets.display) {
+      edges.push({
+        memoryId: icpMemoryId,
+        memoryType: memoryType,
+        artifact: 'asset',
+        locationAsset: 'icp',
+        present: true,
+        location: `icp://blob/${derivativeAssets.display.blobId}`,
+        contentHash: null,
+        sizeBytes: derivativeAssets.display.size,
+        syncState: 'idle',
+        syncError: null,
+      });
+    }
+
+    if (derivativeAssets.thumb) {
+      edges.push({
+        memoryId: icpMemoryId,
+        memoryType: memoryType,
+        artifact: 'asset',
+        locationAsset: 'icp',
+        present: true,
+        location: `icp://blob/${derivativeAssets.thumb.blobId}`,
+        contentHash: null,
+        sizeBytes: derivativeAssets.thumb.size,
+        syncState: 'idle',
+        syncError: null,
+      });
+    }
+
+    if (derivativeAssets.placeholder) {
+      edges.push({
+        memoryId: icpMemoryId,
+        memoryType: memoryType,
+        artifact: 'asset',
+        locationAsset: 'icp',
+        present: true,
+        location: `icp://blob/${derivativeAssets.placeholder.blobId}`,
+        contentHash: null,
+        sizeBytes: derivativeAssets.placeholder.size,
+        syncState: 'idle',
+        syncError: null,
+      });
+    }
+
+    // Create storage edges via API endpoint
+    for (const edge of edges) {
+      const response = await fetch('/api/storage/edges', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(edge),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(`Failed to create storage edge: ${error.error || 'Unknown error'}`);
+      }
+    }
+
+    console.log(`✅ Created ${edges.length} storage edges for memory: ${icpMemoryId}`);
+  } catch (error) {
+    console.log('❌ Failed to create storage edges:', error instanceof Error ? error.message : 'Unknown error');
+    throw error;
+  }
+}

@@ -11,6 +11,7 @@ This file implements a sophisticated parallel upload system for the Internet Com
 - **Lane A**: `uploadOriginalAndCreateMemory()` - **Original upload + memory creation** (uploads original file + creates ICP memory record with original blob)
 - **Lane B**: `processImageDerivativesPure()` + `uploadProcessedAssetsToICP()` - **Derivative processing** (processes derivatives + uploads to ICP)
 - **Post-processing**: `addDerivativeAssetsToMemory()` - **Asset addition** (adds derivative assets to existing memory using new `memories_add_asset` endpoints)
+- **Final step**: `createStorageEdgesForAllAssets()` - **Storage tracking** (creates storage edges to track where all assets are stored)
 - Both lanes run simultaneously for optimal performance
 
 ### Main Functions
@@ -92,7 +93,12 @@ This file implements a sophisticated parallel upload system for the Internet Com
 - **Backend Functions Used**:
   - `backend.memories_add_asset(memoryId, assetInput, idempotencyKey)` - for display and thumb derivatives
   - `backend.memories_add_inline_asset(memoryId, inlineAssetInput, idempotencyKey)` - for placeholder inline asset
-- **Returns**: ICP memory ID
+
+#### `createStorageEdgesForAllAssets(icpMemoryId, file, originalBlobId, derivativeAssets)`
+
+- **Purpose**: Creates storage edges to track where all assets are stored for storage management and retrieval
+- **Process**: Creates storage edge records for metadata, original asset, and all derivative assets
+- **API Endpoint**: `PUT /api/storage/edges` - creates storage edge records
 
 #### `createICPMemoryRecordAndEdges(trackingMemoryId, blobAssets, placeholderData, memoryMetadata)`
 
