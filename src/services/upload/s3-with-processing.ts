@@ -13,7 +13,7 @@ import { finalizeAllAssets, type ProcessedAssets } from './finalize';
 import { detectMemoryTypeFromFile } from '@/utils/memory-type';
 import {
   uploadFileWithProgress,
-  extractFolderName,
+  createFolderIfNeeded,
   // generateS3PublicUrl,
 } from './shared-utils';
 import { type UploadServiceResult } from './types';
@@ -222,34 +222,6 @@ export async function uploadMultipleToS3WithProcessing(
  * Lane A: Upload all original files to S3 using batch presigned URLs
  * (This function is now called uploadOriginalToS3)
  */
-
-/**
- * Create folder for directory mode uploads
- * STEP 4 of the upload pipeline (uploadMultipleToS3WithProcessing in s3-with-processing.ts)
- */
-async function createFolderIfNeeded(mode: 'directory' | 'multiple-files', files: File[]): Promise<string | undefined> {
-  if (mode !== 'directory') {
-    return undefined;
-  }
-
-  const folderName = extractFolderName(files[0]);
-
-  const folderResponse = await fetch('/api/folders', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ folderName }),
-  });
-
-  if (!folderResponse.ok) {
-    const error = await folderResponse.json();
-    throw new Error(error.error || 'Failed to create folder');
-  }
-
-  const { folder } = await folderResponse.json();
-  return folder.id;
-}
 
 /**
  * Process image derivatives for multiple files using pure processing + S3 upload
