@@ -17,8 +17,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
-import { allUsers, memories, memoryAssets, memoryShares } from '@/db/schema';
-import { eq, desc, sql, and } from 'drizzle-orm';
+import { allUsers, memories, memoryAssets, resourceMembership } from '@/db/schema';
+import { eq, desc, sql, and, ne } from 'drizzle-orm';
 import { fetchMemoriesWithGalleries } from './utils/queries';
 import { generateBestAssetUrl } from '@/lib/presigned-url-utils';
 import crypto from 'node:crypto';
@@ -136,15 +136,31 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
           },
     });
 
-    // Calculate share counts for each memory
+    // Calculate share counts for each memory using resourceMembership
     const memoriesWithShareInfo = await Promise.all(
       userMemories.map(async memory => {
-        const shareCount = await db
-          .select({ count: sql<number>`count(*)` })
-          .from(memoryShares)
-          .where(eq(memoryShares.memoryId, memory.id));
+        let sharedWithCount = 0;
+        try {
+          // Count memberships for this memory (excluding the owner)
+          const shareCount = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(resourceMembership)
+            .where(and(
+              eq(resourceMembership.resourceType, 'memory'),
+              eq(resourceMembership.resourceId, memory.id),
+              // Don't count the owner's own membership
+              ne(resourceMembership.allUserId, memory.ownerId)
+            ));
+          sharedWithCount = shareCount[0]?.count || 0;
+        } catch (error) {
+          // Handle potential issues gracefully
+          fatLogger.debug('resourceMembership query failed, assuming no shares', 'be', {
+            memoryId: memory.id,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          sharedWithCount = 0;
+        }
 
-        const sharedWithCount = shareCount[0]?.count || 0;
         const status = memory.sharingStatus === 'public' ? 'public' : sharedWithCount > 0 ? 'shared' : 'private';
 
         return {
@@ -256,10 +272,19 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
     });
   } catch (error) {
     const listError = error instanceof Error ? error : new Error(String(error));
+    console.error('Detailed error in memories API:', {
+      error: listError,
+      message: listError.message,
+      stack: listError.stack,
+      userId: session?.user?.id,
+    });
     fatLogger.error('Error listing memories', 'be', {
       error: listError,
       userId: session?.user?.id,
     });
-    return NextResponse.json({ error: 'Failed to list memories' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Failed to list memories',
+      details: listError.message 
+    }, { status: 500 });
   }
 }

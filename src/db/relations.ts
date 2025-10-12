@@ -177,6 +177,14 @@ export const userSettingsRelations = relations(userSettings, ({ one }) => ({
   }),
 }));
 
+// User hosting preferences relations
+export const userHostingPreferencesRelations = relations(userHostingPreferences, ({ one }) => ({
+  user: one(users, {
+    fields: [userHostingPreferences.userId],
+    references: [users.id],
+  }),
+}));
+
 /**
  * USER TABLE RELATIONS - Drizzle ORM query helpers for the users table
  *

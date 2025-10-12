@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { db } from '@/db/db';
-import { memoryShares, allUsers } from '@/db/schema';
+import { resourceMembership, allUsers } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { findMemory } from '@/app/api/memories/utils/memory';
 import { MemoryViewer } from '@/components/memory/memory-viewer';
@@ -70,18 +70,22 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
       timestamp: new Date().toISOString(),
     });
 
-    // Check if the user has access to this memory
-    const share = await db.query.memoryShares.findFirst({
-      where: and(eq(memoryShares.memoryId, id), eq(memoryShares.sharedWithId, allUserRecord.id)),
+    // Check if the user has access to this memory via resourceMembership
+    const membership = await db.query.resourceMembership.findFirst({
+      where: and(
+        eq(resourceMembership.resourceType, 'memory'),
+        eq(resourceMembership.resourceId, id),
+        eq(resourceMembership.allUserId, allUserRecord.id)
+      ),
     });
 
-    fatLogger.info('🔍 DEBUG SharedMemoryPage - Share Check:', 'fe', {
-      hasShare: !!share,
-      shareDetails: share
+    fatLogger.info('🔍 DEBUG SharedMemoryPage - Membership Check:', 'fe', {
+      hasMembership: !!membership,
+      membershipDetails: membership
         ? {
-            accessLevel: share.accessLevel,
-            sharedWithId: share.sharedWithId,
-            memoryId: share.memoryId,
+            role: membership.role,
+            grantSource: membership.grantSource,
+            resourceId: membership.resourceId,
           }
         : null,
       timestamp: new Date().toISOString(),
@@ -89,12 +93,12 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
 
     // User should have access if they are either:
     // 1. The owner of the memory OR
-    // 2. Have a share record
-    if (!isOwner && !share) {
+    // 2. Have a membership record
+    if (!isOwner && !membership) {
       fatLogger.info('❌ DEBUG SharedMemoryPage - Access Denied:', 'fe', {
-        reason: 'User is not owner and has no share record',
+        reason: 'User is not owner and has no membership record',
         isOwner,
-        hasShare: !!share,
+        hasMembership: !!membership,
         userId: allUserRecord.id,
         memoryId: id,
         timestamp: new Date().toISOString(),
@@ -102,13 +106,32 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
       notFound();
     }
 
+    // Convert membership role to access level
+    let accessLevel: 'read' | 'write' = 'read';
+    if (isOwner) {
+      accessLevel = 'write';
+    } else if (membership) {
+      switch (membership.role) {
+        case 'owner':
+        case 'superadmin':
+        case 'admin':
+          accessLevel = 'write';
+          break;
+        case 'member':
+          accessLevel = 'write';
+          break;
+        case 'guest':
+        default:
+          accessLevel = 'read';
+          break;
+      }
+    }
+
     fatLogger.info('✅ DEBUG SharedMemoryPage - Access Granted:', 'fe', {
-      reason: isOwner ? 'User is owner' : 'User has share record',
-      accessLevel: isOwner ? 'write' : share?.accessLevel || 'read',
+      reason: isOwner ? 'User is owner' : 'User has membership record',
+      accessLevel,
       timestamp: new Date().toISOString(),
     });
-
-    const accessLevel = isOwner ? 'write' : share?.accessLevel || 'read';
 
     return (
       <div className="container mx-auto py-8">

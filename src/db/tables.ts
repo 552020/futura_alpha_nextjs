@@ -27,6 +27,9 @@ import {
   blob_hosting_t,
   asset_type_t,
   processing_status_t,
+  resource_type_t,
+  grant_source_t,
+  membership_role_t,
   // Import constants
   MEMORY_TYPES,
   ACCESS_LEVELS,
@@ -274,7 +277,7 @@ export const authenticators = pgTable(
  *
  * COMPOSITION:
  * - Basic info: id, title, description, takenAt, type
- * - Ownership: ownerId, ownerSecureCode, isPublic
+ * - Ownership: ownerId, ownerSecureCode, sharingStatus
  * - Organization: parentFolderId
  * - Tags: tags (for fast search and queries)
  * - Flexible metadata: metadata JSON field for additional data
@@ -322,8 +325,13 @@ export const memories = pgTable(
       .references(() => allUsers.id, { onDelete: 'cascade' }),
     type: memory_type_t('type').notNull(),
     title: text('title'),
+    name: text('name'), // Added to match database schema
     description: text('description'),
-    isPublic: boolean('is_public').default(false).notNull(),
+    sharingStatus: text('sharing_status', {
+      enum: ['private', 'public', 'unlisted', 'password_protected'],
+    })
+      .default('private')
+      .notNull(), // Replaced isPublic with sharingStatus
     ownerSecureCode: text('owner_secure_code').notNull(),
     parentFolderId: uuid('parent_folder_id'),
     // Tags for better performance and search
@@ -345,17 +353,17 @@ export const memories = pgTable(
         custom?: Record<string, unknown>;
       }>()
       .default({}),
-    // Storage status fields
+    // Storage duration field (from actual database) - removed storageLocations and storageCount
     storageDuration: integer('storage_duration'), // Duration in days, null for permanent
   },
   table => [
     // Performance indexes for common queries
     index('memories_owner_created_idx').on(table.ownerId, table.createdAt.desc()),
     index('memories_type_idx').on(table.type),
-    index('memories_public_idx').on(table.isPublic),
+    index('memories_sharing_status_idx').on(table.sharingStatus), // Updated index name to match database
     // Performance indexes for tags and people
     index('memories_tags_idx').on(table.tags),
-    // Storage status indexes
+    // Performance index for storage duration
     index('memories_storage_duration_idx').on(table.storageDuration),
   ]
 );
@@ -474,7 +482,8 @@ export const folders = pgTable(
     ownerId: text('owner_id')
       .notNull()
       .references(() => allUsers.id, { onDelete: 'cascade' }),
-    name: text('name').notNull(),
+    title: text('title').notNull(), // ✅ ADDED: User-facing display name
+    name: text('name').notNull(), // ✅ URL-safe identifier (auto-generated from title)
     parentFolderId: uuid('parent_folder_id'), // Self-referencing FK for nested folders
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
@@ -737,42 +746,86 @@ export const memoryComments = pgTable(
   ]
 );
 
-// This table supports three types of sharing:
-// 1. Direct user sharing (sharedWithId)
-// 2. Group sharing (groupId)
-// 3. Relationship-based sharing (sharedRelationshipType)
-// Only one of these sharing methods should be used per record.
-// Relationship-based sharing is dynamic - access is determined by current relationships
-// rather than static lists, making it more maintainable and accurate.
-// Note: Application logic must enforce that exactly one of sharedWithId, groupId, or sharedRelationshipType is set.
-export const memoryShares = pgTable('memory_share', {
-  id: text('id')
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  memoryId: uuid('memory_id').notNull(), // The ID of the memory (e.g., image, note, document)
-  memoryType: text('memory_type', { enum: MEMORY_TYPES }).notNull(), // Type of memory (e.g., "image", "note", "document", "video")
-  ownerId: text('owner_id') // The user who originally created (or owns) the memory
-    .notNull()
-    .references(() => allUsers.id, { onDelete: 'cascade' }),
+/**
+ * RESOURCE MEMBERSHIP TABLE - Universal sharing system
+ *
+ * This table provides a universal sharing system that works across all resource types
+ * (memories, galleries, folders). It uses a bitmask permission system and tracks
+ * the provenance of each grant for better security and auditability.
+ *
+ * COMPOSITION:
+ * - Resource: resourceType + resourceId (what is being shared)
+ * - Principal: allUserId (who has access)
+ * - Provenance: grantSource + sourceId (how they got access)
+ * - Permissions: role + permMask (what they can do)
+ * - Audit: invitedBy + timestamps (tracking)
+ *
+ * GRANT SOURCES:
+ * - user: Direct sharing by another user
+ * - group: Access via group membership
+ * - magic_link: Access via magic link
+ * - public_mode: Public resource access
+ * - system: System-granted access (e.g., ownership)
+ *
+ * ROLES:
+ * - owner: Full control over resource
+ * - superadmin: Administrative access
+ * - admin: Management access
+ * - member: Standard access
+ * - guest: Limited access
+ *
+ * USAGE EXAMPLES:
+ * ```typescript
+ * // Get all users with access to a memory
+ * const memberships = await db.select()
+ *   .from(resourceMembership)
+ *   .where(and(
+ *     eq(resourceMembership.resourceType, 'memory'),
+ *     eq(resourceMembership.resourceId, memoryId)
+ *   ));
+ *
+ * // Check if user has access to a gallery
+ * const access = await db.query.resourceMembership.findFirst({
+ *   where: and(
+ *     eq(resourceMembership.resourceType, 'gallery'),
+ *     eq(resourceMembership.resourceId, galleryId),
+ *     eq(resourceMembership.allUserId, userId)
+ *   )
+ * });
+ * ```
+ */
+export const resourceMembership = pgTable(
+  'resource_membership',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    resourceType: resource_type_t('resource_type').notNull(),
+    resourceId: text('resource_id').notNull(),
+    allUserId: text('all_user_id')
+      .notNull()
+      .references(() => allUsers.id, { onDelete: 'cascade' }),
 
-  sharedWithType: text('shared_with_type', {
-    enum: ['user', 'group', 'relationship'],
-  }).notNull(),
+    // Provenance of the grant
+    grantSource: grant_source_t('grant_source').notNull(),
+    sourceId: text('source_id'), // e.g., group id or magic_link id
+    role: membership_role_t('role').notNull(),
+    permMask: integer('perm_mask').notNull().default(0),
+    invitedByAllUserId: text('invited_by_all_user_id')
+      .references(() => allUsers.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  t => [
+    index('rm_resource_idx').on(t.resourceType, t.resourceId),
+    index('rm_user_idx').on(t.allUserId),
+    index('rm_role_idx').on(t.role),
+    // Allow multiple grants per principal from different sources
+    index('rm_source_idx').on(t.grantSource, t.sourceId),
+    uniqueIndex('rm_unique_grant').on(t.resourceType, t.resourceId, t.allUserId, t.grantSource, t.sourceId),
+  ]
+);
 
-  sharedWithId: text('shared_with_id') // For direct user sharing
-    .references(() => allUsers.id, { onDelete: 'cascade' }),
-  groupId: text('group_id') // For group sharing
-    .references(() => group.id, { onDelete: 'cascade' }),
-  sharedRelationshipType: text('shared_relationship_type', {
-    // For relationship-based sharing
-    enum: SHARING_RELATIONSHIP_TYPES,
-  }),
-
-  accessLevel: text('access_level', { enum: ACCESS_LEVELS }).default('read').notNull(),
-  inviteeSecureCode: text('invitee_secure_code').notNull(), // For invitee to access the memory
-  inviteeSecureCodeCreatedAt: timestamp('secure_code_created_at', { mode: 'date' }).notNull().defaultNow(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-});
 
 // This table is for shared groups where all members see the same group composition
 // (e.g., book clubs, work teams, shared family groups).
@@ -947,18 +1000,26 @@ export const galleries = pgTable(
       .notNull()
       .references(() => allUsers.id, { onDelete: 'cascade' }),
     title: text('title').notNull(),
+    name: text('name').notNull(), // ✅ ADDED: URL-safe identifier (auto-generated from title)
     description: text('description'),
-    isPublic: boolean('is_public').default(false).notNull(),
+
+    // ✅ ADDED: Pre-computed dashboard fields (same pattern as memories)
+    sharedCount: integer('shared_count').default(0).notNull(), // Count of active shares
+    sharingStatus: text('sharing_status').default('private').notNull(), // "public" | "shared" | "private"
+    totalMemories: integer('total_memories').default(0).notNull(), // Count of memories in gallery
+    storageLocation: jsonb('storage_location').$type<BlobHosting[]>().default(['s3']).notNull(), // ✅ ADDED: Where gallery memories are stored (all in same location(s))
+
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
-    // Storage status fields
-    totalMemories: integer('total_memories').default(0), // Total number of memories in this gallery
-    averageStorageDuration: integer('average_storage_duration'), // Average duration in days, null if all permanent
-    storageDistribution: json('storage_distribution').$type<Record<string, number>>().default({}), // Count of memories per storage backend
+
+    // ❌ REMOVED: averageStorageDuration (not needed)
+    // ❌ REMOVED: storageDistribution (redundant - gallery storage mirrors memory storage)
   },
   table => [
-    // Storage status indexes
-    index('galleries_storage_duration_idx').on(table.averageStorageDuration),
+    // Indexes for efficient queries
+    index('galleries_owner_idx').on(table.ownerId),
+    index('galleries_sharing_status_idx').on(table.sharingStatus),
+    // Note: storageLocation is jsonb array - can't index directly, use GIN index if needed
   ]
 );
 
@@ -977,8 +1038,6 @@ export const galleryItems = pgTable(
     caption: text('caption'),
     isFeatured: boolean('is_featured').default(false).notNull(),
     metadata: json('metadata').$type<Record<string, unknown>>().notNull().default({}),
-    createdAt: timestamp('created_at').defaultNow().notNull(),
-    updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
   t => [
     // Fast ordering inside a gallery
@@ -1170,9 +1229,6 @@ export const userHostingPreferences = pgTable(
     backendHosting: backend_hosting_t('backend_hosting').default('vercel').notNull(),
     databaseHosting: jsonb('database_hosting').$type<DatabaseHosting[]>().default(['neon']).notNull(),
     blobHosting: jsonb('blob_hosting').$type<BlobHosting[]>().default(['s3']).notNull(),
-    // Advanced database switching for dashboard
-    advancedDatabaseSwitching: boolean('advanced_database_switching').default(false),
-    currentDatabaseView: database_hosting_t('current_database_view'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },

@@ -80,10 +80,18 @@ export const processing_status_t = pgEnum('processing_status_t', [
  */
 export const storage_backend_t = pgEnum('storage_backend_t', ['s3', 'vercel_blob', 'icp', 'arweave', 'ipfs', 'neon']);
 
+// Resource Membership Enums - Universal Sharing System
+export const resource_type_t = pgEnum('resource_type_t', ['gallery', 'memory', 'folder']);
+export const grant_source_t = pgEnum('grant_source_t', ['user', 'group', 'magic_link', 'public_mode', 'system']);
+export const membership_role_t = pgEnum('membership_role_t', ['owner', 'superadmin', 'admin', 'member', 'guest']);
+
 // Constants for application logic
 export const MEMORY_TYPES = ['image', 'document', 'note', 'video', 'audio'] as const;
 export const ACCESS_LEVELS = ['read', 'write'] as const;
 export const MEMBER_ROLES = ['admin', 'member'] as const;
+export const RESOURCE_TYPES = ['gallery', 'memory', 'folder'] as const;
+export const GRANT_SOURCES = ['user', 'group', 'magic_link', 'public_mode', 'system'] as const;
+export const MEMBERSHIP_ROLES = ['owner', 'superadmin', 'admin', 'member', 'guest'] as const;
 
 // Types of relationships between users (e.g., brother, aunt, friend)
 export const RELATIONSHIP_TYPES = ['friend', 'colleague', 'acquaintance', 'family', 'other'] as const;
@@ -146,6 +154,9 @@ export type CustomMetadata = {
 export type MemoryType = (typeof MEMORY_TYPES)[number];
 export type AccessLevel = (typeof ACCESS_LEVELS)[number];
 export type MemberRole = (typeof MEMBER_ROLES)[number];
+export type ResourceType = (typeof RESOURCE_TYPES)[number];
+export type GrantSource = (typeof GRANT_SOURCES)[number];
+export type MembershipRole = (typeof MEMBERSHIP_ROLES)[number];
 
 // Asset type helpers
 export type AssetType = (typeof asset_type_t.enumValues)[number];
