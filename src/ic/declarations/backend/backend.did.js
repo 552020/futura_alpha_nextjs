@@ -175,9 +175,9 @@ export const idlFactory = ({ IDL }) => {
     'created_at' : IDL.Nat64,
   });
   const AssetType = IDL.Variant({
-    'Preview' : IDL.Null,
     'Metadata' : IDL.Null,
     'Derivative' : IDL.Null,
+    'Display' : IDL.Null,
     'Original' : IDL.Null,
     'Thumbnail' : IDL.Null,
   });
@@ -260,20 +260,16 @@ export const idlFactory = ({ IDL }) => {
     'date_of_memory' : IDL.Opt(IDL.Nat64),
     'memory_type' : MemoryType,
     'tags' : IDL.Vec(IDL.Text),
-    'has_thumbnails' : IDL.Bool,
     'content_type' : IDL.Text,
     'people_in_memory' : IDL.Opt(IDL.Vec(IDL.Text)),
-    'has_previews' : IDL.Bool,
     'database_storage_edges' : IDL.Vec(DatabaseHosting),
     'description' : IDL.Opt(IDL.Text),
     'created_at' : IDL.Nat64,
     'created_by' : IDL.Opt(IDL.Text),
     'total_size' : IDL.Nat64,
-    'thumbnail_url' : IDL.Opt(IDL.Text),
     'parent_folder_id' : IDL.Opt(IDL.Text),
     'asset_count' : IDL.Nat32,
     'deleted_at' : IDL.Opt(IDL.Nat64),
-    'primary_asset_url' : IDL.Opt(IDL.Text),
     'shared_count' : IDL.Nat32,
     'file_created_at' : IDL.Opt(IDL.Nat64),
     'location' : IDL.Opt(IDL.Text),
@@ -456,6 +452,19 @@ export const idlFactory = ({ IDL }) => {
     'hosting_preferences' : HostingPreferences,
   });
   const Result_13 = IDL.Variant({ 'Ok' : UserSettingsResponse, 'Err' : Error });
+  const HttpRequest = IDL.Record({
+    'url' : IDL.Text,
+    'method' : IDL.Text,
+    'body' : IDL.Vec(IDL.Nat8),
+    'headers' : IDL.Vec(IDL.Tuple(IDL.Text, IDL.Text)),
+    'certificate_version' : IDL.Opt(IDL.Nat16),
+  });
+  const HttpResponse = IDL.Record({
+    'body' : IDL.Vec(IDL.Nat8),
+    'headers' : IDL.Vec(IDL.Tuple(IDL.Text, IDL.Text)),
+    'upgrade' : IDL.Opt(IDL.Bool),
+    'status_code' : IDL.Nat16,
+  });
   const InternalBlobAssetInput = IDL.Record({
     'metadata' : AssetMetadata,
     'blob_id' : IDL.Text,
@@ -482,6 +491,28 @@ export const idlFactory = ({ IDL }) => {
     'failed_count' : IDL.Nat32,
   });
   const Result_16 = IDL.Variant({ 'Ok' : BulkDeleteResult, 'Err' : Error });
+  const AssetKind = IDL.Variant({
+    'Display' : IDL.Null,
+    'Original' : IDL.Null,
+    'Thumbnail' : IDL.Null,
+  });
+  const AssetLink = IDL.Record({
+    'height' : IDL.Opt(IDL.Nat32),
+    'asset_kind' : AssetKind,
+    'token' : IDL.Text,
+    'etag' : IDL.Opt(IDL.Text),
+    'path' : IDL.Text,
+    'content_type' : IDL.Text,
+    'bytes' : IDL.Opt(IDL.Nat64),
+    'asset_id' : IDL.Text,
+    'width' : IDL.Opt(IDL.Nat32),
+    'expires_at_ns' : IDL.Nat,
+  });
+  const AssetLinks = IDL.Record({
+    'thumbnail' : IDL.Opt(AssetLink),
+    'display' : IDL.Opt(AssetLink),
+    'original' : IDL.Opt(AssetLink),
+  });
   const MemoryHeader = IDL.Record({
     'id' : IDL.Text,
     'title' : IDL.Opt(IDL.Text),
@@ -490,17 +521,15 @@ export const idlFactory = ({ IDL }) => {
     'capsule_id' : IDL.Text,
     'memory_type' : MemoryType,
     'name' : IDL.Text,
+    'assets' : AssetLinks,
     'size' : IDL.Nat64,
     'tags' : IDL.Vec(IDL.Text),
-    'has_thumbnails' : IDL.Bool,
-    'has_previews' : IDL.Bool,
     'database_storage_edges' : IDL.Vec(DatabaseHosting),
     'description' : IDL.Opt(IDL.Text),
     'created_at' : IDL.Nat64,
-    'thumbnail_url' : IDL.Opt(IDL.Text),
     'parent_folder_id' : IDL.Opt(IDL.Text),
     'asset_count' : IDL.Nat32,
-    'primary_asset_url' : IDL.Opt(IDL.Text),
+    'placeholder_data' : IDL.Opt(IDL.Text),
     'shared_count' : IDL.Nat32,
   });
   const Page = IDL.Record({
@@ -710,6 +739,7 @@ export const idlFactory = ({ IDL }) => {
       ),
     'get_user_settings' : IDL.Func([], [Result_13], ['query']),
     'greet' : IDL.Func([IDL.Text], [IDL.Text], ['query']),
+    'http_request' : IDL.Func([HttpRequest], [HttpResponse], ['query']),
     'is_migration_enabled' : IDL.Func([], [Result_7], ['query']),
     'is_personal_canister_creation_enabled' : IDL.Func(
         [],
@@ -784,6 +814,21 @@ export const idlFactory = ({ IDL }) => {
       ),
     'memories_update' : IDL.Func([IDL.Text, MemoryUpdateData], [Result_20], []),
     'migrate_capsule' : IDL.Func([], [PersonalCanisterCreationResponse], []),
+    'mint_http_token' : IDL.Func(
+        [IDL.Text, IDL.Vec(IDL.Text), IDL.Opt(IDL.Vec(IDL.Text)), IDL.Nat32],
+        [IDL.Text],
+        ['query'],
+      ),
+    'mint_http_tokens_bulk' : IDL.Func(
+        [
+          IDL.Vec(IDL.Text),
+          IDL.Vec(IDL.Text),
+          IDL.Opt(IDL.Vec(IDL.Text)),
+          IDL.Nat32,
+        ],
+        [IDL.Vec(IDL.Tuple(IDL.Text, IDL.Text))],
+        ['query'],
+      ),
     'register_with_nonce' : IDL.Func([IDL.Text], [Result], []),
     'remove_admin' : IDL.Func([IDL.Principal], [Result], []),
     'sessions_cleanup_expired' : IDL.Func([], [Result6], []),

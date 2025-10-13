@@ -32,6 +32,24 @@ type AssetCleanupResult = record {
   memory_id : text;
   message : text;
 };
+type AssetKind = variant { Display; Original; Thumbnail };
+type AssetLink = record {
+  height : opt nat32;
+  asset_kind : AssetKind;
+  token : text;
+  etag : opt text;
+  path : text;
+  content_type : text;
+  bytes : opt nat64;
+  asset_id : text;
+  width : opt nat32;
+  expires_at_ns : nat;
+};
+type AssetLinks = record {
+  thumbnail : opt AssetLink;
+  display : opt AssetLink;
+  original : opt AssetLink;
+};
 type AssetMetadata = variant {
   Note : NoteAssetMetadata;
   Image : ImageAssetMetadata;
@@ -64,7 +82,7 @@ type AssetRemovalResult = record {
   asset_removed : bool;
   message : text;
 };
-type AssetType = variant { Preview; Metadata; Derivative; Original; Thumbnail };
+type AssetType = variant { Metadata; Derivative; Display; Original; Thumbnail };
 type AudioAssetMetadata = record {
   duration : opt nat64;
   base : AssetMetadataBase;
@@ -272,6 +290,19 @@ type HostingPreferences = record {
   blob_hosting : BlobHosting;
   frontend_hosting : BackendHosting;
 };
+type HttpRequest = record {
+  url : text;
+  method : text;
+  body : blob;
+  headers : vec record { text; text };
+  certificate_version : opt nat16;
+};
+type HttpResponse = record {
+  body : blob;
+  headers : vec record { text; text };
+  upgrade : opt bool;
+  status_code : nat16;
+};
 type ImageAssetMetadata = record {
   dpi : opt nat32;
   color_space : opt text;
@@ -336,17 +367,15 @@ type MemoryHeader = record {
   capsule_id : text;
   memory_type : MemoryType;
   name : text;
+  assets : AssetLinks;
   size : nat64;
   tags : vec text;
-  has_thumbnails : bool;
-  has_previews : bool;
   database_storage_edges : vec DatabaseHosting;
   description : opt text;
   created_at : nat64;
-  thumbnail_url : opt text;
   parent_folder_id : opt text;
   asset_count : nat32;
-  primary_asset_url : opt text;
+  placeholder_data : opt text;
   shared_count : nat32;
 };
 type MemoryMetadata = record {
@@ -356,20 +385,16 @@ type MemoryMetadata = record {
   date_of_memory : opt nat64;
   memory_type : MemoryType;
   tags : vec text;
-  has_thumbnails : bool;
   content_type : text;
   people_in_memory : opt vec text;
-  has_previews : bool;
   database_storage_edges : vec DatabaseHosting;
   description : opt text;
   created_at : nat64;
   created_by : opt text;
   total_size : nat64;
-  thumbnail_url : opt text;
   parent_folder_id : opt text;
   asset_count : nat32;
   deleted_at : opt nat64;
-  primary_asset_url : opt text;
   shared_count : nat32;
   file_created_at : opt nat64;
   location : opt text;
@@ -469,7 +494,7 @@ type VideoAssetMetadata = record {
   bitrate : opt nat64;
   aspect_ratio : opt float32;
 };
-service : {
+service : () -> {
   _probe_inline_len : (opt blob) -> (nat64, blob);
   add_admin : (principal) -> (Result);
   // Get a specific asset from a memory by asset_id
@@ -547,6 +572,7 @@ service : {
   get_user_migration_status : (principal) -> (Result_12) query;
   get_user_settings : () -> (Result_13) query;
   greet : (text) -> (text) query;
+  http_request : (HttpRequest) -> (HttpResponse) query;
   is_migration_enabled : () -> (Result_7) query;
   is_personal_canister_creation_enabled : () -> (Result_7) query;
   list_admins : () -> (vec principal) query;
@@ -593,6 +619,12 @@ service : {
   memories_read_asset : (text, nat32) -> (Result_1) query;
   memories_update : (text, MemoryUpdateData) -> (Result_20);
   migrate_capsule : () -> (PersonalCanisterCreationResponse);
+  mint_http_token : (text, vec text, opt vec text, nat32) -> (text) query;
+  // Bulk token minting for efficient dashboard loading
+  // Returns a vector of (memory_id, token) pairs
+  mint_http_tokens_bulk : (vec text, vec text, opt vec text, nat32) -> (
+      vec record { text; text },
+    ) query;
   register_with_nonce : (text) -> (Result);
   remove_admin : (principal) -> (Result);
   // Clean up expired sessions
