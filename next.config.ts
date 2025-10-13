@@ -85,6 +85,19 @@ const nextConfig: NextConfig = {
         port: '3000',
         pathname: '/images/**',
       },
+      // ICP HTTP gateway for local development
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '4943',
+        pathname: '/asset/**',
+      },
+      {
+        protocol: 'http',
+        hostname: 'uxrrr-q7777-77774-qaaaq-cai.localhost',
+        port: '4943',
+        pathname: '/asset/**',
+      },
       // S3 bucket for user-uploaded images
       {
         protocol: 'https',
@@ -100,6 +113,17 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: '*.s3.amazonaws.com',
+        pathname: '/**',
+      },
+      // ICP canister domains for direct asset serving
+      {
+        protocol: 'https',
+        hostname: '*.ic0.app',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.icp0.io',
         pathname: '/**',
       },
     ],

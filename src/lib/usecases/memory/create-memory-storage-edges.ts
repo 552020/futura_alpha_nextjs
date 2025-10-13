@@ -1,6 +1,6 @@
 /**
  * Create Memory Storage Edges - Use Case
- * 
+ *
  * Orchestrates the creation of storage edge records for a newly created memory.
  * Uses the storage edges service layer for all database operations.
  */
@@ -25,14 +25,16 @@ export interface CreateMemoryStorageEdgesResult {
 
 /**
  * Create storage edges for a newly created memory
- * 
+ *
  * This function creates the necessary storage edge records to track where the memory is stored.
  * It orchestrates calls to the storage edges service layer.
- * 
+ *
  * @param params - Parameters for creating storage edges
  * @returns Result containing created edges or error information
  */
-export async function createMemoryStorageEdges(params: CreateMemoryStorageEdgesParams): Promise<CreateMemoryStorageEdgesResult> {
+export async function createMemoryStorageEdges(
+  params: CreateMemoryStorageEdgesParams
+): Promise<CreateMemoryStorageEdgesResult> {
   const { memoryId, memoryType, url, size, contentHash } = params;
 
   try {
@@ -86,4 +88,3 @@ export async function createMemoryStorageEdges(params: CreateMemoryStorageEdgesP
     };
   }
 }
-

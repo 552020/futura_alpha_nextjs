@@ -1,6 +1,6 @@
 /**
  * Cleanup Memory and Storage - Use Case
- * 
+ *
  * Orchestrates the cleanup of memory storage including S3 objects, storage edges, and memory assets.
  * Uses the memory and storage edges service layers for all database operations.
  */
@@ -48,16 +48,18 @@ export interface CleanupMemoryAndStorageResult {
 
 /**
  * Clean up storage edges and assets for a deleted memory
- * 
+ *
  * This function orchestrates the cleanup of:
  * 1. S3 objects (using S3 utils)
  * 2. Storage edges (using storage edges service)
  * 3. Memory assets (using memory service)
- * 
+ *
  * @param params - Parameters for cleanup operation
  * @returns Result containing cleanup statistics and any errors
  */
-export async function cleanupMemoryAndStorage(params: CleanupMemoryAndStorageParams): Promise<CleanupMemoryAndStorageResult> {
+export async function cleanupMemoryAndStorage(
+  params: CleanupMemoryAndStorageParams
+): Promise<CleanupMemoryAndStorageResult> {
   const { memoryId, memoryType, memoryData } = params;
   const results: {
     deletedEdges: unknown[];
@@ -266,9 +268,7 @@ export async function cleanupMemoryAndStorage(params: CleanupMemoryAndStoragePar
     const deletedAssetsPromises = dbAssets.map(asset => hardDeleteAssetRecord((asset as { id: string }).id));
     const deletedAssetsResults = await Promise.all(deletedAssetsPromises);
 
-    const deletedAssets = deletedAssetsResults
-      .filter(result => result.success)
-      .map(result => result.data);
+    const deletedAssets = deletedAssetsResults.filter(result => result.success).map(result => result.data);
 
     const failedAssetDeletions = deletedAssetsResults.filter(result => !result.success);
     if (failedAssetDeletions.length > 0) {

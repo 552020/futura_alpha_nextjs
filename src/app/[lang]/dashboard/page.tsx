@@ -194,7 +194,10 @@ export default function VaultPage() {
     }
 
     try {
-      const result = await deleteAllMemories({ all: true });
+      const result = await deleteAllMemories({
+        all: true,
+        hostingPreferences: hostingPreferences,
+      });
       // Invalidate and refetch dashboard data
       queryClient.invalidateQueries({ queryKey: qk.memories.dashboard() });
       setFilteredMemories([]);

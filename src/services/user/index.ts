@@ -18,7 +18,7 @@ export {
 } from './user-operations';
 
 // Shared types
-export { 
+export {
   type UserOperationResult,
   type CreateUserParams,
   type CreateAllUserParams,

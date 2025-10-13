@@ -1,12 +1,17 @@
 /**
  * Create Multiple Memories - Use Case
- * 
+ *
  * Orchestrates the batch creation of multiple memories with their associated assets.
  * Uses the memory service layer for all database operations.
  */
 
 import { DBMemory } from '@/db/schema';
-import { createMemoryRecord, createAssetRecords, type CreateMemoryParams, type CreateAssetParams } from '@/services/memory';
+import {
+  createMemoryRecord,
+  createAssetRecords,
+  type CreateMemoryParams,
+  type CreateAssetParams,
+} from '@/services/memory';
 import { buildStorageKey } from '@/lib/storage/s3';
 import { fatLogger } from '@/lib/logger';
 import type { AcceptedMimeType } from '@/app/api/memories/utils/file-processing';
@@ -29,14 +34,16 @@ export interface CreateMultipleMemoriesResult {
 
 /**
  * Process multiple files and create memories/assets in batch
- * 
+ *
  * This function handles the batch processing logic for folder uploads.
  * It orchestrates calls to the memory service layer for creating memories and assets.
- * 
+ *
  * @param params - Parameters for batch creating memories
  * @returns Result containing created memories and assets or error information
  */
-export async function createMultipleMemories(params: CreateMultipleMemoriesParams): Promise<CreateMultipleMemoriesResult> {
+export async function createMultipleMemories(
+  params: CreateMultipleMemoriesParams
+): Promise<CreateMultipleMemoriesResult> {
   const { files, urls, ownerId, parentFolderId, assetLocation = 's3' } = params;
 
   try {
@@ -126,4 +133,3 @@ export async function createMultipleMemories(params: CreateMultipleMemoriesParam
     };
   }
 }
-

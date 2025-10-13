@@ -1,6 +1,6 @@
 /**
  * Build New Memory and Asset - Use Case Helper
- * 
+ *
  * Pure utility function to build memory and asset data structures.
  * No database operations - just data transformation.
  */
@@ -26,10 +26,10 @@ export interface BuildMemoryAndAssetResult {
 
 /**
  * Build memory and asset data for the unified schema
- * 
+ *
  * This function creates the database row data for both memories and memoryAssets tables.
  * It's a pure data transformation function with no side effects.
- * 
+ *
  * @param params - Input parameters for building memory and asset data
  * @returns Object containing memory and asset data structures
  */
@@ -66,4 +66,3 @@ export function buildNewMemoryAndAsset(params: BuildMemoryAndAssetParams): Build
 
   return { memory, asset };
 }
-

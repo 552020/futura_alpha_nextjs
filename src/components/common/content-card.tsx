@@ -135,15 +135,24 @@ function renderPreview(item: FlexibleItem) {
     const blurDataURL = placeholderAsset?.url || getBlurPlaceholder();
 
     if (memory.type === 'image' && (memory.thumbnail || derivedThumb)) {
+      const imageSrc = memory.thumbnail || derivedThumb || '';
+      console.log('🔍 [ContentCard] Image src for memory:', memory.id, 'URL:', imageSrc);
+
       return (
         <Image
-          src={memory.thumbnail || derivedThumb || ''}
+          src={imageSrc}
           alt={memory.title || 'Memory image'}
           fill={true}
           className="object-cover"
           sizes={IMAGE_SIZES.grid}
           placeholder="blur"
           blurDataURL={blurDataURL}
+          onLoad={() => {
+            console.log('🔍 [ContentCard] Image loaded successfully for memory:', memory.id, 'URL:', imageSrc);
+          }}
+          onError={() => {
+            console.log('🔍 [ContentCard] Image error for memory:', memory.id, 'URL:', imageSrc);
+          }}
         />
       );
     }
@@ -271,14 +280,14 @@ function renderStorageBadge(item: FlexibleItem) {
       return <FolderStorageBadge storageSummary={folderItem.storageSummary} size="xs" />;
     } else {
       // Handle individual memory storage badge
-       return (
-         <MemoryStorageBadge 
-           memoryId={item.id} 
-           memoryType={item.type} 
-           storageStatus={'storageStatus' in item ? item.storageStatus : undefined}
-           size="xs" 
-         />
-       );
+      return (
+        <MemoryStorageBadge
+          memoryId={item.id}
+          memoryType={item.type}
+          storageStatus={'storageStatus' in item ? item.storageStatus : undefined}
+          size="xs"
+        />
+      );
     }
   }
   return null;
@@ -399,7 +408,15 @@ export function ContentCard({
                     alt={photoItem.memory.title || 'Photo'}
                     fill={true}
                     className="object-cover"
-                    onError={() => onImageError?.(photoItem.memory.url!)}
+                    onError={() => {
+                      console.log(
+                        '🔍 [ContentCard] Image error for memory:',
+                        photoItem.memory.id,
+                        'URL:',
+                        photoItem.memory.url
+                      );
+                      onImageError?.(photoItem.memory.url!);
+                    }}
                     sizes={IMAGE_SIZES.gallery}
                     placeholder="blur"
                     blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="

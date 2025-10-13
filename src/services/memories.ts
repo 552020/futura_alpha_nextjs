@@ -137,11 +137,11 @@ const fetchMemoriesFromICP = async (page: number): Promise<FetchMemoriesResult> 
     // Get user's capsule ID
     const capsuleResult = await actor.capsules_read_basic([]);
     if (!('Ok' in capsuleResult)) {
-      console.log('Capsule result (expected for new users):', capsuleResult);
+      // Handle capsule not found (expected for new users)
 
       // Check if this is a "no capsule" error (expected for new users)
       if (capsuleResult.Err && typeof capsuleResult.Err === 'object' && 'NotFound' in capsuleResult.Err) {
-        console.log('No capsule found - user likely has no memories yet, returning empty result');
+        // No capsule found - user likely has no memories yet
         return {
           memories: [],
           hasMore: false,
@@ -149,23 +149,20 @@ const fetchMemoriesFromICP = async (page: number): Promise<FetchMemoriesResult> 
       }
 
       // For any other capsule errors, also return empty result (don't throw)
-      console.log('Capsule error, returning empty result:', capsuleResult.Err);
+      // Capsule error, returning empty result
       return {
         memories: [],
         hasMore: false,
       };
     }
     const capsuleId = capsuleResult.Ok.capsule_id;
-    console.log('Using capsule ID:', capsuleId);
 
     // Calculate cursor from page (ICP uses cursor-based pagination)
     const limit: [] | [number] = [12];
     const cursor: [] | [string] = page > 1 ? [((page - 1) * 12).toString()] : [];
 
     // Call ICP canister using the new memories_list_by_capsule function
-    console.log('Calling memories_list_by_capsule with:', { capsuleId, cursor, limit });
     const result = await actor.memories_list_by_capsule(capsuleId, cursor, limit);
-    console.log('memories_list_by_capsule result:', result);
 
     if ('Ok' in result) {
       const icpPage = result.Ok;
@@ -178,11 +175,11 @@ const fetchMemoriesFromICP = async (page: number): Promise<FetchMemoriesResult> 
         hasMore: icpPage.next_cursor !== null,
       };
     } else {
-      console.log('ICP canister result (expected for new users):', result.Err);
+      // Handle ICP canister errors (expected for new users)
 
       // Check if this is a "no capsule" error (expected for new users)
       if (result.Err && typeof result.Err === 'object' && 'NotFound' in result.Err) {
-        console.log('No capsule found - user likely has no memories yet, returning empty result');
+        // No capsule found - user likely has no memories yet
         return {
           memories: [],
           hasMore: false,
@@ -190,7 +187,7 @@ const fetchMemoriesFromICP = async (page: number): Promise<FetchMemoriesResult> 
       }
 
       // For any other errors, also return empty result (don't throw)
-      console.log('ICP canister error, returning empty result:', result.Err);
+      // ICP canister error, returning empty result
       return {
         memories: [],
         hasMore: false,
@@ -253,37 +250,42 @@ const transformICPMemoryHeaderToNeon = (header: MemoryHeader): MemoryWithFolder 
         : undefined,
 
     // Asset URLs - using new AssetLinks structure
-    thumbnail:
-      header.assets.thumbnail.length > 0 && header.assets.thumbnail[0]
-        ? `${getHttpBaseUrl()}${header.assets.thumbnail[0].path}?token=${header.assets.thumbnail[0].token}`
-        : undefined,
-    url:
-      header.assets.display.length > 0 && header.assets.display[0]
-        ? `${getHttpBaseUrl()}${header.assets.display[0].path}?token=${header.assets.display[0].token}`
-        : undefined,
+    thumbnail: (() => {
+      const thumbnailUrl =
+        header.assets.thumbnail.length > 0 && header.assets.thumbnail[0]
+          ? `${getHttpBaseUrl()}${header.assets.thumbnail[0].path}?token=${header.assets.thumbnail[0].token}`
+          : undefined;
+      if (thumbnailUrl && header.assets.thumbnail[0]) {
+        console.log('🔍 [Transform] Generated thumbnail URL for memory:', header.id);
+        console.log('🔍 [Transform] Token:', header.assets.thumbnail[0].token);
+        console.log('🔍 [Transform] Expires at:', new Date(Number(header.assets.thumbnail[0].expires_at_ns / BigInt(1000000))));
+        console.log('🔍 [Transform] Full URL:', thumbnailUrl);
+      }
+      return thumbnailUrl;
+    })(),
+    url: (() => {
+      const displayUrl =
+        header.assets.display.length > 0 && header.assets.display[0]
+          ? `${getHttpBaseUrl()}${header.assets.display[0].path}?token=${header.assets.display[0].token}`
+          : undefined;
+      if (displayUrl && header.assets.display[0]) {
+        console.log('🔍 [Transform] Generated display URL for memory:', header.id);
+        console.log('🔍 [Transform] Token:', header.assets.display[0].token);
+        console.log('🔍 [Transform] Expires at:', new Date(Number(header.assets.display[0].expires_at_ns / BigInt(1000000))));
+        console.log('🔍 [Transform] Full URL:', displayUrl);
+      }
+      return displayUrl;
+    })(),
 
     // NEW: Placeholder data for instant loading
     placeholder: header.placeholder_data.length > 0 ? header.placeholder_data[0] : undefined,
 
     // NEW: Storage location information
     storageStatus: (() => {
-      // DEBUG: Log the raw storage edges data
-      console.log('🔍 [transformICPMemoryHeaderToNeon] memoryId:', header.id);
-      console.log(
-        '🔍 [transformICPMemoryHeaderToNeon] database_storage_edges length:',
-        header.database_storage_edges.length
-      );
-      console.log('🔍 [transformICPMemoryHeaderToNeon] database_storage_edges:', header.database_storage_edges);
-
-      const storageLocations = header.database_storage_edges.map((edge, index) => {
-        console.log(`🔍 [transformICPMemoryHeaderToNeon] Edge ${index}:`, edge);
-        console.log(`🔍 [transformICPMemoryHeaderToNeon] Edge ${index} has 'Icp':`, 'Icp' in edge);
-        console.log(`🔍 [transformICPMemoryHeaderToNeon] Edge ${index} has 'Neon':`, 'Neon' in edge);
-
+      // Process storage edges data
+      const storageLocations = header.database_storage_edges.map(edge => {
         return 'Icp' in edge ? 'icp' : 'Neon' in edge ? 'neon' : 'unknown';
       });
-
-      console.log('🔍 [transformICPMemoryHeaderToNeon] mapped storageLocations:', storageLocations);
 
       // TEMPORARY FIX: If this is an ICP memory (UUID v7 format) and we get 'neon' storage locations,
       // it's likely a backend bug where ICP memories are incorrectly marked as Neon.
@@ -294,7 +296,7 @@ const transformICPMemoryHeaderToNeon = (header: MemoryHeader): MemoryWithFolder 
           ? ['icp'] // Force ICP memories to show as 'icp' storage
           : storageLocations;
 
-      console.log('🔍 [transformICPMemoryHeaderToNeon] final storageLocations:', finalStorageLocations);
+      // Final storage locations determined
 
       return {
         storageLocations: finalStorageLocations,

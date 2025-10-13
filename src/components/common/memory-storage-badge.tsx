@@ -23,12 +23,8 @@ export function MemoryStorageBadge({
   showTooltip = true,
   storageStatus,
 }: MemoryStorageBadgeProps) {
-  // DEBUG: Log the incoming props
-  console.log('🔍 [MemoryStorageBadge] memoryId:', memoryId);
-  console.log('🔍 [MemoryStorageBadge] memoryType:', memoryType);
-  console.log('🔍 [MemoryStorageBadge] dataSource:', dataSource);
-  console.log('🔍 [MemoryStorageBadge] hasStorageStatus:', !!storageStatus);
-  console.log('🔍 [MemoryStorageBadge] storageLocations:', storageStatus?.storageLocations);
+  // DEBUG: Log the incoming props (only in development and when needed)
+  // Removed excessive logging to reduce console noise
 
   // Only call the hook if storageStatus is not provided
   const { status, data: presenceData } = useMemoryStorageStatus(
@@ -40,10 +36,8 @@ export function MemoryStorageBadge({
   // Use provided storageStatus if available, otherwise use hook result
   const finalStatus: MemoryStorageStatus = storageStatus ? storageStatus.storageLocations : status;
 
-  // DEBUG: Log the final status
-  console.log('🔍 [MemoryStorageBadge] finalStatus:', finalStatus);
-  console.log('🔍 [MemoryStorageBadge] isArray:', Array.isArray(finalStatus));
-  console.log('🔍 [MemoryStorageBadge] statusFromHook:', status);
+  // DEBUG: Log the final status (only in development and when needed)
+  // Removed excessive logging to reduce console noise
 
   // Safety check: don't render if required props are missing
   if (!memoryId || !memoryType) {

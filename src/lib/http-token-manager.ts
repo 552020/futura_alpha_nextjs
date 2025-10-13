@@ -79,7 +79,7 @@ export function getHttpBaseUrl(): string {
   const isLocal = process.env.NEXT_PUBLIC_DFX_NETWORK === 'local';
 
   if (isLocal) {
-    return 'http://localhost:4943';
+    return 'http://uxrrr-q7777-77774-qaaaq-cai.localhost:4943';
   }
 
   // Production ICP HTTP gateway

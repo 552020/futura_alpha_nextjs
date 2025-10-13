@@ -23,7 +23,7 @@ export interface Memory {
   deletedAt?: string;
   // Rating information
   rating?: number;
-  
+
   // Flexible metadata
   metadata?: {
     originalPath?: string;

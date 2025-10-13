@@ -1,12 +1,17 @@
 /**
  * Create Memory with Asset - Use Case
- * 
+ *
  * Orchestrates the creation of a single memory with its associated asset and storage edges.
  * Uses the memory and storage edges service layers for all database operations.
  */
 
 import { DBMemory } from '@/db/schema';
-import { createMemoryRecord, createAssetRecords, type CreateMemoryParams, type CreateAssetParams } from '@/services/memory';
+import {
+  createMemoryRecord,
+  createAssetRecords,
+  type CreateMemoryParams,
+  type CreateAssetParams,
+} from '@/services/memory';
 import { createMemoryStorageEdges } from './create-memory-storage-edges';
 import { buildStorageKey } from '@/lib/storage/s3';
 import { fatLogger } from '@/lib/logger';
@@ -38,12 +43,12 @@ export interface CreateMemoryWithAssetResult {
 
 /**
  * Create a single memory with its asset and storage edges
- * 
+ *
  * This function orchestrates the creation of:
  * 1. Memory record using the memory service
- * 2. Asset record using the memory service  
+ * 2. Asset record using the memory service
  * 3. Storage edges using the storage edges service
- * 
+ *
  * @param params - Parameters for creating the memory with asset
  * @returns Result containing the created memory data
  */
@@ -124,4 +129,3 @@ export async function createMemoryWithAsset(params: CreateMemoryWithAssetParams)
     },
   };
 }
-

@@ -179,11 +179,20 @@ export function useMemoryStorageStatus(memoryId: string, memoryType: string, dat
         fatLogger.debug(`❌ [STORAGE STATUS HOOK] Memory ${memoryId} - No storage status data found`, 'fe');
         setStatus('error');
       } catch (error) {
-        // Only log unexpected errors, not 404s for non-existent memories
-        if (error instanceof Error && !error.message.includes('404')) {
+        // Handle different types of errors gracefully
+        if (error instanceof Error) {
+          // Don't log 404s or 400s for deleted/non-existent memories
+          if (error.message.includes('404') || error.message.includes('400')) {
+            fatLogger.debug(`Memory ${memoryId} not found (likely deleted)`, 'fe');
+            setStatus('error');
+            return;
+          }
+
+          // Log other unexpected errors
           fatLogger.error('Error fetching memory storage status:', 'fe', {
             error: error.message,
             stack: error.stack,
+            memoryId,
           });
         }
         setStatus('error');
@@ -256,8 +265,15 @@ export function useBatchMemoryStorageStatus(memories: Array<{ id: string; type: 
               return { key, status: 'error' as MemoryStorageStatus, data: null };
             }
           } catch (error) {
-            // Only log unexpected errors, not 404s for non-existent memories
-            if (error instanceof Error && !error.message.includes('404')) {
+            // Handle different types of errors gracefully
+            if (error instanceof Error) {
+              // Don't log 404s or 400s for deleted/non-existent memories
+              if (error.message.includes('404') || error.message.includes('400')) {
+                fatLogger.debug(`Memory ${memory.id} not found (likely deleted)`, 'fe');
+                return { key, status: 'error' as MemoryStorageStatus, data: null };
+              }
+
+              // Log other unexpected errors
               fatLogger.error(`Error fetching status for memory ${memory.id}:`, 'fe', {
                 error: error.message,
                 stack: error.stack,
