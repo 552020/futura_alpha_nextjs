@@ -1,8 +1,9 @@
 // import { normalizeMemories } from "@/utils/normalizeMemories"; // Unused
 import { Memory } from '@/types/memory';
-import type { MemoryHeader, MemoryType } from '@/ic/declarations/backend/backend.did';
+import type { MemoryHeader, MemoryType } from '@/ic/declarations/backend/backend.did.d';
 
 import { fatLogger } from '@/lib/logger';
+import { getHttpBaseUrl } from '@/lib/http-token-manager';
 // Removed old interfaces - now using unified format
 
 export interface MemoryWithFolder extends Omit<Memory, 'parentFolderId'> {
@@ -24,6 +25,8 @@ export interface MemoryWithFolder extends Omit<Memory, 'parentFolderId'> {
   storageStatus?: {
     storageLocations: string[]; // Array of storage locations: ['icp'], ['neon'], ['icp', 'neon']
   };
+  // NEW: Placeholder data for instant loading
+  placeholder?: string; // Base64 placeholder data
 }
 
 export interface FolderItem {
@@ -249,9 +252,18 @@ const transformICPMemoryHeaderToNeon = (header: MemoryHeader): MemoryWithFolder 
           }
         : undefined,
 
-    // Legacy fields
-    thumbnail: header.thumbnail_url.length > 0 ? header.thumbnail_url[0] : undefined,
-    url: header.primary_asset_url.length > 0 ? header.primary_asset_url[0] : undefined,
+    // Asset URLs - using new AssetLinks structure
+    thumbnail:
+      header.assets.thumbnail.length > 0 && header.assets.thumbnail[0]
+        ? `${getHttpBaseUrl()}${header.assets.thumbnail[0].path}?token=${header.assets.thumbnail[0].token}`
+        : undefined,
+    url:
+      header.assets.display.length > 0 && header.assets.display[0]
+        ? `${getHttpBaseUrl()}${header.assets.display[0].path}?token=${header.assets.display[0].token}`
+        : undefined,
+
+    // NEW: Placeholder data for instant loading
+    placeholder: header.placeholder_data.length > 0 ? header.placeholder_data[0] : undefined,
 
     // NEW: Storage location information
     storageStatus: (() => {
@@ -318,6 +330,25 @@ export const deleteAllMemories = async (options?: {
   type?: 'image' | 'document' | 'note' | 'video' | 'audio';
   folder?: string;
   all?: boolean;
+  hostingPreferences?: { backendHosting?: string; blobHosting?: string[] };
+}): Promise<{ success: boolean; message: string; deletedCount: number }> => {
+  // Check if we should use ICP backend
+  const useICP =
+    options?.hostingPreferences?.backendHosting === 'icp' || options?.hostingPreferences?.blobHosting?.includes('icp');
+
+  if (useICP) {
+    // Use ICP backend for deletion
+    return await deleteAllMemoriesFromICP(options);
+  } else {
+    // Use regular API backend for deletion
+    return await deleteAllMemoriesFromAPI(options);
+  }
+};
+
+const deleteAllMemoriesFromAPI = async (options?: {
+  type?: 'image' | 'document' | 'note' | 'video' | 'audio';
+  folder?: string;
+  all?: boolean;
 }): Promise<{ success: boolean; message: string; deletedCount: number }> => {
   const params = new URLSearchParams();
 
@@ -340,6 +371,67 @@ export const deleteAllMemories = async (options?: {
   }
 
   return response.json();
+};
+
+const deleteAllMemoriesFromICP = async (_options?: {
+  type?: 'image' | 'document' | 'note' | 'video' | 'audio';
+  folder?: string;
+  all?: boolean;
+}): Promise<{ success: boolean; message: string; deletedCount: number }> => {
+  try {
+    // Import ICP dependencies
+    const { getAuthClient } = await import('@/ic/ii');
+    const { backendActor } = await import('@/ic/backend');
+
+    // Get authenticated actor
+    const authClient = await getAuthClient();
+    if (!authClient.isAuthenticated()) {
+      throw new Error('Please connect your Internet Identity to delete ICP memories');
+    }
+
+    const identity = authClient.getIdentity();
+    const backend = await backendActor(identity);
+
+    // Get capsule ID
+    const capsuleResult = await backend.capsules_read_basic([]);
+    if (!('Ok' in capsuleResult)) {
+      throw new Error('Failed to get user capsule');
+    }
+    const capsuleId = capsuleResult.Ok.capsule_id;
+
+    // Get all memories from the capsule (using correct parameters)
+    const memoriesResult = await backend.memories_list(capsuleId, [], []);
+    if (!('Ok' in memoriesResult)) {
+      throw new Error('Failed to list memories');
+    }
+
+    const page = memoriesResult.Ok;
+    const memories = page.items; // Page contains items array
+    let deletedCount = 0;
+
+    // Delete each memory
+    for (const memory of memories) {
+      try {
+        const deleteResult = await backend.memories_delete(memory.id, true); // true = delete assets
+        if ('Ok' in deleteResult) {
+          deletedCount++;
+        } else {
+          console.warn(`Failed to delete memory ${memory.id}:`, deleteResult.Err);
+        }
+      } catch (error) {
+        console.warn(`Error deleting memory ${memory.id}:`, error);
+      }
+    }
+
+    return {
+      success: true,
+      message: `Successfully deleted ${deletedCount} memories from ICP`,
+      deletedCount,
+    };
+  } catch (error) {
+    console.error('Failed to delete memories from ICP:', error);
+    throw new Error(`Failed to delete ICP memories: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 };
 
 export const processDashboardItems = (memories: MemoryWithFolder[]): DashboardItem[] => {

@@ -12,7 +12,7 @@ import type {
   Memory,
   Error,
   BlobHosting,
-} from '@/ic/declarations/backend/backend.did';
+} from '@/ic/declarations/backend/backend.did.d';
 
 import { fatLogger } from '@/lib/logger';
 

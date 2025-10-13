@@ -21,19 +21,17 @@ import { type UploadServiceResult } from './types';
 import { getAuthClient } from '@/ic/ii';
 import { backendActor } from '@/ic/backend';
 import type {
+  AssetMetadata,
   Result,
   Result_5,
   Result_6,
   Result13,
   Result15,
   MemoryMetadata,
-  // InternalBlobAssetInput, // Not used for inline storage approach
-  AssetMetadata,
-  AssetType,
   MemoryType,
   DatabaseHosting,
   UploadFinishResult,
-} from '@/ic/declarations/backend/backend.did';
+} from '@/ic/declarations/backend/backend.did.d';
 
 /**
  * Upload original files to ICP and create memory records (Lane A)
@@ -114,6 +112,15 @@ export async function uploadFileAndCreateMemoryWithDerivatives(
     // 2. Wait for both lanes to complete
     const laneAResult = await Promise.allSettled([laneAPromise]).then(results => results[0]);
     const laneBResult = laneBPromise ? await Promise.allSettled([laneBPromise]).then(results => results[0]) : null;
+
+    console.log('🔍 Lane A result status:', laneAResult.status);
+    console.log('🔍 Lane B result status:', laneBResult?.status);
+    if (laneAResult.status === 'rejected') {
+      console.log('❌ Lane A failed with error:', laneAResult.reason);
+    }
+    if (laneBResult?.status === 'rejected') {
+      console.log('❌ Lane B failed with error:', laneBResult.reason);
+    }
 
     // 3. Add derivative assets to existing memory using new endpoints
     if (laneAResult.status === 'fulfilled') {
@@ -627,20 +634,16 @@ async function createICPMemoryWithOriginalBlob(
       date_of_memory: [],
       memory_type: { Image: null } as MemoryType,
       tags: [],
-      has_thumbnails: true,
       content_type: file.type,
       people_in_memory: [],
-      has_previews: true,
       database_storage_edges: [{ Neon: null } as DatabaseHosting],
       description: [],
       created_at: BigInt(Date.now()),
       created_by: [],
       total_size: BigInt(file.size),
-      thumbnail_url: [],
       parent_folder_id: parentFolderId ? [parentFolderId] : [],
       asset_count: 1,
       deleted_at: [],
-      primary_asset_url: [],
       shared_count: 0,
       file_created_at: [],
       location: [],
@@ -657,7 +660,7 @@ async function createICPMemoryWithOriginalBlob(
           url: [],
           height: [],
           updated_at: BigInt(Date.now()),
-          asset_type: { Original: null } as AssetType,
+          asset_type: { Original: null },
           sha256: [],
           name: file.name,
           storage_key: [],
@@ -730,7 +733,7 @@ async function addDerivativeAssetsToMemory(
             url: [],
             height: [derivativeAssets.display.height || 0],
             updated_at: BigInt(Date.now()),
-            asset_type: { Display: null } as unknown as AssetType,
+            asset_type: { Derivative: null },
             sha256: [],
             name: `${file.name}_display`,
             storage_key: [],
@@ -752,19 +755,43 @@ async function addDerivativeAssetsToMemory(
         },
       };
 
-      const displayResult = await backend.memories_add_asset(
+      console.log('🔍 About to call memories_add_asset with:', {
         icpMemoryId,
-        {
-          blob_id: derivativeAssets.display.storageKey,
-          metadata: displayAssetMetadata,
-        },
-        `display-${Date.now()}`
-      );
+        blob_id: derivativeAssets.display.storageKey,
+        metadata: displayAssetMetadata,
+        idempotencyKey: `display-${Date.now()}`,
+      });
+
+      let displayResult;
+      try {
+        displayResult = await backend.memories_add_asset(
+          icpMemoryId,
+          {
+            blob_id: derivativeAssets.display.storageKey,
+            metadata: displayAssetMetadata,
+          },
+          `display-${Date.now()}`
+        );
+        console.log('🔍 Raw display asset result:', displayResult);
+        console.log('🔍 Display result type:', typeof displayResult);
+        console.log('🔍 Display result keys:', Object.keys(displayResult || {}));
+        console.log('🔍 Display result Ok check:', 'Ok' in displayResult);
+        console.log('🔍 Display result Err check:', 'Err' in displayResult);
+      } catch (error) {
+        console.log('❌ Backend call failed with error:', error);
+        console.log('❌ Error type:', typeof error);
+        if (error instanceof Error) {
+          console.log('❌ Error message:', error.message);
+          console.log('❌ Error stack:', error.stack);
+        }
+        throw error;
+      }
 
       if ('Ok' in displayResult) {
         console.log(`✅ Added display asset to memory: ${displayResult.Ok}`);
       } else {
-        console.log(`❌ Failed to add display asset: ${JSON.stringify(displayResult.Err)}`);
+        console.log(`❌ Failed to add display asset:`, displayResult.Err);
+        throw new Error(`Failed to add display asset: ${JSON.stringify(displayResult.Err)}`);
       }
     }
 
@@ -778,7 +805,7 @@ async function addDerivativeAssetsToMemory(
             url: [],
             height: [derivativeAssets.thumb.height || 0],
             updated_at: BigInt(Date.now()),
-            asset_type: { Thumbnail: null } as unknown as AssetType,
+            asset_type: { Thumbnail: null },
             sha256: [],
             name: `${file.name}_thumb`,
             storage_key: [],
@@ -800,19 +827,43 @@ async function addDerivativeAssetsToMemory(
         },
       };
 
-      const thumbResult = await backend.memories_add_asset(
+      console.log('🔍 About to call memories_add_asset for thumb with:', {
         icpMemoryId,
-        {
-          blob_id: derivativeAssets.thumb.storageKey,
-          metadata: thumbAssetMetadata,
-        },
-        `thumb-${Date.now()}`
-      );
+        blob_id: derivativeAssets.thumb.storageKey,
+        metadata: thumbAssetMetadata,
+        idempotencyKey: `thumb-${Date.now()}`,
+      });
+
+      let thumbResult;
+      try {
+        thumbResult = await backend.memories_add_asset(
+          icpMemoryId,
+          {
+            blob_id: derivativeAssets.thumb.storageKey,
+            metadata: thumbAssetMetadata,
+          },
+          `thumb-${Date.now()}`
+        );
+        console.log('🔍 Raw thumb asset result:', thumbResult);
+        console.log('🔍 Thumb result type:', typeof thumbResult);
+        console.log('🔍 Thumb result keys:', Object.keys(thumbResult || {}));
+        console.log('🔍 Thumb result Ok check:', 'Ok' in thumbResult);
+        console.log('🔍 Thumb result Err check:', 'Err' in thumbResult);
+      } catch (error) {
+        console.log('❌ Thumb backend call failed with error:', error);
+        console.log('❌ Error type:', typeof error);
+        if (error instanceof Error) {
+          console.log('❌ Error message:', error.message);
+          console.log('❌ Error stack:', error.stack);
+        }
+        throw error;
+      }
 
       if ('Ok' in thumbResult) {
         console.log(`✅ Added thumb asset to memory: ${thumbResult.Ok}`);
       } else {
-        console.log(`❌ Failed to add thumb asset: ${JSON.stringify(thumbResult.Err)}`);
+        console.log(`❌ Failed to add thumb asset:`, thumbResult.Err);
+        throw new Error(`Failed to add thumb asset: ${JSON.stringify(thumbResult.Err)}`);
       }
     }
 
@@ -828,7 +879,7 @@ async function addDerivativeAssetsToMemory(
             url: [],
             height: [derivativeAssets.placeholder.height || 0],
             updated_at: BigInt(Date.now()),
-            asset_type: { Preview: null } as unknown as AssetType,
+            asset_type: { Display: null },
             sha256: [],
             name: `${file.name}_placeholder`,
             storage_key: [],
@@ -850,19 +901,43 @@ async function addDerivativeAssetsToMemory(
         },
       };
 
-      const placeholderResult = await backend.memories_add_inline_asset(
+      console.log('🔍 About to call memories_add_inline_asset with:', {
         icpMemoryId,
-        {
-          bytes: placeholderBytes,
-          metadata: placeholderAssetMetadata,
-        },
-        `placeholder-${Date.now()}`
-      );
+        bytesLength: placeholderBytes.length,
+        metadata: placeholderAssetMetadata,
+        idempotencyKey: `placeholder-${Date.now()}`,
+      });
+
+      let placeholderResult;
+      try {
+        placeholderResult = await backend.memories_add_inline_asset(
+          icpMemoryId,
+          {
+            bytes: placeholderBytes,
+            metadata: placeholderAssetMetadata,
+          },
+          `placeholder-${Date.now()}`
+        );
+        console.log('🔍 Raw placeholder asset result:', placeholderResult);
+        console.log('🔍 Placeholder result type:', typeof placeholderResult);
+        console.log('🔍 Placeholder result keys:', Object.keys(placeholderResult || {}));
+        console.log('🔍 Placeholder result Ok check:', 'Ok' in placeholderResult);
+        console.log('🔍 Placeholder result Err check:', 'Err' in placeholderResult);
+      } catch (error) {
+        console.log('❌ Placeholder backend call failed with error:', error);
+        console.log('❌ Error type:', typeof error);
+        if (error instanceof Error) {
+          console.log('❌ Error message:', error.message);
+          console.log('❌ Error stack:', error.stack);
+        }
+        throw error;
+      }
 
       if ('Ok' in placeholderResult) {
         console.log(`✅ Added placeholder asset to memory: ${placeholderResult.Ok}`);
       } else {
-        console.log(`❌ Failed to add placeholder asset: ${JSON.stringify(placeholderResult.Err)}`);
+        console.log(`❌ Failed to add placeholder asset:`, placeholderResult.Err);
+        throw new Error(`Failed to add placeholder asset: ${JSON.stringify(placeholderResult.Err)}`);
       }
     }
 
