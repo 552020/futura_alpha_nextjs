@@ -2,13 +2,15 @@
 // This file should NOT import any database-related code
 
 import { fatLogger } from '@/lib/logger';
-import { Memory } from '@/types/memory';
 
 // Import types from the main service file
-export type { MemoryWithFolder, DashboardItem, FolderItem } from '@/services/memories';
+import type { MemoryWithFolder, DashboardItem, FolderItem } from '@/services/memories';
+
+// Re-export types for client components
+export type { MemoryWithFolder, DashboardItem, FolderItem };
 
 export interface FetchMemoriesResult {
-  data: Memory[];
+  data: MemoryWithFolder[];
   hasMore: boolean;
   total: number;
 }
@@ -129,8 +131,8 @@ export const processDashboardItems = (memories: MemoryWithFolder[]): DashboardIt
       id: m.id,
       title: m.title,
       type: m.type,
-      folderId: m.folderId,
-      folderName: m.folderName,
+      folderId: m.folder?.id,
+      folderName: m.folder?.name,
     })),
   });
 
@@ -139,11 +141,11 @@ export const processDashboardItems = (memories: MemoryWithFolder[]): DashboardIt
   const standaloneMemories: MemoryWithFolder[] = [];
 
   memories.forEach(memory => {
-    if (memory.folderId && memory.folderName) {
-      if (!folderGroups.has(memory.folderId)) {
-        folderGroups.set(memory.folderId, []);
+    if (memory.folder?.id && memory.folder?.name) {
+      if (!folderGroups.has(memory.folder.id)) {
+        folderGroups.set(memory.folder.id, []);
       }
-      folderGroups.get(memory.folderId)!.push(memory);
+      folderGroups.get(memory.folder.id)!.push(memory);
     } else {
       standaloneMemories.push(memory);
     }
@@ -153,29 +155,27 @@ export const processDashboardItems = (memories: MemoryWithFolder[]): DashboardIt
 
   // Add folder groups
   folderGroups.forEach((folderMemories, folderId) => {
-    const folderName = folderMemories[0]?.folderName || 'Unknown Folder';
+    const folderName = folderMemories[0]?.folder?.name || 'Unknown Folder';
     dashboardItems.push({
       type: 'folder',
       id: folderId,
-      name: folderName,
+      title: folderName,
+      description: `${folderMemories.length} memories`,
+      itemCount: folderMemories.length,
       memories: folderMemories,
-      memoryCount: folderMemories.length,
+      folderId: folderId,
     } as FolderItem);
   });
 
   // Add standalone memories
   standaloneMemories.forEach(memory => {
-    dashboardItems.push({
-      type: 'memory',
-      id: memory.id,
-      memory: memory,
-    });
+    dashboardItems.push(memory);
   });
 
   fatLogger.info('🔍 processDashboardItems - Final dashboard items:', 'be', {
     totalItems: dashboardItems.length,
-    folderCount: dashboardItems.filter(item => item.type === 'folder').length,
-    memoryCount: dashboardItems.filter(item => item.type === 'memory').length,
+    folderCount: dashboardItems.filter(item => 'folderId' in item).length,
+    memoryCount: dashboardItems.filter(item => !('folderId' in item)).length,
   });
 
   return dashboardItems;

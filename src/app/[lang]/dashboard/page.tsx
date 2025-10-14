@@ -101,7 +101,7 @@ export default function VaultPage() {
     if (USE_MOCK_DATA) {
       return processDashboardItems(sampleDashboardMemories as MemoryWithFolder[]);
     }
-    return (data?.pages ?? []).flatMap(p => processDashboardItems(p.memories ?? []));
+    return (data?.pages ?? []).flatMap(p => processDashboardItems(p.data ?? []));
   }, [data]);
 
   // Dashboard items are already processed by processDashboardItems
