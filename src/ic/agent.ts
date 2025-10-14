@@ -11,21 +11,30 @@ export function createAgent(identity?: Identity): Promise<HttpAgent> {
   if (!agentCache.has(key)) {
     const created = (async () => {
       try {
-        const agent = await HttpAgent.create({ host, identity });
+        // Add timeout to prevent hanging
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('ICP connection timeout')), 8000);
+        });
+        
+        const agentPromise = HttpAgent.create({ host, identity });
+        const agent = await Promise.race([agentPromise, timeoutPromise]);
+        
         if (process.env.NEXT_PUBLIC_DFX_NETWORK !== 'ic') {
           // dev/local only - handle gracefully if ICP replica is not running
           try {
             await agent.fetchRootKey();
-          } catch {
+          } catch (fetchError) {
             fatLogger.warn('⚠️ ICP replica not available. ICP features will be disabled.', 'fe');
             fatLogger.warn('To enable ICP features, run: dfx start', 'fe');
             // Don't throw - let the app continue without ICP functionality
+            // The agent is still valid, just without root key verification
           }
         }
         return agent;
       } catch (e) {
         // IMPORTANT: prevent cache poisoning on failure
         agentCache.delete(key);
+        fatLogger.warn('ICP agent creation failed:', 'fe', { error: e });
         throw e;
       }
     })();
