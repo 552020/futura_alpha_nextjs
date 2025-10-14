@@ -1,7 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/db/db';
-import { resourceMembership } from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
 import { findMemory } from '@/app/api/memories/utils/memory';
 
 import { fatLogger } from '@/lib/logger';
@@ -37,6 +34,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       error: 'Share codes are no longer supported. Please use the new sharing system.',
       suggestion: 'Use direct user sharing via resourceMembership instead.'
     }, { status: 410 }); // 410 Gone - feature no longer available
+
 
   } catch (error) {
     fatLogger.error('Error accessing shared memory:', 'be', { data: error instanceof Error ? error : undefined });

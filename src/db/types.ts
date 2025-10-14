@@ -16,7 +16,6 @@ import {
   peopleInMemories,
   memoryLikes,
   memoryComments,
-  memoryShares,
   group,
   groupMember,
   relationship,
@@ -105,10 +104,6 @@ export type NewDBMemoryLikes = typeof memoryLikes.$inferInsert;
 
 export type DBMemoryComments = typeof memoryComments.$inferSelect;
 export type NewDBMemoryComments = typeof memoryComments.$inferInsert;
-
-// Sharing types
-export type DBMemoryShare = typeof memoryShares.$inferSelect;
-export type NewDBMemoryShare = typeof memoryShares.$inferInsert;
 
 // Group types
 export type DBGroup = typeof group.$inferSelect;

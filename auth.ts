@@ -236,6 +236,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               return {
                 id: existingUser.id,
                 email: existingUser.email,
+                // name: existingUser.name ?? null,
                 name: existingUser.name,
                 role: existingUser.role,
                 icpPrincipal: principal,
@@ -269,7 +270,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return {
             id: newUser.id,
             email: newUser.email,
-            name: newUser.name,
+            name: newUser.name ?? null,
             role: newUser.role,
             icpPrincipal: principal,
           };
@@ -293,12 +294,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (isLoginFlow) {
         // Extract language from URL if available, default to 'en'
         let lang = 'en'; // default fallback
-        let _urlParseSuccess = false;
 
         try {
           const urlObj = new URL(url);
           lang = urlObj.searchParams.get('lang') || 'en';
-          _urlParseSuccess = true;
         } catch (_error) {
           // Fallback to default language if URL is invalid
           lang = 'en';

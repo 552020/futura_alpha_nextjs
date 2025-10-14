@@ -208,25 +208,25 @@ export async function POST(request: NextRequest) {
     });
 
     // Calculate storage distribution
-    const _storageDistribution: Record<string, number> = {};
-    let totalDuration = 0;
-    let permanentCount = 0;
+    // const _storageDistribution: Record<string, number> = {};
+    let _totalDuration = 0;
+    let _permanentCount = 0;
 
     memoriesWithStorage.forEach(memory => {
       // Note: storageLocations field has been removed from schema
       // Storage distribution calculation is simplified
 
       if (memory.storageDuration === null) {
-        permanentCount++;
+        _permanentCount++;
       } else {
-        totalDuration += memory.storageDuration;
+        _totalDuration += memory.storageDuration;
       }
     });
 
-    const _averageStorageDuration =
-      permanentCount === memoriesWithStorage.length
-        ? null
-        : Math.round(totalDuration / (memoriesWithStorage.length - permanentCount));
+    // const _averageStorageDuration =
+    //   _permanentCount === memoriesWithStorage.length
+    //     ? null
+    //     : Math.round(_totalDuration / (memoriesWithStorage.length - _permanentCount));
 
     // Update gallery with calculated storage status
     await db.update(galleries).set({}).where(eq(galleries.id, gallery.id));

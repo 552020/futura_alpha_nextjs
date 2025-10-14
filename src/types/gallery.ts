@@ -1,5 +1,5 @@
 import { Memory } from './memory';
-import { DBGallery, DBGalleryItem } from '@/db/schema';
+import { DBGallery, DBGalleryItem } from '@/db/types';
 import { ErrorInfo } from 'react';
 
 // Gallery with items - extends existing DB types

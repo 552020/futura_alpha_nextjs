@@ -1,15 +1,14 @@
 // Script to list all users in the users table
 import { db } from '@/db/db';
-import { users } from '@/db/schema';
 
 async function listUsers() {
   try {
     console.log('Fetching all users...');
-    
+
     const allUsers = await db.query.users.findMany({
-      orderBy: (users, { asc }) => [asc(users.createdAt)]
+      orderBy: (usersTable, { asc }) => [asc(usersTable.createdAt)],
     });
-    
+
     console.log(`Found ${allUsers.length} users:`);
     allUsers.forEach(user => {
       console.log('\n--- User ---');
@@ -20,7 +19,6 @@ async function listUsers() {
       console.log(`Created At: ${user.createdAt}`);
       console.log(`Updated At: ${user.updatedAt}`);
     });
-    
   } catch (error) {
     console.error('Error listing users:', error);
   } finally {

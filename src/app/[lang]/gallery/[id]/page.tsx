@@ -374,10 +374,10 @@ function GalleryViewContent() {
     }
   };
 
-  const _handleEditGallery = () => {
-    // TODO: Navigate to edit page or open edit modal
-    // fatLogger.info("Edit gallery:", gallery?.id);
-  };
+  // const _handleEditGallery = () => {
+  //   // TODO: Navigate to edit page or open edit modal
+  //   // fatLogger.info("Edit gallery:", gallery?.id);
+  // };
 
   const handleStoreForever = () => {
     // TODO: Implement store forever functionality

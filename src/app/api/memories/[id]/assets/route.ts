@@ -21,7 +21,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
-import { allUsers, memories, memoryAssets } from '@/db/schema';
+import { allUsers, memories, memoryAssets, DBMemoryAsset } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { getMemoryAccessLevel } from '../../utils/access';
 
@@ -294,7 +294,7 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
 
     // Filter by asset types if specified
     const filteredDeletedAssets =
-      assetTypes.length > 0 ? deletedAssets.filter(asset => assetTypes.includes(asset.assetType)) : deletedAssets;
+      assetTypes.length > 0 ? deletedAssets.filter((asset: DBMemoryAsset) => assetTypes.includes(asset.assetType)) : deletedAssets;
 
     return NextResponse.json({
       success: true,
