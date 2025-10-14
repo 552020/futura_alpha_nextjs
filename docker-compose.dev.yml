@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: futura-postgres-dev
+    environment:
+      POSTGRES_DB: futura_dev
+      POSTGRES_USER: futura_user
+      POSTGRES_PASSWORD: futura_password
+      POSTGRES_INITDB_ARGS: '--encoding=UTF-8 --lc-collate=C --lc-ctype=C'
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/db/init:/docker-entrypoint-initdb.d
+    networks:
+      - futura-network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U futura_user -d futura_dev']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: futura-app-dev
+    ports:
+      - '3000:3000'
+    environment:
+      # Database
+      DATABASE_URL: postgresql://futura_user:futura_password@postgres:5432/futura_dev
+      DATABASE_URL_UNPOOLED: postgresql://futura_user:futura_password@postgres:5432/futura_dev
+
+      # Next.js
+      NODE_ENV: development
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: dev-secret-key-change-in-production
+
+      # ICP Backend (if needed for local dev)
+      ICP_BACKEND_URL: http://localhost:8080
+
+      # Other environment variables
+      NPM_CONFIG_CACHE: /tmp/.npm
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/src/nextjs/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - futura-network
+    working_dir: /app/src/nextjs
+    command: ['pnpm', 'dev']
+
+  # Database Admin (pgAdmin)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: futura-pgadmin-dev
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@futura.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - '5050:80'
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - futura-network
+
+volumes:
+  postgres_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+networks:
+  futura-network:
+    driver: bridge

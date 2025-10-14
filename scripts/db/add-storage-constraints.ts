@@ -11,7 +11,7 @@
  *   npx tsx scripts/add-storage-constraints.ts
  */
 
-import { db } from '../src/db/db';
+import { db } from '../../src/db/db';
 import { sql } from 'drizzle-orm';
 
 async function addStorageConstraints() {

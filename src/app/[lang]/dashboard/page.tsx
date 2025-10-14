@@ -39,11 +39,11 @@ import {
 import { ExtendedMemory } from '@/types/dashboard';
 // import { TawkChat } from '@/components/chat/tawk-chat';
 import { DashboardTopBar } from '@/components/dashboard/dashboard-top-bar';
-import { sampleDashboardMemories } from '../../../../scripts/mock-data/create-dashboard-sample-data';
+import { sampleDashboardMemories } from '../../../../scripts/data/mock-data/create-dashboard-sample-data';
 import { useHostingPreferences, getRecommendedDashboardDataSource } from '@/hooks/use-hosting-preferences';
 
 // Demo flag - set to true to use mock data for demo
-// 📝 Sample data generation script: scripts/mock-data/create-dashboard-sample-data.ts
+// 📝 Sample data generation script: scripts/data/mock-data/create-dashboard-sample-data.ts
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_DASHBOARD === 'true';
 
 export default function VaultPage() {
