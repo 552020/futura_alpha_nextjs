@@ -35,7 +35,7 @@ import {
   type MemoryWithFolder,
   type DashboardItem,
   type FolderItem,
-} from '@/services/memories';
+} from '@/services/memories-client';
 import { ExtendedMemory } from '@/types/dashboard';
 // import { TawkChat } from '@/components/chat/tawk-chat';
 import { DashboardTopBar } from '@/components/dashboard/dashboard-top-bar';

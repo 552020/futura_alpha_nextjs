@@ -46,12 +46,27 @@ else
     warn ".env.local not found. Using default values."
 fi
 
-# Database connection from environment variables
-DB_HOST="${PGHOST:-$POSTGRES_HOST:-localhost}"
-DB_PORT="${PGPORT:-5432}"
-DB_NAME="${PGDATABASE:-$POSTGRES_DATABASE:-futura}"
-DB_USER="${PGUSER:-$POSTGRES_USER:-postgres}"
-DB_PASSWORD="${PGPASSWORD:-$POSTGRES_PASSWORD}"
+# Extract database connection details from DATABASE_URL
+if [ -n "$DATABASE_URL" ]; then
+    # Parse DATABASE_URL: postgresql://user:password@host:port/database
+    DB_USER=$(echo "$DATABASE_URL" | sed -n 's/.*:\/\/\([^:]*\):.*/\1/p')
+    DB_PASSWORD=$(echo "$DATABASE_URL" | sed -n 's/.*:\/\/[^:]*:\([^@]*\)@.*/\1/p')
+    DB_HOST=$(echo "$DATABASE_URL" | sed -n 's/.*@\([^:]*\):.*/\1/p')
+    DB_PORT=$(echo "$DATABASE_URL" | sed -n 's/.*:\([0-9]*\)\/.*/\1/p')
+    DB_NAME=$(echo "$DATABASE_URL" | sed -n 's/.*\/\([^?]*\).*/\1/p')
+    
+    # Default port if not specified
+    if [ -z "$DB_PORT" ]; then
+        DB_PORT="5432"
+    fi
+else
+    # Fallback to local Docker database
+    DB_HOST="localhost"
+    DB_PORT="5432"
+    DB_NAME="futura_dev"
+    DB_USER="futura_user"
+    DB_PASSWORD="futura_password"
+fi
 
 echo -e "${BLUE}🧪 Testing Storage Edge Creation Integration${NC}"
 echo "=================================================="

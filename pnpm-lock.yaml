@@ -136,7 +136,7 @@ importers:
         version: 16.6.1
       drizzle-orm:
         specifier: ^0.44.5
-        version: 0.44.5(@neondatabase/serverless@0.10.4)(@prisma/client@6.16.2(prisma@6.16.2(typescript@5.9.2))(typescript@5.9.2))(@types/pg@8.15.5)(pg@8.16.3)(prisma@6.16.2(typescript@5.9.2))
+        version: 0.44.5(@neondatabase/serverless@0.10.4)(@prisma/client@6.16.2(prisma@6.16.2(typescript@5.9.2))(typescript@5.9.2))(@types/pg@8.15.5)(pg@8.16.3)(postgres@3.4.7)(prisma@6.16.2(typescript@5.9.2))
       esbuild:
         specifier: ^0.25.0
         version: 0.25.9
@@ -176,6 +176,9 @@ importers:
       p-limit:
         specifier: ^7.1.1
         version: 7.1.1
+      postgres:
+        specifier: ^3.4.7
+        version: 3.4.7
       posthog-js:
         specifier: ^1.266.0
         version: 1.266.0
@@ -4147,6 +4150,10 @@ packages:
   postgres-range@1.1.4:
     resolution: {integrity: sha512-i/hbxIE9803Alj/6ytL7UHQxRvZkI9O4Sy+J3HGc4F4oo/2eQAjTSNJ0bfxyse3bH0nuVesCk+3IRLaMtG3H6w==}
 
+  postgres@3.4.7:
+    resolution: {integrity: sha512-Jtc2612XINuBjIl/QTWsV5UvE8UHuNblcO3vVADSrKsrc6RqGX6lOW1cEo3CM2v0XG4Nat8nI+YM7/f26VxXLw==}
+    engines: {node: '>=12'}
+
   posthog-js@1.266.0:
     resolution: {integrity: sha512-437KsO9N+pMW6FtilgKYTHel0RCWs2S7PvsNRJf20/f3npChX9i6F8cNCJ6O4Az37scC1kPdTknFY/xEGazVJw==}
     peerDependencies:
@@ -7904,12 +7911,13 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  drizzle-orm@0.44.5(@neondatabase/serverless@0.10.4)(@prisma/client@6.16.2(prisma@6.16.2(typescript@5.9.2))(typescript@5.9.2))(@types/pg@8.15.5)(pg@8.16.3)(prisma@6.16.2(typescript@5.9.2)):
+  drizzle-orm@0.44.5(@neondatabase/serverless@0.10.4)(@prisma/client@6.16.2(prisma@6.16.2(typescript@5.9.2))(typescript@5.9.2))(@types/pg@8.15.5)(pg@8.16.3)(postgres@3.4.7)(prisma@6.16.2(typescript@5.9.2)):
     optionalDependencies:
       '@neondatabase/serverless': 0.10.4
       '@prisma/client': 6.16.2(prisma@6.16.2(typescript@5.9.2))(typescript@5.9.2)
       '@types/pg': 8.15.5
       pg: 8.16.3
+      postgres: 3.4.7
       prisma: 6.16.2(typescript@5.9.2)
 
   dunder-proto@1.0.1:
@@ -9286,6 +9294,8 @@ snapshots:
   postgres-interval@3.0.0: {}
 
   postgres-range@1.1.4: {}
+
+  postgres@3.4.7: {}
 
   posthog-js@1.266.0:
     dependencies:
