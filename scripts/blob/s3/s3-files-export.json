@@ -1,0 +1,72 @@
+{
+  "timestamp": "2025-09-22T10:07:52.822Z",
+  "bucket": "futura0",
+  "region": "eu-central-1",
+  "totalFiles": 6,
+  "totalSize": 915689,
+  "totalSizeMB": 0.87,
+  "filesByType": {
+    "image": {
+      "count": 6,
+      "size": 915689,
+      "sizeMB": 0.87
+    }
+  },
+  "filesByDirectory": {
+    "uploads": {
+      "count": 6,
+      "size": 915689,
+      "sizeMB": 0.87
+    }
+  },
+  "files": [
+    {
+      "key": "uploads/ed2c1cbc-0563-4ba1-b8bb-bd08a9f606d7/1758534994430_Screenshot 2025-09-09 at 12.20.56.png",
+      "fileName": "1758534994430_Screenshot 2025-09-09 at 12.20.56.png",
+      "size": 271023,
+      "lastModified": "2025-09-22T09:56:36.000Z",
+      "etag": "\"9ecddb87f70c8b26e3cfdbdbd9306ee3\"",
+      "storageClass": "STANDARD"
+    },
+    {
+      "key": "uploads/ed2c1cbc-0563-4ba1-b8bb-bd08a9f606d7/1758534994433_Screenshot 2025-09-09 at 01.53.32.png",
+      "fileName": "1758534994433_Screenshot 2025-09-09 at 01.53.32.png",
+      "size": 167235,
+      "lastModified": "2025-09-22T09:56:36.000Z",
+      "etag": "\"7526f80f67ca5164a33c01761285bcb4\"",
+      "storageClass": "STANDARD"
+    },
+    {
+      "key": "uploads/ed2c1cbc-0563-4ba1-b8bb-bd08a9f606d7/1758534994433_Screenshot 2025-09-09 at 20.15.33 copy.png",
+      "fileName": "1758534994433_Screenshot 2025-09-09 at 20.15.33 copy.png",
+      "size": 187999,
+      "lastModified": "2025-09-22T09:56:36.000Z",
+      "etag": "\"68ecc7fab178d133c95726e190968728\"",
+      "storageClass": "STANDARD"
+    },
+    {
+      "key": "uploads/ed2c1cbc-0563-4ba1-b8bb-bd08a9f606d7/1758534994433_Screenshot 2025-09-11 at 11.05.24.png",
+      "fileName": "1758534994433_Screenshot 2025-09-11 at 11.05.24.png",
+      "size": 111346,
+      "lastModified": "2025-09-22T09:56:36.000Z",
+      "etag": "\"367e328c2fdd3a5b0969c0f2157a060a\"",
+      "storageClass": "STANDARD"
+    },
+    {
+      "key": "uploads/ed2c1cbc-0563-4ba1-b8bb-bd08a9f606d7/1758534994433_Screenshot 2025-09-13 at 17.46.02.png",
+      "fileName": "1758534994433_Screenshot 2025-09-13 at 17.46.02.png",
+      "size": 85220,
+      "lastModified": "2025-09-22T09:56:36.000Z",
+      "etag": "\"3d507b64342b9dd634494876a706aed7\"",
+      "storageClass": "STANDARD"
+    },
+    {
+      "key": "uploads/ed2c1cbc-0563-4ba1-b8bb-bd08a9f606d7/1758534994434_Screenshot 2025-09-12 at 10.35.33.png",
+      "fileName": "1758534994434_Screenshot 2025-09-12 at 10.35.33.png",
+      "size": 92866,
+      "lastModified": "2025-09-22T09:56:36.000Z",
+      "etag": "\"f16fd783ce21033b9ffd92e0dd8c2ad4\"",
+      "storageClass": "STANDARD"
+    }
+  ]
+}
