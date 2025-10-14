@@ -9,9 +9,8 @@ const agentCache = new Map<string, Promise<HttpAgent>>(); // key = principal or 
 export function createAgent(identity?: Identity): Promise<HttpAgent> {
   const key = identity ? identity.getPrincipal().toText() : 'anon';
   if (!agentCache.has(key)) {
-    agentCache.set(
-      key,
-      (async () => {
+    const created = (async () => {
+      try {
         const agent = await HttpAgent.create({ host, identity });
         if (process.env.NEXT_PUBLIC_DFX_NETWORK !== 'ic') {
           // dev/local only - handle gracefully if ICP replica is not running
@@ -24,8 +23,14 @@ export function createAgent(identity?: Identity): Promise<HttpAgent> {
           }
         }
         return agent;
-      })()
-    );
+      } catch (e) {
+        // IMPORTANT: prevent cache poisoning on failure
+        agentCache.delete(key);
+        throw e;
+      }
+    })();
+
+    agentCache.set(key, created);
   }
   return agentCache.get(key)!;
 }
