@@ -2,9 +2,100 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
 import { eq, and } from 'drizzle-orm';
-import { allUsers, memories, storageEdges } from '@/db/schema';
+import { allUsers, memories, storageEdges, folders } from '@/db/schema';
 
 import { fatLogger } from '@/lib/logger';
+
+// Helper function to handle folder deletion
+async function handleFolderDeletion(folderId: string, ownerId: string) {
+  try {
+    fatLogger.info(`🗑️ [Folder Deletion] Starting deletion for folder: ${folderId}`, 'be');
+
+    // 1. Check if folder exists and belongs to user
+    const folder = await db.query.folders.findFirst({
+      where: and(eq(folders.id, folderId), eq(folders.ownerId, ownerId)),
+    });
+
+    if (!folder) {
+      fatLogger.error(`❌ Folder not found: ${folderId}`, 'be');
+      return NextResponse.json({ error: 'Folder not found' }, { status: 404 });
+    }
+
+    // 2. Get all memories in this folder
+    const memoriesToDelete = await db.query.memories.findMany({
+      where: and(eq(memories.parentFolderId, folderId), eq(memories.ownerId, ownerId)),
+      with: {
+        assets: true,
+      },
+    });
+
+    fatLogger.info(`📋 [Folder Deletion] Found ${memoriesToDelete.length} memories to delete`, 'be');
+
+    // 3. Delete all memories in the folder
+    let deletedMemoriesCount = 0;
+    let totalDeletedS3Objects = 0;
+    let totalDeletedEdges = 0;
+
+    for (const memory of memoriesToDelete) {
+      try {
+        // Delete memory from database
+        await db.delete(memories).where(eq(memories.id, memory.id));
+
+        // Clean up storage edges
+        const { cleanupStorageEdgesForMemory } = await import('../utils/memory-database');
+        const cleanupResult = await cleanupStorageEdgesForMemory({
+          memoryId: memory.id,
+          memoryType: memory.type as 'image' | 'video' | 'note' | 'document' | 'audio',
+          memoryData: memory,
+        });
+
+        if (cleanupResult.success) {
+          totalDeletedS3Objects += cleanupResult.deletedS3Count || 0;
+          totalDeletedEdges += cleanupResult.deletedCount || 0;
+        }
+
+        deletedMemoriesCount++;
+      } catch (error) {
+        fatLogger.error(`❌ Failed to delete memory ${memory.id}:`, 'be', {
+          data: error instanceof Error ? error : undefined,
+        });
+      }
+    }
+
+    // 4. Delete the folder itself
+    await db.delete(folders).where(eq(folders.id, folderId));
+
+    fatLogger.info(`✅ [Folder Deletion] Completed for ${folderId}`, 'be', {
+      deletedMemories: deletedMemoriesCount,
+      deletedS3Objects: totalDeletedS3Objects,
+      deletedEdges: totalDeletedEdges,
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: 'Folder deleted successfully',
+      deletedMemories: deletedMemoriesCount,
+      cleanup: {
+        deletedS3Objects: totalDeletedS3Objects,
+        deletedEdges: totalDeletedEdges,
+      },
+    });
+  } catch (error) {
+    fatLogger.error('❌ [Folder Deletion] Error:', 'be', {
+      folderId,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    return NextResponse.json(
+      {
+        error: 'Failed to delete folder',
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 }
+    );
+  }
+}
+
 // Helper function to add storage status to memory by querying storageEdges table
 async function addStorageStatusToMemory(memory: typeof memories.$inferSelect) {
   // Query storageEdges table to get actual storage locations
@@ -143,7 +234,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
-// DELETE /api/memories/[id] - Delete memory - FIXED VERSION
+// DELETE /api/memories/[id] - Delete memory or folder - FIXED VERSION
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   // Check authentication
   const session = await auth();
@@ -162,9 +253,28 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
-    const { id: memoryId } = await params;
+    const { id: itemId } = await params;
 
-    fatLogger.info(`🗑️ [Individual Route] Deleting memory: ${memoryId}`, 'be');
+    fatLogger.info(`🗑️ [Individual Route] Deleting item: ${itemId}`, 'be');
+
+    // Strip 'folder-' prefix if present (frontend adds this prefix)
+    const cleanId = itemId.startsWith('folder-') ? itemId.replace('folder-', '') : itemId;
+    
+    fatLogger.info(`🔍 [Individual Route] Clean ID: ${cleanId}`, 'be');
+
+    // First, check if this is a folder by trying to find it in the folders table
+    const folderCheck = await db.query.folders.findFirst({
+      where: and(eq(folders.id, cleanId), eq(folders.ownerId, allUserRecord.id)),
+    });
+
+    if (folderCheck) {
+      fatLogger.info(`📁 [Individual Route] Item is a folder, using folder deletion logic`, 'be');
+      return await handleFolderDeletion(cleanId, allUserRecord.id);
+    }
+
+    // If not a folder, treat as a memory
+    const memoryId = cleanId;
+    fatLogger.info(`🖼️ [Individual Route] Item is a memory, using memory deletion logic`, 'be');
 
     // 1. FIRST: Get the memory data BEFORE deletion (with all relations)
     const memoryData = await db.query.memories.findFirst({

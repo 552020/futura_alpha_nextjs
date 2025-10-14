@@ -2,7 +2,7 @@ import { LogEntry, LoggerConfig, ServiceFlags } from './types';
 
 // Default service flags (matching the active fatLogger)
 const DEFAULT_SERVICE_FLAGS: ServiceFlags = {
-  ENABLE_LOGGING: false,
+  ENABLE_LOGGING: process.env.NEXT_PUBLIC_ENABLE_LOGGING === 'true',
   ENABLE_FRONTEND_LOGGING: true,
   ENABLE_BACKEND_LOGGING: true,
   ENABLE_UPLOAD_LOGGING: true,
