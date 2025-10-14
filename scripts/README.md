@@ -1,124 +1,55 @@
-# Database Scripts
+# Scripts Directory
 
-This directory contains utility scripts for database management and validation.
+This directory contains utility scripts organized by function for the Futura Alpha ICP project.
+
+## Directory Structure
+
+```
+scripts/
+├── blob/               # Storage management scripts
+│   ├── vercel_blob/    # Vercel Blob storage scripts
+│   ├── s3/            # AWS S3 storage scripts
+│   └── test-bulk-delete.sh
+├── data/               # Data generation and cleanup
+│   ├── generate-*.sh   # Gallery/memory generation scripts
+│   ├── mock-data/      # Sample data creation
+│   └── cleanup-galleries.sh
+├── db/                 # Database management
+│   ├── docker/         # Docker development setup
+│   │   ├── dev-setup.sh
+│   │   └── init/       # Database initialization
+│   ├── migrate.ts      # Database migrations
+│   ├── verify-constraints.ts
+│   ├── debug-memories.js
+│   ├── manage-user-roles.ts
+│   └── test-migration.ts
+└── ngrok/              # Development tools
+```
 
 ## Available Scripts
 
-### Schema Validation
+### Database Management
 
-- **`validate-schema.ts`** - Compares your defined schema with the actual database structure
-  ```bash
-  npm run db:validate
-  # or
-  npx tsx scripts/validate-schema.ts
-  ```
+- **`db/migrate.ts`** - Database migrations
+- **`db/verify-constraints.ts`** - Verifies database constraints
+- **`db/debug-memories.js`** - Debug memory/folder relationships
+- **`db/manage-user-roles.ts`** - User role management
+- **`db/test-migration.ts`** - Test database migrations
 
-### Constraint Verification
+### Data Generation
 
-- **`verify-constraints.ts`** - Verifies that required database constraints are present
-  ```bash
-  npm run db:verify
-  # or
-  npx tsx scripts/verify-constraints.ts
-  ```
+- **`data/generate-test-memories.sh`** - Generate test memory data
+- **`data/generate-test-images.sh`** - Generate test image data
+- **`data/generate-galleries.sh`** - Generate gallery data
+- **`data/cleanup-galleries.sh`** - Clean up gallery data
 
-## Why These Scripts Matter
+### Storage Management
 
-### The Problem We Solved
+- **`blob/vercel_blob/`** - Vercel Blob storage scripts
+- **`blob/s3/`** - AWS S3 storage scripts
+- **`blob/test-bulk-delete.sh`** - Test bulk deletion
 
-We recently encountered a critical issue where:
+### Development Setup
 
-- **Database**: `storage_edges.memory_id` was an `integer` (old schema)
-- **Code**: Expected `storage_edges.memory_id` to be a `uuid` (new schema)
-
-This caused runtime errors like:
-
-```
-invalid input syntax for type integer: "2fdc73f8-c0d4-4273-81db-847664170c8d"
-```
-
-### The Solution
-
-These scripts help catch schema mismatches **before** they cause runtime errors:
-
-1. **`validate-schema.ts`** - Catches type mismatches, missing columns, etc.
-2. **`verify-constraints.ts`** - Ensures constraints defined in schema exist in database
-
-## Usage in Development Workflow
-
-### After Schema Changes
-
-```bash
-# 1. Generate migration
-npm run db:generate
-
-# 2. Validate schema matches
-npm run db:validate
-
-# 3. Push changes
-npm run db:push
-
-# 4. Verify constraints
-npm run db:verify
-```
-
-### Before Deployment
-
-```bash
-# Run both validation scripts
-npm run db:validate && npm run db:verify
-```
-
-## What Each Script Checks
-
-### `validate-schema.ts`
-
-- ✅ Table existence
-- ✅ Column data types (e.g., `uuid` vs `integer`)
-- ✅ Column nullability
-- ✅ Primary key constraints
-- ✅ Default values
-
-### `verify-constraints.ts`
-
-- ✅ CHECK constraints (e.g., `memory_assets_bytes_positive`)
-- ✅ Custom constraints defined in schema
-- ⚠️ Note: Drizzle cannot automatically verify these constraints
-
-## Exit Codes
-
-- `0` - All checks passed
-- `1` - Issues detected (mismatches, missing constraints, etc.)
-
-## Integration with CI/CD
-
-These scripts are designed to be run in CI/CD pipelines:
-
-```yaml
-# Example GitHub Actions step
-- name: Validate Database Schema
-  run: |
-    npm run db:validate
-    npm run db:verify
-```
-
-## Troubleshooting
-
-### Schema Mismatch Detected
-
-1. Check what changes are needed: `npx drizzle-kit push --dry-run`
-2. Force push changes: `npx drizzle-kit push --force`
-3. Or create proper migration: `npx drizzle-kit generate`
-
-### Missing Constraints
-
-1. Check if constraints are defined in `src/db/schema.ts`
-2. If defined, run: `npx drizzle-kit push --force`
-3. If not defined, add them to the schema
-
-### Data Loss Warnings
-
-- These scripts will warn about potential data loss
-- In development, you can usually accept data loss
-- In production, create proper migrations with data transformation
-
+- **`db/docker/dev-setup.sh`** - Docker development environment setup
+- **`ngrok/`** - Development tunneling tools

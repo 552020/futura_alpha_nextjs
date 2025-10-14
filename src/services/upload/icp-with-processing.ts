@@ -9,85 +9,78 @@
  * Mirrors the S3 architecture pattern from s3-with-processing.ts
  */
 
+// import { randomUUID } from 'crypto'; // Not used in this file
+
+import { detectMemoryTypeFromFile } from '@/utils/memory-type';
 import { processImageDerivativesPure, type ProcessedBlobs } from './image-derivatives';
 // import { finalizeAllAssets, type ProcessedAssets } from './finalize'; // Not used for ICP-only uploads
 import { type ProcessedAssets } from './finalize';
-// import { extractFolderName } from './shared-utils';
+import { createFolderIfNeeded } from './shared-utils';
 import { type UploadServiceResult } from './types';
 // import { fatLogger } from '@/lib/logger';
 import { getAuthClient } from '@/ic/ii';
 import { backendActor } from '@/ic/backend';
 import type {
+  AssetMetadata,
   Result,
   Result_5,
   Result_6,
   Result13,
   Result15,
   MemoryMetadata,
-  // InternalBlobAssetInput, // Not used for inline storage approach
-  AssetMetadata,
-  AssetType,
   MemoryType,
   DatabaseHosting,
   UploadFinishResult,
-} from '@/ic/declarations/backend/backend.did';
+} from '@/ic/declarations/backend/backend.did.d';
 
 /**
- * Upload original files to ICP using chunked uploads (Lane A)
+ * Upload original files to ICP and create memory records (Lane A)
  * STEP 2.1 of the upload pipeline (uploadMultipleToICPWithProcessing in icp-with-processing.ts)
+ *
+ * Lane A responsibilities:
+ * 1. Upload original file to ICP using chunked uploads
+ * 2. Create ICP memory record with the original blob
+ *
+ * NOTE: Derivative processing and storage edges are handled separately
  */
-async function uploadOriginalToICP(
+async function uploadOriginalAndCreateMemory(
   files: File[],
-  _onProgress?: (progress: number) => void
+  onProgress?: (progress: number) => void,
+  parentFolderId?: string
 ): Promise<UploadServiceResult[]> {
-  // const isSingleFile = files.length === 1;
+  const isSingleFile = files.length === 1;
 
-  const uploadPromises = files.map(async (file, _index) => {
-    // Upload original file using ICP chunked upload
-    // const _uploadResult = await uploadFileToICPWithProgress(file, progress => {
-    //   if (isSingleFile) {
-    //     onProgress?.(progress);
-    //   } else {
-    //     // For multiple files, we could calculate overall progress here
-    //     // For now, just call with the current file's progress
-    //     onProgress?.(progress);
-    //   }
-    // });
-
-    // Commit to database
-    const commitResponse = await fetch('/api/upload/complete', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        fileKey: `icp-${Date.now()}-${file.name}`, // Generate ICP-specific key
-        originalName: file.name,
-        size: file.size,
-        type: file.type,
-      }),
+  const uploadPromises = files.map(async (file, fileIndex) => {
+    // 1. Upload original file using ICP chunked upload
+    const uploadResult = await uploadFileToICPWithProgress(file, progress => {
+      if (isSingleFile) {
+        onProgress?.(progress);
+      } else {
+        // For multiple files, calculate overall progress across all files
+        // Each file contributes 100% / totalFiles to the overall progress
+        const overallProgress = (fileIndex * 100 + progress) / files.length;
+        onProgress?.(Math.min(overallProgress, 100));
+      }
     });
 
-    if (!commitResponse.ok) {
-      const error = await commitResponse.json();
-      throw new Error(error.error || 'Failed to commit upload');
-    }
-
-    const commitData = await commitResponse.json();
+    // 2. Create ICP memory record with the original blob
+    const icpMemoryId = await createICPMemoryWithOriginalBlob(file, uploadResult.uploadResult.blob_id, parentFolderId);
 
     return {
-      data: { id: commitData.data.id },
+      data: { id: icpMemoryId },
       results: [
         {
-          memoryId: commitData.data.id,
-          blobId: `icp-${Date.now()}-${file.name}`,
+          memoryId: icpMemoryId,
+          blobId: uploadResult.uploadResult.blob_id,
           size: BigInt(file.size),
           checksumSha256: undefined,
           storageBackend: 'icp' as const,
-          storageLocation: '', // Will be set after memory edge creation
+          storageLocation: `icp://blob/${uploadResult.uploadResult.blob_id}`,
           uploadedAt: BigInt(Date.now()),
           expiresAt: undefined,
         },
       ],
-      userId: commitData.data.ownerId || '',
+      userId: '', // TODO: Get from session if needed
       totalFiles: files.length,
       totalSize: files.reduce((sum, f) => sum + f.size, 0),
       processingTime: 0, // Will be calculated
@@ -100,13 +93,13 @@ async function uploadOriginalToICP(
   return uploadResults;
 }
 
-export async function uploadToICPWithProcessing(
+export async function uploadFileAndCreateMemoryWithDerivatives(
   file: File,
   onProgress?: (progress: number) => void
 ): Promise<UploadServiceResult> {
   try {
-    // 2. Start both lanes simultaneously
-    const laneAPromise = uploadOriginalToICP([file], onProgress).then(results => results[0]);
+    // 1. Start both lanes simultaneously
+    const laneAPromise = uploadOriginalAndCreateMemory([file], onProgress).then(results => results[0]);
 
     let laneBPromise: Promise<ProcessedAssets> | null = null;
     if (file.type.startsWith('image/')) {
@@ -116,131 +109,49 @@ export async function uploadToICPWithProcessing(
       );
     }
 
-    // 3. Wait for both lanes to complete
+    // 2. Wait for both lanes to complete
     const laneAResult = await Promise.allSettled([laneAPromise]).then(results => results[0]);
     const laneBResult = laneBPromise ? await Promise.allSettled([laneBPromise]).then(results => results[0]) : null;
 
-    // 4. Single finalize with all assets and precise statuses
-    // Convert UploadServiceResult to the format expected by finalizeAllAssets
-    // const _laneAResultForFinalize =
-    // laneAResult.status === 'fulfilled'
-    //   ? {
-    //       status: 'fulfilled' as const,
-    //       value: {
-    //         data: laneAResult.value.data,
-    //         results: laneAResult.value.results.map(r => ({
-    //           memoryId: r.memoryId,
-    //           size: Number(r.size),
-    //           checksum_sha256: r.checksumSha256
-    //             ? Array.from(r.checksumSha256)
-    //                 .map(b => b.toString(16).padStart(2, '0'))
-    //                 .join('')
-    //             : null,
-    //         })),
-    //         userId: laneAResult.value.userId,
-    //       },
-    //     }
-    //   : laneAResult;
-
-    // For ICP-only uploads, we don't create memory records in Neon database
-    // We only create storage edges to track where the ICP memory is stored
-
-    // CRITICAL: Create ICP memory record and storage edges (no Neon memory record)
-    if (laneAResult.status === 'fulfilled') {
-      // Generate a unique UUID for tracking purposes (not stored in Neon)
-      const memoryId = crypto.randomUUID();
-
-      // Collect blob asset information from both lanes
-      const blobAssets = [];
-
-      // Add original asset from Lane A
-      if (laneAResult.status === 'fulfilled') {
-        const originalResult = laneAResult.value.results[0];
-        blobAssets.push({
-          blobId: originalResult.blobId, // Use the actual ICP blob ID
-          assetType: 'original' as const,
-          size: Number(originalResult.size),
-          hash: originalResult.checksumSha256
-            ? Array.from(originalResult.checksumSha256)
-                .map(b => b.toString(16).padStart(2, '0'))
-                .join('')
-            : '',
-          mimeType: file.type,
-        });
-      }
-
-      // Add derivative assets from Lane B
-      if (laneBResult?.status === 'fulfilled' && laneBResult.value) {
-        const { display, thumb, placeholder } = laneBResult.value;
-
-        if (display) {
-          blobAssets.push({
-            blobId: display.storageKey || '', // This now contains the ICP blob ID
-            assetType: 'display' as const,
-            size: display.bytes || 0,
-            hash: '', // TODO: Get hash from ICP upload result
-            mimeType: display.mimeType || 'image/jpeg',
-          });
-        }
-
-        if (thumb) {
-          blobAssets.push({
-            blobId: thumb.storageKey || '', // This now contains the ICP blob ID
-            assetType: 'thumb' as const,
-            size: thumb.bytes || 0,
-            hash: '', // TODO: Get hash from ICP upload result
-            mimeType: thumb.mimeType || 'image/jpeg',
-          });
-        }
-
-        // Prepare placeholder data for inline storage (not as blob asset)
-        const placeholderData = placeholder
-          ? {
-              dataUrl: placeholder.url || '',
-              size: placeholder.bytes || 0,
-              mimeType: placeholder.mimeType || 'image/jpeg',
-            }
-          : null;
-
-        // Create memory metadata for ICP
-        const memoryMetadata: MemoryMetadata = {
-          title: [file.name.split('.')[0] || 'Untitled'],
-          updated_at: BigInt(Date.now()),
-          sharing_status: { Private: null },
-          date_of_memory: [],
-          memory_type: { Image: null } as MemoryType,
-          tags: [],
-          has_thumbnails: true,
-          content_type: file.type,
-          people_in_memory: [],
-          has_previews: true,
-          database_storage_edges: [{ Neon: null } as DatabaseHosting],
-          description: [],
-          created_at: BigInt(Date.now()),
-          created_by: [],
-          total_size: BigInt(file.size),
-          thumbnail_url: [],
-          parent_folder_id: [],
-          asset_count: 1,
-          deleted_at: [],
-          primary_asset_url: [],
-          shared_count: 0,
-          file_created_at: [],
-          location: [],
-          memory_notes: [],
-          uploaded_at: BigInt(Date.now()),
-        };
-
-        // Create ICP memory record and storage edges
-        if (placeholderData) {
-          await createICPMemoryRecordAndEdges(memoryId, blobAssets, placeholderData, memoryMetadata);
-        } else {
-          throw new Error('Placeholder data is required for ICP memory creation');
-        }
-      }
+    console.log('🔍 Lane A result status:', laneAResult.status);
+    console.log('🔍 Lane B result status:', laneBResult?.status);
+    if (laneAResult.status === 'rejected') {
+      console.log('❌ Lane A failed with error:', laneAResult.reason);
+    }
+    if (laneBResult?.status === 'rejected') {
+      console.log('❌ Lane B failed with error:', laneBResult.reason);
     }
 
-    // Return Lane A result (original upload)
+    // 3. Add derivative assets to existing memory using new endpoints
+    if (laneAResult.status === 'fulfilled') {
+      const icpMemoryId = laneAResult.value.data.id;
+      const originalResult = laneAResult.value.results[0];
+
+      // Add derivatives to existing memory using new asset addition endpoints
+      if (laneBResult?.status === 'fulfilled' && laneBResult.value) {
+        await addDerivativeAssetsToMemory(icpMemoryId, laneBResult.value, file);
+      }
+
+      // 4. Create storage edges for all artifacts (after asset addition)
+      const derivativeAssets =
+        laneBResult?.status === 'fulfilled'
+          ? {
+              display: laneBResult.value.display
+                ? { blobId: laneBResult.value.display.storageKey || '', size: laneBResult.value.display.bytes || 0 }
+                : undefined,
+              thumb: laneBResult.value.thumb
+                ? { blobId: laneBResult.value.thumb.storageKey || '', size: laneBResult.value.thumb.bytes || 0 }
+                : undefined,
+              placeholder: laneBResult.value.placeholder
+                ? { blobId: 'inline', size: laneBResult.value.placeholder.bytes || 0 }
+                : undefined,
+            }
+          : {};
+
+      await createStorageEdgesForAllAssets(icpMemoryId, file, originalResult.blobId, derivativeAssets);
+    }
+
+    // Return Lane A result (original upload + memory creation)
     if (laneAResult.status === 'fulfilled') {
       return laneAResult.value;
     } else {
@@ -269,11 +180,18 @@ export async function uploadMultipleToICPWithProcessing(
   successfulUploads?: number;
 }> {
   try {
+    // 1. Create folder if needed (for directory mode) - must be done before lane promises
+    const parentFolderId = await createFolderIfNeeded(mode, files);
+
     // 2.1. Start Lane A: Upload original files to ICP
-    const laneAPromise = uploadOriginalToICP(files, progress => {
-      // Convert overall progress to per-file progress for compatibility
-      onProgress?.(files[0], progress);
-    });
+    const laneAPromise = uploadOriginalAndCreateMemory(
+      files,
+      progress => {
+        // Convert overall progress to per-file progress for compatibility
+        onProgress?.(files[0], progress);
+      },
+      parentFolderId
+    );
 
     // 2.2. Start Lane B: Process derivatives for image files
     const imageFiles = files.filter(file => file.type.startsWith('image/'));
@@ -287,135 +205,59 @@ export async function uploadMultipleToICPWithProcessing(
     const laneAResult = await Promise.allSettled([laneAPromise]).then(results => results[0]);
     const laneBResult = laneBPromise ? await Promise.allSettled([laneBPromise]).then(results => results[0]) : null;
 
-    // 4. Create folder if needed (for directory mode)
-    // const _parentFolderId = await createFolderIfNeeded(mode, files);
-
-    // 5. Finalize all assets for each file
+    // 4. Add derivative assets to existing memories
     if (laneAResult.status === 'fulfilled' && laneBResult?.status === 'fulfilled') {
-      // Finalize each file's assets
-      // const _finalizePromises = files.map(async (file, index) => {
-      //   const _laneAResultForFile = {
-      //     status: 'fulfilled' as const,
-      //     value: {
-      //       data: laneAResult.value[index].data,
-      //       results: laneAResult.value[index].results.map(r => ({
-      //         memoryId: r.memoryId,
-      //         size: Number(r.size),
-      //         checksum_sha256: r.checksumSha256
-      //           ? Array.from(r.checksumSha256)
-      //               .map(b => b.toString(16).padStart(2, '0'))
-      //               .join('')
-      //           : null,
-      //       })),
-      //       userId: laneAResult.value[index].userId,
-      //     },
-      //   };
+      // Add derivatives to each memory
+      const assetAdditionPromises = files.map(async (file, index) => {
+        const memoryResult = laneAResult.value[index];
+        const derivativeResult = laneBResult.value[index];
 
-      //   const _laneBResultForFile = {
-      //     status: 'fulfilled' as const,
-      //     value: laneBResult.value[index] || {},
-      //   };
+        if (derivativeResult) {
+          await addDerivativeAssetsToMemory(memoryResult.data.id, derivativeResult, file);
+        }
+      });
 
-      //   // For ICP-only uploads, we don't create memory records in Neon database
-      //   // We only create storage edges to track where the ICP memories are stored
-      // });
+      await Promise.all(assetAdditionPromises);
+    }
 
-      // CRITICAL: Create ICP memory records and storage edges (no Neon memory records)
-      if (laneAResult.status === 'fulfilled') {
-        const edgePromises = laneAResult.value.map(async (result, index) => {
-          // Generate a unique UUID for tracking purposes (not stored in Neon)
-          const memoryId = crypto.randomUUID();
-          const file = files[index];
+    // 5. Create storage edges for all assets
+    if (laneAResult.status === 'fulfilled') {
+      const storageEdgePromises = files.map(async (file, index) => {
+        const memoryResult = laneAResult.value[index];
+        const derivativeResult = laneBResult?.status === 'fulfilled' ? laneBResult.value[index] : null;
 
-          // Collect blob asset information for this file
-          const blobAssets = [];
-
-          // Add original asset from Lane A
-          const originalResult = result.results[0];
-          blobAssets.push({
-            blobId: originalResult.blobId, // Use the actual ICP blob ID
-            assetType: 'original' as const,
-            size: Number(originalResult.size),
-            hash: originalResult.checksumSha256
-              ? Array.from(originalResult.checksumSha256)
-                  .map(b => b.toString(16).padStart(2, '0'))
-                  .join('')
-              : '',
-            mimeType: file.type,
-          });
-
-          // Add derivative assets from Lane B
-          if (laneBResult?.status === 'fulfilled' && laneBResult.value[index]) {
-            const { display, thumb, placeholder } = laneBResult.value[index];
-
-            if (display) {
-              blobAssets.push({
-                blobId: display.storageKey || '', // This now contains the ICP blob ID
-                assetType: 'display' as const,
-                size: display.bytes || 0,
-                hash: '', // TODO: Get hash from ICP upload result
-                mimeType: display.mimeType || 'image/jpeg',
-              });
+        const derivativeAssets = derivativeResult
+          ? {
+              display: derivativeResult.display
+                ? {
+                    blobId: derivativeResult.display.storageKey || '',
+                    size: derivativeResult.display.bytes || 0,
+                  }
+                : undefined,
+              thumb: derivativeResult.thumb
+                ? {
+                    blobId: derivativeResult.thumb.storageKey || '',
+                    size: derivativeResult.thumb.bytes || 0,
+                  }
+                : undefined,
+              placeholder: derivativeResult.placeholder
+                ? {
+                    blobId: 'inline',
+                    size: derivativeResult.placeholder.bytes || 0,
+                  }
+                : undefined,
             }
+          : {};
 
-            if (thumb) {
-              blobAssets.push({
-                blobId: thumb.storageKey || '', // This now contains the ICP blob ID
-                assetType: 'thumb' as const,
-                size: thumb.bytes || 0,
-                hash: '', // TODO: Get hash from ICP upload result
-                mimeType: thumb.mimeType || 'image/jpeg',
-              });
-            }
+        await createStorageEdgesForAllAssets(
+          memoryResult.data.id,
+          file,
+          memoryResult.results[0].blobId,
+          derivativeAssets
+        );
+      });
 
-            // Prepare placeholder data for inline storage (not as blob asset)
-            const placeholderData = placeholder
-              ? {
-                  dataUrl: placeholder.url || '',
-                  size: placeholder.bytes || 0,
-                  mimeType: placeholder.mimeType || 'image/jpeg',
-                }
-              : null;
-
-            // Create memory metadata for ICP
-            const memoryMetadata: MemoryMetadata = {
-              title: [file.name.split('.')[0] || 'Untitled'],
-              updated_at: BigInt(Date.now()),
-              sharing_status: { Private: null },
-              date_of_memory: [],
-              memory_type: { Image: null } as MemoryType,
-              tags: [],
-              has_thumbnails: true,
-              content_type: file.type,
-              people_in_memory: [],
-              has_previews: true,
-              database_storage_edges: [{ Neon: null } as DatabaseHosting],
-              description: [],
-              created_at: BigInt(Date.now()),
-              created_by: [],
-              total_size: BigInt(file.size),
-              thumbnail_url: [],
-              parent_folder_id: [],
-              asset_count: 1,
-              deleted_at: [],
-              primary_asset_url: [],
-              shared_count: 0,
-              file_created_at: [],
-              location: [],
-              memory_notes: [],
-              uploaded_at: BigInt(Date.now()),
-            };
-
-            // Create ICP memory record and storage edges
-            if (placeholderData) {
-              await createICPMemoryRecordAndEdges(memoryId, blobAssets, placeholderData, memoryMetadata);
-            } else {
-              throw new Error('Placeholder data is required for ICP memory creation');
-            }
-          }
-        });
-        await Promise.all(edgePromises);
-      }
+      await Promise.all(storageEdgePromises);
     }
 
     return {
@@ -442,34 +284,6 @@ export async function uploadMultipleToICPWithProcessing(
 }
 
 /**
- * Create folder for directory mode uploads
- * STEP 4 of the upload pipeline (uploadMultipleToICPWithProcessing in icp-with-processing.ts)
- */
-// async function createFolderIfNeeded(mode: 'directory' | 'multiple-files', files: File[]): Promise<string | undefined> {
-//   if (mode !== 'directory') {
-//     return undefined;
-//   }
-
-//   const folderName = extractFolderName(files[0]);
-
-//   const folderResponse = await fetch('/api/folders', {
-//     method: 'POST',
-//     headers: {
-//       'Content-Type': 'application/json',
-//     },
-//     body: JSON.stringify({ folderName }),
-//   });
-
-//   if (!folderResponse.ok) {
-//     const error = await folderResponse.json();
-//     throw new Error(error.error || 'Failed to create folder');
-//   }
-
-//   const { folder } = await folderResponse.json();
-//   return folder.id;
-// }
-
-/**
  * Process image derivatives for multiple files using pure processing + ICP upload
  * STEP 2.2 of the upload pipeline (uploadMultipleToICPWithProcessing in icp-with-processing.ts)
  */
@@ -478,6 +292,39 @@ async function processMultipleImageDerivativesForICP(imageFiles: File[]): Promis
     try {
       // Pure processing first, then ICP upload
       const processedBlobs = await processImageDerivativesPure(file);
+
+      // 🔍 [Lane B] Log processed blob dimensions before upload
+      console.log('🔍 [Lane B] Processed blobs for file:', file.name);
+      if (processedBlobs.display) {
+        console.log('🔍 [Lane B] Display blob:', {
+          width: processedBlobs.display.width,
+          height: processedBlobs.display.height,
+          bytes: processedBlobs.display.bytes,
+          mimeType: processedBlobs.display.mimeType,
+        });
+      } else {
+        console.log('🔍 [Lane B] ❌ No display blob generated');
+      }
+      if (processedBlobs.thumb) {
+        console.log('🔍 [Lane B] Thumbnail blob:', {
+          width: processedBlobs.thumb.width,
+          height: processedBlobs.thumb.height,
+          bytes: processedBlobs.thumb.bytes,
+          mimeType: processedBlobs.thumb.mimeType,
+        });
+      } else {
+        console.log('🔍 [Lane B] ❌ No thumbnail blob generated');
+      }
+      if (processedBlobs.placeholder) {
+        console.log('🔍 [Lane B] Placeholder blob:', {
+          width: processedBlobs.placeholder.width,
+          height: processedBlobs.placeholder.height,
+          bytes: processedBlobs.placeholder.bytes,
+        });
+      } else {
+        console.log('🔍 [Lane B] ❌ No placeholder blob generated');
+      }
+
       return await uploadProcessedAssetsToICP(processedBlobs, file.name);
     } catch (_error) {
       return {
@@ -510,6 +357,12 @@ export async function uploadProcessedAssetsToICP(
       });
 
       const displayUploadResult = await uploadFileToICPWithProgress(displayFile, () => {}); // No progress tracking for derivatives
+
+      console.log('🔍 [Lane B] Display upload result:', {
+        blob_id: displayUploadResult.uploadResult.blob_id,
+        original_dimensions: `${processedBlobs.display.width}x${processedBlobs.display.height}`,
+        original_bytes: processedBlobs.display.bytes,
+      });
 
       results.display = {
         assetType: 'display',
@@ -550,6 +403,12 @@ export async function uploadProcessedAssetsToICP(
       });
 
       const thumbUploadResult = await uploadFileToICPWithProgress(thumbFile, () => {}); // No progress tracking for derivatives
+
+      console.log('🔍 [Lane B] Thumbnail upload result:', {
+        blob_id: thumbUploadResult.uploadResult.blob_id,
+        original_dimensions: `${processedBlobs.thumb.width}x${processedBlobs.thumb.height}`,
+        original_bytes: processedBlobs.thumb.bytes,
+      });
 
       results.thumb = {
         assetType: 'thumb',
@@ -773,34 +632,28 @@ export async function uploadFileToICPWithProgress(
   }
 }
 
+// Helper function to convert data URL to bytes (for inline storage)
+function dataURLtoBytes(dataURL: string): Uint8Array {
+  const arr = dataURL.split(',');
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return u8arr;
+}
+
 /**
- * Create ICP memory record and storage edges
- *
- * This function creates the memory record in the ICP canister and creates
- * storage edges to track where each artifact is stored.
- *
- * @param trackingMemoryId - The tracking ID for this ICP memory (not stored in Neon)
- * @param blobAssets - Array of blob assets that were uploaded to ICP
- * @param memoryMetadata - Memory metadata for ICP canister
+ * Create ICP memory record with original blob
  */
-async function createICPMemoryRecordAndEdges(
-  trackingMemoryId: string,
-  blobAssets: Array<{
-    blobId: string;
-    assetType: 'original' | 'display' | 'thumb';
-    size: number;
-    hash: string;
-    mimeType: string;
-  }>,
-  placeholderData: {
-    dataUrl: string;
-    size: number;
-    mimeType: string;
-  },
-  _memoryMetadata: MemoryMetadata
+async function createICPMemoryWithOriginalBlob(
+  file: File,
+  originalBlobId: string,
+  parentFolderId?: string
 ): Promise<string> {
   try {
-    console.log(`🔗 Creating ICP memory record and storage edges for tracking ID: ${trackingMemoryId}`);
+    console.log(`🔗 Creating ICP memory with original blob: ${originalBlobId}`);
 
     // Get authenticated backend actor
     const authClient = await getAuthClient();
@@ -818,11 +671,33 @@ async function createICPMemoryRecordAndEdges(
     }
     const capsuleId = capsuleResult.Ok.capsule_id;
 
-    // Convert data URL to bytes for inline placeholder storage
-    const placeholderBytes = dataURLtoBytes(placeholderData.dataUrl);
+    // Create memory metadata
+    const memoryMetadata: MemoryMetadata = {
+      title: [file.name.split('.')[0] || 'Untitled'],
+      updated_at: BigInt(Date.now()),
+      sharing_status: { Private: null },
+      date_of_memory: [],
+      memory_type: { Image: null } as MemoryType,
+      tags: [],
+      content_type: file.type,
+      people_in_memory: [],
+      database_storage_edges: [{ Neon: null } as DatabaseHosting],
+      description: [],
+      created_at: BigInt(Date.now()),
+      created_by: [],
+      total_size: BigInt(file.size),
+      parent_folder_id: parentFolderId ? [parentFolderId] : [],
+      asset_count: 1,
+      deleted_at: [],
+      shared_count: 0,
+      file_created_at: [],
+      location: [],
+      memory_notes: [],
+      uploaded_at: BigInt(Date.now()),
+    };
 
-    // Create placeholder asset metadata
-    const placeholderAssetMetadata: AssetMetadata = {
+    // Create asset metadata for original blob
+    const assetMetadata: AssetMetadata = {
       Image: {
         dpi: [],
         color_space: [],
@@ -830,22 +705,21 @@ async function createICPMemoryRecordAndEdges(
           url: [],
           height: [],
           updated_at: BigInt(Date.now()),
-          asset_type: { Preview: null } as AssetType,
+          asset_type: { Original: null },
           sha256: [],
-          name: 'placeholder',
+          name: file.name,
           storage_key: [],
           tags: [],
           processing_error: [],
-          mime_type: placeholderData.mimeType,
+          mime_type: file.type,
           description: [],
           created_at: BigInt(Date.now()),
           deleted_at: [],
-          bytes: BigInt(placeholderBytes.length),
+          bytes: BigInt(file.size),
           asset_location: [],
           width: [],
           processing_status: [],
           bucket: [],
-          // hash: '', // TODO: Calculate actual hash - not part of AssetMetadataBase
         },
         exif_data: [],
         compression_ratio: [],
@@ -853,28 +727,17 @@ async function createICPMemoryRecordAndEdges(
       },
     };
 
-    // Create memory in ICP canister with placeholder as inline asset
-    // TODO: Support multiple assets (placeholder inline + others as blobs)
-    const result = await backend.memories_create(
+    // Create memory with original blob
+    const result = await backend.memories_create_with_internal_blobs(
       capsuleId,
-      [placeholderBytes], // inline bytes for placeholder (array format)
-      [], // no blob ref (empty array)
-      [], // no external location (empty array)
-      [], // no external storage key (empty array)
-      [], // no external URL (empty array)
-      [], // no external size (empty array)
-      [], // no external hash (empty array)
-      placeholderAssetMetadata,
-      trackingMemoryId // Use tracking ID as idempotency key
+      memoryMetadata,
+      [{ blob_id: originalBlobId, metadata: assetMetadata }],
+      `memory-${Date.now()}` // idempotency key
     );
 
     if ('Ok' in result) {
       const icpMemoryId = result.Ok;
-      console.log(`✅ ICP memory created: ${icpMemoryId} for tracking ID: ${trackingMemoryId}`);
-
-      // Create storage edges for each artifact via API
-      await createStorageEdgesViaAPI(trackingMemoryId, icpMemoryId, blobAssets, placeholderData);
-
+      console.log(`✅ ICP memory created: ${icpMemoryId} with original blob: ${originalBlobId}`);
       return icpMemoryId;
     } else {
       throw new Error(`Failed to create ICP memory: ${JSON.stringify(result.Err)}`);
@@ -886,38 +749,279 @@ async function createICPMemoryRecordAndEdges(
 }
 
 /**
- * Create storage edges for ICP memory via API
- *
- * This function creates storage edge records to track where each artifact is stored.
- * It creates edges for metadata (in both Neon and ICP) and assets (in ICP).
+ * Add derivative assets to existing memory using new asset addition endpoints
  */
-async function createStorageEdgesViaAPI(
-  trackingMemoryId: string,
+async function addDerivativeAssetsToMemory(
   icpMemoryId: string,
-  blobAssets: Array<{
-    blobId: string;
-    assetType: 'original' | 'display' | 'thumb';
-    size: number;
-    hash: string;
-    mimeType: string;
-  }>,
-  placeholderData: {
-    dataUrl: string;
-    size: number;
-    mimeType: string;
+  derivativeAssets: ProcessedAssets,
+  file: File
+): Promise<void> {
+  try {
+    console.log(`🔗 Adding derivative assets to memory: ${icpMemoryId}`);
+
+    // Get authenticated backend actor
+    const authClient = await getAuthClient();
+    if (!authClient.isAuthenticated()) {
+      throw new Error('Please connect your Internet Identity to add assets to memory');
+    }
+
+    const identity = authClient.getIdentity();
+    const backend = await backendActor(identity);
+
+    // Add display derivative if available
+    if (derivativeAssets.display?.storageKey) {
+      const displayAssetMetadata: AssetMetadata = {
+        Image: {
+          dpi: [],
+          color_space: [],
+          base: {
+            url: [],
+            height: [derivativeAssets.display.height || 0],
+            updated_at: BigInt(Date.now()),
+            asset_type: { Display: null },
+            sha256: [],
+            name: `${file.name}_display`,
+            storage_key: [],
+            tags: [],
+            processing_error: [],
+            mime_type: derivativeAssets.display.mimeType || 'image/jpeg',
+            description: [],
+            created_at: BigInt(Date.now()),
+            deleted_at: [],
+            bytes: BigInt(derivativeAssets.display.bytes || 0),
+            asset_location: [],
+            width: [derivativeAssets.display.width || 0],
+            processing_status: [],
+            bucket: [],
+          },
+          exif_data: [],
+          compression_ratio: [],
+          orientation: [],
+        },
+      };
+
+      console.log('🔍 About to call memories_add_asset with:', {
+        icpMemoryId,
+        blob_id: derivativeAssets.display.storageKey,
+        metadata: displayAssetMetadata,
+        idempotencyKey: `display-${Date.now()}`,
+      });
+
+      let displayResult;
+      try {
+        displayResult = await backend.memories_add_asset(
+          icpMemoryId,
+          {
+            blob_id: derivativeAssets.display.storageKey,
+            metadata: displayAssetMetadata,
+          },
+          `display-${Date.now()}`
+        );
+        console.log('🔍 Raw display asset result:', displayResult);
+        console.log('🔍 Display result type:', typeof displayResult);
+        console.log('🔍 Display result keys:', Object.keys(displayResult || {}));
+        console.log('🔍 Display result Ok check:', 'Ok' in displayResult);
+        console.log('🔍 Display result Err check:', 'Err' in displayResult);
+      } catch (error) {
+        console.log('❌ Backend call failed with error:', error);
+        console.log('❌ Error type:', typeof error);
+        if (error instanceof Error) {
+          console.log('❌ Error message:', error.message);
+          console.log('❌ Error stack:', error.stack);
+        }
+        throw error;
+      }
+
+      if ('Ok' in displayResult) {
+        console.log(`✅ Added display asset to memory: ${displayResult.Ok}`);
+      } else {
+        console.log(`❌ Failed to add display asset:`, displayResult.Err);
+        throw new Error(`Failed to add display asset: ${JSON.stringify(displayResult.Err)}`);
+      }
+    }
+
+    // Add thumb derivative if available
+    if (derivativeAssets.thumb?.storageKey) {
+      const thumbAssetMetadata: AssetMetadata = {
+        Image: {
+          dpi: [],
+          color_space: [],
+          base: {
+            url: [],
+            height: [derivativeAssets.thumb.height || 0],
+            updated_at: BigInt(Date.now()),
+            asset_type: { Thumbnail: null },
+            sha256: [],
+            name: `${file.name}_thumb`,
+            storage_key: [],
+            tags: [],
+            processing_error: [],
+            mime_type: derivativeAssets.thumb.mimeType || 'image/jpeg',
+            description: [],
+            created_at: BigInt(Date.now()),
+            deleted_at: [],
+            bytes: BigInt(derivativeAssets.thumb.bytes || 0),
+            asset_location: [],
+            width: [derivativeAssets.thumb.width || 0],
+            processing_status: [],
+            bucket: [],
+          },
+          exif_data: [],
+          compression_ratio: [],
+          orientation: [],
+        },
+      };
+
+      console.log('🔍 About to call memories_add_asset for thumb with:', {
+        icpMemoryId,
+        blob_id: derivativeAssets.thumb.storageKey,
+        metadata: thumbAssetMetadata,
+        idempotencyKey: `thumb-${Date.now()}`,
+      });
+
+      let thumbResult;
+      try {
+        thumbResult = await backend.memories_add_asset(
+          icpMemoryId,
+          {
+            blob_id: derivativeAssets.thumb.storageKey,
+            metadata: thumbAssetMetadata,
+          },
+          `thumb-${Date.now()}`
+        );
+        console.log('🔍 Raw thumb asset result:', thumbResult);
+        console.log('🔍 Thumb result type:', typeof thumbResult);
+        console.log('🔍 Thumb result keys:', Object.keys(thumbResult || {}));
+        console.log('🔍 Thumb result Ok check:', 'Ok' in thumbResult);
+        console.log('🔍 Thumb result Err check:', 'Err' in thumbResult);
+      } catch (error) {
+        console.log('❌ Thumb backend call failed with error:', error);
+        console.log('❌ Error type:', typeof error);
+        if (error instanceof Error) {
+          console.log('❌ Error message:', error.message);
+          console.log('❌ Error stack:', error.stack);
+        }
+        throw error;
+      }
+
+      if ('Ok' in thumbResult) {
+        console.log(`✅ Added thumb asset to memory: ${thumbResult.Ok}`);
+      } else {
+        console.log(`❌ Failed to add thumb asset:`, thumbResult.Err);
+        throw new Error(`Failed to add thumb asset: ${JSON.stringify(thumbResult.Err)}`);
+      }
+    }
+
+    // Add placeholder as inline asset if available
+    if (derivativeAssets.placeholder?.url) {
+      const placeholderBytes = dataURLtoBytes(derivativeAssets.placeholder.url);
+
+      const placeholderAssetMetadata: AssetMetadata = {
+        Image: {
+          dpi: [],
+          color_space: [],
+          base: {
+            url: [],
+            height: [derivativeAssets.placeholder.height || 0],
+            updated_at: BigInt(Date.now()),
+            asset_type: { Placeholder: null },
+            sha256: [],
+            name: `${file.name}_placeholder`,
+            storage_key: [],
+            tags: [],
+            processing_error: [],
+            mime_type: 'image/jpeg',
+            description: [],
+            created_at: BigInt(Date.now()),
+            deleted_at: [],
+            bytes: BigInt(placeholderBytes.length),
+            asset_location: [],
+            width: [derivativeAssets.placeholder.width || 0],
+            processing_status: [],
+            bucket: [],
+          },
+          exif_data: [],
+          compression_ratio: [],
+          orientation: [],
+        },
+      };
+
+      console.log('🔍 About to call memories_add_inline_asset with:', {
+        icpMemoryId,
+        bytesLength: placeholderBytes.length,
+        metadata: placeholderAssetMetadata,
+        idempotencyKey: `placeholder-${Date.now()}`,
+      });
+
+      let placeholderResult;
+      try {
+        placeholderResult = await backend.memories_add_inline_asset(
+          icpMemoryId,
+          {
+            bytes: placeholderBytes,
+            metadata: placeholderAssetMetadata,
+          },
+          `placeholder-${Date.now()}`
+        );
+        console.log('🔍 Raw placeholder asset result:', placeholderResult);
+        console.log('🔍 Placeholder result type:', typeof placeholderResult);
+        console.log('🔍 Placeholder result keys:', Object.keys(placeholderResult || {}));
+        console.log('🔍 Placeholder result Ok check:', 'Ok' in placeholderResult);
+        console.log('🔍 Placeholder result Err check:', 'Err' in placeholderResult);
+      } catch (error) {
+        console.log('❌ Placeholder backend call failed with error:', error);
+        console.log('❌ Error type:', typeof error);
+        if (error instanceof Error) {
+          console.log('❌ Error message:', error.message);
+          console.log('❌ Error stack:', error.stack);
+        }
+        throw error;
+      }
+
+      if ('Ok' in placeholderResult) {
+        console.log(`✅ Added placeholder asset to memory: ${placeholderResult.Ok}`);
+      } else {
+        console.log(`❌ Failed to add placeholder asset:`, placeholderResult.Err);
+        throw new Error(`Failed to add placeholder asset: ${JSON.stringify(placeholderResult.Err)}`);
+      }
+    }
+
+    console.log(`✅ Successfully added derivative assets to memory: ${icpMemoryId}`);
+  } catch (error) {
+    console.log(
+      '❌ Failed to add derivative assets to memory:',
+      error instanceof Error ? error.message : 'Unknown error'
+    );
+    throw error;
+  }
+}
+
+/**
+ * Create storage edges for all artifacts
+ * This tracks where each asset is stored for storage management and retrieval
+ */
+async function createStorageEdgesForAllAssets(
+  icpMemoryId: string,
+  file: File,
+  originalBlobId: string,
+  derivativeAssets: {
+    display?: { blobId: string; size: number };
+    thumb?: { blobId: string; size: number };
+    placeholder?: { blobId: string; size: number };
   }
 ): Promise<void> {
   try {
-    console.log(`🔗 Creating storage edges for memory: ${trackingMemoryId} (ICP: ${icpMemoryId})`);
+    console.log(`🔗 Creating storage edges for memory: ${icpMemoryId}`);
 
+    const memoryType = detectMemoryTypeFromFile(file);
     const edges = [];
 
     // 1. Metadata edge for ICP canister
     edges.push({
-      memoryId: trackingMemoryId,
-      memoryType: 'image',
+      memoryId: icpMemoryId,
+      memoryType: memoryType,
       artifact: 'metadata',
-      backend: 'icp-canister',
+      locationMetadata: 'icp',
       present: true,
       location: `icp://memory/${icpMemoryId}`,
       contentHash: null,
@@ -926,31 +1030,61 @@ async function createStorageEdgesViaAPI(
       syncError: null,
     });
 
-    // 2. Placeholder edge (inline asset in ICP memory)
+    // 2. Original asset edge
     edges.push({
-      memoryId: trackingMemoryId,
-      memoryType: 'image',
+      memoryId: icpMemoryId,
+      memoryType: memoryType,
       artifact: 'asset',
-      backend: 'icp-canister',
+      locationAsset: 'icp',
       present: true,
-      location: `icp://memory/${icpMemoryId}/inline/placeholder`,
-      contentHash: null, // TODO: Calculate hash
-      sizeBytes: placeholderData.size,
+      location: `icp://blob/${originalBlobId}`,
+      contentHash: null,
+      sizeBytes: file.size,
       syncState: 'idle',
       syncError: null,
     });
 
-    // 3. Asset edges for each blob in ICP
-    for (const asset of blobAssets) {
+    // 3. Derivative asset edges
+    if (derivativeAssets.display) {
       edges.push({
-        memoryId: trackingMemoryId,
-        memoryType: 'image',
+        memoryId: icpMemoryId,
+        memoryType: memoryType,
         artifact: 'asset',
-        backend: 'icp-canister',
+        locationAsset: 'icp',
         present: true,
-        location: `icp://blob/${asset.blobId}`,
-        contentHash: asset.hash,
-        sizeBytes: asset.size,
+        location: `icp://blob/${derivativeAssets.display.blobId}`,
+        contentHash: null,
+        sizeBytes: derivativeAssets.display.size,
+        syncState: 'idle',
+        syncError: null,
+      });
+    }
+
+    if (derivativeAssets.thumb) {
+      edges.push({
+        memoryId: icpMemoryId,
+        memoryType: memoryType,
+        artifact: 'asset',
+        locationAsset: 'icp',
+        present: true,
+        location: `icp://blob/${derivativeAssets.thumb.blobId}`,
+        contentHash: null,
+        sizeBytes: derivativeAssets.thumb.size,
+        syncState: 'idle',
+        syncError: null,
+      });
+    }
+
+    if (derivativeAssets.placeholder) {
+      edges.push({
+        memoryId: icpMemoryId,
+        memoryType: memoryType,
+        artifact: 'asset',
+        locationAsset: 'icp',
+        present: true,
+        location: `icp://blob/${derivativeAssets.placeholder.blobId}`,
+        contentHash: null,
+        sizeBytes: derivativeAssets.placeholder.size,
         syncState: 'idle',
         syncError: null,
       });
@@ -970,21 +1104,9 @@ async function createStorageEdgesViaAPI(
       }
     }
 
-    console.log(`✅ Created ${edges.length} storage edges for memory: ${trackingMemoryId}`);
+    console.log(`✅ Created ${edges.length} storage edges for memory: ${icpMemoryId}`);
   } catch (error) {
     console.log('❌ Failed to create storage edges:', error instanceof Error ? error.message : 'Unknown error');
     throw error;
   }
-}
-
-// Helper function to convert data URL to bytes (for inline storage)
-function dataURLtoBytes(dataURL: string): Uint8Array {
-  const arr = dataURL.split(',');
-  const bstr = atob(arr[1]);
-  let n = bstr.length;
-  const u8arr = new Uint8Array(n);
-  while (n--) {
-    u8arr[n] = bstr.charCodeAt(n);
-  }
-  return u8arr;
 }

@@ -1,5 +1,11 @@
+// Neon configuration (for cloud database)
 import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
+
+// PostgreSQL configuration (commented out for local development)
+// import { drizzle } from 'drizzle-orm/postgres-js';
+// import postgres from 'postgres';
+
 import { config } from 'dotenv';
 import * as schema from './schema'; // Import your schema
 
@@ -17,7 +23,11 @@ if (!process.env.DATABASE_URL && !process.env.DATABASE_URL_UNPOOLED) {
 // Use unpooled connection for non-browser environments (like seeding)
 const connectionString = typeof window === 'undefined' ? process.env.DATABASE_URL_UNPOOLED : process.env.DATABASE_URL;
 
+// Neon connection (for cloud database)
 const sql = neon(connectionString!);
+
+// PostgreSQL connection (commented out for local development)
+// const sql = postgres(connectionString!);
 export const db = drizzle(sql, { schema }); // Pass schema as second parameter
 
 // Export schema for tests and other modules

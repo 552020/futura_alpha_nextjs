@@ -23,7 +23,7 @@ import { auth } from '@/auth';
 import { db } from '@/db/db';
 import { allUsers, memories, folders, galleries, galleryItems } from '@/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
-import { cleanupStorageEdgesForMemory } from './utils/memory-database';
+import { cleanupMemoryAndStorage } from '@/lib/usecases/memory/cleanup-memory-and-storage';
 
 import { fatLogger } from '@/lib/logger';
 // Type for memory with metadata for deletion operations
@@ -61,7 +61,7 @@ async function cleanupStorageEdgesForMemories(memoriesToDelete: MemoryForDeletio
 
     fatLogger.info(`🧹 Cleaning up memory: ${memoryData.id} (${memoryData.type})`, 'be');
 
-    return cleanupStorageEdgesForMemory({
+    return cleanupMemoryAndStorage({
       memoryId: memoryData.id,
       memoryType: memoryData.type as 'image' | 'video' | 'note' | 'document' | 'audio',
       memoryData,
@@ -154,7 +154,7 @@ export async function handleApiMemoryDelete(request: NextRequest): Promise<NextR
       fatLogger.info(`✅ Deleted memory from database: ${memoryId}`, 'be');
 
       // 3. FINALLY: Clean up storage edges with pre-fetched data
-      const cleanupResult = await cleanupStorageEdgesForMemory({
+      const cleanupResult = await cleanupMemoryAndStorage({
         memoryId,
         memoryType: memoryData.type as 'image' | 'video' | 'document' | 'audio' | 'note',
         memoryData,

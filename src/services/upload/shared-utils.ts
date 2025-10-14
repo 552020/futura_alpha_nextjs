@@ -100,6 +100,48 @@ export function extractFolderName(file: File): string {
 }
 
 /**
+ * Create folder for directory mode uploads
+ *
+ * This function creates a folder in the database when uploading in directory mode.
+ * It extracts the folder name from the first file and creates a folder record.
+ *
+ * Used by:
+ * - uploadMultipleToS3WithProcessing() in s3-with-processing.ts
+ * - uploadMultipleToICPWithProcessing() in icp-with-processing.ts
+ * - Any other upload service that supports folder organization
+ *
+ * @param mode - Upload mode: 'directory' or 'multiple-files'
+ * @param files - Array of files being uploaded
+ * @returns Promise<string | undefined> - Folder ID if created, undefined if not needed
+ */
+export async function createFolderIfNeeded(
+  mode: 'directory' | 'multiple-files',
+  files: File[]
+): Promise<string | undefined> {
+  if (mode !== 'directory') {
+    return undefined;
+  }
+
+  const folderName = extractFolderName(files[0]);
+
+  const folderResponse = await fetch('/api/folders', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ folderName }),
+  });
+
+  if (!folderResponse.ok) {
+    const error = await folderResponse.json();
+    throw new Error(error.error || 'Failed to create folder');
+  }
+
+  const { folder } = await folderResponse.json();
+  return folder.id;
+}
+
+/**
  * Generate S3 public URL from S3 key
  *
  * SECURITY NOTE: It's safe to expose NEXT_PUBLIC_AWS_S3_BUCKET and

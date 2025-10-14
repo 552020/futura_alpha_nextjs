@@ -6,7 +6,7 @@ import {
   GalleryDetailResponse,
   UpdateGalleryRequest,
 } from '@/types/gallery';
-import { generatedGalleries, getGeneratedGallery } from '../../scripts/mock-data/generated-gallery-data';
+import { generatedGalleries, getGeneratedGallery } from '../../scripts/data/mock-data/generated-gallery-data';
 // Lazy imports to avoid ICP actor creation during static generation
 // import { icpGalleryService, type GalleryData, type StoreGalleryResponse } from './icp-gallery';
 // import { Principal } from '@dfinity/principal';
@@ -508,7 +508,7 @@ async function updateStorageEdgesAfterICPSuccess(gallery: GalleryWithItems): Pro
         body: JSON.stringify({
           memoryId: memory.id,
           memoryType: memory.type,
-          backend: 'icp-canister',
+          locationMetadata: 'icp',
           artifact: 'metadata',
           present: true,
         }),
@@ -521,7 +521,7 @@ async function updateStorageEdgesAfterICPSuccess(gallery: GalleryWithItems): Pro
         body: JSON.stringify({
           memoryId: memory.id,
           memoryType: memory.type,
-          backend: 'icp-canister',
+          locationAsset: 'icp',
           artifact: 'asset',
           present: true,
         }),

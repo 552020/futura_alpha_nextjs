@@ -10,13 +10,13 @@ import { useAuthGuard } from '@/utils/authentication';
 import { format } from 'date-fns';
 import { shortenTitle } from '@/lib/utils';
 import { MemoryStorageBadge } from '@/components/common/memory-storage-badge';
-import { sampleDashboardMemories } from '../../../../../scripts/mock-data/create-dashboard-sample-data';
+import { sampleDashboardMemories } from '../../../../../scripts/data/mock-data/create-dashboard-sample-data';
 import { getBlurPlaceholder, IMAGE_SIZES } from '@/utils/image-utils';
 import { generateBestAssetUrl } from '@/lib/presigned-url-utils';
 
 import { fatLogger } from '@/lib/logger';
 // Demo flag - set to true to use mock data for demo
-// 📝 Sample data generation script: scripts/mock-data/create-dashboard-sample-data.ts
+// 📝 Sample data generation script: scripts/data/mock-data/create-dashboard-sample-data.ts
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_MEMORY === 'true';
 
 interface MemoryAsset {
@@ -47,6 +47,9 @@ interface Memory {
   metadata?: {
     originalPath?: string;
     folderName?: string;
+  };
+  storageStatus?: {
+    storageLocations: string[];
   };
 }
 
@@ -430,7 +433,13 @@ export default function MemoryDetailPage() {
                 <p className="text-sm text-muted-foreground">Saved on {format(new Date(memory.createdAt), 'PPP')}</p>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">Storage:</span>
-                  <MemoryStorageBadge memoryId={memory.id} memoryType={memory.type} size="sm" showTooltip={true} />
+                  <MemoryStorageBadge
+                    memoryId={memory.id}
+                    memoryType={memory.type}
+                    storageStatus={memory.storageStatus}
+                    size="sm"
+                    showTooltip={true}
+                  />
                 </div>
               </div>
             </div>
@@ -448,6 +457,17 @@ export default function MemoryDetailPage() {
               fill
               className="rounded-lg object-contain"
               sizes={IMAGE_SIZES.lightbox}
+              onLoad={() => {
+                console.log(
+                  '🔍 [Dashboard Detail] Image loaded successfully for memory:',
+                  memory.id,
+                  'URL:',
+                  memory.url
+                );
+              }}
+              onError={() => {
+                console.log('🔍 [Dashboard Detail] Image error for memory:', memory.id, 'URL:', memory.url);
+              }}
               placeholder="blur"
               blurDataURL={memory.assets?.find?.(a => a.assetType === 'placeholder')?.url || getBlurPlaceholder()}
             />

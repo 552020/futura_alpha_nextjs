@@ -75,7 +75,7 @@ export const UPLOAD_LIMITS_ICP = {
   MAX_FILE_SIZE_MB: 921, // 512 chunks × 1.8MB (much larger than S3 due to chunking)
 
   // ICP-specific chunking configuration
-  CHUNK_SIZE_BYTES: 1.8 * 1024 * 1024, // 1.8MB chunks (matches backend)
+  CHUNK_SIZE_BYTES: 1_800_000, // 1.8MB chunks (matches backend exactly)
   MAX_CHUNKS: 512, // Maximum number of chunks allowed
 
   // Override derived values
