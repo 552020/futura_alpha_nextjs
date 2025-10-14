@@ -11,6 +11,11 @@ import type { ActorSubclass } from '@dfinity/agent';
 export type BackendActor = ActorSubclass<Backend>;
 
 export async function backendActor(identity?: Identity): Promise<BackendActor> {
-  const agent = await createAgent(identity);
-  return makeActor(backendIDL, BACKEND_CANISTER_ID, agent);
+  try {
+    const agent = await createAgent(identity);
+    return makeActor(backendIDL, BACKEND_CANISTER_ID, agent);
+  } catch (_error) {
+    console.warn('ICP unavailable');
+    throw new Error('ICP service unavailable. Please try again later.');
+  }
 }

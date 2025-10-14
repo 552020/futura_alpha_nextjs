@@ -482,11 +482,19 @@ const fetchMemoriesFromICP = async (page: number): Promise<FetchMemoriesResult> 
       };
     }
   } catch (error) {
-    fatLogger.error('Failed to fetch memories from ICP:', 'be', {
+    fatLogger.warn('ICP connection failed:', 'be', {
       error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
     });
-    throw error;
+
+    // Show user-friendly toast message
+    // Note: Toast will be handled by the calling component
+    console.warn('ICP connection failed:', error);
+
+    // Return empty results when ICP is unavailable
+    return {
+      memories: [],
+      hasMore: false,
+    };
   }
 };
 
@@ -714,12 +722,12 @@ const deleteAllMemoriesFromICP = async (_options?: {
     try {
       // Use the working getCapsuleInfo service instead of direct backend call
       const { getCapsuleInfo } = await import('@/services/capsule');
-      
+
       const capsuleInfo = await getCapsuleInfo(
         () => Promise.resolve(backend),
         () => {} // No-op clear function
       );
-      
+
       if (capsuleInfo) {
         capsuleId = capsuleInfo.capsule_id;
         console.log('🔍 [Delete All Dev] Found existing capsule:', capsuleId);
