@@ -39,6 +39,7 @@ interface MemoryItem extends BaseItem {
   title: string;
   description?: string;
   thumbnail?: string;
+  url?: string; // Display URL for images
   status: 'private' | 'shared' | 'public';
   sharedWithCount?: number;
   sharedBy?: string;
@@ -123,19 +124,20 @@ function renderPreview(item: FlexibleItem) {
   if ('type' in item && item.type) {
     const memory = item as MemoryItem;
 
-    // Prefer provided thumbnail; otherwise derive from minimal assets array if present
+    // For grid view, prefer display image over thumbnail for better quality
     const memoryWithAssets = memory as typeof memory & { assets?: Array<{ assetType: string; url: string }> };
     const derivedThumb =
-      memoryWithAssets?.assets?.find?.(a => a.assetType === 'thumb')?.url ||
       memoryWithAssets?.assets?.find?.(a => a.assetType === 'display')?.url ||
+      memoryWithAssets?.assets?.find?.(a => a.assetType === 'thumb')?.url ||
       memoryWithAssets?.assets?.find?.(a => a.assetType === 'original')?.url;
 
     // Look for placeholder asset for better blur effect
     const placeholderAsset = memoryWithAssets?.assets?.find?.(a => a.assetType === 'placeholder');
     const blurDataURL = placeholderAsset?.url || getBlurPlaceholder();
 
-    if (memory.type === 'image' && (memory.thumbnail || derivedThumb)) {
-      const imageSrc = memory.thumbnail || derivedThumb || '';
+    if (memory.type === 'image' && (memory.url || memory.thumbnail || derivedThumb)) {
+      // Prefer display URL (memory.url) over thumbnail for better quality in grid view
+      const imageSrc = memory.url || memory.thumbnail || derivedThumb || '';
       console.log('🔍 [ContentCard] Image src for memory:', memory.id, 'URL:', imageSrc);
 
       return (
@@ -147,8 +149,37 @@ function renderPreview(item: FlexibleItem) {
           sizes={IMAGE_SIZES.grid}
           placeholder="blur"
           blurDataURL={blurDataURL}
-          onLoad={() => {
+          onLoad={async () => {
             console.log('🔍 [ContentCard] Image loaded successfully for memory:', memory.id, 'URL:', imageSrc);
+
+            // Check actual image dimensions and file size
+            try {
+              const response = await fetch(imageSrc);
+              const blob = await response.blob();
+
+              const img = document.createElement('img');
+              img.onload = () => {
+                console.log('🔍 [Image Check] Memory:', memory.id);
+                console.log('🔍 [Image Check] URL:', imageSrc);
+                console.log('🔍 [Image Check] Dimensions:', img.naturalWidth, 'x', img.naturalHeight);
+                console.log('🔍 [Image Check] File size:', blob.size, 'bytes');
+                console.log('🔍 [Image Check] Expected: Display ~2048px, Thumbnail ~512px, Placeholder 32px');
+
+                // Determine what type of image this is based on dimensions
+                if (img.naturalWidth <= 50 && img.naturalHeight <= 50) {
+                  console.log('🔍 [Image Check] ⚠️  PLACEHOLDER IMAGE DETECTED!');
+                } else if (img.naturalWidth >= 1000 || img.naturalHeight >= 1000) {
+                  console.log('🔍 [Image Check] ✅ Display image detected');
+                } else if (img.naturalWidth >= 400 || img.naturalHeight >= 400) {
+                  console.log('🔍 [Image Check] ✅ Thumbnail image detected');
+                } else {
+                  console.log('🔍 [Image Check] ❓ Unknown image type');
+                }
+              };
+              img.src = URL.createObjectURL(blob);
+            } catch (error) {
+              console.log('🔍 [Image Check] Failed to check image dimensions:', error);
+            }
           }}
           onError={() => {
             console.log('🔍 [ContentCard] Image error for memory:', memory.id, 'URL:', imageSrc);

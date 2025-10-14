@@ -22,7 +22,7 @@ interface ProcessResponse {
   ok: boolean;
   display?: ProcessedAsset;
   thumb?: ProcessedAsset;
-  placeholder?: string; // data URL
+  placeholder?: { dataUrl: string; width: number; height: number; bytes: number };
   error?: string;
 }
 
@@ -50,6 +50,7 @@ export interface ProcessedBlobs {
     dataUrl: string;
     width: number;
     height: number;
+    bytes: number;
   };
 }
 
@@ -143,9 +144,10 @@ export async function processImageDerivativesWithWorkerPure(file: File): Promise
 
         if (response.placeholder) {
           result.placeholder = {
-            dataUrl: response.placeholder,
-            width: response.display?.width || 0,
-            height: response.display?.height || 0,
+            dataUrl: response.placeholder.dataUrl,
+            width: response.placeholder.width,
+            height: response.placeholder.height,
+            bytes: response.placeholder.bytes,
           };
         }
 
@@ -305,21 +307,21 @@ async function handleProcessedAssets(response: ProcessResponse, grant: GrantResp
 
   // Store placeholder as data URL in database
   if (response.placeholder) {
-    // Calculate actual byte size of the data URL
-    const dataUrlBytes = new Blob([response.placeholder]).size;
-
     results.placeholder = {
       assetType: 'placeholder',
       processingStatus: 'completed',
       assetLocation: 'neon', // Store in database as per decision
       storageKey: '', // Empty string for placeholder assets
-      url: response.placeholder, // Data URL stored in database
-      bytes: dataUrlBytes, // Actual byte size of data URL
-      width: 32, // Standard placeholder dimensions
-      height: 24, // Standard placeholder dimensions
+      url: response.placeholder.dataUrl, // Data URL stored in database
+      bytes: response.placeholder.bytes, // Actual byte size of data URL
+      width: response.placeholder.width, // Actual placeholder dimensions
+      height: response.placeholder.height, // Actual placeholder dimensions
       mimeType: 'image/webp', // Consistent with decision
     };
-    fatLogger.info(`Generated placeholder data URL (${dataUrlBytes} bytes)`, 'be');
+    fatLogger.info(
+      `Generated placeholder data URL (${response.placeholder.bytes} bytes, ${response.placeholder.width}x${response.placeholder.height})`,
+      'be'
+    );
   }
 
   return results;
@@ -442,10 +444,10 @@ export async function uploadProcessedAssetsToS3(
       processingStatus: 'completed',
       assetLocation: 'neon', // Stored in database
       storageKey: 'placeholder',
-      bytes: 0,
+      bytes: new Blob([processedBlobs.placeholder.dataUrl]).size, // Calculate actual byte size
       width: processedBlobs.placeholder.width,
       height: processedBlobs.placeholder.height,
-      mimeType: 'image/jpeg',
+      mimeType: 'image/webp',
       url: processedBlobs.placeholder.dataUrl,
     };
   }

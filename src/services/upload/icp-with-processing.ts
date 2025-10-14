@@ -292,6 +292,39 @@ async function processMultipleImageDerivativesForICP(imageFiles: File[]): Promis
     try {
       // Pure processing first, then ICP upload
       const processedBlobs = await processImageDerivativesPure(file);
+
+      // 🔍 [Lane B] Log processed blob dimensions before upload
+      console.log('🔍 [Lane B] Processed blobs for file:', file.name);
+      if (processedBlobs.display) {
+        console.log('🔍 [Lane B] Display blob:', {
+          width: processedBlobs.display.width,
+          height: processedBlobs.display.height,
+          bytes: processedBlobs.display.bytes,
+          mimeType: processedBlobs.display.mimeType,
+        });
+      } else {
+        console.log('🔍 [Lane B] ❌ No display blob generated');
+      }
+      if (processedBlobs.thumb) {
+        console.log('🔍 [Lane B] Thumbnail blob:', {
+          width: processedBlobs.thumb.width,
+          height: processedBlobs.thumb.height,
+          bytes: processedBlobs.thumb.bytes,
+          mimeType: processedBlobs.thumb.mimeType,
+        });
+      } else {
+        console.log('🔍 [Lane B] ❌ No thumbnail blob generated');
+      }
+      if (processedBlobs.placeholder) {
+        console.log('🔍 [Lane B] Placeholder blob:', {
+          width: processedBlobs.placeholder.width,
+          height: processedBlobs.placeholder.height,
+          bytes: processedBlobs.placeholder.bytes,
+        });
+      } else {
+        console.log('🔍 [Lane B] ❌ No placeholder blob generated');
+      }
+
       return await uploadProcessedAssetsToICP(processedBlobs, file.name);
     } catch (_error) {
       return {
@@ -324,6 +357,12 @@ export async function uploadProcessedAssetsToICP(
       });
 
       const displayUploadResult = await uploadFileToICPWithProgress(displayFile, () => {}); // No progress tracking for derivatives
+
+      console.log('🔍 [Lane B] Display upload result:', {
+        blob_id: displayUploadResult.uploadResult.blob_id,
+        original_dimensions: `${processedBlobs.display.width}x${processedBlobs.display.height}`,
+        original_bytes: processedBlobs.display.bytes,
+      });
 
       results.display = {
         assetType: 'display',
@@ -364,6 +403,12 @@ export async function uploadProcessedAssetsToICP(
       });
 
       const thumbUploadResult = await uploadFileToICPWithProgress(thumbFile, () => {}); // No progress tracking for derivatives
+
+      console.log('🔍 [Lane B] Thumbnail upload result:', {
+        blob_id: thumbUploadResult.uploadResult.blob_id,
+        original_dimensions: `${processedBlobs.thumb.width}x${processedBlobs.thumb.height}`,
+        original_bytes: processedBlobs.thumb.bytes,
+      });
 
       results.thumb = {
         assetType: 'thumb',
@@ -733,7 +778,7 @@ async function addDerivativeAssetsToMemory(
             url: [],
             height: [derivativeAssets.display.height || 0],
             updated_at: BigInt(Date.now()),
-            asset_type: { Derivative: null },
+            asset_type: { Display: null },
             sha256: [],
             name: `${file.name}_display`,
             storage_key: [],
@@ -879,7 +924,7 @@ async function addDerivativeAssetsToMemory(
             url: [],
             height: [derivativeAssets.placeholder.height || 0],
             updated_at: BigInt(Date.now()),
-            asset_type: { Display: null },
+            asset_type: { Placeholder: null },
             sha256: [],
             name: `${file.name}_placeholder`,
             storage_key: [],
