@@ -45,11 +45,15 @@ export default function FolderPage() {
   // fatLogger.info("🔍 Folder ID:", folderId);
 
   const fetchFolderMemories = useCallback(async () => {
-    // fatLogger.info("🚀 ENTERING fetchFolderMemories function");
+    fatLogger.info('🚀 ENTERING fetchFolderMemories function', 'fe');
+    
+    // Strip 'folder-' prefix if present to get the actual UUID
+    const cleanFolderId = folderId.startsWith('folder-') ? folderId.replace('folder-', '') : folderId;
+    fatLogger.info('🔍 Folder IDs:', 'fe', { original: folderId, clean: cleanFolderId });
 
     if (USE_MOCK_DATA) {
       // fatLogger.info("🎭 MOCK DATA - Using sample data for folder");
-      // fatLogger.info("🔍 Looking for folder:", folderId);
+      // fatLogger.info("🔍 Looking for folder:", cleanFolderId);
       // fatLogger.info("🔍 Available memories:", sampleDashboardMemories.length);
       // fatLogger.info(
       //   "🔍 Sample memories with metadata:",
@@ -60,7 +64,7 @@ export default function FolderPage() {
 
       // Filter mock memories by parentFolderId (for new structure) or fallback to folderName (for old structure)
       const folderMemories = sampleDashboardMemories.filter(
-        memory => memory.parentFolderId === folderId || memory.metadata?.folderName === folderId
+        memory => memory.parentFolderId === cleanFolderId || memory.metadata?.folderName === cleanFolderId
       );
 
       // fatLogger.info("🔍 Mock folder memories found:", folderMemories.length);
@@ -68,11 +72,11 @@ export default function FolderPage() {
       if (folderMemories.length > 0) {
         // Use folder name from new structure or fallback to old structure
         const folderName =
-          (folderMemories[0] as MemoryWithFolder)?.folder?.name || folderMemories[0]?.metadata?.folderName || folderId;
+          (folderMemories[0] as MemoryWithFolder)?.folder?.name || folderMemories[0]?.metadata?.folderName || cleanFolderId;
         setFolderName(folderName);
         setMemories(folderMemories);
       } else {
-        // fatLogger.info("❌ No mock memories found for folder:", folderId);
+        // fatLogger.info("❌ No mock memories found for folder:", cleanFolderId);
         toast({
           title: 'Folder not found',
           description: "This folder doesn't exist or is empty.",
@@ -91,7 +95,7 @@ export default function FolderPage() {
 
       // Filter memories by parentFolderId (new structure) or fallback to folderName (old structure)
       const folderMemories = allMemories.filter(
-        memory => memory.parentFolderId === folderId || memory.metadata?.folderName === folderId
+        memory => memory.parentFolderId === cleanFolderId || memory.metadata?.folderName === cleanFolderId
       );
 
       // fatLogger.info("🔍 Folder memories found:", folderMemories.length);
@@ -102,12 +106,12 @@ export default function FolderPage() {
       if (folderMemories.length > 0) {
         // Use folder name from new structure or fallback to old structure
         const actualFolderName =
-          (folderMemories[0] as MemoryWithFolder)?.folder?.name || folderMemories[0]?.metadata?.folderName || folderId;
+          (folderMemories[0] as MemoryWithFolder)?.folder?.name || folderMemories[0]?.metadata?.folderName || cleanFolderId;
         // fatLogger.info("🔍 Setting folder name to:", actualFolderName);
         setFolderName(actualFolderName);
         setMemories(folderMemories);
       } else {
-        // fatLogger.info("❌ No memories found for folder:", folderId);
+        // fatLogger.info("❌ No memories found for folder:", cleanFolderId);
         toast({
           title: 'Folder not found',
           description: "This folder doesn't exist or is empty.",

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
-import { accounts } from '@/db/schema';
+import { accounts } from '@/db';
 // import { eq } from 'drizzle-orm'; // Not needed - using query builder
 
 /**

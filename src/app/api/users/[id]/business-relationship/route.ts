@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
-import { businessRelationship, users } from '@/db/schema';
+import { businessRelationship, users } from '@/db';
 import { eq, or } from 'drizzle-orm';
 import { fatLogger } from '@/lib/logger';
 

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
 import { eq, and } from 'drizzle-orm';
-import { galleries, allUsers, resourceMembership } from '@/db/schema';
+import { galleries, allUsers, resourceMembership } from '@/db';
 import { randomUUID } from 'crypto';
 
 import { fatLogger } from '@/lib/logger';

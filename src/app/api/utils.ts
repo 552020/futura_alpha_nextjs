@@ -1,5 +1,5 @@
 import { db } from '@/db/db';
-import { allUsers, temporaryUsers } from '@/db/schema';
+import { allUsers, temporaryUsers } from '@/db';
 
 /**
  * Creates a base temporary user and corresponding allUsers entry.

@@ -1,6 +1,6 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
 import { db } from '@/db/db';
-import { iiNonces, type NewDBIINonce } from '@/db/schema';
+import { iiNonces, type NewDBIINonce } from '@/db';
 import { eq, and, lt, gt, isNull, isNotNull, gte, count, sql } from 'drizzle-orm';
 
 import { fatLogger } from '@/lib/logger';

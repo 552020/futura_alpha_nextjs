@@ -1,5 +1,5 @@
 import { db } from '@/db/db';
-import { users, allUsers } from '@/db/schema';
+import { users, allUsers } from '@/db';
 
 import { fatLogger } from '@/lib/logger';
 async function createTestUsers() {

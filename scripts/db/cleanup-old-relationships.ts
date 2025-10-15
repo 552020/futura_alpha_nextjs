@@ -1,6 +1,6 @@
 // Script to clean up old business relationships
 import { db } from '@/db/db';
-import { businessRelationship } from '@/db/schema';
+import { businessRelationship } from '@/db';
 import { eq } from 'drizzle-orm';
 
 async function cleanupOldRelationships() {

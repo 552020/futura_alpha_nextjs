@@ -10,7 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertCircle, ArrowLeft, Save } from 'lucide-react';
 import Image from 'next/image';
-import { DBMemory } from '@/db/schema';
+import { DBMemory } from '@/db';
 
 import { fatLogger } from '@/lib/logger';
 // Extended type for test data that includes legacy fields

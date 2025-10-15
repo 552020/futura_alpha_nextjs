@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
 import { eq, sql } from 'drizzle-orm';
-import { allUsers, images, videos, documents, notes, audio } from '@/db/schema';
+import { allUsers, images, videos, documents, notes, audio } from '@/db';
 import { FolderInfo } from '@/types/gallery';
 
 import { fatLogger } from '@/lib/logger';

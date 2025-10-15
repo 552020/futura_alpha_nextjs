@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import { testDb } from '@/db/test-db';
-import { users, allUsers } from '@/db/schema';
+import { users, allUsers } from '@/db';
 import { eq } from 'drizzle-orm';
 
 import { fatLogger } from '@/lib/logger';

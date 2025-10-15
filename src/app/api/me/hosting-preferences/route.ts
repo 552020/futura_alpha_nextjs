@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
-import { userHostingPreferences } from '@/db/schema';
+import { userHostingPreferences } from '@/db';
 import { eq } from 'drizzle-orm';
 import type { HostingPreferences } from '@/hooks/use-hosting-preferences';
 
@@ -18,13 +18,12 @@ export async function GET(): Promise<NextResponse> {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user's hosting preferences
-    const preferences = await db.query.userHostingPreferences.findFirst({
-      where: eq(userHostingPreferences.userId, session.user.id),
-    });
+    // Get user's hosting preferences - using direct query for debugging
+    const preferences = await db.select().from(userHostingPreferences).where(eq(userHostingPreferences.userId, session.user.id)).limit(1);
+    const preference = preferences[0];
 
     // If no preferences exist, return defaults
-    if (!preferences) {
+    if (!preference) {
       const defaultPreferences: HostingPreferences = {
         frontendHosting: 'vercel',
         backendHosting: 'vercel',
@@ -36,19 +35,28 @@ export async function GET(): Promise<NextResponse> {
 
     // Return preferences directly (already in correct format)
     const response: HostingPreferences = {
-      frontendHosting: preferences.frontendHosting,
-      backendHosting: preferences.backendHosting,
-      databaseHosting: preferences.databaseHosting,
-      blobHosting: preferences.blobHosting,
-      updatedAt: preferences.updatedAt.toISOString(),
+      frontendHosting: preference.frontendHosting,
+      backendHosting: preference.backendHosting,
+      databaseHosting: preference.databaseHosting,
+      blobHosting: preference.blobHosting,
+      updatedAt: preference.updatedAt.toISOString(),
     };
 
     return NextResponse.json(response);
   } catch (error) {
+    console.error('Detailed error fetching hosting preferences:', {
+      error,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     fatLogger.error('Error fetching hosting preferences:', 'be', {
       data: error instanceof Error ? error : undefined,
+      message: error instanceof Error ? error.message : 'Unknown error',
     });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }
 
