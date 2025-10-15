@@ -5,7 +5,7 @@
  * Uses the memory and storage edges service layers for all database operations.
  */
 
-import { DBMemory } from '@/db/schema';
+import { DBMemory } from '@/db/types';
 import {
   createMemoryRecord,
   createAssetRecords,

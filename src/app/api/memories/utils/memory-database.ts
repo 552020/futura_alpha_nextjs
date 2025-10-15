@@ -15,7 +15,7 @@
  * - cleanupStorageEdgesForMemory(): Clean up storage tracking
  */
 
-import { NewDBMemory, NewDBMemoryAsset, DBMemory } from '@/db/schema';
+import { NewDBMemory, NewDBMemoryAsset, DBMemory } from '@/db/types';
 import { randomUUID } from 'crypto';
 import type { AcceptedMimeType } from './file-processing';
 import { getMemoryType } from './file-processing';
@@ -49,12 +49,11 @@ export function buildNewMemoryAndAsset(
   const name = file.name || 'Untitled';
 
   const memory: NewDBMemory = {
-    ownerId,
+    ownerId: ownerId,
     type: getMemoryType(file.type as AcceptedMimeType) as 'image' | 'video' | 'document' | 'note' | 'audio',
     title: name,
     description: '',
-    fileCreatedAt: new Date(),
-    sharingStatus: 'private',
+    createdAt: new Date(),
     parentFolderId: parentFolderId || null,
     ownerSecureCode: randomUUID(),
   };

@@ -5,7 +5,7 @@
  * No database operations - just data transformation.
  */
 
-import { NewDBMemory, NewDBMemoryAsset } from '@/db/schema';
+import { NewDBMemory, NewDBMemoryAsset } from '@/db/types';
 import { randomUUID } from 'crypto';
 import type { AcceptedMimeType } from '@/app/api/memories/utils/file-processing';
 import { getMemoryType } from '@/app/api/memories/utils/file-processing';
