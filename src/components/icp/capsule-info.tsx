@@ -9,6 +9,7 @@ import { useAuthenticatedActor } from '@/hooks/use-authenticated-actor';
 import { useState, useEffect, useCallback } from 'react';
 import type { CapsuleInfo, CapsuleState, CapsuleError, Capsule } from '@/types/capsule';
 import { getCapsuleFull } from '@/services/capsule';
+import { fatLogger } from '@/lib/logger/fat-logger';
 
 /**
  * CapsuleInfo Component
@@ -154,7 +155,7 @@ export function CapsuleInfo() {
         const isAuthenticated = await authClient.isAuthenticated();
 
         if (isAuthenticated && !state.capsule && !state.isLoading) {
-          console.log('Auto-loading capsule on component mount');
+          fatLogger.info('Auto-loading capsule on component mount', 'be');
           await handleGetCapsuleInfo();
         }
       } catch (error) {

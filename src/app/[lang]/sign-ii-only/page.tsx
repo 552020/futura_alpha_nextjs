@@ -6,6 +6,7 @@ import { signIn, useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, X } from 'lucide-react';
+import { fatLogger } from '@/lib/logger/fat-logger';
 
 function SignIIOnlyContent() {
   const router = useRouter();
@@ -31,7 +32,7 @@ function SignIIOnlyContent() {
   }
 
   // Debug logging for callback URL
-  console.log('Sign-II-Only Debug:', {
+  fatLogger.info('Sign-II-Only Debug:', 'be', {
     rawCallbackUrl: callbackUrl,
     safeCallbackUrl,
     searchParams: Object.fromEntries(searchParams.entries()),
@@ -93,13 +94,17 @@ function SignIIOnlyContent() {
           linkedIcPrincipals,
         });
         // 5) Continue flow
-        console.log('Redirecting to callback URL:', safeCallbackUrl);
+        fatLogger.info('Redirecting to callback URL:', 'be', {
+          callbackUrl: safeCallbackUrl,
+        });
         router.push(safeCallbackUrl);
         return;
       }
 
       // Fallback: standalone II sign-in when no session exists
-      console.log('Using NextAuth signIn with callback URL:', safeCallbackUrl);
+      fatLogger.info('Using NextAuth signIn with callback URL:', 'be', {
+        callbackUrl: safeCallbackUrl,
+      });
       await signIn('ii', {
         principal: '', // authorize() will validate via /api/ii/verify-nonce
         nonceId: challenge.nonceId,

@@ -1,5 +1,6 @@
 ```ts
 import { isS3Configured, getPreferredStorageType } from './s3';
+import { fatlogger } from './fatlogger';
 
 export interface StorageProviderStatus {
   name: string;
@@ -180,47 +181,47 @@ export function logStorageStatus(): void {
   const config = getStorageConfiguration();
   const validation = validateStorageConfiguration();
 
-  console.log('\n🗂️ Storage Configuration Status:');
-  console.log(`   Preferred: ${config.preferred}`);
+  fatlogger.info('\n🗂️ Storage Configuration Status:');
+  fatlogger.info(`   Preferred: ${config.preferred}`);
 
-  console.log('\n📦 Available Providers:');
+  fatlogger.info('\n📦 Available Providers:');
   config.available.forEach(provider => {
     const status = provider.available ? '✅' : '❌';
-    console.log(`   ${status} ${provider.name} - ${provider.description}`);
+    fatlogger.info(`   ${status} ${provider.name} - ${provider.description}`);
     if (!provider.available && provider.requirements) {
-      console.log(`     Missing: ${provider.requirements.join(', ')}`);
+      fatlogger.info(`     Missing: ${provider.requirements.join(', ')}`);
     }
   });
 
   if (config.fallbacks.length > 0) {
-    console.log('\n🔄 Fallback Order:');
+    fatlogger.info('\n🔄 Fallback Order:');
     config.fallbacks.forEach((fallback, index) => {
-      console.log(`   ${index + 1}. ${fallback}`);
+      fatlogger.info(`   ${index + 1}. ${fallback}`);
     });
   }
 
   if (validation.warnings.length > 0) {
-    console.log('\n⚠️ Warnings:');
+    fatlogger.warn('\n⚠️ Warnings:');
     validation.warnings.forEach(warning => {
-      console.log(`   - ${warning}`);
+      fatlogger.warn(`   - ${warning}`);
     });
   }
 
   if (validation.errors.length > 0) {
-    console.log('\n❌ Errors:');
+    fatlogger.error('\n❌ Errors:');
     validation.errors.forEach(error => {
-      console.log(`   - ${error}`);
+      fatlogger.error(`   - ${error}`);
     });
   }
 
   if (validation.recommendations.length > 0) {
-    console.log('\n💡 Recommendations:');
+    fatlogger.info('\n💡 Recommendations:');
     validation.recommendations.forEach(rec => {
-      console.log(`   - ${rec}`);
+      fatlogger.info(`   - ${rec}`);
     });
   }
 
-  console.log(''); // Empty line for spacing
+  fatlogger.info(''); // Empty line for spacing
 }
 
 /**

@@ -71,20 +71,20 @@ self.onmessage = async (e: MessageEvent<ProcessMessage>) => {
     const placeholder = await processToPlaceholder(thumb.blob, maxPlaceholderSize);
 
     // 🔍 [Worker] Log processing results
-    console.log('🔍 [Worker] Processing completed for:', file.name);
-    console.log('🔍 [Worker] Display result:', {
+    fatLogger.info(`🔍 [Worker] Processing completed for: ${file.name}`, 'fe');
+    fatLogger.info('🔍 [Worker] Display result:', 'fe', {
       width: display.width,
       height: display.height,
       bytes: display.bytes,
       mimeType: display.mimeType,
     });
-    console.log('🔍 [Worker] Thumbnail result:', {
+    fatLogger.info('🔍 [Worker] Thumbnail result:', 'fe', {
       width: thumb.width,
       height: thumb.height,
       bytes: thumb.bytes,
       mimeType: thumb.mimeType,
     });
-    console.log('🔍 [Worker] Placeholder result:', {
+    fatLogger.info('🔍 [Worker] Placeholder result:', 'fe', {
       width: placeholder.width,
       height: placeholder.height,
       bytes: placeholder.bytes,

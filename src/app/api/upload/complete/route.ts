@@ -61,15 +61,15 @@ interface CompleteUploadRequest {
 
 export async function POST(request: Request) {
   try {
-    console.log('🔍 [DEBUG] Starting upload complete request');
+    fatLogger.info('Starting upload complete request', 'be');
     const session = await auth();
     if (!session?.user?.id) {
-      console.log('❌ [DEBUG] No session or user ID');
+      fatLogger.error('No session or user ID', 'be');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const userId = session.user.id;
-    console.log('✅ [DEBUG] User authenticated:', userId);
+    fatLogger.info('User authenticated:', 'be', { userId });
 
     // Check if the user exists in the all_user table
     const existingUser = await db.query.allUsers.findFirst({
@@ -96,21 +96,21 @@ export async function POST(request: Request) {
     }
 
     const requestData = (await request.json()) as CompleteUploadRequest;
-    console.log('📋 [DEBUG] Request data:', JSON.stringify(requestData, null, 2));
+    fatLogger.info('Request data:', 'be', { requestData });
 
     // Handle new parallel processing format (Format 3)
     if (requestData.memoryId && requestData.assets) {
-      console.log('🔄 [DEBUG] Using Format 3 (parallel processing)');
+      fatLogger.info('Using Format 3 (parallel processing)', 'be');
       return await handleParallelProcessingFinalize(requestData as FinalizeRequest, allUserId);
     }
 
     // Handle legacy formats (Format 1 & 2)
-    console.log('🔄 [DEBUG] Using legacy format (Format 1 or 2)');
+    fatLogger.info('Using legacy format (Format 1 or 2)', 'be');
     return await handleLegacyComplete(requestData, allUserId);
   } catch (error) {
-    console.log('❌ [DEBUG] Error in upload complete:', error);
-    console.log('❌ [DEBUG] Error message:', error instanceof Error ? error.message : 'Unknown error');
-    console.log('❌ [DEBUG] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    fatLogger.error('Error in upload complete:', 'be', { error });
+    fatLogger.error('Error message:', 'be', { error: error instanceof Error ? error.message : 'Unknown error' });
+    fatLogger.error('Error stack:', 'be', { error: error instanceof Error ? error.stack : 'No stack trace' });
     fatLogger.error('Error completing upload:', 'be', { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to complete upload' }, { status: 500 });
   }
@@ -234,7 +234,7 @@ async function handleParallelProcessingFinalize(request: FinalizeRequest, allUse
  * Handle legacy complete formats (backward compatibility)
  */
 async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserId: string) {
-  console.log('🔍 [DEBUG] Starting handleLegacyComplete with allUserId:', allUserId);
+  fatLogger.info('Starting handleLegacyComplete with allUserId:', 'be', { allUserId });
   // Handle both request formats
   let fileKey: string;
   let originalName: string;
@@ -275,11 +275,11 @@ async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserI
   }
 
   if (!size) {
-    console.log('❌ [DEBUG] Missing required field: size');
+    fatLogger.error('Missing required field: size', 'be');
     return NextResponse.json({ error: 'Missing required field: size' }, { status: 400 });
   }
 
-  console.log('✅ [DEBUG] Parsed request data:', { fileKey, originalName, size, mimeType, metadata });
+  fatLogger.info('Parsed request data:', 'be', { fileKey, originalName, size, mimeType, metadata });
 
   // Determine memory type from content type or file extension
   const memoryType: MemoryType = detectMemoryType(mimeType, originalName);
@@ -292,10 +292,10 @@ async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserI
     fileUrl = requestData.url || `/${fileKey}`;
   }
   const memoryId = randomUUID();
-  console.log('🆔 [DEBUG] Generated memoryId:', memoryId);
+  fatLogger.info('Generated memoryId:', 'be', { memoryId });
 
   // Create memory record
-  console.log('💾 [DEBUG] About to create memory record in database');
+  fatLogger.info('About to create memory record in database', 'be');
   try {
     await db
       .insert(memories)
@@ -327,14 +327,14 @@ async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserI
         deletedAt: null,
       })
       .returning();
-    console.log('✅ [DEBUG] Memory record created successfully');
+    fatLogger.info('Memory record created successfully', 'be');
   } catch (error) {
-    console.log('❌ [DEBUG] Error creating memory record:', error);
+    fatLogger.error('Error creating memory record:', 'be', { error });
     throw error;
   }
 
   // Create asset record
-  console.log('💾 [DEBUG] About to create asset record in database');
+  fatLogger.info('About to create asset record in database', 'be');
   try {
     await db.insert(memoryAssets).values({
       memoryId: memoryId,
@@ -353,13 +353,13 @@ async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserI
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    console.log('✅ [DEBUG] Asset record created successfully');
+    fatLogger.info('Asset record created successfully', 'be');
   } catch (error) {
-    console.log('❌ [DEBUG] Error creating asset record:', error);
+    fatLogger.error('Error creating asset record:', 'be', { error });
     throw error;
   }
 
-  console.log('🎉 [DEBUG] Both memory and asset records created successfully');
+  fatLogger.info('Both memory and asset records created successfully', 'be');
   return NextResponse.json({
     success: true,
     data: {
