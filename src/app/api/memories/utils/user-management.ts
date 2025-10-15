@@ -13,7 +13,7 @@
 
 import { NextResponse, NextRequest } from 'next/server';
 import { db } from '@/db/db';
-import { allUsers, users } from '@/db/schema';
+import { allUsers, users } from '@/db';
 import { eq } from 'drizzle-orm';
 import { auth } from '@/auth';
 

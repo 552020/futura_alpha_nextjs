@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
 import { eq, desc, and, inArray } from 'drizzle-orm';
-import { galleries, allUsers, memories as memoriesTable, folders, galleryItems } from '@/db/schema';
+import { galleries, allUsers, memories as memoriesTable, folders, galleryItems } from '@/db';
 import { addStorageStatusToGalleries } from './utils';
 
 import { fatLogger } from '@/lib/logger';

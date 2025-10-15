@@ -15,9 +15,9 @@
  */
 
 import { db } from '@/db/db';
-import { memories } from '@/db/schema';
+import { memories } from '@/db';
 import { randomUUID } from 'crypto';
-import type { NewDBMemory } from '@/db/schema';
+import type { NewDBMemory } from '@/db';
 import { fatLogger } from '@/lib/logger';
 
 // Schema-based interfaces for memory creation
@@ -154,7 +154,7 @@ async function createMemoryAssets(
   assets: CreateMemoryAssetParams[]
 ): Promise<{ success: true; assets: unknown[] } | { success: false; error: string }> {
   try {
-    const { memoryAssets } = await import('@/db/schema');
+    const { memoryAssets } = await import('@/db');
     const assetData = assets.map(asset => ({
       memoryId: memoryId,
       assetType: asset.assetType,

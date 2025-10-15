@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
 import { eq, and } from 'drizzle-orm';
-import { allUsers, memories, storageEdges, folders } from '@/db/schema';
+import { allUsers, memories, storageEdges, folders } from '@/db';
 
 import { fatLogger } from '@/lib/logger';
 

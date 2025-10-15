@@ -1,5 +1,5 @@
 import { db } from '@/db/db';
-import { resourceMembership, memories } from '@/db/schema';
+import { resourceMembership, memories } from '@/db';
 import { and, eq } from 'drizzle-orm';
 
 export type AccessLevel = 'read' | 'write' | 'owner';

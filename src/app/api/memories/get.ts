@@ -17,7 +17,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
-import { allUsers, memories, memoryAssets, resourceMembership } from '@/db/schema';
+import { allUsers, memories, memoryAssets, resourceMembership } from '@/db';
 import { eq, desc, sql, and, ne } from 'drizzle-orm';
 import { fetchMemoriesWithGalleries } from './utils/queries';
 import { generateBestAssetUrl } from '@/lib/presigned-url-utils';

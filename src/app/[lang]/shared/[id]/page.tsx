@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { db } from '@/db/db';
-import { resourceMembership, allUsers } from '@/db/schema';
+import { resourceMembership, allUsers } from '@/db';
 import { eq, and } from 'drizzle-orm';
 import { findMemory } from '@/app/api/memories/utils/memory';
 import { MemoryViewer } from '@/components/memory/memory-viewer';

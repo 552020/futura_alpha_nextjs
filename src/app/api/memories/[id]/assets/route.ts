@@ -21,7 +21,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
-import { allUsers, memories, memoryAssets, DBMemoryAsset } from '@/db/schema';
+import { allUsers, memories, memoryAssets, DBMemoryAsset } from '@/db';
 import { eq } from 'drizzle-orm';
 import { getMemoryAccessLevel } from '../../utils/access';
 

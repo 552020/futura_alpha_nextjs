@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db/db';
-import { storageEdges } from '@/db/schema';
+import { storageEdges } from '@/db';
 import { eq, and } from 'drizzle-orm';
 
 import { fatLogger } from '@/lib/logger';

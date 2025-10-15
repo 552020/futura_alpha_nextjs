@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
-import { userHostingPreferences } from '@/db/schema';
+import { userHostingPreferences } from '@/db';
 import { eq } from 'drizzle-orm';
 import type { HostingPreferences } from '@/hooks/use-hosting-preferences';
 

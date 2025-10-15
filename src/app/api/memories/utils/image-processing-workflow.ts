@@ -9,7 +9,7 @@
 import { put } from '@vercel/blob';
 import { processImageForMultipleAssetsBackend } from './image-processing-backend';
 import { db } from '@/db/db';
-import { memoryAssets } from '@/db/schema';
+import { memoryAssets } from '@/db';
 import { eq } from 'drizzle-orm';
 
 import { fatLogger } from '@/lib/logger';

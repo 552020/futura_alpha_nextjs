@@ -16,8 +16,8 @@
  */
 
 import { db } from '@/db/db';
-import { memories, memoryAssets } from '@/db/schema';
-import { NewDBMemory, NewDBMemoryAsset, DBMemory } from '@/db/schema';
+import { memories, memoryAssets } from '@/db';
+import { NewDBMemory, NewDBMemoryAsset, DBMemory } from '@/db';
 import { and, eq } from 'drizzle-orm';
 import crypto from 'crypto';
 import { randomUUID } from 'crypto';
@@ -62,9 +62,9 @@ export function buildNewMemoryAndAsset(
     storageKey:
       assetLocation === 's3'
         ? url.replace(
-            `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_S3_REGION || 'eu-central-1'}.amazonaws.com/`,
-            ''
-          )
+          `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_S3_REGION || 'eu-central-1'}.amazonaws.com/`,
+          ''
+        )
         : url.split('/').pop() || '',
     bytes: file.size,
     width: null,
@@ -182,9 +182,9 @@ export async function storeInNewDatabase(params: {
     storageKey:
       assetLocation === 's3'
         ? url.replace(
-            `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_S3_REGION || 'eu-central-1'}.amazonaws.com/`,
-            ''
-          )
+          `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_S3_REGION || 'eu-central-1'}.amazonaws.com/`,
+          ''
+        )
         : url.split('/').pop() || '',
     bytes: metadata.size,
     width: null, // Will be populated by client-side processing
@@ -268,7 +268,7 @@ export async function createStorageEdgesForMemory(params: {
     };
 
     // Import the storage edges table
-    const { storageEdges } = await import('@/db/schema');
+    const { storageEdges } = await import('@/db');
 
     // Insert both edges
     const [metadataResult, assetResult] = await Promise.all([
@@ -349,7 +349,7 @@ export async function cleanupStorageEdgesForMemory(params: {
     fatLogger.info('🔄 Starting cleanup for memory:', 'be', { memoryId });
 
     // Import the storage edges and memory assets tables
-    const { storageEdges, memoryAssets } = await import('@/db/schema');
+    const { storageEdges, memoryAssets } = await import('@/db');
 
     // FIXED: Use the provided memory data directly (don't try to fetch from DB)
     const memory = memoryData;

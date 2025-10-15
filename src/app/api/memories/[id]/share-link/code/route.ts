@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db/db';
-import { resourceMembership, allUsers } from '@/db/schema';
+import { resourceMembership, allUsers } from '@/db';
 import { eq, and } from 'drizzle-orm';
 import { auth } from '@/auth';
 import { findMemory } from '@/app/api/memories/utils/memory';

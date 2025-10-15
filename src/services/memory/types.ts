@@ -23,4 +23,4 @@ export interface FilterParams {
 }
 
 // Re-export commonly used types from schema
-export type { MemoryType, AssetType, ProcessingStatus } from '@/db/schema';
+export type { MemoryType, AssetType, ProcessingStatus } from '@/db';

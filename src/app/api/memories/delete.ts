@@ -21,7 +21,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
-import { allUsers, memories, folders, galleries, galleryItems } from '@/db/schema';
+import { allUsers, memories, folders, galleries, galleryItems } from '@/db';
 import { eq, and, inArray } from 'drizzle-orm';
 import { cleanupStorageEdgesForMemory } from './utils/memory-database';
 
