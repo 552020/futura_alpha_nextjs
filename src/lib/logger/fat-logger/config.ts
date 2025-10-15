@@ -44,6 +44,7 @@ export const SERVICE_FLAGS = {
   ENABLE_MEMORY_GRID_LOGGING: true, // Memory grid (ignored when ENABLE_LOGGING = false)
   ENABLE_USE_EFFECT_LOGGING: true, // React useEffect (ignored when ENABLE_LOGGING = false)
   ENABLE_HOSTING_PREFERENCES: true, // Hosting preferences (ignored when ENABLE_LOGGING = false)
+  ENABLE_WEBWORKER_LOGGING: true, // Web Worker logging (ignored when ENABLE_LOGGING = false)
 } as const;
 
 // Tag configuration
