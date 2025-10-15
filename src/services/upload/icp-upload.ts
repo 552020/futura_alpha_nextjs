@@ -468,7 +468,7 @@ export async function uploadFileToICP(
       uploadType: file.size <= limits.inline_max ? 'inline' : 'chunked',
     });
 
-    // Use existing backendActor function (simplified approach)
+    // Use safe backendActor function with health check
     console.log('🔍 DEBUG: About to log backend actor creation');
     console.log('🔗 Creating backend actor...');
     const { backendActor } = await import('@/ic/backend');

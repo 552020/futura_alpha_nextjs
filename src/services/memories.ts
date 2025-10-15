@@ -407,7 +407,7 @@ const fetchMemoriesFromNeon = async (page: number): Promise<FetchMemoriesResult>
 // Fetch memories from ICP canister directly
 const fetchMemoriesFromICP = async (page: number): Promise<FetchMemoriesResult> => {
   try {
-    const { backendActorSafe } = await import('@/ic/backend');
+    const { backendActor } = await import('@/ic/backend');
     const { getAuthClient } = await import('@/ic/ii');
 
     // Get authenticated identity
@@ -417,22 +417,7 @@ const fetchMemoriesFromICP = async (page: number): Promise<FetchMemoriesResult> 
     }
 
     const identity = authClient.getIdentity();
-    const icpResult = await backendActorSafe(identity);
-
-    // Handle ICP connection failure gracefully
-    if (icpResult.status === 'offline') {
-      fatLogger.warn('ICP connection failed:', 'be', {
-        error: icpResult.reason,
-      });
-
-      // Return empty results when ICP is unavailable
-      return {
-        memories: [],
-        hasMore: false,
-      };
-    }
-
-    const actor = icpResult.actor;
+    const actor = await backendActor(identity);
 
     // Get user's capsule ID
     const capsuleResult = await actor.capsules_read_basic([]);

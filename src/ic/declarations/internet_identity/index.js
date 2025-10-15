@@ -1,8 +1,8 @@
-import { Actor, HttpAgent } from "@dfinity/agent";
+import { Actor, HttpAgent } from '@dfinity/agent';
 
 // Imports and re-exports candid interface
-import { idlFactory } from "./internet_identity.did.js";
-export { idlFactory } from "./internet_identity.did.js";
+import { idlFactory } from './internet_identity.did.js';
+export { idlFactory } from './internet_identity.did.js';
 
 /* CANISTER_ID is replaced by webpack based on node environment
  * Note: canister environment variable will be standardized as
@@ -11,23 +11,47 @@ export { idlFactory } from "./internet_identity.did.js";
  */
 export const canisterId = process.env.NEXT_PUBLIC_CANISTER_ID_INTERNET_IDENTITY;
 
+// Health check function to prevent crashes when ICP is unavailable
+const isIcpAvailable = async () => {
+  try {
+    const host = process.env.NEXT_PUBLIC_IC_HOST || 'http://127.0.0.1:4943';
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+    const res = await fetch(`${host}/api/v2/status`, {
+      method: 'GET',
+      signal: controller.signal,
+      cache: 'no-store',
+    });
+
+    clearTimeout(timeoutId);
+    return res.ok;
+  } catch {
+    return false;
+  }
+};
 
 export const createActor = (canisterId, options = {}) => {
   const agent = options.agent || new HttpAgent({ ...options.agentOptions });
 
   if (options.agent && options.agentOptions) {
     console.warn(
-      "Detected both agent and agentOptions passed to createActor. Ignoring agentOptions and proceeding with the provided agent."
+      'Detected both agent and agentOptions passed to createActor. Ignoring agentOptions and proceeding with the provided agent.'
     );
   }
 
-  // Fetch root key for certificate validation during development
-  if (process.env.NEXT_PUBLIC_DFX_NETWORK !== "ic") {
-    agent.fetchRootKey().catch((err) => {
-      console.warn(
-        "Unable to fetch root key. Check to ensure that your local replica is running"
-      );
-      console.error(err);
+  // SAFE fetchRootKey with health check - only call if ICP is available
+  if (process.env.NEXT_PUBLIC_DFX_NETWORK !== 'ic') {
+    // Check if ICP is available before calling fetchRootKey
+    isIcpAvailable().then(available => {
+      if (available) {
+        agent.fetchRootKey().catch(err => {
+          console.warn('Unable to fetch root key. ICP may be unavailable');
+          console.error(err);
+        });
+      } else {
+        console.warn('ICP network unavailable, skipping fetchRootKey to prevent crashes');
+      }
     });
   }
 
@@ -35,7 +59,7 @@ export const createActor = (canisterId, options = {}) => {
   return Actor.createActor(idlFactory, {
     agent,
     canisterId,
-    ...options.actorOptions
+    ...options.actorOptions,
   });
 };
 
