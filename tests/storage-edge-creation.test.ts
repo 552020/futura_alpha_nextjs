@@ -10,7 +10,7 @@ vi.mock('@/db/db', () => ({
 }));
 
 // Mock the schema module
-vi.mock('@/db/schema', () => ({
+vi.mock('@/db', () => ({
   storageEdges: {
     id: 'id',
     memoryId: 'memory_id',

@@ -68,9 +68,9 @@ export function buildNewMemoryAndAsset(
     storageKey:
       assetLocation === 's3'
         ? url.replace(
-            `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_S3_REGION || 'eu-central-1'}.amazonaws.com/`,
-            ''
-          )
+          `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_S3_REGION || 'eu-central-1'}.amazonaws.com/`,
+          ''
+        )
         : url.split('/').pop() || '',
     bytes: file.size,
     width: null,
@@ -250,9 +250,9 @@ export async function storeInNewDatabase(params: {
     storageKey:
       assetLocation === 's3'
         ? url.replace(
-            `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_S3_REGION || 'eu-central-1'}.amazonaws.com/`,
-            ''
-          )
+          `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_S3_REGION || 'eu-central-1'}.amazonaws.com/`,
+          ''
+        )
         : url.split('/').pop() || '',
     bytes: metadata.size,
     width: null, // Will be populated by client-side processing

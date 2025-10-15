@@ -20,7 +20,7 @@ export const trackGalleryEvent = (event: string, _properties: Record<string, unk
 };
 
 // Mock data for development - now using generated data
-const mockGalleries: GalleryWithItems[] = generatedGalleries;
+const mockGalleries = generatedGalleries;
 
 const mockFolders: FolderInfo[] = [
   {

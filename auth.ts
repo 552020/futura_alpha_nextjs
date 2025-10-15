@@ -8,7 +8,7 @@ import { DrizzleAdapter } from '@auth/drizzle-adapter';
 import { db } from '@/db/db';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { compare } from 'bcrypt'; // make sure bcrypt is installed
-import { allUsers, temporaryUsers, users, accounts, iiNonces } from '@/db/schema';
+import { allUsers, temporaryUsers, users, accounts, iiNonces } from '@/db';
 import { eq } from 'drizzle-orm';
 import { consumeNonce } from '@/lib/ii-nonce';
 import { getLinkedPrincipalsFromDB } from '@/lib/get-linked-principals';

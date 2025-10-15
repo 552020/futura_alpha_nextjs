@@ -17,7 +17,7 @@
  */
 
 import { db } from '@/db/db';
-import { relationship, users, familyRelationship } from '@/db/schema';
+import { relationship, users, familyRelationship } from '@/db';
 import { eq, and } from 'drizzle-orm';
 import FormData from 'form-data';
 import Mailgun from 'mailgun.js';

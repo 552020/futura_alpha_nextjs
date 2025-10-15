@@ -12,9 +12,9 @@
  */
 
 import { db } from '@/db/db';
-import { memories } from '@/db/schema';
+import { memories } from '@/db';
 import { eq } from 'drizzle-orm';
-import type { DBMemoryWithAssets } from '@/db/schema';
+import type { DBMemoryWithAssets } from '@/db';
 
 // With unified schema, MemoryWithType includes assets
 export type MemoryWithType = DBMemoryWithAssets;

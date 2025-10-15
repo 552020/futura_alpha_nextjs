@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db/db';
-import { syncStatus, getSyncStatusByState, getStuckSyncs, getSyncStatusByBackend } from '@/db/schema';
+import { syncStatus, getSyncStatusByState, getStuckSyncs, getSyncStatusByBackend } from '@/db';
 
 import { fatLogger } from '@/lib/logger';
 export async function GET(request: NextRequest) {

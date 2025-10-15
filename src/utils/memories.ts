@@ -1,4 +1,4 @@
-import { allUsers, users, memories, memoryAssets, resourceMembership } from '@/db/schema';
+import { allUsers, users, memories, memoryAssets, resourceMembership } from '@/db';
 import { eq } from 'drizzle-orm';
 import { db } from '@/db/db';
 

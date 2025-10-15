@@ -5,7 +5,7 @@
  * with idempotent upserts to avoid double-writes and handle retries gracefully.
  */
 
-import type { AssetType, ProcessingStatus } from '@/db/schema';
+import type { AssetType, ProcessingStatus } from '@/db';
 
 import { fatLogger } from '@/lib/logger';
 export interface FinalizeAsset {

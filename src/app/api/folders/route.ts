@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db/db';
-import { folders } from '@/db/schema';
+import { folders } from '@/db';
 import { getUserIdForUpload } from '../memories/utils/user-management';
 
 import { fatLogger } from '@/lib/logger';

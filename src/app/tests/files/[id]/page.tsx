@@ -1,7 +1,7 @@
 import { auth } from '@/auth';
 import { db } from '@/db/db';
 import { eq } from 'drizzle-orm';
-import { documents, images, notes } from '@/db/schema';
+import { documents, images, notes } from '@/db';
 import { notFound } from 'next/navigation';
 import FileDetailEditor from '@/app/tests/files/[id]/file-detail-editor';
 

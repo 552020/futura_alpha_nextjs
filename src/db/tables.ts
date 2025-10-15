@@ -1,6 +1,5 @@
 import {
   pgTable,
-  pgEnum,
   text,
   timestamp,
   json,
@@ -14,93 +13,60 @@ import {
   uuid,
   bigint,
   check,
-  //   IndexBuilder,
 } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
-
-// import type { AdapterAccount } from "@auth/core/adapters";
 import type { AdapterAccount } from 'next-auth/adapters';
+import {
+  // Import enums
+  artifact_t,
+  memory_type_t,
+  sync_t,
+  frontend_hosting_t,
+  backend_hosting_t,
+  database_hosting_t,
+  blob_hosting_t,
+  asset_type_t,
+  processing_status_t,
+  resource_type_t,
+  grant_source_t,
+  membership_role_t,
+  // Import constants
+  MEMORY_TYPES,
+  ACCESS_LEVELS,
+  MEMBER_ROLES,
+  RELATIONSHIP_TYPES,
+  SHARING_RELATIONSHIP_TYPES,
+  RELATIONSHIP_STATUS,
+  FAMILY_RELATIONSHIP_TYPES,
+  PRIMARY_RELATIONSHIP_ROLES,
+  // Import types
+  BlobHosting,
+  DatabaseHosting,
+} from './enums';
 
-// Storage Edge Enums
-export const artifact_t = pgEnum('artifact_t', ['metadata', 'asset']);
-export const memory_type_t = pgEnum('memory_type_t', ['image', 'video', 'note', 'document', 'audio']);
-export const sync_t = pgEnum('sync_t', ['idle', 'migrating', 'failed']);
+// Forward declaration needed for foreign key references
+export const allUsers = pgTable(
+  'all_user',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
 
-// Hosting preference enums
-export const frontend_hosting_t = pgEnum('frontend_hosting_t', ['vercel', 'icp']);
-export const backend_hosting_t = pgEnum('backend_hosting_t', ['vercel', 'icp']);
-export const database_hosting_t = pgEnum('database_hosting_t', ['neon', 'icp']);
-export const blob_hosting_t = pgEnum('blob_hosting_t', ['s3', 'vercel_blob', 'icp', 'arweave', 'ipfs', 'neon']);
+    type: text('type', { enum: ['user', 'temporary'] }).notNull(),
 
-// TypeScript types for hosting values (used in JSONB arrays)
-export type BlobHosting = 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs' | 'neon';
-export type DatabaseHosting = 'neon' | 'icp';
+    userId: text('user_id'), // FK defined below
+    temporaryUserId: text('temporary_user_id'), // FK defined below
 
-/**
- * STORAGE PREFERENCE - User's preferred storage strategy
- *
- * This enum defines the user's preferred storage approach, which determines
- * the primary storage providers used for their memories and assets.
- *
- * PREFERENCES:
- * - neon: Neon database + Vercel Blob (centralized, reliable, easy)
- * - icp: ICP Canister (decentralized, Web3, user-controlled)
- * - dual: Both systems (redundancy, migration, hybrid approach)
- *
- * MAPPING TO STORAGE BACKENDS:
- * - neon preference → metadata in Neon, assets in Vercel Blob/S3
- * - icp preference → metadata in ICP, assets in ICP Storage
- * - dual preference → metadata in both, assets in multiple providers
- *
- * USAGE:
- * This preference is stored in the user's profile and used to determine
- * which storage_backend_t providers to use for new memories.
- */
-export const storage_pref_t = pgEnum('storage_pref_t', ['neon', 'icp', 'dual']);
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  table => [
+    // Ensure exactly one of userId or temporaryUserId is set
+    uniqueIndex('all_users_one_ref_guard').on(table.id) // dummy index anchor
+      .where(sql`(CASE WHEN ${table.userId} IS NOT NULL THEN 1 ELSE 0 END +
+                   CASE WHEN ${table.temporaryUserId} IS NOT NULL THEN 1 ELSE 0 END) = 1`),
+  ]
+);
 
-// Memory Assets Enums - for multiple optimized assets per memory
-export const asset_type_t = pgEnum('asset_type_t', [
-  'original',
-  'display',
-  'thumb',
-  'placeholder',
-  'poster',
-  'waveform',
-]);
-export const processing_status_t = pgEnum('processing_status_t', [
-  'pending',
-  'processing',
-  'completed',
-  'skipped',
-  'failed',
-]);
-/**
- * STORAGE BACKEND - Where assets are actually stored
- *
- * This enum defines all supported storage providers for memory assets.
- * Different providers are optimized for different use cases and user preferences.
- *
- * PROVIDERS:
- * - s3: AWS S3 (large files, high performance, enterprise)
- * - vercel_blob: Vercel Blob Storage (medium files, CDN, easy integration)
- * - icp: ICP Canister Storage (decentralized, user preference, Web3)
- * - arweave: Arweave (permanent storage, immutable, pay-once)
- * - ipfs: IPFS (decentralized, content-addressed, peer-to-peer)
- * - neon: Neon database (small files, metadata, fast access)
- *
- * SELECTION LOGIC:
- * - User preference (storage_pref_t) determines primary strategy
- * - Asset type and size determine optimal provider
- * - Dual storage for redundancy and performance
- *
- * EXAMPLES:
- * - Original 20MB photo → s3 or vercel_blob
- * - Thumbnail 50KB → neon (stored in database)
- * - Waveform data → arweave (permanent, immutable)
- * - User prefers ICP → icp for all assets
- */
-export const storage_backend_t = pgEnum('storage_backend_t', ['s3', 'vercel_blob', 'icp', 'arweave', 'ipfs', 'neon']);
 // Users table - Core user data - required for auth.js
 export const users = pgTable(
   'user',
@@ -175,28 +141,6 @@ export const users = pgTable(
       foreignColumns: [table.id],
       name: 'user_parent_fk',
     }),
-  ]
-);
-
-export const allUsers = pgTable(
-  'all_user',
-  {
-    id: text('id')
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-
-    type: text('type', { enum: ['user', 'temporary'] }).notNull(),
-
-    userId: text('user_id'), // FK defined below
-    temporaryUserId: text('temporary_user_id'), // FK defined below
-
-    createdAt: timestamp('created_at').defaultNow().notNull(),
-  },
-  table => [
-    // Ensure exactly one of userId or temporaryUserId is set
-    uniqueIndex('all_users_one_ref_guard').on(table.id) // dummy index anchor
-      .where(sql`(CASE WHEN ${table.userId} IS NOT NULL THEN 1 ELSE 0 END +
-                   CASE WHEN ${table.temporaryUserId} IS NOT NULL THEN 1 ELSE 0 END) = 1`),
   ]
 );
 
@@ -324,33 +268,6 @@ export const authenticators = pgTable(
   ]
 );
 
-// Shared types for file metadata
-export type CommonFileMetadata = {
-  size: number;
-  mimeType: string;
-  originalName: string;
-  uploadedAt: string;
-  dateOfMemory?: string;
-  format?: string; // File format (e.g., "JPEG", "PNG", "PDF")
-};
-
-export type ImageMetadata = CommonFileMetadata & {
-  dimensions?: { width: number; height: number };
-};
-
-// Type for flexible user-defined metadata
-export type CustomMetadata = {
-  [key: string]: string | number | boolean | null;
-};
-
-// Application tables - OLD PER-TYPE TABLES REMOVED
-// These have been replaced by the unified 'memories' table with 'memory_assets'
-// and optional detail tables for type-specific data.
-
-export const MEMORY_TYPES = ['image', 'document', 'note', 'video', 'audio'] as const;
-export const ACCESS_LEVELS = ['read', 'write'] as const;
-export const MEMBER_ROLES = ['admin', 'member'] as const;
-
 /**
  * MEMORIES TABLE - Base memory storage with inheritance pattern
  *
@@ -360,7 +277,7 @@ export const MEMBER_ROLES = ['admin', 'member'] as const;
  *
  * COMPOSITION:
  * - Basic info: id, title, description, takenAt, type
- * - Ownership: ownerId, ownerSecureCode
+ * - Ownership: ownerId, ownerSecureCode, sharingStatus
  * - Organization: parentFolderId
  * - Tags: tags (for fast search and queries)
  * - Flexible metadata: metadata JSON field for additional data
@@ -408,9 +325,13 @@ export const memories = pgTable(
       .references(() => allUsers.id, { onDelete: 'cascade' }),
     type: memory_type_t('type').notNull(),
     title: text('title'),
-    name: text('name'), // ✅ ADDED: URL-safe identifier (auto-generated from title)
+    name: text('name'), // Added to match database schema
     description: text('description'),
-    sharingStatus: text('sharing_status').default('private').notNull(), // "public" | "shared" | "private"
+    sharingStatus: text('sharing_status', {
+      enum: ['private', 'public', 'unlisted', 'password_protected'],
+    })
+      .default('private')
+      .notNull(), // Replaced isPublic with sharingStatus
     ownerSecureCode: text('owner_secure_code').notNull(),
     parentFolderId: uuid('parent_folder_id'),
     // Tags for better performance and search
@@ -432,17 +353,17 @@ export const memories = pgTable(
         custom?: Record<string, unknown>;
       }>()
       .default({}),
-    // Storage status fields
+    // Storage duration field (from actual database) - removed storageLocations and storageCount
     storageDuration: integer('storage_duration'), // Duration in days, null for permanent
   },
   table => [
     // Performance indexes for common queries
     index('memories_owner_created_idx').on(table.ownerId, table.createdAt.desc()),
     index('memories_type_idx').on(table.type),
-    index('memories_sharing_status_idx').on(table.sharingStatus),
+    index('memories_sharing_status_idx').on(table.sharingStatus), // Updated index name to match database
     // Performance indexes for tags and people
     index('memories_tags_idx').on(table.tags),
-    // Storage status indexes
+    // Performance index for storage duration
     index('memories_storage_duration_idx').on(table.storageDuration),
   ]
 );
@@ -825,46 +746,86 @@ export const memoryComments = pgTable(
   ]
 );
 
-// Types of relationships between users (e.g., brother, aunt, friend)
-export const RELATIONSHIP_TYPES = ['friend', 'colleague', 'acquaintance', 'family', 'other'] as const;
-export type RelationshipType = (typeof RELATIONSHIP_TYPES)[number];
+/**
+ * RESOURCE MEMBERSHIP TABLE - Universal sharing system
+ *
+ * This table provides a universal sharing system that works across all resource types
+ * (memories, galleries, folders). It uses a bitmask permission system and tracks
+ * the provenance of each grant for better security and auditability.
+ *
+ * COMPOSITION:
+ * - Resource: resourceType + resourceId (what is being shared)
+ * - Principal: allUserId (who has access)
+ * - Provenance: grantSource + sourceId (how they got access)
+ * - Permissions: role + permMask (what they can do)
+ * - Audit: invitedBy + timestamps (tracking)
+ *
+ * GRANT SOURCES:
+ * - user: Direct sharing by another user
+ * - group: Access via group membership
+ * - magic_link: Access via magic link
+ * - public_mode: Public resource access
+ * - system: System-granted access (e.g., ownership)
+ *
+ * ROLES:
+ * - owner: Full control over resource
+ * - superadmin: Administrative access
+ * - admin: Management access
+ * - member: Standard access
+ * - guest: Limited access
+ *
+ * USAGE EXAMPLES:
+ * ```typescript
+ * // Get all users with access to a memory
+ * const memberships = await db.select()
+ *   .from(resourceMembership)
+ *   .where(and(
+ *     eq(resourceMembership.resourceType, 'memory'),
+ *     eq(resourceMembership.resourceId, memoryId)
+ *   ));
+ *
+ * // Check if user has access to a gallery
+ * const access = await db.query.resourceMembership.findFirst({
+ *   where: and(
+ *     eq(resourceMembership.resourceType, 'gallery'),
+ *     eq(resourceMembership.resourceId, galleryId),
+ *     eq(resourceMembership.allUserId, userId)
+ *   )
+ * });
+ * ```
+ */
+export const resourceMembership = pgTable(
+  'resource_membership',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    resourceType: resource_type_t('resource_type').notNull(),
+    resourceId: text('resource_id').notNull(),
+    allUserId: text('all_user_id')
+      .notNull()
+      .references(() => allUsers.id, { onDelete: 'cascade' }),
 
-// Types of sharing relationships (based on trust/proximity)
-export const SHARING_RELATIONSHIP_TYPES = [
-  'close_family', // e.g., parents, siblings
-  'family', // extended family
-  'partner', // romantic partner
-  'close_friend', // trusted friends
-  'friend', // regular friends
-  'colleague', // work relationships
-  'acquaintance', // casual relationships
-] as const;
-export type SharingRelationshipType = (typeof SHARING_RELATIONSHIP_TYPES)[number];
+    // Provenance of the grant
+    grantSource: grant_source_t('grant_source').notNull(),
+    sourceId: text('source_id'), // e.g., group id or magic_link id
+    role: membership_role_t('role').notNull(),
+    permMask: integer('perm_mask').notNull().default(0),
+    invitedByAllUserId: text('invited_by_all_user_id')
+      .references(() => allUsers.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  t => [
+    index('rm_resource_idx').on(t.resourceType, t.resourceId),
+    index('rm_user_idx').on(t.allUserId),
+    index('rm_role_idx').on(t.role),
+    // Allow multiple grants per principal from different sources
+    index('rm_source_idx').on(t.grantSource, t.sourceId),
+    uniqueIndex('rm_unique_grant').on(t.resourceType, t.resourceId, t.allUserId, t.grantSource, t.sourceId),
+  ]
+);
 
-export const RELATIONSHIP_STATUS = ['pending', 'accepted', 'declined'] as const;
-export type RelationshipStatus = (typeof RELATIONSHIP_STATUS)[number];
-
-export const FAMILY_RELATIONSHIP_TYPES = [
-  'parent',
-  'child',
-  'sibling',
-  'cousin',
-  'spouse',
-  'grandparent',
-  'grandchild',
-  'aunt_uncle',
-  'niece_nephew',
-  'extended_family',
-  'other',
-] as const;
-export type FamilyRelationshipType = (typeof FAMILY_RELATIONSHIP_TYPES)[number];
-
-// ============================================================================
-// DEPRECATED: OLD SHARING TABLES (Replaced by Universal Resource Sharing)
-// ============================================================================
-
-// ❌ DEPRECATED: Memory sharing table - replaced by universal resource sharing system
-// ✅ REPLACED BY: resourceMembership table (universal sharing system)
 
 // This table is for shared groups where all members see the same group composition
 // (e.g., book clubs, work teams, shared family groups).
@@ -983,10 +944,6 @@ export const businessRelationship = pgTable(
   ]
 );
 
-// Enum for primary relationships
-export const PRIMARY_RELATIONSHIP_ROLES = ['son', 'daughter', 'father', 'mother', 'sibling', 'spouse'] as const;
-export type PrimaryRelationshipRole = (typeof PRIMARY_RELATIONSHIP_ROLES)[number];
-
 export const familyMember = pgTable(
   'family_member',
   {
@@ -1092,46 +1049,36 @@ export const galleryItems = pgTable(
   ]
 );
 
-// Type inference helpers
-export type DBUser = typeof users.$inferSelect;
-export type NewDBUser = typeof users.$inferInsert;
+// Gallery sharing table - similar to memoryShares but for galleries
+export const galleryShares = pgTable('gallery_share', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  galleryId: text('gallery_id')
+    .notNull()
+    .references(() => galleries.id, { onDelete: 'cascade' }),
+  ownerId: text('owner_id') // The user who owns the gallery
+    .notNull()
+    .references(() => allUsers.id, { onDelete: 'cascade' }),
 
-export type DBAllUser = typeof allUsers.$inferSelect;
-export type NewDBAllUser = typeof allUsers.$inferInsert;
+  sharedWithType: text('shared_with_type', {
+    enum: ['user', 'group', 'relationship'],
+  }).notNull(),
 
-export type DBTemporaryUser = typeof temporaryUsers.$inferSelect;
-export type NewDBTemporaryUser = typeof temporaryUsers.$inferInsert;
+  sharedWithId: text('shared_with_id') // For direct user sharing
+    .references(() => allUsers.id, { onDelete: 'cascade' }),
+  groupId: text('group_id') // For group sharing
+    .references(() => group.id, { onDelete: 'cascade' }),
+  sharedRelationshipType: text('shared_relationship_type', {
+    // For relationship-based sharing
+    enum: SHARING_RELATIONSHIP_TYPES,
+  }),
 
-export type DBAccount = typeof accounts.$inferSelect;
-export type NewDBAccount = typeof accounts.$inferInsert;
-
-export type DBSession = typeof sessions.$inferSelect;
-export type NewDBSession = typeof sessions.$inferInsert;
-
-// Old per-type table types removed - replaced by unified memory types
-
-// ❌ DEPRECATED: Old memory sharing types (replaced by universal resource sharing)
-// ✅ REPLACED BY: DBResourceMembership types (universal sharing system)
-
-export type DBGroup = typeof group.$inferSelect;
-export type NewDBGroup = typeof group.$inferInsert;
-
-export type DBGroupMember = typeof groupMember.$inferSelect;
-export type NewDBGroupMember = typeof groupMember.$inferInsert;
-
-// DBVideo types removed - replaced by unified memory types
-
-export type DBGallery = typeof galleries.$inferSelect;
-export type NewDBGallery = typeof galleries.$inferInsert;
-
-// ❌ DEPRECATED: Gallery sharing table - replaced by universal resource sharing system
-// ✅ REPLACED BY: resourceMembership table (universal sharing system)
-
-export type DBGalleryItem = typeof galleryItems.$inferSelect;
-export type NewDBGalleryItem = typeof galleryItems.$inferInsert;
-
-// ❌ DEPRECATED: Old gallery sharing types (replaced by universal resource sharing)
-// ✅ REPLACED BY: DBResourceMembership types (universal sharing system)
+  accessLevel: text('access_level', { enum: ACCESS_LEVELS }).default('read').notNull(),
+  inviteeSecureCode: text('invitee_secure_code').notNull(), // For invitee to access the gallery
+  inviteeSecureCodeCreatedAt: timestamp('secure_code_created_at', { mode: 'date' }).notNull().defaultNow(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
 
 // Internet Identity nonce table for canister-first signup
 export const iiNonces = pgTable(
@@ -1167,9 +1114,6 @@ export const iiNonces = pgTable(
   ]
 );
 
-export type DBIINonce = typeof iiNonces.$inferSelect;
-export type NewDBIINonce = typeof iiNonces.$inferInsert;
-
 // Storage Edges Table - Track storage presence per memory artifact and location
 export const storageEdges = pgTable(
   'storage_edges',
@@ -1197,9 +1141,6 @@ export const storageEdges = pgTable(
     index('ix_edges_sync_state').on(t.syncState),
   ]
 );
-
-export type DBStorageEdge = typeof storageEdges.$inferSelect;
-export type NewDBStorageEdge = typeof storageEdges.$inferInsert;
 
 // Memory Metadata Table - stores universal metadata and processing status
 export const memoryMetadata = pgTable(
@@ -1263,219 +1204,8 @@ export const getStuckSyncs = () => sql<DBSyncStatus>`SELECT * FROM sync_status W
 export const getSyncStatusByBackend = (backend: 'neon-db' | 'vercel-blob' | 'icp-canister') =>
   sql<DBSyncStatus>`SELECT * FROM sync_status WHERE backend = ${backend}`;
 
-/**
- * DRIZZLE RELATIONS - Define object-like access to related data
- *
- * These relations make it easy to query memories with their related assets,
- * making the composition clear and enabling clean, object-like queries.
- *
- * RELATIONSHIPS:
- * - memories (1) ↔ (many) memoryAssets
- * - memoryAssets (many) ↔ (1) memories
- *
- * USAGE EXAMPLES:
- * ```typescript
- * // Get memory with all assets (object-like access)
- * const memory = await db.query.memories.findFirst({
- *   where: eq(memories.id, memoryId),
- *   with: { assets: true }
- * });
- * // Result: memory.assets is an array of MemoryAsset[]
- *
- * // Get asset with its parent memory
- * const asset = await db.query.memoryAssets.findFirst({
- *   where: eq(memoryAssets.id, assetId),
- *   with: { memory: true }
- * });
- * // Result: asset.memory is the parent Memory object
- * ```
- */
-export const memoriesRelations = relations(memories, ({ many, one }) => ({
-  assets: many(memoryAssets),
-  people: many(peopleInMemories),
-  likes: many(memoryLikes),
-  comments: many(memoryComments),
-  folder: one(folders, {
-    fields: [memories.parentFolderId],
-    references: [folders.id],
-  }),
-}));
-
-export const memoryAssetsRelations = relations(memoryAssets, ({ one }) => ({
-  memory: one(memories, {
-    fields: [memoryAssets.memoryId],
-    references: [memories.id],
-  }),
-}));
-
-// Folder relations
-export const foldersRelations = relations(folders, ({ one, many }) => ({
-  owner: one(allUsers, {
-    fields: [folders.ownerId],
-    references: [allUsers.id],
-  }),
-  parent: one(folders, {
-    fields: [folders.parentFolderId],
-    references: [folders.id],
-  }),
-  subfolders: many(folders),
-  memories: many(memories),
-}));
-
-// Detail table relations (1:1 with memories)
-export const imageDetailsRelations = relations(imageDetails, ({ one }) => ({
-  memory: one(memories, {
-    fields: [imageDetails.memoryId],
-    references: [memories.id],
-  }),
-}));
-
-export const videoDetailsRelations = relations(videoDetails, ({ one }) => ({
-  memory: one(memories, {
-    fields: [videoDetails.memoryId],
-    references: [memories.id],
-  }),
-}));
-
-export const documentDetailsRelations = relations(documentDetails, ({ one }) => ({
-  memory: one(memories, {
-    fields: [documentDetails.memoryId],
-    references: [memories.id],
-  }),
-}));
-
-export const audioDetailsRelations = relations(audioDetails, ({ one }) => ({
-  memory: one(memories, {
-    fields: [audioDetails.memoryId],
-    references: [memories.id],
-  }),
-}));
-
-export const noteDetailsRelations = relations(noteDetails, ({ one }) => ({
-  memory: one(memories, {
-    fields: [noteDetails.memoryId],
-    references: [memories.id],
-  }),
-}));
-
-// People in memories relations
-export const peopleInMemoriesRelations = relations(peopleInMemories, ({ one }) => ({
-  memory: one(memories, {
-    fields: [peopleInMemories.memoryId],
-    references: [memories.id],
-  }),
-  person: one(allUsers, {
-    fields: [peopleInMemories.allUserId],
-    references: [allUsers.id],
-  }),
-}));
-
-// Memory likes relations
-export const memoryLikesRelations = relations(memoryLikes, ({ one }) => ({
-  memory: one(memories, {
-    fields: [memoryLikes.memoryId],
-    references: [memories.id],
-  }),
-  user: one(allUsers, {
-    fields: [memoryLikes.allUserId],
-    references: [allUsers.id],
-  }),
-}));
-
-// Memory comments relations
-export const memoryCommentsRelations = relations(memoryComments, ({ one, many }) => ({
-  memory: one(memories, {
-    fields: [memoryComments.memoryId],
-    references: [memories.id],
-  }),
-  user: one(allUsers, {
-    fields: [memoryComments.allUserId],
-    references: [allUsers.id],
-  }),
-  parentComment: one(memoryComments, {
-    fields: [memoryComments.parentCommentId],
-    references: [memoryComments.id],
-  }),
-  replies: many(memoryComments),
-}));
-
-// Business relationship relations
-export const businessRelationshipRelations = relations(businessRelationship, ({ one }) => ({
-  business: one(allUsers, {
-    fields: [businessRelationship.businessId],
-    references: [allUsers.id],
-  }),
-  client: one(allUsers, {
-    fields: [businessRelationship.clientId],
-    references: [allUsers.id],
-  }),
-}));
-
-// Type helpers for the enums
-export type MemoryType = (typeof MEMORY_TYPES)[number];
-export type AccessLevel = (typeof ACCESS_LEVELS)[number];
-export type MemberRole = (typeof MEMBER_ROLES)[number];
-
-export type DBRelationship = typeof relationship.$inferSelect;
-export type DBFamilyRelationship = typeof familyRelationship.$inferSelect;
-export type DBBusinessRelationship = typeof businessRelationship.$inferSelect;
-export type NewDBBusinessRelationship = typeof businessRelationship.$inferInsert;
-
-// Memory Assets Types
-export type DBMemoryAsset = typeof memoryAssets.$inferSelect;
-export type NewDBMemoryAsset = typeof memoryAssets.$inferInsert;
-export type DBMemoryMetadata = typeof memoryMetadata.$inferSelect;
-export type NewDBMemoryMetadata = typeof memoryMetadata.$inferInsert;
-
-// New unified memory types
-export type DBMemory = typeof memories.$inferSelect;
-export type NewDBMemory = typeof memories.$inferInsert;
-
-// Memory with assets relationship
-export type DBMemoryWithAssets = DBMemory & {
-  assets: DBMemoryAsset[];
-};
-
-// Asset type helpers
-export type AssetType = (typeof asset_type_t.enumValues)[number];
-export type ProcessingStatus = (typeof processing_status_t.enumValues)[number];
-export type StorageBackend = (typeof storage_backend_t.enumValues)[number];
-
-// Folder types
-export type DBFolder = typeof folders.$inferSelect;
-export type NewDBFolder = typeof folders.$inferInsert;
-
-// Detail table types
-export type DBImageDetails = typeof imageDetails.$inferSelect;
-export type NewDBImageDetails = typeof imageDetails.$inferInsert;
-export type DBVideoDetails = typeof videoDetails.$inferSelect;
-export type NewDBVideoDetails = typeof videoDetails.$inferInsert;
-export type DBDocumentDetails = typeof documentDetails.$inferSelect;
-export type NewDBDocumentDetails = typeof documentDetails.$inferInsert;
-export type DBAudioDetails = typeof audioDetails.$inferSelect;
-export type NewDBAudioDetails = typeof audioDetails.$inferInsert;
-export type DBNoteDetails = typeof noteDetails.$inferSelect;
-export type NewDBNoteDetails = typeof noteDetails.$inferInsert;
-
-// Memory with all relationships
-export type DBMemoryWithDetails = DBMemory & {
-  assets: DBMemoryAsset[];
-  folder?: DBFolder | null;
-  imageDetails?: DBImageDetails | null;
-  videoDetails?: DBVideoDetails | null;
-  documentDetails?: DBDocumentDetails | null;
-  audioDetails?: DBAudioDetails | null;
-  noteDetails?: DBNoteDetails | null;
-};
-
 // Hosting Preferences Tables
 
-/**
- * USER HOSTING PREFERENCES - User's preferred hosting providers for different services
- *
- * This table stores the user's preferred hosting providers for different parts of the application.
- * Each user must have preferences set for all four service categories.
- */
 /**
  * USER HOSTING PREFERENCES - User's preferred hosting providers for different services
  *
@@ -1499,9 +1229,6 @@ export const userHostingPreferences = pgTable(
     backendHosting: backend_hosting_t('backend_hosting').default('vercel').notNull(),
     databaseHosting: jsonb('database_hosting').$type<DatabaseHosting[]>().default(['neon']).notNull(),
     blobHosting: jsonb('blob_hosting').$type<BlobHosting[]>().default(['s3']).notNull(),
-    // Advanced database switching for dashboard
-    advancedDatabaseSwitching: boolean('advanced_database_switching').default(false),
-    currentDatabaseView: database_hosting_t('current_database_view'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
@@ -1547,22 +1274,6 @@ export const serviceDeployments = pgTable(
   })
 );
 
-// Temporary exports for backward compatibility during migration
-// TODO: Remove these once all files are updated to use the new unified schema
-export const images = memories;
-export const videos = memories;
-export const documents = memories;
-export const notes = memories;
-export const audio = memories;
-
-// Hosting preference types
-export type UserHostingPreference = typeof userHostingPreferences.$inferSelect;
-export type NewUserHostingPreference = typeof userHostingPreferences.$inferInsert;
-
-// Service deployment types
-export type ServiceDeployment = typeof serviceDeployments.$inferSelect;
-export type NewServiceDeployment = typeof serviceDeployments.$inferInsert;
-
 /**
  * USER SETTINGS - UI preferences that affect user experience
  *
@@ -1595,366 +1306,14 @@ export const userSettings = pgTable(
   ]
 );
 
-// User settings types
-export type UserSettings = typeof userSettings.$inferSelect;
-export type NewUserSettings = typeof userSettings.$inferInsert;
+// Temporary exports for backward compatibility during migration
+// TODO: Remove these once all files are updated to use the new unified schema
+export const images = memories;
+export const videos = memories;
+export const documents = memories;
+export const notes = memories;
+export const audio = memories;
 
-// ============================================================================
-// UNIVERSAL RESOURCE SHARING SYSTEM
-// ============================================================================
-
-/**
- * UNIVERSAL RESOURCE SHARING - Bitmask permissions with provenance tracking
- *
- * This system provides unified sharing functionality for galleries, memories, and folders
- * using bitmask permissions and clear audit trails of where permissions came from.
- *
- * KEY FEATURES:
- * - Universal tables work for all resource types (galleries, memories, folders)
- * - Bitmask permissions for atomic operations
- * - Provenance tracking (user, group, magic_link, public_mode, system)
- * - Magic links with TTL and use limits
- * - Public access as first-class grants
- * - Pure Drizzle implementation (no generated columns, triggers, or views)
- *
- * PERMISSION BITS:
- * - VIEW (1): Can see the resource
- * - DOWNLOAD (2): Can download assets
- * - SHARE (4): Can invite others and manage permissions
- * - MANAGE (8): Can manage resource settings
- * - OWN (16): Can transfer ownership
- */
-
-// ✅ Permission bits (TypeScript only; stored as single integer permMask)
-export const PERM = {
-  VIEW: 1 << 0, // 1
-  DOWNLOAD: 1 << 1, // 2
-  SHARE: 1 << 2, // 4
-  MANAGE: 1 << 3, // 8
-  OWN: 1 << 4, // 16
-} as const;
-
-// ✅ Optional: Role templates as data (defaults live in DB)
-export const roleTemplates = pgTable(
-  'role_template',
-  {
-    role: text('role', {
-      enum: ['owner', 'superadmin', 'admin', 'member', 'guest'],
-    }).primaryKey(),
-    resourceType: text('resource_type', {
-      enum: ['gallery', 'memory', 'folder'],
-    }).notNull(),
-    permMask: integer('perm_mask').notNull(), // sum of PERM bits
-    createdAt: timestamp('created_at').notNull().defaultNow(),
-    updatedAt: timestamp('updated_at').notNull().defaultNow(),
-  },
-  t => [index('role_template_rt_idx').on(t.resourceType)]
-);
-
-// ✅ Optional: Resource registry (type-safe anchors for generic sharing)
-export const resourceRegistry = pgTable(
-  'resource_registry',
-  {
-    id: text('id').primaryKey(), // mirrors galleries.id / memories.id / folders.id
-    resourceType: text('resource_type', {
-      enum: ['gallery', 'memory', 'folder'],
-    }).notNull(),
-    ownerAllUserId: text('owner_all_user_id').notNull(), // FK to allUsers.id
-    createdAt: timestamp('created_at').notNull().defaultNow(),
-  },
-  t => [index('resource_registry_rt_idx').on(t.resourceType)]
-);
-
-// ✅ Core: Resource Membership (bitmask + provenance tracking)
-export const resourceMembership = pgTable(
-  'resource_membership',
-  {
-    id: text('id')
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-    resourceType: text('resource_type', {
-      enum: ['gallery', 'memory', 'folder'],
-    }).notNull(),
-    resourceId: text('resource_id').notNull(),
-    allUserId: text('all_user_id').notNull(), // FK to allUsers.id
-
-    // Provenance of the grant
-    grantSource: text('grant_source', {
-      enum: ['user', 'group', 'magic_link', 'public_mode', 'system'],
-    }).notNull(),
-    sourceId: text('source_id'), // e.g., group id or magic_link id
-    role: text('role', {
-      enum: ['owner', 'superadmin', 'admin', 'member', 'guest'],
-    }).notNull(),
-    permMask: integer('perm_mask').notNull().default(0),
-    invitedByAllUserId: text('invited_by_all_user_id'),
-    createdAt: timestamp('created_at').notNull().defaultNow(),
-    updatedAt: timestamp('updated_at').notNull().defaultNow(),
-  },
-  t => [
-    index('rm_resource_idx').on(t.resourceType, t.resourceId),
-    index('rm_user_idx').on(t.allUserId),
-    index('rm_role_idx').on(t.role),
-    // Allow multiple grants per principal from different sources
-    index('rm_source_idx').on(t.grantSource, t.sourceId),
-    uniqueIndex('rm_unique_grant').on(t.resourceType, t.resourceId, t.allUserId, t.grantSource, t.sourceId),
-  ]
-);
-
-// ✅ Public access policy as first-class (no columns on gallery)
-export const resourcePublicPolicy = pgTable(
-  'resource_public_policy',
-  {
-    id: text('id')
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-    resourceType: text('resource_type', {
-      enum: ['gallery', 'memory', 'folder'],
-    }).notNull(),
-    resourceId: text('resource_id').notNull(),
-    mode: text('mode', {
-      enum: ['private', 'public_auth', 'public_link'],
-    })
-      .notNull()
-      .default('private'),
-    linkTokenHash: text('link_token_hash'), // sha-256 of token (public_link only)
-    permMask: integer('perm_mask').notNull().default(PERM.VIEW),
-    expiresAt: timestamp('expires_at'),
-    revokedAt: timestamp('revoked_at'),
-    createdAt: timestamp('created_at').notNull().defaultNow(),
-    updatedAt: timestamp('updated_at').notNull().defaultNow(),
-  },
-  t => [index('rpp_resource_idx').on(t.resourceType, t.resourceId), index('rpp_mode_idx').on(t.mode)]
-);
-
-// ✅ Magic Links (explicit redemption modes)
-export const magicLink = pgTable(
-  'magic_link',
-  {
-    id: text('id')
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-    tokenHash: text('token_hash').notNull().unique(),
-    type: text('type', {
-      enum: ['admin_invite', 'guest_share'],
-    }).notNull(),
-    resourceType: text('resource_type', {
-      enum: ['gallery', 'memory', 'folder'],
-    }).notNull(),
-    resourceId: text('resource_id').notNull(),
-    inviterAllUserId: text('inviter_all_user_id').notNull(),
-    intendedEmail: text('intended_email'), // for admin_invite
-    adminSubtype: text('admin_subtype', {
-      enum: ['superadmin', 'admin'],
-    }), // for admin_invite
-    presetPermMask: integer('preset_perm_mask').notNull().default(PERM.VIEW),
-    maxUses: integer('max_uses').notNull().default(1000),
-    usedCount: integer('used_count').notNull().default(0),
-    expiresAt: timestamp('expires_at').notNull(),
-    revokedAt: timestamp('revoked_at'),
-    lastUsedAt: timestamp('last_used_at'),
-    createdAt: timestamp('created_at').notNull().defaultNow(),
-    updatedAt: timestamp('updated_at').notNull().defaultNow(),
-  },
-  t => [index('ml_resource_type_idx').on(t.resourceType, t.resourceId, t.type), index('ml_expires_idx').on(t.expiresAt)]
-);
-
-// ✅ Magic Link Consumption (audit trail)
-export const magicLinkConsumption = pgTable(
-  'magic_link_consumption',
-  {
-    id: text('id')
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-    magicLinkId: text('magic_link_id').notNull(), // FK to magicLink.id
-    allUserId: text('all_user_id'), // set after login/registration
-    ip: text('ip'),
-    userAgent: text('user_agent'),
-    usedAt: timestamp('used_at').notNull().defaultNow(),
-    result: text('result', {
-      enum: ['success', 'expired', 'revoked', 'limit_exceeded'],
-    }).notNull(),
-  },
-  t => [index('mlc_link_idx').on(t.magicLinkId, t.usedAt), index('mlc_user_idx').on(t.allUserId, t.usedAt)]
-);
-
-// User settings relations
-export const userSettingsRelations = relations(userSettings, ({ one }) => ({
-  user: one(users, {
-    fields: [userSettings.userId],
-    references: [users.id],
-  }),
-}));
-
-// ============================================================================
-// UNIVERSAL RESOURCE SHARING RELATIONS
-// ============================================================================
-
-// Resource membership relations
-export const resourceMembershipRelations = relations(resourceMembership, ({ one }) => ({
-  user: one(allUsers, {
-    fields: [resourceMembership.allUserId],
-    references: [allUsers.id],
-  }),
-  invitedBy: one(allUsers, {
-    fields: [resourceMembership.invitedByAllUserId],
-    references: [allUsers.id],
-  }),
-}));
-
-// Resource public policy relations
-export const resourcePublicPolicyRelations = relations(resourcePublicPolicy, ({ one: _one }) => ({
-  // Note: No direct relations to resources since they're generic
-  // Use resourceType + resourceId to find the actual resource
-}));
-
-// Magic link relations
-export const magicLinkRelations = relations(magicLink, ({ one, many }) => ({
-  inviter: one(allUsers, {
-    fields: [magicLink.inviterAllUserId],
-    references: [allUsers.id],
-  }),
-  consumptions: many(magicLinkConsumption),
-}));
-
-// Magic link consumption relations
-export const magicLinkConsumptionRelations = relations(magicLinkConsumption, ({ one }) => ({
-  magicLink: one(magicLink, {
-    fields: [magicLinkConsumption.magicLinkId],
-    references: [magicLink.id],
-  }),
-  user: one(allUsers, {
-    fields: [magicLinkConsumption.allUserId],
-    references: [allUsers.id],
-  }),
-}));
-
-// Role template relations (no relations needed - standalone table)
-// Resource registry relations (no relations needed - standalone table)
-
-/**
- * USER TABLE RELATIONS - Drizzle ORM query helpers for the users table
- *
- * This defines how the users table relates to other tables for clean queries.
- * This is NOT the same as the 'relationship' table which stores actual user relationships.
- *
- * Purpose: Enables object-like queries like user.settings, user.accounts, etc.
- * Usage: db.query.users.findFirst({ with: { settings: true, accounts: true } })
- */
-export const userTableRelations = relations(users, ({ one, many }) => ({
-  settings: one(userSettings, {
-    fields: [users.id],
-    references: [userSettings.userId],
-  }),
-  hostingPreferences: one(userHostingPreferences, {
-    fields: [users.id],
-    references: [userHostingPreferences.userId],
-  }),
-  accounts: many(accounts),
-  sessions: many(sessions),
-}));
-
-// Temporary type exports for backward compatibility
-export type DBImage = DBMemory;
-export type DBVideo = DBMemory;
-export type DBDocument = DBMemory;
-export type DBNote = DBMemory;
-export type DBAudio = DBMemory;
-export type NewDBImage = NewDBMemory;
-export type NewDBVideo = NewDBMemory;
-export type NewDBDocument = NewDBMemory;
-export type NewDBNote = NewDBMemory;
-export type NewDBAudio = NewDBMemory;
-
-// ============================================================================
-// UNIVERSAL RESOURCE SHARING TYPES
-// ============================================================================
-
-// Permission types
-export type Permission = keyof typeof PERM;
-export type PermissionMask = number;
-
-// Role types
-export type ResourceRole = 'owner' | 'superadmin' | 'admin' | 'member' | 'guest';
-export type ResourceType = 'gallery' | 'memory' | 'folder';
-export type GrantSource = 'user' | 'group' | 'magic_link' | 'public_mode' | 'system';
-export type PublicMode = 'private' | 'public_auth' | 'public_link';
-export type MagicLinkType = 'admin_invite' | 'guest_share';
-export type MagicLinkResult = 'success' | 'expired' | 'revoked' | 'limit_exceeded';
-
-// Table types
-export type DBRoleTemplate = typeof roleTemplates.$inferSelect;
-export type NewDBRoleTemplate = typeof roleTemplates.$inferInsert;
-
-export type DBResourceRegistry = typeof resourceRegistry.$inferSelect;
-export type NewDBResourceRegistry = typeof resourceRegistry.$inferInsert;
-
-export type DBResourceMembership = typeof resourceMembership.$inferSelect;
-export type NewDBResourceMembership = typeof resourceMembership.$inferInsert;
-
-export type DBResourcePublicPolicy = typeof resourcePublicPolicy.$inferSelect;
-export type NewDBResourcePublicPolicy = typeof resourcePublicPolicy.$inferInsert;
-
-export type DBMagicLink = typeof magicLink.$inferSelect;
-export type NewDBMagicLink = typeof magicLink.$inferInsert;
-
-export type DBMagicLinkConsumption = typeof magicLinkConsumption.$inferSelect;
-export type NewDBMagicLinkConsumption = typeof magicLinkConsumption.$inferInsert;
-
-// ============================================================================
-// PERMISSION HELPER FUNCTIONS
-// ============================================================================
-
-/**
- * TypeScript helpers for bitmask permission operations
- * These functions work with the PERM constants and permMask integers
- */
-
-// ✅ Bitmask helpers for permission logic
-export const has = (mask: number, bit: number) => (mask & bit) !== 0;
-export const add = (mask: number, bit: number) => mask | bit;
-export const remove = (mask: number, bit: number) => mask & ~bit;
-export const merge = (...masks: number[]) => masks.reduce((acc, m) => acc | m, 0);
-
-// ✅ Permission checking helpers
-export const canView = (mask: number) => has(mask, PERM.VIEW);
-export const canDownload = (mask: number) => has(mask, PERM.DOWNLOAD);
-export const canShare = (mask: number) => has(mask, PERM.SHARE);
-export const canManage = (mask: number) => has(mask, PERM.MANAGE);
-export const canOwn = (mask: number) => has(mask, PERM.OWN);
-
-// ✅ Example: compute effective permissions entirely in app code
-type Grant = { permMask: number };
-export function effectiveMask(grants: Grant[]): number {
-  return merge(...grants.map(g => g.permMask));
-}
-
-// ✅ Role template helpers
-export const getRolePermissionMask = (role: ResourceRole, _resourceType: ResourceType): number => {
-  // Default role permissions (can be overridden by database templates)
-  const defaults: Record<ResourceRole, number> = {
-    owner: PERM.VIEW | PERM.DOWNLOAD | PERM.SHARE | PERM.MANAGE | PERM.OWN,
-    superadmin: PERM.VIEW | PERM.DOWNLOAD | PERM.SHARE | PERM.MANAGE,
-    admin: PERM.VIEW | PERM.DOWNLOAD | PERM.SHARE | PERM.MANAGE,
-    member: PERM.VIEW | PERM.DOWNLOAD,
-    guest: PERM.VIEW,
-  };
-  return defaults[role];
-};
-
-// ✅ Permission validation helpers
-export const isValidPermissionMask = (mask: number): boolean => {
-  // Check if mask only contains valid permission bits
-  const validBits = Object.values(PERM).reduce((acc, bit) => acc | bit, 0);
-  return (mask & ~validBits) === 0;
-};
-
-export const getPermissionList = (mask: number): Permission[] => {
-  const permissions: Permission[] = [];
-  if (has(mask, PERM.VIEW)) permissions.push('VIEW');
-  if (has(mask, PERM.DOWNLOAD)) permissions.push('DOWNLOAD');
-  if (has(mask, PERM.SHARE)) permissions.push('SHARE');
-  if (has(mask, PERM.MANAGE)) permissions.push('MANAGE');
-  if (has(mask, PERM.OWN)) permissions.push('OWN');
-  return permissions;
-};
+// Add foreign key constraint for memoryShares.groupId after group is defined
+// This is handled by adding the reference after table creation
+// Note: In a real migration, this would be handled in the migration file
