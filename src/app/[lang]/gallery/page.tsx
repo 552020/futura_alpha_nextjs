@@ -57,6 +57,13 @@ export default function GalleryPage() {
     window.location.href = `/${lang}/gallery/${gallery.id}`;
   };
 
+  const handleGalleryShare = (gallery: GalleryWithItems) => {
+    // TODO: Implement share dialog similar to memory share
+    // For now, just log the action
+    fatLogger.info('Share gallery clicked', 'fe', { data: { galleryId: gallery.id } });
+    // You can implement a share dialog here similar to ShareDialog component
+  };
+
   const handleGalleryCreated = (_galleryId: string) => {
     // Reload galleries to show the new one
     loadGalleries();
@@ -111,7 +118,11 @@ export default function GalleryPage() {
 
       {/* Gallery Grid */}
       <div className="container mx-auto px-6">
-        <GalleryGrid galleries={filteredGalleries} onGalleryClick={handleGalleryClick} />
+        <GalleryGrid 
+          galleries={filteredGalleries} 
+          onGalleryClick={handleGalleryClick}
+          onGalleryShare={handleGalleryShare}
+        />
       </div>
 
       {/* Create Gallery Modal */}
