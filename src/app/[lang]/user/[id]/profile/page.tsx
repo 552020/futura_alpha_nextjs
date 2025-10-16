@@ -2,7 +2,7 @@ import React from 'react';
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 // import { LiveChatWrapper } from '@/components/chat/livechat-wrapper';
-import { ICPCard } from '@/components/user/icp-card';
+// import { ICPCard } from '@/components/user/icp-card';
 import { ProfileHeader } from '@/components/user/profile-header';
 import { ProfileInfo } from '@/components/user/profile-info';
 // import { ProfileStats } from "@/components/user/profile-stats";
@@ -36,8 +36,8 @@ const ProfilePage = async (props: Props) => {
           {/* Profile Statistics */}
           {/* <ProfileStats /> */}
 
-          {/* ICP Card - Unified Internet Identity Management */}
-          <ICPCard />
+          {/* ICP Card - Removed since users have dedicated ICP page */}
+          {/* <ICPCard /> */}
         </div>
 
         {/* LiveChat */}

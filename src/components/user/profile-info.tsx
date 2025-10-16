@@ -69,108 +69,48 @@ export function ProfileInfo({ user }: ProfileInfoProps) {
         {/* Basic Information */}
         <div className="space-y-3">
           <div className="flex items-center">
+            <span className="text-slate-600 dark:text-slate-400 w-24 flex-shrink-0">Name:</span>
+            <span className="font-medium">{user.name || 'Not set'}</span>
+          </div>
+          <div className="flex items-center">
             <span className="text-slate-600 dark:text-slate-400 w-24 flex-shrink-0">Email:</span>
             <span className="font-medium">{user.email || 'Not set'}</span>
           </div>
-          <div className="flex items-center">
+          {/* <div className="flex items-center">
             <span className="text-slate-600 dark:text-slate-400 w-24 flex-shrink-0">Joined:</span>
             <span className="font-medium">{formatDate(user.createdAt)}</span>
-          </div>
-          <div className="flex items-center">
+          </div> */}
+          {/* <div className="flex items-center">
             <span className="text-slate-600 dark:text-slate-400 w-24 flex-shrink-0">Role:</span>
             <Badge variant="secondary" className="capitalize">
               {user.role || 'user'}
             </Badge>
-          </div>
-          <div className="flex items-center">
+          </div> */}
+          {/* <div className="flex items-center">
             <span className="text-slate-600 dark:text-slate-400 w-24 flex-shrink-0">Plan:</span>
             <Badge variant="secondary">{user.plan || 'free'}</Badge>
-          </div>
-          <div className="flex items-center">
+          </div> */}
+          {/* <div className="flex items-center">
             <span className="text-slate-600 dark:text-slate-400 w-24 flex-shrink-0">Status:</span>
             <Badge variant="secondary">Active</Badge>
-          </div>
+          </div> */}
           {user.premiumExpiresAt && (
             <div className="flex items-center">
               <span className="text-slate-600 dark:text-slate-400 w-24 flex-shrink-0">Premium until:</span>
               <span className="font-medium text-sm">{formatDate(user.premiumExpiresAt)}</span>
             </div>
           )}
-        </div>
-
-        <Separator />
-
-        {/* Extended Information */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h4 className="font-semibold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
-              <Shield className="h-4 w-4" />
-              Additional Details
-            </h4>
-            <div className="space-y-3">
-              <div className="flex justify-between min-w-0 gap-2">
-                <span className="text-slate-600 dark:text-slate-400 flex-shrink-0">Bio:</span>
-                <span className="font-medium max-w-xs text-right truncate">{user.metadata?.bio || 'No bio added'}</span>
-              </div>
-              <div className="flex justify-between min-w-0 gap-2">
-                <span className="text-slate-600 dark:text-slate-400 flex-shrink-0">Location:</span>
-                <span className="font-medium truncate">{user.metadata?.location || 'Not specified'}</span>
-              </div>
-              <div className="flex justify-between min-w-0 gap-2">
-                <span className="text-slate-600 dark:text-slate-400 flex-shrink-0">Website:</span>
-                <span className="font-medium max-w-xs text-right">
-                  {user.metadata?.website ? (
-                    <a
-                      href={
-                        user.metadata.website.startsWith('http')
-                          ? user.metadata.website
-                          : `https://${user.metadata.website}`
-                      }
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 dark:text-blue-400 hover:underline truncate block"
-                    >
-                      {user.metadata.website}
-                    </a>
-                  ) : (
-                    'Not specified'
-                  )}
-                </span>
-              </div>
-            </div>
+          <div className="flex items-center">
+            <span className="text-slate-600 dark:text-slate-400 w-24 flex-shrink-0">Bio:</span>
+            <span className="font-medium truncate">{user.metadata?.bio || 'No bio added'}</span>
           </div>
-
-          <div>
-            <h4 className="font-semibold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
-              Timestamps
-            </h4>
-            <div className="space-y-3">
-              <div className="flex justify-between min-w-0 gap-2">
-                <span className="text-slate-600 dark:text-slate-400 flex-shrink-0">Created:</span>
-                <div className="text-right min-w-0">
-                  <div className="font-medium truncate">{formatDate(user.createdAt)}</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-500 truncate">
-                    {formatRelativeTime(user.createdAt)}
-                  </div>
-                </div>
-              </div>
-              <div className="flex justify-between min-w-0 gap-2">
-                <span className="text-slate-600 dark:text-slate-400 flex-shrink-0">Updated:</span>
-                <div className="text-right min-w-0">
-                  <div className="font-medium truncate">{formatDate(user.updatedAt)}</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-500 truncate">
-                    {formatRelativeTime(user.updatedAt)}
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div className="flex items-center">
+            <span className="text-slate-600 dark:text-slate-400 w-24 flex-shrink-0">Location:</span>
+            <span className="font-medium truncate">{user.metadata?.location || 'Not specified'}</span>
           </div>
         </div>
 
-        <Separator />
-
-        {/* Account Security */}
+        {/* Account Security - Commented out for MVP
         <div>
           <h4 className="font-semibold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
             <Shield className="h-4 w-4" />
@@ -184,26 +124,9 @@ export function ProfileInfo({ user }: ProfileInfoProps) {
               </div>
               <p className="text-xs text-slate-600 dark:text-slate-400">Your profile is visible to other users</p>
             </div>
-            <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border">
-              <div className="flex items-center gap-2 mb-2">
-                <Shield className="h-4 w-4 text-blue-600" />
-                <span className="font-medium text-sm">Two-Factor Auth</span>
-              </div>
-              <p className="text-xs text-slate-600 dark:text-slate-400">
-                {user.plan === 'premium' ? 'Available' : 'Premium feature'}
-              </p>
-            </div>
-            <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border">
-              <div className="flex items-center gap-2 mb-2">
-                <Clock className="h-4 w-4 text-purple-600" />
-                <span className="font-medium text-sm">Session Timeout</span>
-              </div>
-              <p className="text-xs text-slate-600 dark:text-slate-400">
-                {user.plan === 'premium' ? 'Extended' : 'Standard'}
-              </p>
-            </div>
           </div>
         </div>
+        */}
       </CardContent>
     </Card>
   );
