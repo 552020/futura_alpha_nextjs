@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { galleryService } from '@/services/gallery';
 import { fatLogger } from '@/lib/logger';
+import type { DBUser, DBAllUser } from '@/db/types';
 
 interface GalleryShareDialogProps {
   galleryId: string;
@@ -34,8 +35,8 @@ export function GalleryShareDialog({
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [lookupResult, setLookupResult] = useState<{
     found: boolean;
-    user?: any;
-    allUser?: any;
+    user?: DBUser;
+    allUser?: DBAllUser;
   } | null>(null);
   const { toast } = useToast();
 
@@ -170,7 +171,7 @@ export function GalleryShareDialog({
             
             {lookupResult && (
               <div className={`p-3 rounded-md border ${lookupResult.found ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'}`}>
-                {lookupResult.found ? (
+                {lookupResult.found && lookupResult.user ? (
                   <div className="space-y-2">
                     <p className="font-semibold text-green-800">User Found</p>
                     <div className="text-sm text-green-700 space-y-1">
