@@ -1,4 +1,4 @@
-import { DBGallery } from '@/db/schema';
+import { DBGallery } from '@/db';
 
 export type GalleryWithStorageStatus = DBGallery & {
   storageStatus: {

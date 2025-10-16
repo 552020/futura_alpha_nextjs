@@ -92,12 +92,17 @@ const nextConfig: NextConfig = {
         port: '4943',
         pathname: '/asset/**',
       },
-      {
-        protocol: 'http',
-        hostname: 'uxrrr-q7777-77774-qaaaq-cai.localhost',
-        port: '4943',
-        pathname: '/asset/**',
-      },
+      // Dynamic canister ID for local development
+      ...(process.env.NEXT_PUBLIC_CANISTER_ID_BACKEND
+        ? [
+            {
+              protocol: 'http' as const,
+              hostname: `${process.env.NEXT_PUBLIC_CANISTER_ID_BACKEND}.localhost`,
+              port: '4943',
+              pathname: '/asset/**',
+            },
+          ]
+        : []),
       // S3 bucket for user-uploaded images
       {
         protocol: 'https',

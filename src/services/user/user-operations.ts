@@ -1,5 +1,5 @@
 import { db } from '@/db/db';
-import { users, allUsers } from '@/db/schema';
+import { users, allUsers } from '@/db/tables';
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import { fatLogger } from '@/lib/logger';

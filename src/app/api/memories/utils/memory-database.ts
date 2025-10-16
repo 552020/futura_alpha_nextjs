@@ -15,7 +15,7 @@
  * - cleanupStorageEdgesForMemory(): Clean up storage tracking
  */
 
-import { NewDBMemory, NewDBMemoryAsset, DBMemory } from '@/db/schema';
+import { NewDBMemory, NewDBMemoryAsset, DBMemory } from '@/db/types';
 import { randomUUID } from 'crypto';
 import type { AcceptedMimeType } from './file-processing';
 import { getMemoryType } from './file-processing';
@@ -49,12 +49,11 @@ export function buildNewMemoryAndAsset(
   const name = file.name || 'Untitled';
 
   const memory: NewDBMemory = {
-    ownerId,
+    ownerId: ownerId,
     type: getMemoryType(file.type as AcceptedMimeType) as 'image' | 'video' | 'document' | 'note' | 'audio',
     title: name,
     description: '',
-    fileCreatedAt: new Date(),
-    sharingStatus: 'private',
+    createdAt: new Date(),
     parentFolderId: parentFolderId || null,
     ownerSecureCode: randomUUID(),
   };
@@ -68,9 +67,9 @@ export function buildNewMemoryAndAsset(
     storageKey:
       assetLocation === 's3'
         ? url.replace(
-            `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_S3_REGION || 'eu-central-1'}.amazonaws.com/`,
-            ''
-          )
+          `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_S3_REGION || 'eu-central-1'}.amazonaws.com/`,
+          ''
+        )
         : url.split('/').pop() || '',
     bytes: file.size,
     width: null,
@@ -250,9 +249,9 @@ export async function storeInNewDatabase(params: {
     storageKey:
       assetLocation === 's3'
         ? url.replace(
-            `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_S3_REGION || 'eu-central-1'}.amazonaws.com/`,
-            ''
-          )
+          `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_S3_REGION || 'eu-central-1'}.amazonaws.com/`,
+          ''
+        )
         : url.split('/').pop() || '',
     bytes: metadata.size,
     width: null, // Will be populated by client-side processing

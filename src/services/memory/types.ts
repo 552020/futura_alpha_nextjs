@@ -23,7 +23,7 @@ export interface FilterParams {
 }
 
 // Re-export commonly used types from schema
-export type { MemoryType, AssetType, ProcessingStatus } from '@/db/schema';
+export type { MemoryType, AssetType, ProcessingStatus } from '@/db/enums';
 
 // Memory with galleries type for complex queries
 export type MemoryWithGalleries = {

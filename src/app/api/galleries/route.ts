@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
 import { eq, desc, and, inArray } from 'drizzle-orm';
-import { galleries, allUsers, memories as memoriesTable, folders, galleryItems } from '@/db/schema';
+import { galleries, allUsers, memories as memoriesTable, folders, galleryItems } from '@/db';
 import { addStorageStatusToGalleries } from './utils';
 
 import { fatLogger } from '@/lib/logger';
@@ -93,10 +93,12 @@ export async function POST(request: NextRequest) {
     fatLogger.info('🔍 Gallery Creation Request:', 'be', {
       type,
       folderName,
+      folderNameType: typeof folderName,
       title,
       description,
       isPublic,
       memoriesCount: memories?.length || 0,
+      allUserRecordId: allUserRecord.id,
     });
 
     if (!type || !['from-folder', 'from-memories'].includes(type)) {
@@ -228,8 +230,8 @@ export async function POST(request: NextRequest) {
     //     ? null
     //     : Math.round(_totalDuration / (memoriesWithStorage.length - _permanentCount));
 
-    // Update gallery with calculated storage status
-    await db.update(galleries).set({}).where(eq(galleries.id, gallery.id));
+    // Note: Storage status is already set during gallery creation above
+    // No need to update again since we're not changing any values
 
     // fatLogger.info("Created gallery:", undefined, {
     //   type,
@@ -248,7 +250,14 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    fatLogger.error('Error creating gallery:', 'be', { data: error instanceof Error ? error : undefined });
-    return NextResponse.json({ error: 'Failed to create gallery' }, { status: 500 });
+    fatLogger.error('Error creating gallery:', 'be', { 
+      data: error instanceof Error ? error : undefined,
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    return NextResponse.json({ 
+      error: 'Failed to create gallery',
+      details: error instanceof Error ? error.message : String(error),
+    }, { status: 500 });
   }
 }

@@ -26,4 +26,4 @@ export interface UserQueryParams {
 }
 
 // Re-export commonly used types from schema
-export type { DBUser, NewDBUser, DBAllUser, NewDBAllUser } from '@/db/schema';
+export type { DBUser, NewDBUser, DBAllUser, NewDBAllUser } from '@/db/types';

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db/db';
-import { allUsers, temporaryUsers, users } from '@/db/schema';
+import { allUsers, temporaryUsers, users } from '@/db';
 import { eq } from 'drizzle-orm';
 
 import { fatLogger } from '@/lib/logger';

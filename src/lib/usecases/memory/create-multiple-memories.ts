@@ -5,7 +5,7 @@
  * Uses the memory service layer for all database operations.
  */
 
-import { DBMemory } from '@/db/schema';
+import { DBMemory } from '@/db/types';
 import {
   createMemoryRecord,
   createAssetRecords,

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
 import { eq, and, inArray } from 'drizzle-orm';
-import { galleries, allUsers, galleryItems, memories, resourceMembership } from '@/db/schema';
+import { galleries, allUsers, galleryItems, memories, resourceMembership } from '@/db';
 import { addStorageStatusToGallery } from '../utils';
 import { generateBestAssetUrl } from '@/lib/presigned-url-utils';
 

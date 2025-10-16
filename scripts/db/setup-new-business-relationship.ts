@@ -1,6 +1,6 @@
 // Script to clear business relationships and set up a new one
 import { db } from '@/db/db';
-import { businessRelationship, users } from '@/db/schema';
+import { businessRelationship, users } from '@/db';
 import { eq } from 'drizzle-orm';
 
 async function setupBusinessRelationship() {

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
-import { memories, memoryAssets, allUsers, type MemoryType, type AssetType, type ProcessingStatus } from '@/db/schema';
+import { memories, memoryAssets, allUsers, type MemoryType, type AssetType, type ProcessingStatus } from '@/db';
 import { randomBytes } from 'crypto';
 import { randomUUID } from 'crypto';
 import { eq, and } from 'drizzle-orm';
