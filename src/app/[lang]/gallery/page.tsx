@@ -12,6 +12,7 @@ import { CreateGalleryModal } from '@/components/galleries/create-gallery-modal'
 import { LoadingSpinner } from '@/components/common/loading-spinner';
 import { ErrorState } from '@/components/common/error-state';
 import { GalleryGrid } from '@/components/galleries/gallery-grid';
+import { GalleryShareDialog } from '@/components/galleries/gallery-share-dialog';
 
 import { fatLogger } from '@/lib/logger';
 // Mock data flag for development
@@ -29,6 +30,8 @@ export default function GalleryPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [selectedGallery, setSelectedGallery] = useState<GalleryWithItems | null>(null);
 
   useEffect(() => {
     if (isAuthorized) {
@@ -58,10 +61,13 @@ export default function GalleryPage() {
   };
 
   const handleGalleryShare = (gallery: GalleryWithItems) => {
-    // TODO: Implement share dialog similar to memory share
-    // For now, just log the action
-    fatLogger.info('Share gallery clicked', 'fe', { data: { galleryId: gallery.id } });
-    // You can implement a share dialog here similar to ShareDialog component
+    setSelectedGallery(gallery);
+    setShareDialogOpen(true);
+  };
+
+  const handleShareComplete = () => {
+    // Optionally reload galleries to update share counts
+    loadGalleries();
   };
 
   const handleGalleryCreated = (_galleryId: string) => {
@@ -132,6 +138,17 @@ export default function GalleryPage() {
         onOpenChange={setShowCreateModal}
         onGalleryCreated={handleGalleryCreated}
       />
+
+      {/* Share Gallery Dialog */}
+      {selectedGallery && (
+        <GalleryShareDialog
+          galleryId={selectedGallery.id}
+          galleryTitle={selectedGallery.title}
+          open={shareDialogOpen}
+          onOpenChange={setShareDialogOpen}
+          onShare={handleShareComplete}
+        />
+      )}
     </div>
   );
 }
