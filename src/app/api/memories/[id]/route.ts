@@ -344,8 +344,8 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     });
 
     // 3. FINALLY: Clean up storage edges with the pre-retrieved memory data
-    const { cleanupStorageEdgesForMemory } = await import('../utils/memory-database');
-    const cleanupResult = await cleanupStorageEdgesForMemory({
+    const { cleanupMemoryAndStorage } = await import('@/lib/usecases/memory/cleanup-memory-and-storage');
+    const cleanupResult = await cleanupMemoryAndStorage({
       memoryId,
       memoryType: memoryData.type as 'image' | 'video' | 'note' | 'document' | 'audio',
       memoryData, // Pass the complete memory data we retrieved BEFORE deletion

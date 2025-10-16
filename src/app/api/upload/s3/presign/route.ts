@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateS3Key, generateDerivativeS3Key, generatePresignedUploadUrl } from '@/lib/s3-service';
 import { getUserIdForUpload } from '../../../memories/utils/user-management';
+import { detectMemoryType } from '@/utils/memory-type';
 
 import { fatLogger } from '@/lib/logger';
 interface FileInfo {
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
       };
 
       // Add derivative presigned URLs for image files
-      if (file.fileType.startsWith('image/')) {
+      if (detectMemoryType(file.fileType) === 'image') {
         const displayKey = generateDerivativeS3Key(baseKey, 'display');
         const displayUploadUrl = await generatePresignedUploadUrl(displayKey, 'image/webp');
 

@@ -32,6 +32,26 @@ export interface AssetCleanupResult {
   'memory_id' : string,
   'message' : string,
 }
+export type AssetKind = { 'Display' : null } |
+  { 'Original' : null } |
+  { 'Thumbnail' : null };
+export interface AssetLink {
+  'height' : [] | [number],
+  'asset_kind' : AssetKind,
+  'token' : string,
+  'etag' : [] | [string],
+  'path' : string,
+  'content_type' : string,
+  'bytes' : [] | [bigint],
+  'asset_id' : string,
+  'width' : [] | [number],
+  'expires_at_ns' : bigint,
+}
+export interface AssetLinks {
+  'thumbnail' : [] | [AssetLink],
+  'display' : [] | [AssetLink],
+  'original' : [] | [AssetLink],
+}
 export type AssetMetadata = { 'Note' : NoteAssetMetadata } |
   { 'Image' : ImageAssetMetadata } |
   { 'Document' : DocumentAssetMetadata } |
@@ -62,9 +82,9 @@ export interface AssetRemovalResult {
   'asset_removed' : boolean,
   'message' : string,
 }
-export type AssetType = { 'Preview' : null } |
-  { 'Metadata' : null } |
-  { 'Derivative' : null } |
+export type AssetType = { 'Metadata' : null } |
+  { 'Display' : null } |
+  { 'Placeholder' : null } |
   { 'Original' : null } |
   { 'Thumbnail' : null };
 export interface AudioAssetMetadata {
@@ -299,6 +319,19 @@ export interface HostingPreferences {
   'blob_hosting' : BlobHosting,
   'frontend_hosting' : BackendHosting,
 }
+export interface HttpRequest {
+  'url' : string,
+  'method' : string,
+  'body' : Uint8Array | number[],
+  'headers' : Array<[string, string]>,
+  'certificate_version' : [] | [number],
+}
+export interface HttpResponse {
+  'body' : Uint8Array | number[],
+  'headers' : Array<[string, string]>,
+  'upgrade' : [] | [boolean],
+  'status_code' : number,
+}
 export interface ImageAssetMetadata {
   'dpi' : [] | [number],
   'color_space' : [] | [string],
@@ -306,6 +339,10 @@ export interface ImageAssetMetadata {
   'exif_data' : [] | [string],
   'compression_ratio' : [] | [number],
   'orientation' : [] | [number],
+}
+export interface InlineAssetInput {
+  'metadata' : AssetMetadata,
+  'bytes' : Uint8Array | number[],
 }
 export interface InternalBlobAssetInput {
   'metadata' : AssetMetadata,
@@ -374,16 +411,15 @@ export interface MemoryHeader {
   'capsule_id' : string,
   'memory_type' : MemoryType,
   'name' : string,
+  'assets' : AssetLinks,
   'size' : bigint,
   'tags' : Array<string>,
-  'has_thumbnails' : boolean,
-  'has_previews' : boolean,
+  'database_storage_edges' : Array<DatabaseHosting>,
   'description' : [] | [string],
   'created_at' : bigint,
-  'thumbnail_url' : [] | [string],
   'parent_folder_id' : [] | [string],
   'asset_count' : number,
-  'primary_asset_url' : [] | [string],
+  'placeholder_data' : [] | [string],
   'shared_count' : number,
 }
 export interface MemoryMetadata {
@@ -393,20 +429,16 @@ export interface MemoryMetadata {
   'date_of_memory' : [] | [bigint],
   'memory_type' : MemoryType,
   'tags' : Array<string>,
-  'has_thumbnails' : boolean,
   'content_type' : string,
   'people_in_memory' : [] | [Array<string>],
-  'has_previews' : boolean,
   'database_storage_edges' : Array<DatabaseHosting>,
   'description' : [] | [string],
   'created_at' : bigint,
   'created_by' : [] | [string],
   'total_size' : bigint,
-  'thumbnail_url' : [] | [string],
   'parent_folder_id' : [] | [string],
   'asset_count' : number,
   'deleted_at' : [] | [bigint],
-  'primary_asset_url' : [] | [string],
   'shared_count' : number,
   'file_created_at' : [] | [bigint],
   'location' : [] | [string],
@@ -472,19 +504,19 @@ export type Result6 = { 'Ok' : string } |
   { 'Err' : Error };
 export type Result_1 = { 'Ok' : MemoryAssetData } |
   { 'Err' : Error };
-export type Result_10 = { 'Ok' : Array<[Principal, DetailedCreationStatus]> } |
+export type Result_10 = { 'Ok' : Gallery } |
   { 'Err' : Error };
-export type Result_11 = { 'Ok' : PersonalCanisterCreationStats } |
+export type Result_11 = { 'Ok' : Array<[Principal, DetailedCreationStatus]> } |
   { 'Err' : Error };
-export type Result_12 = { 'Ok' : [] | [DetailedCreationStatus] } |
+export type Result_12 = { 'Ok' : PersonalCanisterCreationStats } |
   { 'Err' : Error };
-export type Result_13 = { 'Ok' : UserSettingsResponse } |
+export type Result_13 = { 'Ok' : [] | [DetailedCreationStatus] } |
   { 'Err' : Error };
-export type Result_14 = { 'Ok' : AssetCleanupResult } |
+export type Result_14 = { 'Ok' : UserSettingsResponse } |
   { 'Err' : Error };
-export type Result_15 = { 'Ok' : BulkResult } |
+export type Result_15 = { 'Ok' : AssetCleanupResult } |
   { 'Err' : Error };
-export type Result_16 = { 'Ok' : BulkDeleteResult } |
+export type Result_16 = { 'Ok' : BulkResult } |
   { 'Err' : Error };
 export type Result_17 = { 'Ok' : Page } |
   { 'Err' : Error };
@@ -506,9 +538,9 @@ export type Result_6 = { 'Ok' : CapsuleInfo } |
   { 'Err' : Error };
 export type Result_7 = { 'Ok' : boolean } |
   { 'Err' : Error };
-export type Result_8 = { 'Ok' : Folder } |
+export type Result_8 = { 'Ok' : BulkDeleteResult } |
   { 'Err' : Error };
-export type Result_9 = { 'Ok' : Gallery } |
+export type Result_9 = { 'Ok' : Folder } |
   { 'Err' : Error };
 export type SharingStatus = { 'Shared' : null } |
   { 'Private' : null } |
@@ -587,21 +619,25 @@ export interface _SERVICE {
   'debug_finish_hex' : ActorMethod<[bigint, string, bigint], Result6>,
   'debug_put_chunk_b64' : ActorMethod<[bigint, number, string], Result>,
   'debug_sha256' : ActorMethod<[Uint8Array | number[]], string>,
-  'folders_create' : ActorMethod<[FolderData], Result_8>,
+  'dev_clear_all_memories_in_capsule' : ActorMethod<
+    [string, boolean],
+    Result_8
+  >,
+  'folders_create' : ActorMethod<[FolderData], Result_9>,
   'folders_delete' : ActorMethod<[string], Result>,
   'folders_list' : ActorMethod<[], Array<FolderHeader>>,
-  'folders_update' : ActorMethod<[string, FolderUpdateData], Result_8>,
-  'galleries_create' : ActorMethod<[GalleryData], Result_9>,
+  'folders_update' : ActorMethod<[string, FolderUpdateData], Result_9>,
+  'galleries_create' : ActorMethod<[GalleryData], Result_10>,
   'galleries_create_with_memories' : ActorMethod<
     [GalleryData, boolean],
-    Result_9
+    Result_10
   >,
   'galleries_delete' : ActorMethod<[string], Result>,
   'galleries_list' : ActorMethod<[], Array<FolderHeader>>,
-  'galleries_read' : ActorMethod<[string], Result_9>,
-  'galleries_update' : ActorMethod<[string, GalleryUpdateData], Result_9>,
+  'galleries_read' : ActorMethod<[string], Result_10>,
+  'galleries_update' : ActorMethod<[string, GalleryUpdateData], Result_10>,
   'get_canister_size_stats' : ActorMethod<[], CanisterSizeStats>,
-  'get_creation_states_by_status' : ActorMethod<[CreationStatus], Result_10>,
+  'get_creation_states_by_status' : ActorMethod<[CreationStatus], Result_11>,
   'get_creation_status' : ActorMethod<[], [] | [CreationStatusResponse]>,
   'get_detailed_creation_status' : ActorMethod<
     [],
@@ -613,24 +649,33 @@ export interface _SERVICE {
   >,
   'get_gallery_size_breakdown' : ActorMethod<[Gallery], GallerySizeInfo>,
   'get_gallery_size_info' : ActorMethod<[Gallery], string>,
-  'get_migration_states_by_status' : ActorMethod<[CreationStatus], Result_10>,
-  'get_migration_stats' : ActorMethod<[], Result_11>,
+  'get_migration_states_by_status' : ActorMethod<[CreationStatus], Result_11>,
+  'get_migration_stats' : ActorMethod<[], Result_12>,
   'get_migration_status' : ActorMethod<[], [] | [CreationStatusResponse]>,
   'get_my_personal_canister_id' : ActorMethod<[], [] | [Principal]>,
-  'get_personal_canister_creation_stats' : ActorMethod<[], Result_11>,
+  'get_personal_canister_creation_stats' : ActorMethod<[], Result_12>,
   'get_personal_canister_id' : ActorMethod<[Principal], [] | [Principal]>,
-  'get_user_creation_status' : ActorMethod<[Principal], Result_12>,
-  'get_user_migration_status' : ActorMethod<[Principal], Result_12>,
-  'get_user_settings' : ActorMethod<[], Result_13>,
+  'get_user_creation_status' : ActorMethod<[Principal], Result_13>,
+  'get_user_migration_status' : ActorMethod<[Principal], Result_13>,
+  'get_user_settings' : ActorMethod<[], Result_14>,
   'greet' : ActorMethod<[string], string>,
+  'http_request' : ActorMethod<[HttpRequest], HttpResponse>,
   'is_migration_enabled' : ActorMethod<[], Result_7>,
   'is_personal_canister_creation_enabled' : ActorMethod<[], Result_7>,
   'list_admins' : ActorMethod<[], Array<Principal>>,
-  'list_all_creation_states' : ActorMethod<[], Result_10>,
-  'list_all_migration_states' : ActorMethod<[], Result_10>,
+  'list_all_creation_states' : ActorMethod<[], Result_11>,
+  'list_all_migration_states' : ActorMethod<[], Result_11>,
   'list_superadmins' : ActorMethod<[], Array<Principal>>,
-  'memories_cleanup_assets_all' : ActorMethod<[string], Result_14>,
-  'memories_cleanup_assets_bulk' : ActorMethod<[Array<string>], Result_15>,
+  'memories_add_asset' : ActorMethod<
+    [string, InternalBlobAssetInput, string],
+    Result6
+  >,
+  'memories_add_inline_asset' : ActorMethod<
+    [string, InlineAssetInput, string],
+    Result6
+  >,
+  'memories_cleanup_assets_all' : ActorMethod<[string], Result_15>,
+  'memories_cleanup_assets_bulk' : ActorMethod<[Array<string>], Result_16>,
   'memories_create' : ActorMethod<
     [
       string,
@@ -651,10 +696,10 @@ export interface _SERVICE {
     Result6
   >,
   'memories_delete' : ActorMethod<[string, boolean], Result>,
-  'memories_delete_all' : ActorMethod<[string, boolean], Result_16>,
+  'memories_delete_all' : ActorMethod<[string, boolean], Result_8>,
   'memories_delete_bulk' : ActorMethod<
     [string, Array<string>, boolean],
-    Result_16
+    Result_8
   >,
   'memories_list' : ActorMethod<
     [string, [] | [string], [] | [number]],
@@ -670,6 +715,14 @@ export interface _SERVICE {
   'memories_read_asset' : ActorMethod<[string, number], Result_1>,
   'memories_update' : ActorMethod<[string, MemoryUpdateData], Result_20>,
   'migrate_capsule' : ActorMethod<[], PersonalCanisterCreationResponse>,
+  'mint_http_token' : ActorMethod<
+    [string, Array<string>, [] | [Array<string>], number],
+    string
+  >,
+  'mint_http_tokens_bulk' : ActorMethod<
+    [Array<string>, Array<string>, [] | [Array<string>], number],
+    Array<[string, string]>
+  >,
   'register_with_nonce' : ActorMethod<[string], Result>,
   'remove_admin' : ActorMethod<[Principal], Result>,
   'sessions_cleanup_expired' : ActorMethod<[], Result6>,
@@ -682,7 +735,7 @@ export interface _SERVICE {
     [string, Array<BlobHosting>],
     Result
   >,
-  'update_user_settings' : ActorMethod<[UserSettingsUpdateData], Result_13>,
+  'update_user_settings' : ActorMethod<[UserSettingsUpdateData], Result_14>,
   'upload_config' : ActorMethod<[], UploadConfig>,
   'uploads_abort' : ActorMethod<[bigint], Result>,
   'uploads_begin' : ActorMethod<[string, number, string], Result13>,

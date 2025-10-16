@@ -16,6 +16,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
+import { detectMemoryTypeFromFile } from '@/utils/memory-type';
 import Image from 'next/image';
 import { fatLogger } from '@/lib/logger';
 import {
@@ -45,7 +46,7 @@ export default function MultipleAssetsUpload({
   const handleFiles = useCallback(
     async (files: File[]) => {
       // Filter for image files only
-      const imageFiles = files.filter(file => file.type.startsWith('image/'));
+      const imageFiles = files.filter(file => detectMemoryTypeFromFile(file) === 'image');
 
       if (imageFiles.length === 0) {
         onUploadError?.('Please select image files only');

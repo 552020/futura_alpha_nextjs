@@ -237,6 +237,7 @@ function GalleryGrid({
                 <MemoryStorageBadge
                   memoryId={item.memory.id}
                   memoryType={item.memory.type}
+                  storageStatus={item.memory.storageStatus}
                   size="xs"
                   showTooltip={true}
                 />

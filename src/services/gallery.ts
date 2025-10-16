@@ -508,7 +508,7 @@ async function updateStorageEdgesAfterICPSuccess(gallery: GalleryWithItems): Pro
         body: JSON.stringify({
           memoryId: memory.id,
           memoryType: memory.type,
-          backend: 'icp-canister',
+          locationMetadata: 'icp',
           artifact: 'metadata',
           present: true,
         }),
@@ -521,7 +521,7 @@ async function updateStorageEdgesAfterICPSuccess(gallery: GalleryWithItems): Pro
         body: JSON.stringify({
           memoryId: memory.id,
           memoryType: memory.type,
-          backend: 'icp-canister',
+          locationAsset: 'icp',
           artifact: 'asset',
           present: true,
         }),

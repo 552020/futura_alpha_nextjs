@@ -1,7 +1,7 @@
 import React from 'react';
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
-import { LiveChatWrapper } from '@/components/chat/livechat-wrapper';
+// import { LiveChatWrapper } from '@/components/chat/livechat-wrapper';
 import { ICPCard } from '@/components/user/icp-card';
 import { ProfileHeader } from '@/components/user/profile-header';
 import { ProfileInfo } from '@/components/user/profile-info';
@@ -41,9 +41,9 @@ const ProfilePage = async (props: Props) => {
         </div>
 
         {/* LiveChat */}
-        <div className="mt-8">
+        {/* <div className="mt-8">
           <LiveChatWrapper />
-        </div>
+        </div> */}
       </div>
     </div>
   );
