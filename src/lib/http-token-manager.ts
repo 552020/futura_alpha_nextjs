@@ -83,7 +83,8 @@ export function getHttpBaseUrl(): string {
     if (!canisterId) {
       throw new Error('NEXT_PUBLIC_CANISTER_ID_BACKEND not set for local development');
     }
-    return `http://${canisterId}.localhost:4943`;
+    // Use localhost:3000 proxy for local development to avoid DNS issues
+    return `http://localhost:3000/api/icp-proxy`;
   }
 
   // Production ICP HTTP gateway
@@ -210,7 +211,9 @@ export async function getHttpAssetUrl(
   baseUrl?: string
 ): Promise<string> {
   const variants = [variant];
-  const assetIds = assetId ? [assetId] : null;
+  // For display variant, don't pass assetIds to allow access to any asset
+  // For other variants, pass assetIds if provided
+  const assetIds = variant === 'display' ? null : assetId ? [assetId] : null;
 
   const token = await getHttpToken(memoryId, variants, assetIds);
 
