@@ -384,3 +384,63 @@ export const createUserWithPassword = async (params: {
     };
   }
 };
+
+/**
+ * Delete the current user's account (soft delete)
+ */
+export const deleteAccount = async (userId: string): Promise<UserOperationResult> => {
+  try {
+    // Get the allUser record for this user
+    const allUserRecord = await db.query.allUsers.findFirst({
+      where: eq(allUsers.userId, userId),
+    });
+
+    if (!allUserRecord) {
+      return {
+        success: false,
+        error: 'User record not found',
+      };
+    }
+
+    // Soft delete the user by setting deleted_at timestamp
+    const now = new Date();
+    
+    // Update the user record with deletedAt
+    await db
+      .update(users)
+      .set({ 
+        deletedAt: now,
+        email: `deleted_${now.getTime()}_${users.email}`, // Anonymize email
+        name: 'Deleted User',
+        image: null,
+      })
+      .where(eq(users.id, userId));
+
+    // Update the allUsers record
+    await db
+      .update(allUsers)
+      .set({ 
+        deletedAt: now,
+      })
+      .where(eq(allUsers.id, allUserRecord.id));
+
+    fatLogger.info('Account deleted (soft delete)', 'be', {
+      operation: 'delete_account',
+      userId,
+      allUserId: allUserRecord.id,
+      deletedAt: now.toISOString(),
+    });
+
+    return { success: true };
+  } catch (error) {
+    fatLogger.error('Failed to delete account', 'be', {
+      error: error instanceof Error ? error : undefined,
+      operation: 'delete_account',
+      userId,
+    });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+};

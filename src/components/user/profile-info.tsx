@@ -108,16 +108,16 @@ export function ProfileInfo({ user }: ProfileInfoProps) {
               Additional Details
             </h4>
             <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-slate-600 dark:text-slate-400">Bio:</span>
-                <span className="font-medium max-w-xs text-right">{user.metadata?.bio || 'No bio added'}</span>
+              <div className="flex justify-between min-w-0 gap-2">
+                <span className="text-slate-600 dark:text-slate-400 flex-shrink-0">Bio:</span>
+                <span className="font-medium max-w-xs text-right truncate">{user.metadata?.bio || 'No bio added'}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-600 dark:text-slate-400">Location:</span>
-                <span className="font-medium">{user.metadata?.location || 'Not specified'}</span>
+              <div className="flex justify-between min-w-0 gap-2">
+                <span className="text-slate-600 dark:text-slate-400 flex-shrink-0">Location:</span>
+                <span className="font-medium truncate">{user.metadata?.location || 'Not specified'}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-600 dark:text-slate-400">Website:</span>
+              <div className="flex justify-between min-w-0 gap-2">
+                <span className="text-slate-600 dark:text-slate-400 flex-shrink-0">Website:</span>
                 <span className="font-medium max-w-xs text-right">
                   {user.metadata?.website ? (
                     <a
@@ -146,18 +146,22 @@ export function ProfileInfo({ user }: ProfileInfoProps) {
               Timestamps
             </h4>
             <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-slate-600 dark:text-slate-400">Created:</span>
-                <div className="text-right">
-                  <div className="font-medium">{formatDate(user.createdAt)}</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-500">{formatRelativeTime(user.createdAt)}</div>
+              <div className="flex justify-between min-w-0 gap-2">
+                <span className="text-slate-600 dark:text-slate-400 flex-shrink-0">Created:</span>
+                <div className="text-right min-w-0">
+                  <div className="font-medium truncate">{formatDate(user.createdAt)}</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-500 truncate">
+                    {formatRelativeTime(user.createdAt)}
+                  </div>
                 </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-600 dark:text-slate-400">Updated:</span>
-                <div className="text-right">
-                  <div className="font-medium">{formatDate(user.updatedAt)}</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-500">{formatRelativeTime(user.updatedAt)}</div>
+              <div className="flex justify-between min-w-0 gap-2">
+                <span className="text-slate-600 dark:text-slate-400 flex-shrink-0">Updated:</span>
+                <div className="text-right min-w-0">
+                  <div className="font-medium truncate">{formatDate(user.updatedAt)}</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-500 truncate">
+                    {formatRelativeTime(user.updatedAt)}
+                  </div>
                 </div>
               </div>
             </div>

@@ -3,7 +3,6 @@
 import { useState, Suspense } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -108,7 +107,7 @@ function SignInPageInternal() {
 
       // Navigate after successful signup and sign-in
       router.push(safeCallbackUrl);
-    } catch (error) {
+    } catch (_error) {
       setError('Sign up failed. Please try again.');
     } finally {
       setBusy(false);

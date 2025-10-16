@@ -26,7 +26,7 @@ import {
 } from '@/components/settings';
 
 export default function SettingsPage() {
-  const { isAuthorized, isTemporaryUser, userId, isLoading } = useAuthGuard();
+  const { isAuthorized, isTemporaryUser, isLoading } = useAuthGuard();
   const { isAdmin, devMode, setDevMode, isAtLeastDeveloper } = useInterface();
   const { data: preferences, isLoading: preferencesLoading, error: preferencesError } = useHostingPreferences();
   const updatePreferences = useUpdateHostingPreferences();
@@ -308,7 +308,7 @@ export default function SettingsPage() {
         {/* Settings Cards */}
         <NotificationsCard />
         <PrivacyCard />
-        <AccountCard isTemporaryUser={isTemporaryUser || false} userId={userId || ''} />
+        <AccountCard />
         <UserRolesCard
           isAtLeastDeveloper={isAtLeastDeveloper}
           isAdmin={isAdmin}

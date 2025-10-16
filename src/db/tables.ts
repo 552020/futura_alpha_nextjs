@@ -58,6 +58,7 @@ export const allUsers = pgTable(
     temporaryUserId: text('temporary_user_id'), // FK defined below
 
     createdAt: timestamp('created_at').defaultNow().notNull(),
+    deletedAt: timestamp('deleted_at'), // Soft delete support
   },
   table => [
     // Ensure exactly one of userId or temporaryUserId is set
@@ -120,6 +121,7 @@ export const users = pgTable(
     // Timestamp fields
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
+    deletedAt: timestamp('deleted_at'), // Soft delete support
     metadata: json('metadata')
       .$type<{
         bio?: string;

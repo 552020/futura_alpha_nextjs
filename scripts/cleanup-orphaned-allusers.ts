@@ -8,8 +8,8 @@
  */
 
 import { db } from '../src/db/db';
-import { allUsers, users, temporaryUsers, businessRelationships } from '../src/db/tables';
-import { eq, isNull, and, or } from 'drizzle-orm';
+import { allUsers, users, temporaryUsers } from '../src/db/tables';
+import { eq } from 'drizzle-orm';
 
 async function cleanupOrphanedAllUsers() {
   console.log('🔍 Starting cleanup of orphaned allUsers records...\n');
