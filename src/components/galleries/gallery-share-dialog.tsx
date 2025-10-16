@@ -89,28 +89,70 @@ export function GalleryShareDialog({
     setIsLoading(true);
 
     try {
-      // Step 1: Look up or create user by email
-      // For now, we'll create a temporary user if they don't exist
-      const userResponse = await fetch('/api/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: email.split('@')[0], // Use email prefix as name
-          email,
-        }),
-      });
+      let allUserId: string;
+      let userName: string;
+      let isNewUser = false;
 
-      if (!userResponse.ok) {
-        throw new Error('Failed to create or find user');
+      // Step 1: Check if user exists by email
+      const lookupResponse = await fetch(`/api/users/lookup?email=${encodeURIComponent(email)}`);
+      
+      if (lookupResponse.ok) {
+        // User exists
+        const { allUser, user } = await lookupResponse.json();
+        allUserId = allUser.id;
+        userName = user.name || user.email;
+      } else if (lookupResponse.status === 404) {
+        // User doesn't exist, create temporary user
+        isNewUser = true;
+        const userResponse = await fetch('/api/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: email.split('@')[0], // Use email prefix as name
+            email,
+          }),
+        });
+
+        if (!userResponse.ok) {
+          throw new Error('Failed to create temporary user');
+        }
+
+        const { allUser, user } = await userResponse.json();
+        allUserId = allUser.id;
+        userName = user.name || email.split('@')[0];
+      } else {
+        throw new Error('Failed to lookup user');
       }
-
-      const { allUser } = await userResponse.json();
 
       // Step 2: Share the gallery with the user
       await galleryService.shareGallery(galleryId, {
         sharedWithType: 'user',
-        sharedWithId: allUser.id,
+        sharedWithId: allUserId,
       });
+
+      // Step 3: Send email notification
+      try {
+        await fetch('/api/email/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: email,
+            subject: `Gallery "${galleryTitle}" has been shared with you`,
+            html: `
+              <h2>Gallery Shared</h2>
+              <p>Hi ${userName},</p>
+              <p>A gallery titled "<strong>${galleryTitle}</strong>" has been shared with you.</p>
+              <p>You can now view all memories in this gallery.</p>
+              ${isNewUser ? '<p>A temporary account has been created for you. You can sign in to access the gallery.</p>' : ''}
+              <p>Best regards,<br/>Your Gallery Team</p>
+            `,
+            text: `Hi ${userName},\n\nA gallery titled "${galleryTitle}" has been shared with you.\n\nYou can now view all memories in this gallery.\n\n${isNewUser ? 'A temporary account has been created for you. You can sign in to access the gallery.\n\n' : ''}Best regards,\nYour Gallery Team`,
+          }),
+        });
+      } catch (emailError) {
+        // Log email error but don't fail the share operation
+        fatLogger.error('Error sending share notification email:', 'fe', { data: emailError instanceof Error ? emailError : undefined });
+      }
 
       toast({
         title: 'Success!',
