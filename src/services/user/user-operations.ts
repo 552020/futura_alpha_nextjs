@@ -386,7 +386,8 @@ export const createUserWithPassword = async (params: {
 };
 
 /**
- * Delete the current user's account (soft delete)
+ * Delete the current user's account (hard delete with cascade)
+ * This will delete all user data including memories, galleries, folders, etc.
  */
 export const deleteAccount = async (userId: string): Promise<UserOperationResult> => {
   try {
@@ -402,13 +403,72 @@ export const deleteAccount = async (userId: string): Promise<UserOperationResult
       };
     }
 
+    fatLogger.info('Starting hard delete of account and all data', 'be', {
+      operation: 'delete_account',
+      userId,
+      allUserId: allUserRecord.id,
+    });
+
+    // HARD DELETE: Delete the allUsers record first
+    // This will trigger cascade deletes for all related data:
+    // - memories (via ownerId)
+    // - galleries (via ownerId)
+    // - folders (via ownerId)
+    // - storage edges (via allUserId)
+    // - user settings (via userId)
+    // - relationships (via allUserId)
+    // - etc.
+    await db.delete(allUsers).where(eq(allUsers.id, allUserRecord.id));
+
+    // Delete the user record (this will also cascade to any user-specific data)
+    await db.delete(users).where(eq(users.id, userId));
+
+    fatLogger.info('Account and all data deleted successfully', 'be', {
+      operation: 'delete_account',
+      userId,
+      allUserId: allUserRecord.id,
+      deletedAt: new Date().toISOString(),
+    });
+
+    return { success: true };
+  } catch (error) {
+    fatLogger.error('Failed to delete account', 'be', {
+      error: error instanceof Error ? error : undefined,
+      operation: 'delete_account',
+      userId,
+    });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+};
+
+/**
+ * Soft delete the current user's account (for audit purposes)
+ * This keeps the user record but marks it as deleted
+ */
+export const softDeleteAccount = async (userId: string): Promise<UserOperationResult> => {
+  try {
+    // Get the allUser record for this user
+    const allUserRecord = await db.query.allUsers.findFirst({
+      where: eq(allUsers.userId, userId),
+    });
+
+    if (!allUserRecord) {
+      return {
+        success: false,
+        error: 'User record not found',
+      };
+    }
+
     // Soft delete the user by setting deleted_at timestamp
     const now = new Date();
-    
+
     // Update the user record with deletedAt
     await db
       .update(users)
-      .set({ 
+      .set({
         deletedAt: now,
         email: `deleted_${now.getTime()}_${users.email}`, // Anonymize email
         name: 'Deleted User',
@@ -419,13 +479,13 @@ export const deleteAccount = async (userId: string): Promise<UserOperationResult
     // Update the allUsers record
     await db
       .update(allUsers)
-      .set({ 
+      .set({
         deletedAt: now,
       })
       .where(eq(allUsers.id, allUserRecord.id));
 
-    fatLogger.info('Account deleted (soft delete)', 'be', {
-      operation: 'delete_account',
+    fatLogger.info('Account soft deleted (for audit)', 'be', {
+      operation: 'soft_delete_account',
       userId,
       allUserId: allUserRecord.id,
       deletedAt: now.toISOString(),
@@ -433,9 +493,9 @@ export const deleteAccount = async (userId: string): Promise<UserOperationResult
 
     return { success: true };
   } catch (error) {
-    fatLogger.error('Failed to delete account', 'be', {
+    fatLogger.error('Failed to soft delete account', 'be', {
       error: error instanceof Error ? error : undefined,
-      operation: 'delete_account',
+      operation: 'soft_delete_account',
       userId,
     });
     return {
