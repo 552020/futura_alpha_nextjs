@@ -1,9 +1,7 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { User, Shield, Calendar, Clock, Eye } from 'lucide-react';
+import { User } from 'lucide-react';
 
 interface ProfileInfoProps {
   user: {
@@ -36,20 +34,20 @@ export function ProfileInfo({ user }: ProfileInfoProps) {
     });
   };
 
-  const formatRelativeTime = (date: Date | string | null | undefined) => {
-    if (!date) return 'N/A';
-    const now = new Date();
-    const targetDate = new Date(date);
-    const diffInMs = now.getTime() - targetDate.getTime();
-    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+  // const formatRelativeTime = (date: Date | string | null | undefined) => {
+  //   if (!date) return 'N/A';
+  //   const now = new Date();
+  //   const targetDate = new Date(date);
+  //   const diffInMs = now.getTime() - targetDate.getTime();
+  //   const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
 
-    if (diffInDays === 0) return 'Today';
-    if (diffInDays === 1) return 'Yesterday';
-    if (diffInDays < 7) return `${diffInDays} days ago`;
-    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
-    if (diffInDays < 365) return `${Math.floor(diffInDays / 30)} months ago`;
-    return `${Math.floor(diffInDays / 365)} years ago`;
-  };
+  //   if (diffInDays === 0) return 'Today';
+  //   if (diffInDays === 1) return 'Yesterday';
+  //   if (diffInDays < 7) return `${diffInDays} days ago`;
+  //   if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
+  //   if (diffInDays < 365) return `${Math.floor(diffInDays / 30)} months ago`;
+  //   return `${Math.floor(diffInDays / 365)} years ago`;
+  // };
 
   return (
     <Card className="shadow-lg border-slate-200 dark:border-slate-700">
