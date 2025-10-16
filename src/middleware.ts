@@ -8,13 +8,19 @@ export const defaultLocale = 'en';
 const allowedOrigins = ['https://www.futura.now', 'https://futura.now', 'https://peek.futura.now'];
 
 function getLocale(request: NextRequest): string | undefined {
-  const negotiatorHeaders: Record<string, string> = {};
-  request.headers.forEach((value, key) => {
-    negotiatorHeaders[key] = value;
-  });
-  const languages = new Negotiator({ headers: negotiatorHeaders }).languages();
-  const locale = matchLocale(languages, locales, defaultLocale);
-  return locale;
+  try {
+    const negotiatorHeaders: Record<string, string> = {};
+    request.headers.forEach((value, key) => {
+      negotiatorHeaders[key] = value;
+    });
+    const languages = new Negotiator({ headers: negotiatorHeaders }).languages();
+    const locale = matchLocale(languages, locales, defaultLocale);
+    return locale;
+  } catch (error) {
+    // Fallback to default locale if locale detection fails
+    console.warn('Locale detection failed, using default:', error);
+    return defaultLocale;
+  }
 }
 
 export function middleware(request: NextRequest) {

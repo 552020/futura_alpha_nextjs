@@ -43,7 +43,7 @@ function SignInPageInternal() {
         email,
         password,
         redirect: false,
-        callbackUrl: safeCallbackUrl,
+        // Remove callbackUrl - let NextAuth handle authentication only
       });
       if (res?.error) {
         setError('Invalid email or password');
