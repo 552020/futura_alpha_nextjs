@@ -93,6 +93,9 @@ export default async function RootLayout({
 
   return (
     <html lang={lang} suppressHydrationWarning>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`} suppressHydrationWarning>
         <QueryProvider>
           <ServiceWorkerClient />

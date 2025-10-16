@@ -229,7 +229,7 @@ export default function VaultPage() {
   }
 
   return (
-    <div className="container mx-auto px-6 py-8">
+    <div className="container mx-auto px-6 py-8 max-w-full">
       {isTemporaryUser && (
         <div className="mb-4 rounded-lg bg-yellow-50 p-4 text-yellow-800">
           <div className="flex items-start gap-3">
