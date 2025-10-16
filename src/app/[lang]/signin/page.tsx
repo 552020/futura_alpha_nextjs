@@ -98,7 +98,7 @@ function SignInPageInternal() {
         email,
         password,
         redirect: false,
-        callbackUrl: safeCallbackUrl,
+        // Remove callbackUrl - let NextAuth handle navigation
       });
 
       if (res?.error) {
@@ -108,7 +108,7 @@ function SignInPageInternal() {
 
       // Navigate after successful signup and sign-in
       router.push(safeCallbackUrl);
-    } catch {
+    } catch (error) {
       setError('Sign up failed. Please try again.');
     } finally {
       setBusy(false);
@@ -205,8 +205,8 @@ function SignInPageInternal() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm p-4">
-      <div className="w-full max-w-md rounded-lg bg-white dark:bg-slate-950 p-6 shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm p-4 min-h-screen pt-8 sm:items-center sm:pt-4">
+      <div className="w-full max-w-md rounded-lg bg-white dark:bg-slate-950 p-6 shadow-xl max-h-[85vh] overflow-y-auto">
         <div className="mb-4 flex items-center justify-between">
           <h1 className="text-xl font-semibold">Sign in</h1>
           <Button variant="ghost" size="sm" onClick={close} className="border border-gray-200 dark:border-gray-700">

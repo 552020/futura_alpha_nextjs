@@ -348,9 +348,20 @@ export const createUserWithPassword = async (params: {
       })
       .returning();
 
-    fatLogger.info('Created user with password', 'be', {
+    // Create allUsers entry for consistency with OAuth flow
+    const [newAllUser] = await db
+      .insert(allUsers)
+      .values({
+        type: 'user',
+        userId: newUser.id,
+        temporaryUserId: null,
+      })
+      .returning();
+
+    fatLogger.info('Created user with password and allUsers entry', 'be', {
       operation: 'create_user_with_password',
       userId: newUser.id,
+      allUserId: newAllUser.id,
       email: newUser.email,
     });
 
@@ -358,6 +369,7 @@ export const createUserWithPassword = async (params: {
       success: true,
       data: {
         user: newUser,
+        allUser: newAllUser,
       },
     };
   } catch (error) {
