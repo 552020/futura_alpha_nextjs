@@ -87,8 +87,8 @@ export async function processSingleFile(options: ProcessSingleFileOptions): Prom
       // ICP upload with parallel processing (Lane A + Lane B + finalizeAllAssets)
       // NOTE: For ICP users, isOnboarding is ignored because ICP always requires Internet Identity auth
       // Even "onboarding" users must authenticate with II to interact with ICP canister
-      const { uploadToICPWithProcessing } = await import('./icp-with-processing');
-      const uploadResult = await uploadToICPWithProcessing(file, onProgress);
+      const { uploadFileAndCreateMemoryWithDerivatives } = await import('./icp-with-processing');
+      const uploadResult = await uploadFileAndCreateMemoryWithDerivatives(file, onProgress);
       data = {
         data: uploadResult.data,
         results: uploadResult.results.map(result => ({

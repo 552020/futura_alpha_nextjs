@@ -11,6 +11,7 @@ import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
 import { getAllUserId } from '@/app/api/memories/utils/user-management';
 import { createMemoryFromBlob } from '@/app/api/memories/utils/memory-creation';
 import { enqueueImageProcessing } from '@/app/api/memories/utils/image-processing-workflow';
+import { detectMemoryType } from '@/utils/memory-type';
 
 import { fatLogger } from '@/lib/logger';
 // optional: centralize your allowlist
@@ -93,7 +94,7 @@ export async function POST(req: NextRequest) {
         }
 
         // If this is an image and memory creation was successful, enqueue image processing
-        if (result.success && result.memoryId && blob.contentType?.startsWith('image/')) {
+        if (result.success && result.memoryId && blob.contentType && detectMemoryType(blob.contentType) === 'image') {
           fatLogger.info(`🖼️ Enqueueing image processing for memory ${result.memoryId}`, 'be');
           enqueueImageProcessing({
             memoryId: result.memoryId,

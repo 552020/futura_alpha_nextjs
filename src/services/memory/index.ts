@@ -27,12 +27,14 @@ export {
 // Memory operations
 export {
   createMemoryRecord,
+  createMemoryWithAssets,
   updateMemoryRecord,
   getMemoryRecord,
   getMemoryRecords,
   getMemoryRecordsByOwner,
   getMemoryRecordsByFolder,
   getMemoryRecordsByType,
+  getMemoryRecordsWithGalleries,
   deleteMemoryRecord,
   hardDeleteMemoryRecord,
   checkMemoryRecordAccess,
@@ -46,4 +48,10 @@ export {
 } from './memory-operations';
 
 // Shared types
-export { type OperationResult, type PaginationParams, type SortParams, type FilterParams } from './types';
+export {
+  type OperationResult,
+  type PaginationParams,
+  type SortParams,
+  type FilterParams,
+  type MemoryWithGalleries,
+} from './types';

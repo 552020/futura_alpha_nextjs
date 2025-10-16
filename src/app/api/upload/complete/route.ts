@@ -6,6 +6,7 @@ import { randomBytes } from 'crypto';
 import { randomUUID } from 'crypto';
 import { eq, and } from 'drizzle-orm';
 import { fatLogger } from '@/lib/logger';
+import { detectMemoryType } from '@/utils/memory-type';
 // Drizzle ORM imports are used in the where clause
 
 interface FileMetadata {
@@ -281,19 +282,7 @@ async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserI
   console.log('✅ [DEBUG] Parsed request data:', { fileKey, originalName, size, mimeType, metadata });
 
   // Determine memory type from content type or file extension
-  const memoryType: MemoryType = mimeType.startsWith('image/')
-    ? 'image'
-    : mimeType.startsWith('video/')
-      ? 'video'
-      : mimeType.startsWith('audio/')
-        ? 'audio'
-        : originalName.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)
-          ? 'image'
-          : originalName.match(/\.(mp4|webm|mov|avi|wmv|flv|mkv)$/i)
-            ? 'video'
-            : originalName.match(/\.(mp3|wav|ogg|m4a|flac|aac)$/i)
-              ? 'audio'
-              : 'document';
+  const memoryType: MemoryType = detectMemoryType(mimeType, originalName);
 
   // Construct the file URL based on storage backend
   let fileUrl: string;

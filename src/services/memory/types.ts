@@ -23,4 +23,18 @@ export interface FilterParams {
 }
 
 // Re-export commonly used types from schema
-export type { MemoryType, AssetType, ProcessingStatus } from '@/db';
+export type { MemoryType, AssetType, ProcessingStatus } from '@/db/enums';
+
+// Memory with galleries type for complex queries
+export type MemoryWithGalleries = {
+  id: string;
+  type: 'image' | 'video' | 'document' | 'note' | 'audio';
+  owner_id: string;
+  title: string | null;
+  description: string | null;
+  url: string;
+  created_at: string; // ISO string from PG
+  updated_at: string | null;
+  // aggregated
+  galleries: { id: string; title: string }[];
+};

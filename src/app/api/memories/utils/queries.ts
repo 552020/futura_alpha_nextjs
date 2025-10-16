@@ -1,58 +1,58 @@
-import { sql } from 'drizzle-orm';
-import { db } from '@/db/db';
+/**
+ * MEMORY QUERY UTILITIES
+ *
+ * This module provides utility functions for memory queries.
+ * All database operations are now handled through the service layer.
+ *
+ * ARCHITECTURE:
+ * - Uses service layer functions instead of direct database operations
+ * - Maintains the same interface for backward compatibility
+ * - Provides proper error handling and logging
+ */
 
-export type MemoryWithGalleries = {
-  id: string;
-  type: 'image' | 'video' | 'document' | 'note' | 'audio';
-  owner_id: string;
-  title: string | null;
-  description: string | null;
-  url: string;
-  created_at: string; // ISO string from PG
-  updated_at: string | null;
-  // aggregated
-  galleries: { id: string; title: string }[];
-};
+import { getMemoryRecordsWithGalleries, type MemoryWithGalleries } from '@/services/memory';
+import { fatLogger } from '@/lib/logger';
 
+/**
+ * Fetch memories with their associated galleries
+ *
+ * This function now uses the service layer instead of direct database operations.
+ * The complex SQL query has been moved to the memory service layer.
+ */
 export async function fetchMemoriesWithGalleries(ownerAllUserId: string): Promise<MemoryWithGalleries[]> {
-  const { rows } = await db.execute(sql`
-    SELECT
-      m.type,
-      m.id,
-      m.owner_id,
-      m.title,
-      m.description,
-      m.url,
-      m.created_at,
-      m.updated_at,
-      COALESCE(
-        JSON_AGG(
-          JSON_BUILD_OBJECT('id', g.id, 'title', g.title)
-        ) FILTER (WHERE g.id IS NOT NULL),
-        '[]'::json
-      ) AS galleries
-    FROM "memories" m
-    LEFT JOIN "gallery_item" gi
-      ON gi.memory_id = m.id AND gi.memory_type = m.type
-    LEFT JOIN "gallery" g
-      ON g.id = gi.gallery_id
-    WHERE m.owner_id = ${ownerAllUserId}
-    GROUP BY
-      m.type, m.id, m.owner_id, m.title, m.description, m.url, m.created_at, m.updated_at
-    ORDER BY m.created_at DESC
-  `);
+  try {
+    fatLogger.info('Fetching memories with galleries', 'be', {
+      operation: 'fetch_memories_with_galleries',
+      ownerId: ownerAllUserId,
+    });
 
-  // drizzle returns galleries as `any`; normalize to typed structure
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return rows.map((r: any) => ({
-    id: r.id,
-    type: r.type,
-    owner_id: r.owner_id,
-    title: r.title ?? null,
-    description: r.description ?? null,
-    url: r.url ?? '',
-    created_at: r.created_at?.toISOString ? r.created_at.toISOString() : String(r.created_at),
-    updated_at: r.updated_at ? (r.updated_at.toISOString ? r.updated_at.toISOString() : String(r.updated_at)) : null,
-    galleries: Array.isArray(r.galleries) ? r.galleries : JSON.parse(r.galleries ?? '[]'),
-  })) as MemoryWithGalleries[];
+    const result = await getMemoryRecordsWithGalleries(ownerAllUserId);
+
+    if (!result.success) {
+      fatLogger.error('Failed to fetch memories with galleries', 'be', {
+        operation: 'fetch_memories_with_galleries',
+        ownerId: ownerAllUserId,
+        error: result.error,
+      });
+      throw new Error(result.error || 'Failed to fetch memories with galleries');
+    }
+
+    fatLogger.info('Successfully fetched memories with galleries', 'be', {
+      operation: 'fetch_memories_with_galleries',
+      ownerId: ownerAllUserId,
+      count: result.data?.length || 0,
+    });
+
+    return result.data || [];
+  } catch (error) {
+    fatLogger.error('Error in fetchMemoriesWithGalleries', 'be', {
+      operation: 'fetch_memories_with_galleries',
+      ownerId: ownerAllUserId,
+      error: error instanceof Error ? error : undefined,
+    });
+    throw error;
+  }
 }
+
+// Re-export the type for backward compatibility
+export type { MemoryWithGalleries };

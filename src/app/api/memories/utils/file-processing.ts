@@ -87,10 +87,10 @@ export function toAcceptedMimeType(mime: string): AcceptedMimeType {
   return mime;
 }
 
+import { detectMemoryType } from '@/utils/memory-type';
+
 export function getMemoryType(mime: AcceptedMimeType): 'document' | 'image' | 'video' {
-  if (ACCEPTED_MIME_TYPES.image.includes(mime as (typeof ACCEPTED_MIME_TYPES.image)[number])) return 'image';
-  if (ACCEPTED_MIME_TYPES.video.includes(mime as (typeof ACCEPTED_MIME_TYPES.video)[number])) return 'video';
-  return 'document';
+  return detectMemoryType(mime) as 'document' | 'image' | 'video';
 }
 
 export async function validateFile(file: File): Promise<{ isValid: boolean; error?: string; buffer?: Buffer }> {
