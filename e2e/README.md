@@ -1,34 +1,55 @@
 # End-to-End Tests with Playwright
 
-This directory contains Playwright end-to-end tests that automate the UI workflows that were previously done manually.
+This directory contains Playwright end-to-end tests for the Futura application.
 
 ## 🎯 **Purpose**
 
-These tests were created to solve the "clicking through UI" problem - automating the tedious manual testing that was required to debug issues like:
+This directory is ready for fresh Playwright test development. The previous tests have been removed to start with a clean slate.
 
-- **Asset serving bugs** - Images displaying as 32x32px placeholders instead of proper dimensions
-- **Delete all memories failures** - "NotFound" errors when trying to clear memories
-- **Upload workflow issues** - Problems in the image processing pipeline
+## 📁 **Getting Started**
 
-## 📁 **Test Files**
-
-### `asset-serving.spec.ts`
-
-Tests the asset serving workflow that was causing manual debugging:
-
-- **Image dimension verification** - Ensures images display with correct dimensions (not 32x32 placeholders)
-- **Asset URL validation** - Checks that asset endpoints serve correct content
-- **Network request monitoring** - Debugs asset serving issues by monitoring requests
-
-### `delete-memories.spec.ts`
-
-Tests the delete all memories functionality:
-
-- **Delete workflow** - Automates the complete delete all memories process
-- **Capsule creation handling** - Verifies the get-or-create capsule pattern works
-- **User feedback** - Checks that appropriate loading/success/error messages are shown
+Create new test files with the `.spec.ts` extension in this directory. Playwright will automatically discover and run them.
 
 ## 🚀 **Running Tests**
+
+### Basic Commands
+
+```bash
+# Run all end-to-end tests
+pnpm exec playwright test
+
+# Start the interactive UI mode
+pnpm exec playwright test --ui
+
+# Run tests only on Desktop Chrome
+pnpm exec playwright test --project=chromium
+
+# Run tests in a specific file
+pnpm exec playwright test example
+
+# Run tests in debug mode
+pnpm exec playwright test --debug
+
+# Auto generate tests with Codegen
+pnpm exec playwright codegen
+```
+
+### Getting Started
+
+We suggest that you begin by typing:
+
+```bash
+pnpm exec playwright test
+```
+
+And check out the following files:
+
+- `./e2e/example.spec.ts` - Example end-to-end test
+- `./playwright.config.ts` - Playwright Test configuration
+
+Visit https://playwright.dev/docs/intro for more information. ✨
+
+Happy hacking! 🎭
 
 ### Prerequisites
 

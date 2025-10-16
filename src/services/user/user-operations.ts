@@ -2,6 +2,7 @@ import { db } from '@/db/db';
 import { users, allUsers } from '@/db/tables';
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
+import { hash } from 'bcrypt';
 import { fatLogger } from '@/lib/logger';
 import type { UserOperationResult, CreateUserParams, CreateAllUserParams } from './types';
 
@@ -282,6 +283,88 @@ export const getTemporaryUserId = async (providedAllUserId: string): Promise<Use
       error: error instanceof Error ? error : undefined,
       operation: 'get_temporary_user_id',
       providedAllUserId,
+    });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+};
+
+/**
+ * Check if user exists by email
+ */
+export const getUserByEmail = async (email: string): Promise<UserOperationResult> => {
+  try {
+    const user = await db.query.users.findFirst({
+      where: eq(users.email, email),
+    });
+
+    if (!user) {
+      return { success: false, error: 'User not found' };
+    }
+
+    return { success: true, data: user };
+  } catch (error) {
+    fatLogger.error('Failed to get user by email', 'be', {
+      error: error instanceof Error ? error : undefined,
+      operation: 'get_user_by_email',
+      email,
+    });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+};
+
+/**
+ * Create user with password (for signup)
+ */
+export const createUserWithPassword = async (params: {
+  email: string;
+  password: string;
+  name?: string;
+}): Promise<UserOperationResult<{ user: unknown; allUser: unknown }>> => {
+  try {
+    // Check if user already exists
+    const existingUserResult = await getUserByEmail(params.email);
+    if (existingUserResult.success) {
+      return { success: false, error: 'User with this email already exists' };
+    }
+
+    // Hash password
+    const hashedPassword = await hash(params.password, 12);
+    const displayName = params.name || params.email.split('@')[0];
+
+    // Create user with password
+    const [newUser] = await db
+      .insert(users)
+      .values({
+        email: params.email,
+        password: hashedPassword,
+        name: displayName,
+        role: 'user',
+      })
+      .returning();
+
+    fatLogger.info('Created user with password', 'be', {
+      operation: 'create_user_with_password',
+      userId: newUser.id,
+      email: newUser.email,
+    });
+
+    return {
+      success: true,
+      data: {
+        user: newUser,
+      },
+    };
+  } catch (error) {
+    fatLogger.error('Failed to create user with password', 'be', {
+      error: error instanceof Error ? error : undefined,
+      operation: 'create_user_with_password',
+      email: params.email,
     });
     return {
       success: false,

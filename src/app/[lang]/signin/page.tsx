@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { X } from 'lucide-react';
 import { fatLogger } from '@/lib/logger';
 // ICP imports moved to dynamic imports inside functions
 
@@ -25,9 +26,11 @@ function SignInPageInternal() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [iiBusy, setIiBusy] = useState(false);
+  const [activeTab, setActiveTab] = useState<'signin' | 'signup'>('signin');
 
   async function handleCredentialsSignIn(e: React.FormEvent) {
     // fatLogger.info("handleCredentialsSignIn", email, password);
@@ -52,6 +55,61 @@ function SignInPageInternal() {
       router.push(safeCallbackUrl);
     } catch {
       setError('Sign in failed. Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleSignUp(e: React.FormEvent) {
+    e.preventDefault();
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+
+    // Validate passwords match
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      setBusy(false);
+      return;
+    }
+
+    try {
+      // Create user account
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || 'Sign up failed');
+        return;
+      }
+
+      // After successful signup, automatically sign in
+      const res = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
+        callbackUrl: safeCallbackUrl,
+      });
+
+      if (res?.error) {
+        setError('Account created but sign in failed. Please try signing in manually.');
+        return;
+      }
+
+      // Navigate after successful signup and sign-in
+      router.push(safeCallbackUrl);
+    } catch {
+      setError('Sign up failed. Please try again.');
     } finally {
       setBusy(false);
     }
@@ -151,8 +209,8 @@ function SignInPageInternal() {
       <div className="w-full max-w-md rounded-lg bg-white dark:bg-slate-950 p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
           <h1 className="text-xl font-semibold">Sign in</h1>
-          <Button variant="ghost" size="sm" onClick={close}>
-            Close
+          <Button variant="ghost" size="sm" onClick={close} className="border border-gray-200 dark:border-gray-700">
+            <X className="h-4 w-4" />
           </Button>
         </div>
 
@@ -170,11 +228,37 @@ function SignInPageInternal() {
             <span className="w-full border-t" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">Or continue with email</span>
+            <span className="bg-white dark:bg-slate-950 px-2 text-muted-foreground">Or use email</span>
           </div>
         </div>
 
-        <form onSubmit={handleCredentialsSignIn} className="space-y-4">
+        {/* Email Authentication Tabs */}
+        <div className="mb-4 flex rounded-lg bg-gray-100 dark:bg-gray-800 p-1">
+          <button
+            type="button"
+            onClick={() => setActiveTab('signin')}
+            className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+              activeTab === 'signin'
+                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
+          >
+            Sign In
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('signup')}
+            className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+              activeTab === 'signup'
+                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
+          >
+            Sign Up
+          </button>
+        </div>
+
+        <form onSubmit={activeTab === 'signup' ? handleSignUp : handleCredentialsSignIn} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -197,20 +281,30 @@ function SignInPageInternal() {
               required
             />
           </div>
+          {activeTab === 'signup' && (
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                placeholder="Confirm your password"
+                required
+              />
+            </div>
+          )}
           {error && <p className="text-sm text-red-500">{error}</p>}
           <Button type="submit" className="w-full" disabled={busy}>
-            {busy ? 'Signing in...' : 'Sign in with Email'}
+            {busy
+              ? activeTab === 'signup'
+                ? 'Creating account...'
+                : 'Signing in...'
+              : activeTab === 'signup'
+                ? 'Sign up with Email'
+                : 'Sign in with Email'}
           </Button>
         </form>
-
-        <div className="mt-4 text-center text-xs text-muted-foreground">
-          <Link
-            href={`/api/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`}
-            className="underline underline-offset-2 hover:text-foreground"
-          >
-            Use default sign-in page
-          </Link>
-        </div>
       </div>
     </div>
   );
