@@ -104,9 +104,7 @@ describe('POST /api/galleries - Gallery Creation Logic', () => {
     ) => {
       return {
         title: params.title || (params.type === 'from-folder' ? `Gallery from ${params.folderName}` : 'My Gallery'),
-        description:
-          params.description ||
-          (params.type === 'from-folder' ? `Gallery created from folder: ${params.folderName}` : 'Custom gallery'),
+        description: params.description || '',
         isPublic: params.isPublic || false,
         memoriesCount,
       };
@@ -115,7 +113,7 @@ describe('POST /api/galleries - Gallery Creation Logic', () => {
     // From folder
     const folderResult = createGalleryData({ type: 'from-folder', folderName: 'test-folder' }, 5);
     expect(folderResult.title).toBe('Gallery from test-folder');
-    expect(folderResult.description).toBe('Gallery created from folder: test-folder');
+    expect(folderResult.description).toBe('');
     expect(folderResult.isPublic).toBe(false);
     expect(folderResult.memoriesCount).toBe(5);
 

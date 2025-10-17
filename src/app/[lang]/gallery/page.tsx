@@ -12,6 +12,7 @@ import { CreateGalleryModal } from '@/components/galleries/create-gallery-modal'
 import { LoadingSpinner } from '@/components/common/loading-spinner';
 import { ErrorState } from '@/components/common/error-state';
 import { GalleryGrid } from '@/components/galleries/gallery-grid';
+import { GalleryShareDialog } from '@/components/galleries/share-modals/gallery-share';
 
 import { fatLogger } from '@/lib/logger';
 // Mock data flag for development
@@ -29,6 +30,8 @@ export default function GalleryPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [selectedGallery, setSelectedGallery] = useState<GalleryWithItems | null>(null);
 
   useEffect(() => {
     if (isAuthorized) {
@@ -55,6 +58,31 @@ export default function GalleryPage() {
   const handleGalleryClick = (gallery: GalleryWithItems) => {
     // Navigate to gallery view
     window.location.href = `/${lang}/gallery/${gallery.id}`;
+  };
+
+  const handleGalleryShare = (gallery: GalleryWithItems) => {
+    setSelectedGallery(gallery);
+    setShareDialogOpen(true);
+  };
+
+  const handleGalleryDelete = async (gallery: GalleryWithItems) => {
+    if (!confirm(`Are you sure you want to delete "${gallery.title}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await galleryService.deleteGallery(gallery.id, USE_MOCK_DATA);
+      // Reload galleries to remove the deleted one
+      loadGalleries();
+    } catch (err) {
+      fatLogger.error('Error deleting gallery', 'fe', { data: err as Error });
+      setError('Failed to delete gallery');
+    }
+  };
+
+  const handleShareComplete = () => {
+    // Optionally reload galleries to update share counts
+    loadGalleries();
   };
 
   const handleGalleryCreated = (_galleryId: string) => {
@@ -111,7 +139,12 @@ export default function GalleryPage() {
 
       {/* Gallery Grid */}
       <div className="container mx-auto px-6">
-        <GalleryGrid galleries={filteredGalleries} onGalleryClick={handleGalleryClick} />
+        <GalleryGrid 
+          galleries={filteredGalleries} 
+          onGalleryClick={handleGalleryClick}
+          onGalleryShare={handleGalleryShare}
+          onGalleryDelete={handleGalleryDelete}
+        />
       </div>
 
       {/* Create Gallery Modal */}
@@ -121,6 +154,17 @@ export default function GalleryPage() {
         onOpenChange={setShowCreateModal}
         onGalleryCreated={handleGalleryCreated}
       />
+
+      {/* Share Gallery Dialog */}
+      {selectedGallery && (
+        <GalleryShareDialog
+          galleryId={selectedGallery.id}
+          galleryTitle={selectedGallery.title}
+          open={shareDialogOpen}
+          onOpenChange={setShareDialogOpen}
+          onShare={handleShareComplete}
+        />
+      )}
     </div>
   );
 }

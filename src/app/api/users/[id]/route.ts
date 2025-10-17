@@ -2,8 +2,129 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db/db';
 import { allUsers, temporaryUsers, users } from '@/db';
 import { eq } from 'drizzle-orm';
+import { auth } from '@/auth';
 
 import { fatLogger } from '@/lib/logger';
+
+/**
+ * GET /api/users/[id]
+ * GET /api/users/[id]?email=user@example.com
+ * 
+ * Retrieves a user by ID or email.
+ * - If [id] is provided in the path, retrieves by ID
+ * - If ?email query parameter is provided, retrieves by email (ignores [id])
+ * 
+ * Requires authentication.
+ */
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    // Check authentication
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const emailParam = searchParams.get('email');
+
+    // If email parameter is provided, search by email instead of ID
+    if (emailParam) {
+      const user = await db.query.users.findFirst({
+        where: eq(users.email, emailParam),
+      });
+
+      if (!user) {
+        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      }
+
+      // Find corresponding allUsers entry
+      const allUser = await db.query.allUsers.findFirst({
+        where: eq(allUsers.userId, user.id),
+      });
+
+      return NextResponse.json({
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: user.image,
+          username: user.username,
+          userType: user.userType,
+          role: user.role,
+          plan: user.plan,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        },
+        allUser: allUser ? {
+          id: allUser.id,
+          type: allUser.type,
+          userId: allUser.userId,
+          createdAt: allUser.createdAt,
+        } : null,
+      });
+    }
+
+    // Otherwise, search by ID from the path parameter
+    const { id } = await params;
+
+    const allUser = await db.query.allUsers.findFirst({
+      where: eq(allUsers.id, id),
+    });
+
+    if (!allUser) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    if (allUser.type === 'temporary') {
+      const temporaryUser = await db.query.temporaryUsers.findFirst({
+        where: eq(temporaryUsers.id, allUser.temporaryUserId!),
+      });
+
+      return NextResponse.json({
+        user: temporaryUser,
+        allUser: {
+          id: allUser.id,
+          type: allUser.type,
+          temporaryUserId: allUser.temporaryUserId,
+          createdAt: allUser.createdAt,
+        },
+      });
+    } else {
+      const user = await db.query.users.findFirst({
+        where: eq(users.id, allUser.userId!),
+      });
+
+      if (!user) {
+        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      }
+
+      return NextResponse.json({
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: user.image,
+          username: user.username,
+          userType: user.userType,
+          role: user.role,
+          plan: user.plan,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        },
+        allUser: {
+          id: allUser.id,
+          type: allUser.type,
+          userId: allUser.userId,
+          createdAt: allUser.createdAt,
+        },
+      });
+    }
+  } catch (error) {
+    fatLogger.error('Error retrieving user:', 'be', { data: error instanceof Error ? error : undefined });
+    return NextResponse.json({ error: 'Failed to retrieve user' }, { status: 500 });
+  }
+}
+
 export async function PATCH(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   try {

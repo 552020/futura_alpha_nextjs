@@ -43,7 +43,7 @@ async function checkMemoryAccess(
       if (galleryShare) {
         return true;
       }
-      
+
       return false;
     }
   }
@@ -459,6 +459,14 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     if (!existingGallery) {
       return NextResponse.json({ error: 'Gallery not found' }, { status: 404 });
     }
+
+    // Delete gallery shares first (resourceMembership doesn't have FK cascade)
+    await db.delete(resourceMembership).where(
+      and(
+        eq(resourceMembership.resourceType, 'gallery'),
+        eq(resourceMembership.resourceId, galleryId)
+      )
+    );
 
     // Delete gallery (cascade will handle gallery_items)
     await db.delete(galleries).where(eq(galleries.id, galleryId));

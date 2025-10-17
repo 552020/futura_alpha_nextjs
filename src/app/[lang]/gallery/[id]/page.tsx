@@ -5,7 +5,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useAuthGuard } from '@/utils/authentication';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Globe, Lock, Trash2, Maximize2, HardDrive, Eye, Check } from 'lucide-react';
+import { Globe, Lock, Trash2, Maximize2, HardDrive, Eye, Check, Share2 } from 'lucide-react';
 import { galleryService } from '@/services/gallery';
 import { GalleryWithItems } from '@/types/gallery';
 import { Memory } from '@/types/memory';
@@ -26,7 +26,8 @@ import { GalleryImageModal } from '@/components/galleries/gallery-image-modal';
 import { GallerySelectionBar } from '@/components/galleries/gallery-selection-bar';
 import { GalleryPhotoGrid } from '@/components/galleries/gallery-photo-grid';
 import { GallerySelectionPanel } from '@/components/galleries/gallery-selection-panel';
-import { SendSelectionModal } from '@/components/galleries/send-selection-modal';
+import { SendSelectionModal } from '@/components/galleries/share-modals/send-selection';
+import { GalleryShareDialog } from '@/components/galleries/share-modals/gallery-share';
 import { toast } from '@/components/ui/use-toast';
 import { ToastContainer } from '@/components/ui/toast-container';
 
@@ -55,6 +56,7 @@ function GalleryViewContent() {
   const [showSidePanel, setShowSidePanel] = useState(false);
   const [showForeverStorageModal, setShowForeverStorageModal] = useState(false);
   const [businessEmail, setBusinessEmail] = useState<string | null>(null);
+  const [showShareDialog, setShowShareDialog] = useState(false);
 
   // Image modal state
   const [selectedImage, setSelectedImage] = useState<{
@@ -384,6 +386,10 @@ function GalleryViewContent() {
     setShowForeverStorageModal(true);
   };
 
+  const handleShare = () => {
+    setShowShareDialog(true);
+  };
+
   const getStoreForeverButtonState = () => {
     // TODO: Implement button state logic
     return {
@@ -549,6 +555,12 @@ function GalleryViewContent() {
               </Button>
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-bold">{gallery.title}</h1>
+                {!gallery.isOwner && (
+                  <Badge variant="outline" className="border-blue-300 text-blue-700 bg-blue-50 dark:border-blue-700 dark:text-blue-300 dark:bg-blue-950">
+                    <Share2 className="h-3 w-3 mr-1" />
+                    Shared with you
+                  </Badge>
+                )}
                 <StorageStatusBadge status={getGalleryStorageStatus(gallery)} />
               </div>
             </div>
@@ -568,16 +580,32 @@ function GalleryViewContent() {
                 )}
               </Badge>
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleTogglePrivacy}
-                disabled={isUpdating}
-                className="flex items-center gap-2"
-              >
-                {gallery.sharingStatus === 'public' ? <Globe className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-                {gallery.sharingStatus === 'public' ? 'Make Private' : 'Make Public'}
-              </Button>
+              {/* Only show privacy toggle for gallery owners */}
+              {gallery.isOwner && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleTogglePrivacy}
+                  disabled={isUpdating}
+                  className="flex items-center gap-2"
+                >
+                  {gallery.sharingStatus === 'public' ? <Globe className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+                  {gallery.sharingStatus === 'public' ? 'Make Private' : 'Make Public'}
+                </Button>
+              )}
+
+              {/* Only show share button for gallery owners */}
+              {gallery.isOwner && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleShare}
+                  className="flex items-center gap-2"
+                >
+                  <Share2 className="h-4 w-4" />
+                  Share
+                </Button>
+              )}
 
               <Button
                 variant="outline"
@@ -592,7 +620,9 @@ function GalleryViewContent() {
                 <Maximize2 className="h-4 w-4" />
                 Full Screen
               </Button>
-              {(() => {
+              
+              {/* Only show store forever and delete for gallery owners */}
+              {gallery.isOwner && (() => {
                 const buttonState = getStoreForeverButtonState();
                 return (
                   <>
@@ -632,19 +662,23 @@ function GalleryViewContent() {
                   </>
                 );
               })()}
-              <Button variant="outline" size="sm" onClick={handleDeleteGallery} disabled={isDeleting}>
-                {isDeleting ? (
-                  <>
-                    <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                    Deleting...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </>
-                )}
-              </Button>
+              
+              {/* Only show delete button for gallery owners */}
+              {gallery.isOwner && (
+                <Button variant="outline" size="sm" onClick={handleDeleteGallery} disabled={isDeleting}>
+                  {isDeleting ? (
+                    <>
+                      <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -761,6 +795,16 @@ function GalleryViewContent() {
         selectedCount={selectedImages.length}
         onSend={handleSendSelection}
       />
+
+      {/* Share Gallery Dialog */}
+      {gallery && (
+        <GalleryShareDialog
+          galleryId={gallery.id}
+          galleryTitle={gallery.title}
+          open={showShareDialog}
+          onOpenChange={setShowShareDialog}
+        />
+      )}
 
       {/* Toast Notifications */}
       <ToastContainer />
