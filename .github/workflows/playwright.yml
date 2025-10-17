@@ -13,6 +13,8 @@ jobs:
       DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
       AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
       PLAYWRIGHT: true
+      NEXT_PUBLIC_CANISTER_ID_INTERNET_IDENTITY: rdmx6-jaaaa-aaaaa-aaadq-cai
+      NEXT_PUBLIC_II_URL: https://identity.ic0.app
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

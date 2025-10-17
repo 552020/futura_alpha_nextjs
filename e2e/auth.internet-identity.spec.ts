@@ -16,6 +16,50 @@ testWithII.describe('Internet Identity Authentication', () => {
     await expect(page.getByTestId('user-avatar')).toBeVisible();
   });
 
+  testWithII('II sign-in from header avatar when not authenticated', async ({ page, iiPage }) => {
+    // 1) Go to homepage (not authenticated)
+    await page.goto('/en');
+
+    // 2) Click sign in button in header
+    await page.getByRole('button', { name: 'Sign In' }).click();
+
+    // 3) Should redirect to sign-in page, then click Internet Identity option
+    await expect(page).toHaveURL(/\/signin/);
+
+    // 4) Look for Internet Identity sign-in option and click it
+    await page.getByText('Sign in with Internet Identity').click();
+
+    // 5) Start II flow
+    await iiPage.signInWithNewIdentity({ selector: '[data-testid="ii-start"]' });
+
+    // 6) Assert: we are authenticated (avatar visible in header)
+    await expect(page.getByTestId('user-avatar')).toBeVisible();
+  });
+
+  testWithII('II linking from header avatar when already authenticated with email', async ({ page, iiPage }) => {
+    // 1) First authenticate with email/password (simulate existing user)
+    await page.goto('/en/signin');
+    await page.getByLabel('Email').fill('test@example.com');
+    await page.getByLabel('Password').fill('password123');
+    await page.getByRole('button', { name: 'Sign In' }).click();
+
+    // 2) Wait for authentication to complete
+    await expect(page.getByTestId('user-avatar')).toBeVisible();
+
+    // 3) Go to ICP page to link Internet Identity
+    await page.goto('/en/user/icp');
+
+    // 4) Click to connect Internet Identity
+    await page.getByTestId('ii-connect').click();
+
+    // 5) Start II linking flow
+    await expect(page.getByTestId('ii-start')).toBeVisible();
+    await iiPage.signInWithNewIdentity({ selector: '[data-testid="ii-start"]' });
+
+    // 6) Assert: II is now linked (should show connected state)
+    await expect(page.getByText('Connected')).toBeVisible();
+  });
+
   testWithII('II sign-in returns to the original callbackUrl', async ({ page, iiPage }) => {
     // Start from some deep page that requires auth after login
     const target = '/en/dashboard?view=memories';

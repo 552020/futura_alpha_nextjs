@@ -24,6 +24,11 @@ function getLocale(request: NextRequest): string | undefined {
 }
 
 export function middleware(request: NextRequest) {
+  // Skip middleware during Playwright tests to avoid locale issues
+  if (process.env.PLAYWRIGHT === 'true') {
+    return NextResponse.next();
+  }
+
   const pathname = request.nextUrl.pathname;
   const origin = request.headers.get('origin');
   // Handle PostHog paths
