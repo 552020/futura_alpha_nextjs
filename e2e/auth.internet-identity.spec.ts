@@ -82,7 +82,7 @@ testWithII.describe('Internet Identity Authentication', () => {
     await expect(page.getByText('Connect Internet Identity')).toBeVisible();
   });
 
-  testWithII('handles II authentication errors gracefully', async ({ page, iiPage }) => {
+  testWithII('handles II authentication errors gracefully', async ({ page, iiPage: _iiPage }) => {
     await page.goto('/en/user/icp');
     await page.getByTestId('ii-connect').click();
 

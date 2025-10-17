@@ -80,7 +80,7 @@ test.describe('Mobile Overflow Testing', () => {
         const buttonRect = await button.boundingBox();
         if (buttonRect) {
           // Button should not extend beyond viewport
-          expect(buttonRect.right).toBeLessThanOrEqual(375);
+          expect(buttonRect.x + buttonRect.width).toBeLessThanOrEqual(375);
         }
       }
     }
@@ -102,7 +102,7 @@ test.describe('Mobile Overflow Testing', () => {
         () => document.documentElement.scrollWidth > document.documentElement.clientWidth
       );
 
-      expect(hasOverflow).toBe(false, `Should not have horizontal overflow on ${viewport.name}`);
+      expect(hasOverflow, `Should not have horizontal overflow on ${viewport.name}`).toBe(false);
     }
   });
 
@@ -132,7 +132,7 @@ test.describe('Mobile Overflow Testing', () => {
 
     // Find elements that extend beyond viewport
     const overflowingElements = await page.evaluate(() => {
-      const elements = [];
+      const elements: Array<{ tagName: string; className: string; right: number; viewportWidth: number }> = [];
       const viewportWidth = document.documentElement.clientWidth;
 
       document.querySelectorAll('*').forEach(el => {
