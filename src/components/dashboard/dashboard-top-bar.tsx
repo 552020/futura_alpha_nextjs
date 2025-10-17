@@ -59,12 +59,7 @@ export function DashboardTopBar({
         </>
       )}
       {onClearAllMemories && (
-        <Button
-          variant="destructive"
-          size="sm"
-          onClick={onClearAllMemories}
-          className="h-9 px-4 py-1 text-sm whitespace-nowrap"
-        >
+        <Button variant="destructive" size="sm" onClick={onClearAllMemories} className="h-9 px-4 py-1 text-sm shrink-0">
           Clear All
         </Button>
       )}

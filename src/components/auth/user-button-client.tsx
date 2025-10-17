@@ -56,6 +56,7 @@ export default function UserButtonClient({ lang = 'en' }: { lang?: string }) {
           variant="ghost"
           className="relative h-8 w-8 rounded-full hover:bg-muted dark:hover:bg-muted dark:hover:text-white"
           title={principal ? `Principal: ${principal}` : name}
+          data-testid="user-avatar"
         >
           <Avatar className="h-8 w-8">
             <AvatarImage

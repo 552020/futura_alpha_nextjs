@@ -16,6 +16,10 @@
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:pull": "drizzle-kit pull",
@@ -25,7 +29,9 @@
     "db:validate": "tsx scripts/validate-schema.ts",
     "seed": "tsx src/db/seed.ts",
     "create-test-users": "tsx src/db/create-test-users.ts",
-    "manage-user-roles": "tsx scripts/manage-user-roles.ts"
+    "manage-user-roles": "tsx scripts/manage-user-roles.ts",
+    "cleanup-orphaned-allusers": "tsx scripts/cleanup-orphaned-allusers.ts",
+    "cleanup-test-users": "tsx scripts/cleanup-test-users.ts"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.10.0",
@@ -101,7 +107,9 @@
   "devDependencies": {
     "@dfinity/auth-client": "^3.2.4",
     "@dfinity/identity": "^3.2.4",
+    "@dfinity/internet-identity-playwright": "^2.0.0",
     "@eslint/eslintrc": "^3.3.1",
+    "@playwright/test": "^1.56.0",
     "@tailwindcss/postcss": "^4.1.13",
     "@tanstack/react-query-devtools": "^5.87.4",
     "@testing-library/react": "^16.3.0",
