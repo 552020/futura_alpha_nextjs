@@ -5,6 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -32,8 +40,6 @@ export function ShareModalBase({
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
-
-  if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,11 +103,12 @@ export function ShareModalBase({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-gray-900 rounded-lg p-6 w-full max-w-md border border-gray-200 dark:border-gray-800">
-        <h2 className="text-xl font-semibold mb-2">{getTitle()}</h2>
-
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{getDescription()}</p>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{getTitle()}</DialogTitle>
+          <DialogDescription>{getDescription()}</DialogDescription>
+        </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {mode === 'gallery-share' && (
@@ -141,7 +148,7 @@ export function ShareModalBase({
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <div className="flex justify-end space-x-3 pt-2">
+          <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose} disabled={isSending}>
               Cancel
             </Button>
@@ -158,9 +165,9 @@ export function ShareModalBase({
                 getButtonText()
               )}
             </Button>
-          </div>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
