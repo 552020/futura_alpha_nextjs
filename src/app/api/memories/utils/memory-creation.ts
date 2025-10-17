@@ -1,274 +1,166 @@
 /**
  * MEMORY CREATION UTILITIES
  *
- * This module handles memory creation operations for both JSON and file-based memories.
- * It provides standardized functions for creating memories in the unified schema.
+ * This module provides utility functions for memory creation operations.
+ * All database operations are now handled through the service layer.
+ *
+ * ARCHITECTURE:
+ * - Uses service layer functions instead of direct database operations
+ * - Maintains the same interface for backward compatibility
+ * - Provides proper error handling and logging
  *
  * USAGE:
- * - Create memories from JSON requests
- * - Create memories from file uploads
- * - Handle memory creation errors gracefully
- * - Standardize response formats
+ * - Use createMemory() for new code (recommended)
+ * - createMemoryFromBlob() maintained for backward compatibility
+ * - All functions use schema-based interfaces for type safety
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
-import { db } from '@/db/db';
-import { allUsers, memories, users } from '@/db/schema';
-import { eq } from 'drizzle-orm';
-import { randomUUID } from 'crypto';
-import type { NewDBMemory } from '@/db/schema';
+import { createMemoryWithAssets } from '@/services/memory';
+import { fatLogger } from '@/lib/logger';
 
-/**
- * Helper function to get allUserId for both authenticated and temporary users
- * This centralizes the user lookup logic used across multiple endpoints
- */
-export async function getAllUserId(request: NextRequest): Promise<{ allUserId: string; error?: NextResponse }> {
-  const session = await auth();
+// Schema-based interfaces for memory creation (maintained for backward compatibility)
+export interface CreateMemoryParams {
+  // Core memory data (from memories table)
+  ownerId: string;
+  type: 'image' | 'video' | 'document' | 'note' | 'audio';
+  title: string;
+  description?: string;
+  fileCreatedAt?: Date;
+  isPublic?: boolean;
+  parentFolderId?: string | null;
+  tags?: string[];
+  recipients?: string[];
+  unlockDate?: Date | null;
+  metadata?: Record<string, unknown>;
+  storageDuration?: number | null;
 
-  if (session?.user?.id) {
-    // Handle authenticated user
-    console.log('👤 Looking up authenticated user in users table...');
+  // Optional assets (from memoryAssets table)
+  assets?: CreateMemoryAssetParams[];
 
-    // First get the user from users table
-    const [permanentUser] = await db.select().from(users).where(eq(users.id, session.user.id));
-    console.log('Found permanent user:', { userId: permanentUser?.id });
-
-    if (!permanentUser) {
-      console.error('❌ Permanent user not found');
-      return { allUserId: '', error: NextResponse.json({ error: 'User not found' }, { status: 404 }) };
-    }
-
-    // Then get their allUserId
-    const [allUserRecord] = await db.select().from(allUsers).where(eq(allUsers.userId, permanentUser.id));
-    console.log('Found all_users record:', { allUserId: allUserRecord?.id });
-
-    if (!allUserRecord) {
-      console.error('❌ No all_users record found for permanent user');
-      return { allUserId: '', error: NextResponse.json({ error: 'User record not found' }, { status: 404 }) };
-    }
-
-    return { allUserId: allUserRecord.id };
-  } else {
-    // Handle temporary user - check for provided allUserId in form data
-    try {
-      const formData = await request.formData();
-      const providedAllUserId = formData.get('userId') as string;
-
-      if (providedAllUserId) {
-        console.log('👤 Using provided allUserId for temporary user...');
-        // For temporary users, directly check the allUsers table
-        const [tempUser] = await db.select().from(allUsers).where(eq(allUsers.id, providedAllUserId));
-        console.log('Found temporary user:', { allUserId: tempUser?.id, type: tempUser?.type });
-
-        if (!tempUser || tempUser.type !== 'temporary') {
-          console.error('❌ Valid temporary user not found');
-          return { allUserId: '', error: NextResponse.json({ error: 'Invalid temporary user' }, { status: 404 }) };
-        }
-
-        return { allUserId: tempUser.id };
-      } else {
-        console.error('❌ No valid user identification provided');
-        return { allUserId: '', error: NextResponse.json({ error: 'User identification required' }, { status: 401 }) };
-      }
-    } catch {
-      // If form parsing fails, it might be a JSON request - return auth error
-      console.error('❌ No valid user identification provided');
-      return { allUserId: '', error: NextResponse.json({ error: 'User identification required' }, { status: 401 }) };
-    }
-  }
+  // Options
+  isOnboarding?: boolean;
+  mode?: string;
 }
 
+// Based on NewDBMemoryAsset from schema.ts (maintained for backward compatibility)
+export interface CreateMemoryAssetParams {
+  assetType: 'original' | 'display' | 'thumb' | 'placeholder' | 'poster' | 'waveform';
+  variant?: string;
+  url: string;
+  assetLocation: 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs' | 'neon';
+  bucket?: string;
+  storageKey: string;
+  bytes: number;
+  width?: number;
+  height?: number;
+  mimeType: string;
+  sha256?: string;
+  processingStatus?: 'failed' | 'pending' | 'processing' | 'completed';
+  processingError?: string;
+}
+
+// Simple return type (maintained for backward compatibility)
+export type CreateMemoryResult = { success: true; memoryId: string } | { success: false; error: string };
+
 /**
- * Create a memory from JSON request data
- * Handles validation and database insertion for memory creation without files
+ * Unified memory creation function
+ * Creates a memory record with optional assets in the database
+ *
+ * This function now uses the service layer instead of direct database operations.
+ * The complex database operations have been moved to the memory service layer.
+ *
+ * Note: No runtime validation - relies on TypeScript types for type safety
  */
-export async function createMemoryFromJson(
-  body: {
-    type?: string;
-    title?: string;
-    description?: string;
-    fileCreatedAt?: string;
-    isPublic?: boolean;
-    parentFolderId?: string | null;
-    tags?: string[];
-    recipients?: string[];
-    unlockDate?: string | null;
-    metadata?: Record<string, unknown>;
-    isOnboarding?: boolean;
-    mode?: string;
-    assets?: unknown[];
-  },
-  ownerId: string
-): Promise<NextResponse> {
-  const {
-    type,
-    title,
-    description,
-    fileCreatedAt,
-    isPublic,
-    parentFolderId,
-    tags,
-    recipients,
-    unlockDate,
-    metadata,
-    isOnboarding,
-    mode,
-    assets,
-  } = body;
-
-  // Validate required fields
-  if (!type || !title) {
-    return NextResponse.json(
-      {
-        error: 'Missing required fields: type and title are required',
-      },
-      { status: 400 }
-    );
-  }
-
-  // Validate memory type
-  if (!['image', 'video', 'document', 'note', 'audio'].includes(type)) {
-    return NextResponse.json(
-      {
-        error: 'Invalid memory type. Must be one of: image, video, document, note, audio',
-      },
-      { status: 400 }
-    );
-  }
-
-  // Handle onboarding logic
-  let finalOwnerId = ownerId;
-  if (isOnboarding || !ownerId) {
-    console.log('🎯 Onboarding upload detected - creating temporary user');
-
-    try {
-      // Import the temporary user creation function
-      const { createTemporaryUserBase } = await import('@/app/api/utils');
-      const result = await createTemporaryUserBase('inviter');
-      finalOwnerId = result.allUser.id;
-      console.log('✅ Temporary user created for onboarding:', { userId: finalOwnerId });
-    } catch (error) {
-      console.error('❌ Failed to create temporary user for onboarding:', error);
-      return NextResponse.json({ error: 'Failed to create temporary user for onboarding' }, { status: 500 });
-    }
-  }
-
-  // Handle mode logic
-  if (mode === 'folder') {
-    console.log('📁 Folder upload mode detected');
-    // Note: Current folder upload just processes multiple files without creating a folder
-    // TODO: In the future, we could create a folder here and set parentFolderId
-  }
-
-  // Create memory
-  const newMemory: NewDBMemory = {
-    ownerId: finalOwnerId, // Use the final owner ID (temporary user if onboarding)
-    type: type as 'image' | 'video' | 'document' | 'note' | 'audio',
-    title,
-    description: description || '',
-    fileCreatedAt: fileCreatedAt ? new Date(fileCreatedAt) : new Date(),
-    isPublic: isPublic || false,
-    ownerSecureCode: randomUUID(),
-    parentFolderId: parentFolderId || null,
-    tags: tags || [],
-    recipients: recipients || [],
-    unlockDate: unlockDate ? new Date(unlockDate) : null,
-    metadata: metadata || {},
-    // Storage status fields - default to permanent storage for new memories
-    storageDuration: null, // null means permanent storage
-  };
-
-  const [createdMemory] = await db.insert(memories).values(newMemory).returning();
-  console.log('✅ Memory created:', { id: createdMemory.id, ownerId: finalOwnerId });
-
-  // Create assets if provided (from blob-first upload)
-  let createdAssets: unknown[] = [];
-  if (assets && assets.length > 0) {
-    console.log(`📦 Creating ${assets.length} assets for memory ${createdMemory.id}`);
-
-    const { memoryAssets } = await import('@/db/schema');
-    const assetData = assets.map((asset: unknown) => {
-      const a = asset as Record<string, unknown>;
-      return {
-        memoryId: createdMemory.id,
-        assetType:
-          (a.assetType as 'original' | 'display' | 'thumb' | 'placeholder' | 'poster' | 'waveform') || 'original',
-        variant: (a.variant as string) || null,
-        url: (a.url as string) || '',
-        assetLocation:
-          (a.storageBackend as 'neon' | 'icp' | 's3' | 'vercel_blob' | 'arweave' | 'ipfs') || 'vercel_blob',
-        storageKey: (a.storageKey as string) || (a.url as string)?.split('/').pop() || '',
-        bytes: (a.bytes as number) || 0,
-        width: (a.width as number) || null,
-        height: (a.height as number) || null,
-        mimeType: (a.mimeType as string) || 'application/octet-stream',
-        sha256: (a.sha256 as string) || null,
-        processingStatus: (a.processingStatus as 'failed' | 'pending' | 'processing' | 'completed') || 'completed',
-        processingError: (a.processingError as string) || null,
-      };
+export async function createMemory(params: CreateMemoryParams): Promise<CreateMemoryResult> {
+  try {
+    fatLogger.info('Creating memory with assets', 'be', {
+      operation: 'create_memory',
+      ownerId: params.ownerId,
+      type: params.type,
+      title: params.title,
+      hasAssets: !!(params.assets && params.assets.length > 0),
     });
 
-    createdAssets = await db.insert(memoryAssets).values(assetData).returning();
-    console.log(`✅ Created ${createdAssets.length} assets`);
+    // Use the service layer function
+    const result = await createMemoryWithAssets({
+      title: params.title,
+      type: params.type,
+      ownerId: params.ownerId,
+      description: params.description,
+      fileCreatedAt: params.fileCreatedAt,
+      isPublic: params.isPublic,
+      parentFolderId: params.parentFolderId,
+      tags: params.tags,
+      recipients: params.recipients,
+      unlockDate: params.unlockDate,
+      metadata: params.metadata,
+      storageDuration: params.storageDuration,
+      isOnboarding: params.isOnboarding,
+      mode: params.mode,
+      assets: params.assets,
+    });
+
+    if (!result.success) {
+      fatLogger.error('Failed to create memory with assets', 'be', {
+        operation: 'create_memory',
+        ownerId: params.ownerId,
+        type: params.type,
+        title: params.title,
+        error: result.error,
+      });
+      return { success: false, error: result.error || 'Failed to create memory' };
+    }
+
+    fatLogger.info('Successfully created memory with assets', 'be', {
+      operation: 'create_memory',
+      memoryId: result.data?.memoryId,
+      ownerId: params.ownerId,
+      type: params.type,
+      title: params.title,
+      assetsCount: result.data?.assets?.length || 0,
+    });
+
+    return {
+      success: true,
+      memoryId: result.data?.memoryId || '',
+    };
+  } catch (error) {
+    fatLogger.error('Error in createMemory', 'be', {
+      operation: 'create_memory',
+      ownerId: params.ownerId,
+      type: params.type,
+      title: params.title,
+      error: error instanceof Error ? error : undefined,
+    });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
   }
-
-  return NextResponse.json({
-    success: true,
-    data: {
-      id: createdMemory.id,
-      type: createdMemory.type,
-      title: createdMemory.title,
-      description: createdMemory.description,
-      fileCreatedAt: createdMemory.fileCreatedAt,
-      isPublic: createdMemory.isPublic,
-      parentFolderId: createdMemory.parentFolderId,
-      tags: createdMemory.tags,
-      recipients: createdMemory.recipients,
-      unlockDate: createdMemory.unlockDate,
-      metadata: createdMemory.metadata,
-      createdAt: createdMemory.createdAt,
-      assets: createdAssets, // Include created assets
-    },
-  });
 }
 
+import { detectMemoryType } from '@/utils/memory-type';
+
 /**
- * Standardize upload response format
- * Creates consistent response structure for file uploads
+ * Extract memory type from MIME type
+ * @deprecated Use detectMemoryType from @/utils/memory-type instead
  */
-export function createUploadResponse(
-  successfulUploads: Array<{
-    success: true;
-    fileName: string;
-    url?: string;
-    memory: unknown;
-  }>,
-  failedUploads: Array<{
-    success: false;
-    fileName: string;
-    error: unknown;
-  }>,
-  totalFiles: number,
-  duration: number
-): NextResponse {
-  return NextResponse.json({
-    success: true,
-    data: successfulUploads.map(upload => upload.memory),
-    summary: {
-      totalFiles,
-      successfulUploads: successfulUploads.length,
-      failedUploads: failedUploads.length,
-      duration: `${duration}ms`,
-    },
-    errors: failedUploads.length > 0 ? failedUploads : undefined,
-  });
+function extractMemoryType(contentType: string): 'image' | 'video' | 'document' | 'note' | 'audio' {
+  return detectMemoryType(contentType);
 }
 
 /**
- * Create a memory from blob upload data
- * This function is called from the grant route's onUploadCompleted callback
- * to persist memory records after successful blob uploads
+ * Extract title from file path
+ */
+function extractTitleFromPath(pathname: string): string {
+  return pathname.split('/').pop()?.split('.')[0] || 'Untitled';
+}
+
+/**
+ * Create memory from blob data with automatic type/title extraction
+ * This is a convenience wrapper around createMemory()
+ *
+ * This function now uses the service layer instead of direct database operations.
  */
 export async function createMemoryFromBlob(
   blob: {
@@ -286,78 +178,69 @@ export async function createMemoryFromBlob(
   }
 ): Promise<{ success: boolean; memoryId?: string; error?: string }> {
   try {
-    console.log('📦 Creating memory from blob:', { url: blob.url, size: blob.size, contentType: blob.contentType });
+    fatLogger.info('Creating memory from blob', 'be', {
+      operation: 'create_memory_from_blob',
+      url: blob.url,
+      size: blob.size,
+      contentType: blob.contentType,
+      allUserId: meta.allUserId,
+    });
 
-    // Determine memory type from content type
-    const memoryType = blob.contentType.startsWith('image/')
-      ? 'image'
-      : blob.contentType.startsWith('video/')
-        ? 'video'
-        : blob.contentType.startsWith('audio/')
-          ? 'audio'
-          : 'document';
+    // Extract missing information automatically
+    const memoryType = extractMemoryType(blob.contentType);
+    const title = extractTitleFromPath(blob.pathname);
 
-    // Extract title from pathname
-    const title = blob.pathname.split('/').pop()?.split('.')[0] || 'Untitled';
+    const assetData: CreateMemoryAssetParams = {
+      assetType: 'original',
+      url: blob.url,
+      assetLocation: blob.assetLocation || 's3',
+      storageKey: blob.storageKey || blob.pathname,
+      bytes: blob.size,
+      mimeType: blob.contentType,
+      processingStatus: 'completed',
+    };
 
-    // Handle onboarding logic
-    const finalOwnerId = meta.allUserId;
-    if (meta.isOnboarding) {
-      console.log('🎯 Onboarding upload detected - using provided allUserId');
-      // For onboarding, we trust the provided allUserId (should be from temporary user creation)
-    }
-
-    // Create memory record
-    const newMemory: NewDBMemory = {
-      ownerId: finalOwnerId,
-      type: memoryType as 'image' | 'video' | 'document' | 'note' | 'audio',
+    const params: CreateMemoryParams = {
+      ownerId: meta.allUserId,
+      type: memoryType,
       title,
       description: '',
       fileCreatedAt: new Date(),
       isPublic: false,
-      ownerSecureCode: randomUUID(),
       parentFolderId: null,
       tags: [],
       recipients: [],
       unlockDate: null,
       metadata: {},
+      storageDuration: null,
+      assets: [assetData],
+      isOnboarding: meta.isOnboarding,
+      mode: meta.mode,
     };
 
-    const [createdMemory] = await db.insert(memories).values(newMemory).returning();
-    console.log('✅ Memory created from blob:', { id: createdMemory.id, ownerId: finalOwnerId });
+    // Use the unified createMemory function (which now uses the service layer)
+    const result = await createMemory(params);
 
-    // Create asset record
-    const { memoryAssets } = await import('@/db/schema');
-    const assetLocation = blob.assetLocation || 's3';
-    const storageKey = blob.storageKey || blob.pathname;
+    if (result.success) {
+      fatLogger.info('Successfully created memory from blob', 'be', {
+        operation: 'create_memory_from_blob',
+        memoryId: result.memoryId,
+        url: blob.url,
+        size: blob.size,
+        contentType: blob.contentType,
+      });
+    }
 
-    const assetData = {
-      memoryId: createdMemory.id,
-      assetType: 'original' as const,
-      variant: null,
-      url: blob.url,
-      assetLocation,
-      storageKey,
-      bytes: blob.size,
-      width: null,
-      height: null,
-      mimeType: blob.contentType,
-      sha256: null,
-      processingStatus: 'completed' as const,
-      processingError: null,
-    };
-
-    console.log('📦 Creating asset with storage:', { assetLocation, storageKey });
-
-    const [createdAsset] = await db.insert(memoryAssets).values(assetData).returning();
-    console.log('✅ Asset created from blob:', { id: createdAsset.id, url: blob.url });
-
-    return {
-      success: true,
-      memoryId: createdMemory.id,
-    };
+    return result;
   } catch (error) {
-    console.error('❌ Failed to create memory from blob:', error);
+    fatLogger.error('Error in createMemoryFromBlob', 'be', {
+      operation: 'create_memory_from_blob',
+      url: blob.url,
+      size: blob.size,
+      contentType: blob.contentType,
+      allUserId: meta.allUserId,
+      error: error instanceof Error ? error : undefined,
+    });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',

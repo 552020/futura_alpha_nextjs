@@ -7,10 +7,10 @@ export async function GET(request: NextRequest) {
 }
 
 // POST /api/memories - Create new memory with optional file upload
-export async function POST(request: NextRequest) {
-  const { handleApiMemoryPost } = await import('./post');
-  return await handleApiMemoryPost(request);
-}
+// export async function POST(request: NextRequest) {
+//   const { handleApiMemoryPost } = await import('./post');
+//   return await handleApiMemoryPost(request);
+// }
 
 // DELETE /api/memories - Bulk delete memories (for testing)
 export async function DELETE(request: NextRequest) {

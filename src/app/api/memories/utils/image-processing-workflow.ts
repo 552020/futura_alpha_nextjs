@@ -9,9 +9,10 @@
 import { put } from '@vercel/blob';
 import { processImageForMultipleAssetsBackend } from './image-processing-backend';
 import { db } from '@/db/db';
-import { memoryAssets } from '@/db/schema';
+import { memoryAssets } from '@/db';
 import { eq } from 'drizzle-orm';
 
+import { fatLogger } from '@/lib/logger';
 export interface ImageProcessingWorkflowInput {
   memoryId: string;
   originalBlobUrl: string;
@@ -27,8 +28,8 @@ export interface ImageProcessingWorkflowInput {
  */
 export async function processImageDerivatives(input: ImageProcessingWorkflowInput): Promise<void> {
   try {
-    console.log(`🖼️ Starting image processing workflow for memory ${input.memoryId}`);
-    console.log(`📥 Original blob URL: ${input.originalBlobUrl}`);
+    fatLogger.info(`Starting image processing workflow for memory ${input.memoryId}`, 'be');
+    fatLogger.info('Original blob URL', 'be', { url: input.originalBlobUrl });
 
     // Download the original image from blob storage
     const originalResponse = await fetch(input.originalBlobUrl);
@@ -37,28 +38,30 @@ export async function processImageDerivatives(input: ImageProcessingWorkflowInpu
     }
 
     const originalBuffer = await originalResponse.arrayBuffer();
-    console.log(`📥 Downloaded original image: ${originalBuffer.byteLength} bytes`);
-    
+    fatLogger.info('Downloaded original image', 'be', {
+      size: originalBuffer.byteLength,
+    });
+
     const originalFile = new File([originalBuffer], input.originalPathname, {
       type: input.originalContentType,
     });
 
     // Process the image to create derivatives
-    console.log(`🔄 Processing image derivatives...`);
+    fatLogger.info('Processing image derivatives', 'be');
     const processedAssets = await processImageForMultipleAssetsBackend(originalFile);
-    console.log(`✅ Image processing complete:`, {
+    fatLogger.info('Image processing complete', 'be', {
       display: `${processedAssets.display.width}x${processedAssets.display.height} (${processedAssets.display.size} bytes)`,
       thumb: `${processedAssets.thumb.width}x${processedAssets.thumb.height} (${processedAssets.thumb.size} bytes)`,
     });
 
     // Upload derivatives to blob storage
-    console.log(`📤 Uploading derivatives to blob storage...`);
+    fatLogger.info('Uploading derivatives to blob storage', 'be');
     const [displayResult, thumbResult] = await Promise.all([
       uploadDerivativeToBlob(processedAssets.display, 'display'),
       uploadDerivativeToBlob(processedAssets.thumb, 'thumb'),
     ]);
 
-    console.log(`📤 Uploaded derivatives:`, {
+    fatLogger.info('Uploaded derivatives', 'be', {
       display: displayResult.url,
       thumb: thumbResult.url,
     });
@@ -98,9 +101,11 @@ export async function processImageDerivatives(input: ImageProcessingWorkflowInpu
     ];
 
     await db.insert(memoryAssets).values(assetData);
-    console.log(`✅ Created ${assetData.length} derivative asset records for memory ${input.memoryId}`);
+    fatLogger.info(`Created ${assetData.length} derivative asset records for memory ${input.memoryId}`, 'be');
   } catch (error) {
-    console.error(`❌ Image processing workflow failed for memory ${input.memoryId}:`, error);
+    fatLogger.error(`Image processing workflow failed for memory ${input.memoryId}`, 'be', {
+      error: error instanceof Error ? error : undefined,
+    });
 
     // Update the original asset with processing error
     try {
@@ -111,9 +116,11 @@ export async function processImageDerivatives(input: ImageProcessingWorkflowInpu
           processingError: error instanceof Error ? error.message : 'Unknown error',
         })
         .where(eq(memoryAssets.memoryId, input.memoryId));
-      console.log(`📝 Updated original asset with processing error for memory ${input.memoryId}`);
+      fatLogger.info(`Updated original asset with processing error for memory ${input.memoryId}`, 'be');
     } catch (updateError) {
-      console.error('Failed to update asset with processing error:', updateError);
+      fatLogger.error('Failed to update asset with processing error', 'be', {
+        error: updateError,
+      });
     }
   }
 }
@@ -149,11 +156,13 @@ export function enqueueImageProcessing(input: ImageProcessingWorkflowInput): voi
   // This is more reliable than process.nextTick for serverless environments
   setTimeout(async () => {
     try {
-      console.log(`🚀 Starting async image processing for memory ${input.memoryId}`);
+      fatLogger.info(`Starting async image processing for memory ${input.memoryId}`, 'be');
       await processImageDerivatives(input);
-      console.log(`✅ Completed async image processing for memory ${input.memoryId}`);
+      fatLogger.info(`Completed async image processing for memory ${input.memoryId}`, 'be');
     } catch (error) {
-      console.error(`❌ Async image processing failed for memory ${input.memoryId}:`, error);
+      fatLogger.error(`Async image processing failed for memory ${input.memoryId}`, 'be', {
+        error: error instanceof Error ? error : undefined,
+      });
     }
   }, 0);
 }

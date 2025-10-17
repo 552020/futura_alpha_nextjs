@@ -1,14 +1,15 @@
 import { S3Client, DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 
+import { fatLogger } from '@/lib/logger';
 // Get bucket name from environment variables
 const BUCKET_NAME = process.env.NEXT_PUBLIC_AWS_S3_BUCKET || 'futura0';
 
 if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
-  console.warn('⚠️ AWS credentials not found. S3 operations will fail.');
+  fatLogger.warn('AWS credentials not found. S3 operations will fail', 'be');
 }
 
 if (!process.env.AWS_S3_REGION) {
-  console.warn('⚠️ AWS_S3_REGION not set. Defaulting to eu-central-1');
+  fatLogger.warn('AWS_S3_REGION not set, defaulting to eu-central-1', 'be');
 }
 
 // Initialize S3 client with explicit credentials and region
@@ -18,7 +19,6 @@ const s3Client = new S3Client({
     accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
   },
-  logger: console, // request logging for debugging
 });
 
 /**
@@ -40,7 +40,10 @@ async function objectExists(key: string): Promise<boolean> {
     if (err.name === 'NotFound') {
       return false;
     }
-    console.error(`❌ Unexpected error checking if S3 object exists (${key}):`, err);
+    fatLogger.error('Unexpected error checking if S3 object exists', 'be', {
+      key,
+      error: err,
+    });
     return false;
   }
 }
@@ -49,26 +52,32 @@ async function objectExists(key: string): Promise<boolean> {
  * Delete an object from S3 with enhanced error handling and logging
  */
 export async function deleteS3Object(key: string): Promise<boolean> {
-  console.log('🔧 deleteS3Object called with key:', key);
+  fatLogger.info('deleteS3Object called', 'be', { key });
 
   if (!key) {
-    console.warn('⚠️ Attempted to delete S3 object with empty key');
+    fatLogger.warn('Attempted to delete S3 object with empty key', 'be');
     return false;
   }
 
   const bucket = BUCKET_NAME;
 
   try {
-    console.log('🔍 Checking if object exists before deletion...');
+    fatLogger.info('Checking if object exists before deletion', 'be');
     const exists = await objectExists(key);
-    console.log(`🔍 Object ${exists ? 'exists' : 'does not exist'}: ${key}`);
+    fatLogger.info('Object existence check completed', 'be', {
+      key,
+      exists,
+    });
 
     if (!exists) {
-      console.warn(`⚠️ S3 object does not exist: ${key}`);
+      fatLogger.warn(`S3 object does not exist: ${key}`, 'be');
       return true; // Safe to treat as success
     }
 
-    console.log(`🗑️ Attempting to delete S3 object: ${key} from bucket: ${bucket}`);
+    fatLogger.info('Attempting to delete S3 object', 'be', {
+      key,
+      bucket,
+    });
 
     const command = new DeleteObjectCommand({
       Bucket: bucket,
@@ -76,7 +85,7 @@ export async function deleteS3Object(key: string): Promise<boolean> {
     });
 
     const result = await s3Client.send(command);
-    console.log(`✅ DeleteObjectCommand sent successfully`, {
+    fatLogger.info('DeleteObjectCommand sent successfully', 'be', {
       deleteMarker: result.DeleteMarker,
       versionId: result.VersionId,
       requestId: result.$metadata.requestId,
@@ -88,7 +97,7 @@ export async function deleteS3Object(key: string): Promise<boolean> {
       const stillExists = await objectExists(key);
       if (stillExists) {
         const objectUrl = `https://${bucket}.s3.${process.env.AWS_S3_REGION || 'eu-central-1'}.amazonaws.com/${key}`;
-        console.error(`❌ S3 object still exists after deletion attempt`, {
+        fatLogger.error('S3 object still exists after deletion attempt', 'be', {
           key,
           bucket,
           region: process.env.AWS_S3_REGION || 'eu-central-1',
@@ -97,7 +106,7 @@ export async function deleteS3Object(key: string): Promise<boolean> {
         });
         return false;
       }
-      console.log('✅ Deletion verified', {
+      fatLogger.info('Deletion verified', 'be', {
         key,
         bucket,
         region: process.env.AWS_S3_REGION || 'eu-central-1',
@@ -115,8 +124,7 @@ export async function deleteS3Object(key: string): Promise<boolean> {
     return true;
   } catch (error) {
     const fullUrl = `https://${bucket}.s3.${process.env.AWS_S3_REGION || 'eu-central-1'}.amazonaws.com/${key}`;
-    const errorMsg = `Unexpected error deleting S3 object: ${error instanceof Error ? error.message : String(error)}`;
-    console.error(errorMsg, {
+    fatLogger.error('Unexpected error deleting S3 object', 'be', {
       key,
       url: fullUrl,
       error:

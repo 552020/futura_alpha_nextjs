@@ -17,11 +17,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
-import { allUsers, memories, memoryAssets, memoryShares } from '@/db/schema';
-import { eq, desc, sql, and } from 'drizzle-orm';
+import { allUsers, memories, memoryAssets, resourceMembership } from '@/db';
+import { eq, desc, sql, and, ne } from 'drizzle-orm';
 import { fetchMemoriesWithGalleries } from './utils/queries';
 import { generateBestAssetUrl } from '@/lib/presigned-url-utils';
+import crypto from 'node:crypto';
 
+import { fatLogger } from '@/lib/logger';
+
+function etagOf(obj: unknown) {
+  const hash = crypto.createHash('sha1').update(JSON.stringify(obj)).digest('hex');
+  return `W/"${hash}"`;
+}
 /**
  * Main GET handler for memory listing
  * Handles pagination, filtering, and asset inclusion
@@ -40,11 +47,11 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
     });
 
     if (!allUserRecord) {
-      console.error('No allUsers record found for user:', session.user.id);
+      fatLogger.error('No allUsers record found for user', 'be', { userId: session.user.id });
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
-    console.log('🔍 API: Found allUserRecord:', allUserRecord.id);
+    fatLogger.info('Found allUserRecord', 'be', { userId: allUserRecord.id });
 
     // Get query parameters
     const searchParams = request.nextUrl.searchParams;
@@ -69,7 +76,7 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
         )
       : eq(memories.ownerId, allUserRecord.id);
 
-    console.log('🔍 API: Built whereCondition for ownerId:', allUserRecord.id);
+    fatLogger.debug('Built whereCondition', 'be', { ownerId: allUserRecord.id });
 
     // Handle optimized query with galleries
     if (useOptimizedQuery) {
@@ -85,69 +92,76 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
           total: memoriesWithGalleries.length,
         });
       } catch (error) {
-        console.error('Error with optimized query:', error);
+        fatLogger.error('Error with optimized query', 'be', {
+          error: error instanceof Error ? error : new Error(String(error)),
+          query: 'optimized',
+          userId: allUserRecord.id,
+        });
         // Fall back to original implementation
       }
     }
 
     // Fetch memories with optional assets and folder information
-    console.log('🔍 API: Fetching memories with whereCondition:', whereCondition);
-    console.log('🔍 API: Pagination params - limit:', limit, 'offset:', offset, 'page:', page);
-
+    fatLogger.debug('Fetching memories with whereCondition', 'be', {
+      whereCondition,
+      pagination: { limit, offset, page },
+    });
     // First, let's check total count without pagination
     const totalCount = await db.query.memories.findMany({
       where: whereCondition,
     });
-    console.log('🔍 API: Total memories count (no pagination):', totalCount.length);
-    console.log(
-      '🔍 API: Total memories by folder:',
-      totalCount.reduce(
-        (acc, m) => {
-          const folderId = m.parentFolderId || 'no-folder';
-          acc[folderId] = (acc[folderId] || 0) + 1;
-          return acc;
-        },
-        {} as Record<string, number>
-      )
+    fatLogger.debug('Total memories count (no pagination)', 'be', { count: totalCount.length });
+    const folderCounts = totalCount.reduce(
+      (acc, m) => {
+        const folderId = m.parentFolderId || 'no-folder';
+        acc[folderId] = (acc[folderId] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
     );
+
+    fatLogger.debug('Total memories by folder', 'be', { counts: folderCounts });
 
     // For dashboard, we need ALL memories to properly group into folders
     // The limit should be applied to the final dashboard items, not raw memories
     const userMemories = await db.query.memories.findMany({
       where: whereCondition,
       orderBy: desc(memories.createdAt),
-      // Remove limit and offset - we need all memories to group properly
       with: includeAssets
         ? {
             assets: true,
-            folder: true, // Include folder information
           }
         : {
             folder: true, // Always include folder information for dashboard grouping
           },
     });
-    console.log('🔍 API: Found memories:', userMemories.length);
-    console.log(
-      '🔍 API: All memories with folder info:',
-      userMemories.map(m => ({
-        id: m.id,
-        title: m.title,
-        parentFolderId: m.parentFolderId,
-        folderName: m.folder?.name,
-      }))
-    );
-    console.log('🔍 API: Sample memory:', userMemories[0]);
 
-    // Calculate share counts for each memory (like the old implementation)
+    // Calculate share counts for each memory using resourceMembership
     const memoriesWithShareInfo = await Promise.all(
       userMemories.map(async memory => {
-        const shareCount = await db
-          .select({ count: sql<number>`count(*)` })
-          .from(memoryShares)
-          .where(eq(memoryShares.memoryId, memory.id));
+        let sharedWithCount = 0;
+        try {
+          // Count memberships for this memory (excluding the owner)
+          const shareCount = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(resourceMembership)
+            .where(and(
+              eq(resourceMembership.resourceType, 'memory'),
+              eq(resourceMembership.resourceId, memory.id),
+              // Don't count the owner's own membership
+              ne(resourceMembership.allUserId, memory.ownerId)
+            ));
+          sharedWithCount = shareCount[0]?.count || 0;
+        } catch (error) {
+          // Handle potential issues gracefully
+          fatLogger.debug('resourceMembership query failed, assuming no shares', 'be', {
+            memoryId: memory.id,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          sharedWithCount = 0;
+        }
 
-        const sharedWithCount = shareCount[0]?.count || 0;
-        const status = memory.isPublic ? 'public' : sharedWithCount > 0 ? 'shared' : 'private';
+        const status = memory.sharingStatus === 'public' ? 'public' : sharedWithCount > 0 ? 'shared' : 'private';
 
         return {
           ...memory,
@@ -162,7 +176,7 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
       // Add thumbnails for grid view
       const memoriesWithThumbs = await Promise.all(
         memoriesWithShareInfo.map(async memory => {
-          console.log(`🔍 Processing memory ${memory.id} for thumbnail`);
+          fatLogger.debug('Processing memory for thumbnail', 'be', { memoryId: memory.id });
 
           // Get thumb asset and placeholder asset for better UX
           const [thumbAsset, displayAsset, originalAsset, placeholderAsset] = await Promise.all([
@@ -182,28 +196,29 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
 
           // Use thumb if available, otherwise fallback to display, then original
           const thumbOrFallback = thumbAsset || displayAsset || originalAsset;
-
-          console.log(`📸 Found asset for memory ${memory.id}:`, {
-            assetType: thumbOrFallback?.assetType,
-            url: thumbOrFallback?.url,
-            assetLocation: thumbOrFallback?.assetLocation,
-            storageKey: thumbOrFallback?.storageKey,
-            bucket: thumbOrFallback?.bucket,
-          });
-
-          // Generate presigned URL for thumbnail if asset exists
           let thumbnailUrl = null;
+
           if (thumbOrFallback) {
             try {
               thumbnailUrl = await generateBestAssetUrl(thumbOrFallback);
-              console.log(`🎯 Generated thumbnail URL for memory ${memory.id}:`, thumbnailUrl);
+              fatLogger.info('Generated thumbnail URL', 'be', {
+                memoryId: memory.id,
+                thumbnailUrl,
+              });
             } catch (error) {
-              console.warn(`Failed to generate thumbnail URL for memory ${memory.id}:`, error);
-              thumbnailUrl = thumbOrFallback.url; // Fallback to direct URL
-              console.log(`🔄 Using fallback URL for memory ${memory.id}:`, thumbnailUrl);
+              const errorObj = error instanceof Error ? error : new Error(String(error));
+              fatLogger.warn('Failed to generate thumbnail URL', 'be', {
+                memoryId: memory.id,
+                error: errorObj,
+              });
+              thumbnailUrl = thumbOrFallback.url;
+              fatLogger.debug('Using fallback URL', 'be', {
+                memoryId: memory.id,
+                thumbnailUrl,
+              });
             }
           } else {
-            console.log(`❌ No asset found for memory ${memory.id}`);
+            fatLogger.warn('No asset found for memory', 'be', { memoryId: memory.id });
           }
 
           return {
@@ -224,17 +239,52 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
       });
     }
 
-    console.log('🔍 API: Returning memories:', memoriesWithShareInfo.length);
-    console.log('🔍 API: Sample returned memory:', memoriesWithShareInfo[0]);
+    fatLogger.debug('Returning memories', 'be', {
+      count: memoriesWithShareInfo.length,
+      sample: memoriesWithShareInfo[0] || null,
+    });
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       data: memoriesWithShareInfo,
       hasMore: false, // No pagination for now - dashboard needs all memories to group properly
       total: memoriesWithShareInfo.length,
+    };
+
+    const etag = etagOf(responseData);
+    const ifNoneMatch = request.headers.get('if-none-match');
+
+    if (ifNoneMatch === etag) {
+      return new NextResponse(null, {
+        status: 304,
+        headers: {
+          'Cache-Control': 'public, max-age=300, stale-while-revalidate=86400',
+          ETag: etag,
+        },
+      });
+    }
+
+    return NextResponse.json(responseData, {
+      headers: {
+        'Cache-Control': 'public, max-age=300, stale-while-revalidate=86400',
+        ETag: etag,
+      },
     });
   } catch (error) {
-    console.error('Error listing memories:', error);
-    return NextResponse.json({ error: 'Failed to list memories' }, { status: 500 });
+    const listError = error instanceof Error ? error : new Error(String(error));
+    console.error('Detailed error in memories API:', {
+      error: listError,
+      message: listError.message,
+      stack: listError.stack,
+      userId: session?.user?.id,
+    });
+    fatLogger.error('Error listing memories', 'be', {
+      error: listError,
+      userId: session?.user?.id,
+    });
+    return NextResponse.json({ 
+      error: 'Failed to list memories',
+      details: listError.message 
+    }, { status: 500 });
   }
 }

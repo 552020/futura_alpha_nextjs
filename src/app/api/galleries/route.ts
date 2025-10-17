@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
 import { eq, desc, and, inArray } from 'drizzle-orm';
-import { galleries, allUsers, memories as memoriesTable, folders, galleryItems } from '@/db/schema';
+import { galleries, allUsers, memories as memoriesTable, folders, galleryItems, resourceMembership } from '@/db';
 import { addStorageStatusToGalleries } from './utils';
 
+import { fatLogger } from '@/lib/logger';
 export async function GET(request: NextRequest) {
   // Returns all galleries owned by the authenticated user
   // A gallery is a collection of memories (images, videos, documents, notes, audio)
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!allUserRecord) {
-      console.error('No allUsers record found for user:', session.user.id);
+      fatLogger.error('No allUsers record found for user:', 'be', { data: session.user.id });
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '12');
     const offset = (page - 1) * limit;
 
-    // console.log("Fetching galleries for:", {
+    // fatLogger.info("Fetching galleries for:", undefined, {
     //   sessionUserId: session.user.id,
     //   allUserId: allUserRecord.id,
     //   page,
@@ -40,30 +41,64 @@ export async function GET(request: NextRequest) {
     //   offset,
     // });
 
-    // Fetch user's galleries
-    const userGalleries = await db.query.galleries.findMany({
+    // Fetch user's owned galleries
+    const ownedGalleries = await db.query.galleries.findMany({
       where: eq(galleries.ownerId, allUserRecord.id),
       orderBy: desc(galleries.createdAt),
-      limit: limit,
-      offset: offset,
     });
 
-    // Add computed storage status to galleries
-    const galleriesWithStorageStatus = await addStorageStatusToGalleries(userGalleries);
+    // Fetch galleries shared with the user using the universal resource sharing system
+    const sharedGalleryMemberships = await db.query.resourceMembership.findMany({
+      where: and(
+        eq(resourceMembership.allUserId, allUserRecord.id),
+        eq(resourceMembership.resourceType, 'gallery')
+      ),
+    });
 
-    // console.log("Fetched galleries:", {
+    // Get the actual gallery data for shared galleries
+    const sharedGalleryIds = sharedGalleryMemberships.map(m => m.resourceId);
+    const sharedGalleries = sharedGalleryIds.length > 0
+      ? await db.query.galleries.findMany({
+        where: inArray(galleries.id, sharedGalleryIds),
+        orderBy: desc(galleries.createdAt),
+      })
+      : [];
+
+    // Combine owned and shared galleries
+    const allGalleries = [...ownedGalleries, ...sharedGalleries];
+
+    // Sort by createdAt descending
+    allGalleries.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+    // Apply pagination
+    const paginatedGalleries = allGalleries.slice(offset, offset + limit);
+
+    // Add computed storage status to galleries
+    const galleriesWithStorageStatus = await addStorageStatusToGalleries(paginatedGalleries);
+
+    // Add isOwner flag to each gallery
+    const galleriesWithOwnership = galleriesWithStorageStatus.map(gallery => ({
+      ...gallery,
+      isOwner: gallery.ownerId === allUserRecord.id,
+    }));
+
+    // fatLogger.info("Fetched galleries:", undefined, {
     //   page,
     //   limit,
     //   offset,
-    //   galleriesCount: userGalleries.length,
+    //   ownedCount: ownedGalleries.length,
+    //   sharedCount: sharedGalleries.length,
+    //   totalCount: allGalleries.length,
+    //   paginatedCount: paginatedGalleries.length,
     // });
 
     return NextResponse.json({
-      galleries: galleriesWithStorageStatus,
-      hasMore: userGalleries.length === limit,
+      galleries: galleriesWithOwnership,
+      hasMore: offset + limit < allGalleries.length,
+      totalCount: allGalleries.length,
     });
   } catch (error) {
-    console.error('Error listing galleries:', error);
+    fatLogger.error('Error listing galleries:', 'be', { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to list galleries' }, { status: 500 });
   }
 }
@@ -82,20 +117,22 @@ export async function POST(request: NextRequest) {
     });
 
     if (!allUserRecord) {
-      console.error('No allUsers record found for user:', session.user.id);
+      fatLogger.error('No allUsers record found for user:', 'be', { data: session.user.id });
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
     const body = await request.json();
     const { type, folderName, memories, title, description, isPublic = false } = body;
 
-    console.log('🔍 Gallery Creation Request:', {
+    fatLogger.info('🔍 Gallery Creation Request:', 'be', {
       type,
       folderName,
+      folderNameType: typeof folderName,
       title,
       description,
       isPublic,
       memoriesCount: memories?.length || 0,
+      allUserRecordId: allUserRecord.id,
     });
 
     if (!type || !['from-folder', 'from-memories'].includes(type)) {
@@ -116,7 +153,7 @@ export async function POST(request: NextRequest) {
         orderBy: desc(folders.createdAt), // Get the most recent one
       });
 
-      console.log('🔍 All folders with name:', {
+      fatLogger.info('🔍 All folders with name:', 'be', {
         folderName,
         count: allFoldersWithName.length,
         folders: allFoldersWithName.map(f => ({ id: f.id, name: f.name, createdAt: f.createdAt })),
@@ -130,7 +167,7 @@ export async function POST(request: NextRequest) {
       const folder = allFoldersWithName[0];
 
       // Find all memories that belong to this folder using the unified memories table
-      console.log('🔍 Gallery Creation Debug:', {
+      fatLogger.info('🔍 Gallery Creation Debug:', 'be', {
         folderName,
         folderId: folder.id,
         ownerId: allUserRecord.id,
@@ -140,7 +177,7 @@ export async function POST(request: NextRequest) {
         where: and(eq(memoriesTable.ownerId, allUserRecord.id), eq(memoriesTable.parentFolderId, folder.id)),
       });
 
-      console.log('🔍 Found folder memories:', {
+      fatLogger.info('🔍 Found folder memories:', 'be', {
         count: folderMemories.length,
         memories: folderMemories.map(m => ({ id: m.id, title: m.title, parentFolderId: m.parentFolderId })),
       });
@@ -171,13 +208,15 @@ export async function POST(request: NextRequest) {
       .values({
         ownerId: allUserRecord.id,
         title: title || (type === 'from-folder' ? `Gallery from ${folderName}` : 'My Gallery'),
-        description:
-          description || (type === 'from-folder' ? `Gallery created from folder: ${folderName}` : 'Custom gallery'),
-        isPublic,
+        description: description || '',
+        sharingStatus: isPublic ? 'public' : 'private',
         // Storage status fields - will be calculated from memories
         totalMemories: galleryMemories.length,
-        averageStorageDuration: null, // Will be calculated from memories
-        storageDistribution: {}, // Will be calculated from memories
+        name: (title || (type === 'from-folder' ? `Gallery from ${folderName}` : 'My Gallery'))
+          .toLowerCase()
+          .replace(/\s+/g, '-'),
+        sharedCount: 0,
+        storageLocation: ['s3'],
       })
       .returning();
 
@@ -204,36 +243,30 @@ export async function POST(request: NextRequest) {
     });
 
     // Calculate storage distribution
-    const storageDistribution: Record<string, number> = {};
-    let totalDuration = 0;
-    let permanentCount = 0;
+    // const _storageDistribution: Record<string, number> = {};
+    let _totalDuration = 0;
+    let _permanentCount = 0;
 
     memoriesWithStorage.forEach(memory => {
       // Note: storageLocations field has been removed from schema
       // Storage distribution calculation is simplified
 
       if (memory.storageDuration === null) {
-        permanentCount++;
+        _permanentCount++;
       } else {
-        totalDuration += memory.storageDuration;
+        _totalDuration += memory.storageDuration;
       }
     });
 
-    const averageStorageDuration =
-      permanentCount === memoriesWithStorage.length
-        ? null
-        : Math.round(totalDuration / (memoriesWithStorage.length - permanentCount));
+    // const _averageStorageDuration =
+    //   _permanentCount === memoriesWithStorage.length
+    //     ? null
+    //     : Math.round(_totalDuration / (memoriesWithStorage.length - _permanentCount));
 
-    // Update gallery with calculated storage status
-    await db
-      .update(galleries)
-      .set({
-        averageStorageDuration,
-        storageDistribution,
-      })
-      .where(eq(galleries.id, gallery.id));
+    // Note: Storage status is already set during gallery creation above
+    // No need to update again since we're not changing any values
 
-    // console.log("Created gallery:", {
+    // fatLogger.info("Created gallery:", undefined, {
     //   type,
     //   folderName,
     //   galleryId: gallery.id,
@@ -250,7 +283,14 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    console.error('Error creating gallery:', error);
-    return NextResponse.json({ error: 'Failed to create gallery' }, { status: 500 });
+    fatLogger.error('Error creating gallery:', 'be', {
+      data: error instanceof Error ? error : undefined,
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    return NextResponse.json({
+      error: 'Failed to create gallery',
+      details: error instanceof Error ? error.message : String(error),
+    }, { status: 500 });
   }
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { fatLogger } from '@/lib/logger';
 type PresignedUrlInfo = {
   signedUrl: string;
   s3Key: string;
@@ -161,7 +162,7 @@ export function useMemoryUpload(): UseMemoryUploadResult {
 
       return await commitResponse.json();
     } catch (error) {
-      console.error('Error during upload:', error);
+      fatLogger.error('Error during upload:', 'fe', { data: error instanceof Error ? error : undefined });
       // Update all pending/uploading uploads to error state
       setUploads(prev =>
         prev.map(upload =>

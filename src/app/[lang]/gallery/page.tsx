@@ -12,7 +12,9 @@ import { CreateGalleryModal } from '@/components/galleries/create-gallery-modal'
 import { LoadingSpinner } from '@/components/common/loading-spinner';
 import { ErrorState } from '@/components/common/error-state';
 import { GalleryGrid } from '@/components/galleries/gallery-grid';
+import { GalleryShareDialog } from '@/components/galleries/share-modals/gallery-share';
 
+import { fatLogger } from '@/lib/logger';
 // Mock data flag for development
 // 📝 Sample data generation script: scripts/mock-data/create-gallery-sample-data.ts
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_GALLERY === 'true';
@@ -28,6 +30,8 @@ export default function GalleryPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [selectedGallery, setSelectedGallery] = useState<GalleryWithItems | null>(null);
 
   useEffect(() => {
     if (isAuthorized) {
@@ -44,7 +48,7 @@ export default function GalleryPage() {
       setGalleries(result.galleries);
       setFilteredGalleries(result.galleries);
     } catch (err) {
-      console.error('Error loading galleries:', err);
+      fatLogger.error('Error loading galleries', 'fe', { data: err as Error });
       setError('Failed to load galleries');
     } finally {
       setIsLoading(false);
@@ -56,7 +60,16 @@ export default function GalleryPage() {
     window.location.href = `/${lang}/gallery/${gallery.id}`;
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleGalleryShare = (gallery: GalleryWithItems) => {
+    setSelectedGallery(gallery);
+    setShareDialogOpen(true);
+  };
+
+  const handleShareComplete = () => {
+    // Optionally reload galleries to update share counts
+    loadGalleries();
+  };
+
   const handleGalleryCreated = (_galleryId: string) => {
     // Reload galleries to show the new one
     loadGalleries();
@@ -111,7 +124,11 @@ export default function GalleryPage() {
 
       {/* Gallery Grid */}
       <div className="container mx-auto px-6">
-        <GalleryGrid galleries={filteredGalleries} onGalleryClick={handleGalleryClick} viewMode={viewMode} />
+        <GalleryGrid 
+          galleries={filteredGalleries} 
+          onGalleryClick={handleGalleryClick}
+          onGalleryShare={handleGalleryShare}
+        />
       </div>
 
       {/* Create Gallery Modal */}
@@ -121,6 +138,17 @@ export default function GalleryPage() {
         onOpenChange={setShowCreateModal}
         onGalleryCreated={handleGalleryCreated}
       />
+
+      {/* Share Gallery Dialog */}
+      {selectedGallery && (
+        <GalleryShareDialog
+          galleryId={selectedGallery.id}
+          galleryTitle={selectedGallery.title}
+          open={shareDialogOpen}
+          onOpenChange={setShareDialogOpen}
+          onShare={handleShareComplete}
+        />
+      )}
     </div>
   );
 }

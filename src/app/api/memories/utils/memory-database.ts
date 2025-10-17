@@ -15,14 +15,20 @@
  * - cleanupStorageEdgesForMemory(): Clean up storage tracking
  */
 
-import { db } from '@/db/db';
-import { memories, memoryAssets } from '@/db/schema';
-import { NewDBMemory, NewDBMemoryAsset, DBMemory } from '@/db/schema';
-import { and, eq } from 'drizzle-orm';
-import crypto from 'crypto';
+import { NewDBMemory, NewDBMemoryAsset, DBMemory } from '@/db/types';
 import { randomUUID } from 'crypto';
 import type { AcceptedMimeType } from './file-processing';
 import { getMemoryType } from './file-processing';
+import { createStorageEdge, getStorageEdges, deleteStorageEdges } from '@/services/storage-edges';
+import {
+  createMemoryRecord,
+  createAssetRecords,
+  getAssetRecordsByMemory,
+  hardDeleteAssetRecord,
+  getMemoryRecord,
+  type CreateMemoryParams,
+  type CreateAssetParams,
+} from '@/services/memory';
 
 export type UploadResponse = {
   type: 'image' | 'video' | 'document' | 'note' | 'audio';
@@ -43,12 +49,11 @@ export function buildNewMemoryAndAsset(
   const name = file.name || 'Untitled';
 
   const memory: NewDBMemory = {
-    ownerId,
+    ownerId: ownerId,
     type: getMemoryType(file.type as AcceptedMimeType) as 'image' | 'video' | 'document' | 'note' | 'audio',
     title: name,
     description: '',
-    fileCreatedAt: new Date(),
-    isPublic: false,
+    createdAt: new Date(),
     parentFolderId: parentFolderId || null,
     ownerSecureCode: randomUUID(),
   };
@@ -62,9 +67,9 @@ export function buildNewMemoryAndAsset(
     storageKey:
       assetLocation === 's3'
         ? url.replace(
-            `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_S3_REGION || 'eu-central-1'}.amazonaws.com/`,
-            ''
-          )
+          `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_S3_REGION || 'eu-central-1'}.amazonaws.com/`,
+          ''
+        )
         : url.split('/').pop() || '',
     bytes: file.size,
     width: null,
@@ -81,6 +86,8 @@ export function buildNewMemoryAndAsset(
 /**
  * Process multiple files and create memories/assets in batch
  * This function handles the batch processing logic for folder uploads
+ *
+ * REFACTORED: Now uses the memory service layer instead of direct database operations
  */
 export async function processMultipleFilesBatch(params: {
   files: File[];
@@ -97,36 +104,90 @@ export async function processMultipleFilesBatch(params: {
   const { files, urls, ownerId, parentFolderId, assetLocation = 's3' } = params;
 
   try {
-    // Build memory and asset data for all files
-    const memoryRows: NewDBMemory[] = [];
-    const assetRows: NewDBMemoryAsset[] = [];
-
-    files.forEach((file, index) => {
-      const { memory, asset } = buildNewMemoryAndAsset(file, urls[index], ownerId, parentFolderId, assetLocation);
-      memoryRows.push(memory);
-      assetRows.push(asset);
+    // Create memories using service layer
+    const memoryPromises = files.map(file => {
+      const memoryParams: CreateMemoryParams = {
+        title: file.name.split('.')[0],
+        type: getMemoryType(file.type as AcceptedMimeType) as 'image' | 'video' | 'document' | 'note' | 'audio',
+        ownerId,
+        parentFolderId: parentFolderId || null,
+        metadata: {
+          custom: {
+            originalPath: file.name,
+            uploadedAt: new Date().toISOString(),
+            size: file.size,
+            mimeType: file.type,
+          },
+        },
+        storageDuration: null, // null means permanent storage
+      };
+      return createMemoryRecord(memoryParams);
     });
 
-    // Batch insert memories first
-    const insertedMemories = await db.insert(memories).values(memoryRows).returning();
-    console.log(`✅ Batch inserted ${insertedMemories.length} memories into database`);
+    const memoryResults = await Promise.all(memoryPromises);
 
-    // Update asset memoryIds and insert assets
-    const assetsWithMemoryIds = assetRows.map((asset, index) => ({
-      ...asset,
-      memoryId: insertedMemories[index].id,
+    // Check if any memory creation failed
+    const failedMemories = memoryResults.filter(result => !result.success);
+    if (failedMemories.length > 0) {
+      const error = `Failed to create ${failedMemories.length} memories: ${failedMemories.map(r => r.error).join(', ')}`;
+      fatLogger.error('❌ Error creating memories:', 'be', { error });
+      return {
+        success: false,
+        memories: [],
+        assets: [],
+        error,
+      };
+    }
+
+    const createdMemories = memoryResults.map(result => result.data as DBMemory);
+    fatLogger.info(`✅ Batch created ${createdMemories.length} memories using service layer`, 'be');
+
+    // Create assets using service layer
+    const assetParams: CreateAssetParams[] = files.map((file, index) => ({
+      memoryId: createdMemories[index].id,
+      assetType: 'original',
+      variant: 'default',
+      url: urls[index],
+      assetLocation: assetLocation,
+      storageKey:
+        assetLocation === 's3'
+          ? urls[index].replace(
+              `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_S3_REGION || 'eu-central-1'}.amazonaws.com/`,
+              ''
+            )
+          : urls[index].split('/').pop() || '',
+      bytes: file.size,
+      width: null,
+      height: null,
+      mimeType: file.type,
+      sha256: null,
+      processingStatus: 'completed',
+      processingError: null,
     }));
 
-    const insertedAssets = await db.insert(memoryAssets).values(assetsWithMemoryIds).returning();
-    console.log(`✅ Batch inserted ${insertedAssets.length} assets into database`);
+    const assetResult = await createAssetRecords(assetParams);
+    if (!assetResult.success) {
+      fatLogger.error('❌ Error creating assets:', 'be', { error: assetResult.error });
+      return {
+        success: false,
+        memories: createdMemories,
+        assets: [],
+        error: assetResult.error,
+      };
+    }
+
+    const createdAssets = assetResult.data as any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
+    fatLogger.info(`✅ Batch created ${createdAssets.length} assets using service layer`, 'be');
 
     return {
       success: true,
-      memories: insertedMemories,
-      assets: insertedAssets,
+      memories: createdMemories,
+      assets: createdAssets,
     };
   } catch (error) {
-    console.error('❌ Error processing multiple files batch:', error);
+    fatLogger.error('❌ Error processing multiple files batch:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
     return {
       success: false,
       memories: [],
@@ -137,6 +198,7 @@ export async function processMultipleFilesBatch(params: {
 }
 
 // New function to store in the new unified schema
+// REFACTORED: Now uses the memory service layer instead of direct database operations
 export async function storeInNewDatabase(params: {
   type: 'document' | 'image' | 'video' | 'note' | 'audio';
   ownerId: string;
@@ -153,25 +215,32 @@ export async function storeInNewDatabase(params: {
 }) {
   const { type, ownerId, url, file, metadata, parentFolderId, assetLocation = 's3' } = params;
 
-  // Create memory in the new unified table
-  const newMemory: NewDBMemory = {
-    ownerId,
-    type: type as 'image' | 'video' | 'document' | 'note' | 'audio',
+  // Create memory using service layer
+  const memoryParams: CreateMemoryParams = {
     title: file.name.split('.')[0],
-    description: '',
-    fileCreatedAt: new Date(),
-    isPublic: false,
+    type: type as 'image' | 'video' | 'document' | 'note' | 'audio',
+    ownerId,
     parentFolderId: parentFolderId || null,
-    ownerSecureCode: crypto.randomUUID(),
-    metadata: {},
-    // Storage status fields
+    metadata: {
+      custom: {
+        originalPath: file.name,
+        uploadedAt: metadata.uploadedAt,
+        size: metadata.size,
+        mimeType: metadata.mimeType,
+      },
+    },
     storageDuration: null, // null means permanent storage
   };
 
-  const [createdMemory] = await db.insert(memories).values(newMemory).returning();
+  const memoryResult = await createMemoryRecord(memoryParams);
+  if (!memoryResult.success) {
+    throw new Error(`Failed to create memory: ${memoryResult.error}`);
+  }
 
-  // Create original asset
-  const newAsset: NewDBMemoryAsset = {
+  const createdMemory = memoryResult.data as DBMemory;
+
+  // Create original asset using service layer
+  const assetParams: CreateAssetParams = {
     memoryId: createdMemory.id,
     assetType: 'original',
     variant: 'default',
@@ -180,9 +249,9 @@ export async function storeInNewDatabase(params: {
     storageKey:
       assetLocation === 's3'
         ? url.replace(
-            `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_S3_REGION || 'eu-central-1'}.amazonaws.com/`,
-            ''
-          )
+          `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_S3_REGION || 'eu-central-1'}.amazonaws.com/`,
+          ''
+        )
         : url.split('/').pop() || '',
     bytes: metadata.size,
     width: null, // Will be populated by client-side processing
@@ -193,7 +262,13 @@ export async function storeInNewDatabase(params: {
     processingError: null,
   };
 
-  const [createdAsset] = await db.insert(memoryAssets).values(newAsset).returning();
+  const assetResult = await createAssetRecords([assetParams]);
+  if (!assetResult.success) {
+    throw new Error(`Failed to create asset: ${assetResult.error}`);
+  }
+
+  const createdAssets = assetResult.data as any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const createdAsset = createdAssets[0];
 
   // Create storage edges for the newly created memory
   const storageEdgeResult = await createStorageEdgesForMemory({
@@ -204,7 +279,10 @@ export async function storeInNewDatabase(params: {
   });
 
   if (!storageEdgeResult.success) {
-    console.warn('⚠️ Failed to create storage edges for memory:', createdMemory.id, storageEdgeResult.error);
+    fatLogger.warn('⚠️ Failed to create storage edges for memory:', 'be', {
+      memoryId: createdMemory.id,
+      error: storageEdgeResult.error,
+    });
     // Don't fail the upload if storage edge creation fails
   }
 
@@ -221,6 +299,8 @@ export async function storeInNewDatabase(params: {
 /**
  * Create storage edges for a newly created memory
  * This function creates the necessary storage edge records to track where the memory is stored
+ *
+ * REFACTORED: Now uses the storage edges service layer instead of direct database operations
  */
 export async function createStorageEdgesForMemory(params: {
   memoryId: string;
@@ -232,57 +312,57 @@ export async function createStorageEdgesForMemory(params: {
   const { memoryId, memoryType, url, size, contentHash } = params;
 
   try {
-    // console.log("🔗 Creating storage edges for memory:", { memoryId, memoryType });
+    // fatLogger.info("🔗 Creating storage edges for memory:", undefined, { memoryId, memoryType });
 
     // Create metadata edge for neon-db (always present when memory is created)
-    const metadataEdge = {
+    const metadataResult = await createStorageEdge({
       memoryId,
       memoryType,
-      artifact: 'metadata' as const,
-      backend: 'neon-db' as const,
+      artifact: 'metadata',
+      locationMetadata: 'neon',
       present: true,
-      location: null, // Metadata is stored in the main memory table
+      location: undefined, // Metadata is stored in the main memory table
       contentHash: null,
       sizeBytes: null, // Metadata size is negligible
-      syncState: 'idle' as const,
+      syncState: 'idle',
       syncError: null,
-    };
+    });
 
     // Create asset edge for vercel-blob (present when file is uploaded)
-    const assetEdge = {
+    const assetResult = await createStorageEdge({
       memoryId,
       memoryType,
-      artifact: 'asset' as const,
-      backend: 'vercel-blob' as const,
+      artifact: 'asset',
+      locationAsset: 'vercel_blob',
       present: true,
       location: url, // The blob URL
       contentHash: contentHash || null,
       sizeBytes: size,
-      syncState: 'idle' as const,
+      syncState: 'idle',
       syncError: null,
-    };
+    });
 
-    // Import the storage edges table
-    const { storageEdges } = await import('@/db/schema');
+    if (!metadataResult.success || !assetResult.success) {
+      const error = `Failed to create storage edges: ${metadataResult.error || assetResult.error}`;
+      fatLogger.error('❌ Error creating storage edges:', 'be', { error });
+      return {
+        success: false,
+        error,
+      };
+    }
 
-    // Insert both edges
-    const [metadataResult, assetResult] = await Promise.all([
-      db.insert(storageEdges).values(metadataEdge).returning(),
-      db.insert(storageEdges).values(assetEdge).returning(),
-    ]);
-
-    // console.log("✅ Storage edges created successfully:", {
-    //   metadataEdgeId: metadataResult[0]?.id,
-    //   assetEdgeId: assetResult[0]?.id,
+    // fatLogger.info("✅ Storage edges created successfully:", undefined, {
+    //   metadataEdgeId: metadataResult.data?.id,
+    //   assetEdgeId: assetResult.data?.id,
     // });
 
     return {
       success: true,
-      metadataEdge: metadataResult[0],
-      assetEdge: assetResult[0],
+      metadataEdge: metadataResult.data,
+      assetEdge: assetResult.data,
     };
   } catch (error) {
-    console.error('❌ Error creating storage edges:', error);
+    fatLogger.error('❌ Error creating storage edges:', 'be', { data: error instanceof Error ? error : undefined });
     return {
       success: false,
       error: error instanceof Error ? error.message : String(error),
@@ -298,6 +378,7 @@ export async function createStorageEdgesForMemory(params: {
  */
 import { deleteS3Object } from '@/lib/s3-utils';
 
+import { fatLogger } from '@/lib/logger';
 /**
  * FIXED: Clean up storage edges for a deleted memory
  * This function removes all storage edge records for a given memory
@@ -340,15 +421,14 @@ export async function cleanupStorageEdgesForMemory(params: {
   };
 
   try {
-    console.log('🔄 Starting cleanup for memory:', memoryId);
+    fatLogger.info('🔄 Starting cleanup for memory:', 'be', { memoryId });
 
-    // Import the storage edges and memory assets tables
-    const { storageEdges, memoryAssets } = await import('@/db/schema');
+    // Note: We now use service layer functions instead of direct database operations
 
     // FIXED: Use the provided memory data directly (don't try to fetch from DB)
     const memory = memoryData;
 
-    console.log('🔍 Memory record for cleanup:', {
+    fatLogger.info('🔍 Memory record for cleanup:', 'be', {
       memoryId,
       found: !!memory,
       hasMetadata: !!memory?.metadata,
@@ -359,7 +439,7 @@ export async function cleanupStorageEdgesForMemory(params: {
 
     // If we don't have memory data, we can't do proper cleanup
     if (!memory) {
-      console.error('❌ No memory data provided for cleanup - cannot determine S3 storage key');
+      fatLogger.error('❌ No memory data provided for cleanup - cannot determine S3 storage key', 'be');
       return {
         success: false,
         error: 'No memory data provided for cleanup',
@@ -379,7 +459,7 @@ export async function cleanupStorageEdgesForMemory(params: {
     const hasS3Metadata = storageBackend === 's3' && storageKey;
 
     if (hasS3Metadata && storageKey) {
-      console.log('✅ Found S3 storage info in memory metadata:', {
+      fatLogger.info('✅ Found S3 storage info in memory metadata:', 'be', {
         storageKey,
         backend: storageBackend,
         timestamp: new Date().toISOString(),
@@ -394,7 +474,7 @@ export async function cleanupStorageEdgesForMemory(params: {
         mimeType: memory.metadata?.mimeType as string | undefined,
       });
     } else {
-      console.log('⚠️ No S3 storage info found in memory metadata:', {
+      fatLogger.info('⚠️ No S3 storage info found in memory metadata:', 'be', {
         hasMetadata: !!memory?.metadata,
         hasCustom: !!memory?.metadata?.custom,
         storageBackend: memory?.metadata?.custom?.storageBackend,
@@ -403,8 +483,18 @@ export async function cleanupStorageEdgesForMemory(params: {
     }
 
     // Also check memory_assets table and storage edges as before
-    const dbAssets = await db.select().from(memoryAssets).where(eq(memoryAssets.memoryId, memoryId));
-    console.log(`🔍 Found ${dbAssets.length} assets in memory_assets table`);
+    const assetsResult = await getAssetRecordsByMemory(memoryId);
+    if (!assetsResult.success) {
+      fatLogger.error('❌ Failed to get assets for cleanup:', 'be', { error: assetsResult.error });
+      return {
+        success: false,
+        error: `Failed to get assets: ${assetsResult.error}`,
+        deletedCount: 0,
+        deletedS3Count: 0,
+      };
+    }
+    const dbAssets = assetsResult.data as any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
+    fatLogger.info(`🔍 Found ${dbAssets.length} assets in memory_assets table`, 'be');
 
     // Type assertion for dbAssets
     const typedDbAssets = dbAssets as Array<{
@@ -415,28 +505,21 @@ export async function cleanupStorageEdgesForMemory(params: {
       [key: string]: unknown;
     }>;
 
-    const edges = await db
-      .select({
-        id: storageEdges.id,
-        memoryId: storageEdges.memoryId,
-        memoryType: storageEdges.memoryType,
-        artifact: storageEdges.artifact,
-        locationMetadata: storageEdges.locationMetadata,
-        locationAsset: storageEdges.locationAsset,
-        present: storageEdges.present,
-        locationUrl: storageEdges.locationUrl,
-        contentHash: storageEdges.contentHash,
-        sizeBytes: storageEdges.sizeBytes,
-        syncState: storageEdges.syncState,
-        lastSyncedAt: storageEdges.lastSyncedAt,
-        syncError: storageEdges.syncError,
-        createdAt: storageEdges.createdAt,
-        updatedAt: storageEdges.updatedAt,
-      })
-      .from(storageEdges)
-      .where(and(eq(storageEdges.memoryId, memoryId), eq(storageEdges.memoryType, memoryType)));
-
-    console.log(`🔍 Found ${edges.length} storage edges`);
+    const edgesResult = await getStorageEdges({
+      memoryId,
+      memoryType,
+    });
+    if (!edgesResult.success) {
+      fatLogger.error('❌ Failed to get storage edges for cleanup:', 'be', { error: edgesResult.error });
+      return {
+        success: false,
+        error: `Failed to get storage edges: ${edgesResult.error}`,
+        deletedCount: 0,
+        deletedS3Count: 0,
+      };
+    }
+    const edges = edgesResult.data as any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
+    fatLogger.info(`🔍 Found ${edges.length} storage edges`, 'be');
 
     // Filter and add S3 assets from database
     const s3DbAssets = typedDbAssets.filter(asset => {
@@ -483,58 +566,76 @@ export async function cleanupStorageEdgesForMemory(params: {
       [] as typeof allS3Assets
     );
 
-    console.log(
-      `🗑️ Found ${uniqueS3Assets.length} unique S3 assets to delete:`,
-      uniqueS3Assets.map(a => ({ id: a.id, key: a.storageKey }))
-    );
+    fatLogger.info(`🗑️ Found ${uniqueS3Assets.length} unique S3 assets to delete:`, 'be', {
+      assets: uniqueS3Assets.map(a => ({ id: a.id, key: a.storageKey })),
+    });
 
     // Delete S3 objects
     const s3DeletePromises = uniqueS3Assets.map(async asset => {
       if (!asset.storageKey) return;
 
       try {
-        console.log(`🔄 Attempting to delete S3 object: ${asset.storageKey}`);
+        fatLogger.info(`🔄 Attempting to delete S3 object: ${asset.storageKey}`, 'be');
         const success = await deleteS3Object(asset.storageKey);
 
         if (success) {
-          console.log(`✅ Successfully deleted S3 object: ${asset.storageKey}`);
+          fatLogger.info(`✅ Successfully deleted S3 object: ${asset.storageKey}`, 'be');
           results.deletedS3Objects.push(asset.storageKey);
         } else {
           const msg = `Failed to delete S3 object: ${asset.storageKey}`;
-          console.error(msg);
+          fatLogger.error(msg, 'be');
           results.errors.push(msg);
         }
       } catch (error) {
         const errorMsg = `Error deleting S3 object ${asset.storageKey}: ${error}`;
-        console.error(errorMsg);
+        fatLogger.error(errorMsg, 'be');
         results.errors.push(errorMsg);
       }
     });
 
     await Promise.all(s3DeletePromises);
 
-    // Delete storage edges and memory assets from database
-    const deletedEdges = await db
-      .delete(storageEdges)
-      .where(and(eq(storageEdges.memoryId, memoryId), eq(storageEdges.memoryType, memoryType)))
-      .returning();
+    // Delete storage edges and memory assets from database using service layer
+    const deletedEdgesResult = await deleteStorageEdges({
+      memoryId,
+      memoryType,
+    });
 
-    const deletedAssets = await db.delete(memoryAssets).where(eq(memoryAssets.memoryId, memoryId)).returning();
+    if (!deletedEdgesResult.success) {
+      fatLogger.error('❌ Failed to delete storage edges:', 'be', { error: deletedEdgesResult.error });
+      results.errors.push(`Failed to delete storage edges: ${deletedEdgesResult.error}`);
+    } else {
+      results.deletedEdges = deletedEdgesResult.data as any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
+    }
 
-    results.deletedEdges = deletedEdges;
+    // Delete memory assets using service layer
+    const deletedAssetsPromises = dbAssets.map(asset => hardDeleteAssetRecord(asset.id));
+    const deletedAssetsResults = await Promise.all(deletedAssetsPromises);
 
-    console.log(`🗑️ Deleted ${deletedEdges.length} storage edges and ${deletedAssets.length} assets from database`);
+    const deletedAssets = deletedAssetsResults.filter(result => result.success).map(result => result.data);
+
+    const failedAssetDeletions = deletedAssetsResults.filter(result => !result.success);
+    if (failedAssetDeletions.length > 0) {
+      const error = `Failed to delete ${failedAssetDeletions.length} assets: ${failedAssetDeletions.map(r => r.error).join(', ')}`;
+      fatLogger.error('❌ Failed to delete some assets:', 'be', { error });
+      results.errors.push(error);
+    }
+
+    fatLogger.info(
+      `🗑️ Deleted ${results.deletedEdges.length} storage edges and ${deletedAssets.length} assets from database`,
+      'be'
+    );
 
     return {
       success: results.errors.length === 0,
-      deletedCount: deletedEdges.length,
+      deletedCount: results.deletedEdges.length,
       deletedS3Count: results.deletedS3Objects.length,
       deletedEdges: results.deletedEdges,
       deletedS3Objects: results.deletedS3Objects,
       errors: results.errors.length > 0 ? results.errors : undefined,
     };
   } catch (error) {
-    console.error('❌ Error cleaning up storage:', error);
+    fatLogger.error('❌ Error cleaning up storage:', 'be', { data: error instanceof Error ? error : undefined });
     return {
       success: false,
       error: error instanceof Error ? error.message : String(error),
@@ -562,25 +663,23 @@ function extractS3KeyFromUrl(url: string): string {
 /**
  * FIXED: Get memory data before deletion for cleanup purposes
  * This function retrieves all necessary memory information before the memory is deleted
+ *
+ * REFACTORED: Now uses the memory service layer instead of direct database operations
  */
 export async function getMemoryDataForCleanup(memoryId: string) {
   try {
-    console.log(`📋 Retrieving memory data for cleanup: ${memoryId}`);
+    fatLogger.info(`📋 Retrieving memory data for cleanup: ${memoryId}`, 'be');
 
-    const memory = await db.query.memories.findFirst({
-      where: eq(memories.id, memoryId),
-      with: {
-        assets: true,
-        folder: true,
-      },
-    });
+    const memoryResult = await getMemoryRecord(memoryId, true); // includeAssets = true
 
-    if (!memory) {
-      console.warn(`❌ Memory ${memoryId} not found for cleanup data retrieval`);
+    if (!memoryResult.success) {
+      fatLogger.warn(`❌ Memory ${memoryId} not found for cleanup data retrieval: ${memoryResult.error}`, 'be');
       return null;
     }
 
-    console.log('✅ Retrieved memory data for cleanup:', {
+    const memory = memoryResult.data as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+    fatLogger.info('✅ Retrieved memory data for cleanup:', 'be', {
       id: memory.id,
       type: memory.type,
       hasMetadata: !!memory.metadata,
@@ -592,7 +691,9 @@ export async function getMemoryDataForCleanup(memoryId: string) {
 
     return memory;
   } catch (error) {
-    console.error('❌ Error retrieving memory data for cleanup:', error);
+    fatLogger.error('❌ Error retrieving memory data for cleanup:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
     return null;
   }
 }

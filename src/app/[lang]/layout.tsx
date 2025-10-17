@@ -16,15 +16,21 @@ import { Analytics } from '@vercel/analytics/react';
 import { Toaster } from '@/components/ui/toaster';
 import Footer from '@/components/layout/footer';
 import { QueryProvider } from '@/components/providers/query-provider';
+import ServiceWorkerClient from '@/lib/service-worker';
 
+import { fatLogger } from '@/lib/logger';
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],
+  display: 'swap', // Add font-display: swap for better loading
+  preload: true, // Explicitly enable preloading
 });
 
 const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
   subsets: ['latin'],
+  display: 'swap', // Add font-display: swap for better loading
+  preload: true, // Explicitly enable preloading
 });
 
 // Dynamic metadata based on the current language
@@ -38,13 +44,15 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
   // Check for missing translations and log warnings in development
   if (process.env.NODE_ENV === 'development') {
     if (!dict?.metadata?.title) {
-      console.warn(
-        `[i18n] Missing translation for "metadata.title" in locale "${resolvedParams.lang}". Using fallback: "Futura"`
+      fatLogger.warn(
+        `[i18n] Missing translation for "metadata.title" in locale "${resolvedParams.lang}". Using fallback: "Futura"`,
+        'fe'
       );
     }
     if (!dict?.metadata?.description) {
-      console.warn(
-        `[i18n] Missing translation for "metadata.description" in locale "${resolvedParams.lang}". Using fallback: "Live forever. Now."`
+      fatLogger.warn(
+        `[i18n] Missing translation for "metadata.description" in locale "${resolvedParams.lang}". Using fallback: "Live forever. Now."`,
+        'fe'
       );
     }
   }
@@ -85,8 +93,9 @@ export default async function RootLayout({
 
   return (
     <html lang={lang} suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`} suppressHydrationWarning>
         <QueryProvider>
+          <ServiceWorkerClient />
           <SessionProvider basePath="/api/auth">
             <PostHogProvider>
               <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>

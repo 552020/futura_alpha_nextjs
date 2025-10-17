@@ -1,7 +1,7 @@
 import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
 import { config } from 'dotenv';
-import * as schema from './schema'; // Import your schema
+import * as schema from './index'; // Import from new index file
 
 config({ path: '.env.local' }); // or .env.local
 
@@ -19,3 +19,6 @@ const connectionString = typeof window === 'undefined' ? process.env.DATABASE_UR
 
 const sql = neon(connectionString!);
 export const db = drizzle(sql, { schema }); // Pass schema as second parameter
+
+// Export everything from new schema structure
+export * from './index';

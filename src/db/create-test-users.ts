@@ -1,6 +1,7 @@
 import { db } from '@/db/db';
-import { users, allUsers } from '@/db/schema';
+import { users, allUsers } from '@/db';
 
+import { fatLogger } from '@/lib/logger';
 async function createTestUsers() {
   try {
     // Create test users
@@ -36,9 +37,9 @@ async function createTestUsers() {
       }),
     ]);
 
-    // console.log("✅ Test users created successfully");
+    // fatLogger.info("✅ Test users created successfully");
   } catch (error) {
-    console.error('❌ Error creating test users:', error);
+    fatLogger.error('❌ Error creating test users:', 'be', { data: error instanceof Error ? error : undefined });
   }
 }
 

@@ -14,6 +14,7 @@ import { sampleDashboardMemories } from '../../../../../scripts/mock-data/create
 import { getBlurPlaceholder, IMAGE_SIZES } from '@/utils/image-utils';
 import { generateBestAssetUrl } from '@/lib/presigned-url-utils';
 
+import { fatLogger } from '@/lib/logger';
 // Demo flag - set to true to use mock data for demo
 // 📝 Sample data generation script: scripts/mock-data/create-dashboard-sample-data.ts
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_MEMORY === 'true';
@@ -47,6 +48,9 @@ interface Memory {
     originalPath?: string;
     folderName?: string;
   };
+  storageStatus?: {
+    storageLocations: string[];
+  };
 }
 
 // Allow all possible asset types
@@ -60,7 +64,7 @@ const getAssetUrl = async (
 
   // Helper function to construct URL from bucket and storageKey
   const constructS3Url = async (asset: MemoryAsset): Promise<string> => {
-    console.log('🔍 Constructing URL for asset:', {
+    fatLogger.info('🔍 Constructing URL for asset:', 'fe', {
       id: asset.id,
       type: asset.assetType,
       hasStorageKey: !!asset.storageKey,
@@ -136,7 +140,7 @@ export default function MemoryDetailPage() {
       }
       return url;
     } catch (error) {
-      console.error('Error generating asset URL:', error);
+      fatLogger.error('Error generating asset URL:', 'fe', { data: error as Error });
       return undefined;
     }
   }, []);
@@ -161,7 +165,7 @@ export default function MemoryDetailPage() {
         assetUrlsRef.current = newAssetUrls;
         return newAssetUrls;
       } catch (error) {
-        console.error('Error loading asset URLs:', error);
+        fatLogger.error('Error loading asset URLs:', 'fe', { data: error as Error });
         return assetUrlsRef.current;
       }
     },
@@ -173,12 +177,12 @@ export default function MemoryDetailPage() {
       setIsLoading(true);
 
       if (USE_MOCK_DATA) {
-        console.log('🎭 MOCK DATA - Using sample data for memory detail');
+        fatLogger.info('🎭 MOCK DATA - Using sample data for memory detail', 'fe');
         // Find the memory in the sample data
         const mockMemory = sampleDashboardMemories.find(m => m.id === id);
 
         if (mockMemory) {
-          console.log('🔍 Found mock memory:', mockMemory);
+          fatLogger.info('Found mock memory', 'fe', { memoryId: mockMemory.id, type: mockMemory.type });
           const transformedMemory: Memory = {
             id: mockMemory.id,
             type: mockMemory.type,
@@ -202,7 +206,7 @@ export default function MemoryDetailPage() {
           };
           setMemory(transformedMemory);
         } else {
-          console.log('❌ Mock memory not found:', id);
+          fatLogger.info('Mock memory not found', 'fe', { memoryId: id });
           setMemory(null);
         }
         return;
@@ -210,25 +214,25 @@ export default function MemoryDetailPage() {
 
       const response = await fetch(`/api/memories/${id}`);
 
-      console.log('Memory API Response:', {
+      fatLogger.info('Memory API Response:', 'fe', {
         status: response.status,
         ok: response.ok,
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('Memory fetch error:', errorData);
+        fatLogger.error('Memory fetch error:', 'fe', { data: new Error(errorData) });
         throw new Error(errorData.error || 'Failed to fetch memory');
       }
 
       const data = await response.json();
-      console.log('Memory data:', data);
+      fatLogger.info('Memory data loaded', 'fe', { memoryId: data.id, type: data.type });
 
       if (data.success && data.data) {
         const memoryData = data.data;
         const assets = memoryData.assets || [];
 
-        console.log('🔍 Memory assets:', assets);
+        fatLogger.info('Memory assets loaded', 'fe', { assetCount: assets.length });
 
         // Load asset URLs if assets exist
         let displayUrl: string | undefined;
@@ -242,9 +246,9 @@ export default function MemoryDetailPage() {
           mimeType = loadedUrls.mimeType;
         }
 
-        console.log('🔍 Extracted display URL:', displayUrl);
-        console.log('🔍 Extracted original URL:', originalUrl);
-        console.log('🔍 Extracted MIME type:', mimeType);
+        fatLogger.info('Extracted display URL', 'fe', { displayUrl });
+        fatLogger.info('Extracted original URL', 'fe', { originalUrl });
+        fatLogger.info('Extracted MIME type', 'fe', { mimeType });
 
         // Get the thumbnail URL with caching
         const thumbnailUrl = assets ? await getCachedAssetUrl(assets, 'thumb') : undefined;
@@ -264,7 +268,7 @@ export default function MemoryDetailPage() {
           thumbnail: thumbnailUrl || displayUrl || originalUrl,
         };
 
-        console.log('🔄 Transformed memory:', {
+        fatLogger.info('🔄 Transformed memory:', 'fe', {
           id: transformedMemory.id,
           type: transformedMemory.type,
           url: transformedMemory.url,
@@ -277,7 +281,7 @@ export default function MemoryDetailPage() {
         throw new Error('Invalid memory data format');
       }
     } catch (error) {
-      console.error('Error fetching memory:', error);
+      fatLogger.error('Error fetching memory:', 'fe', { data: error as Error });
       setMemory(null);
     } finally {
       setIsLoading(false);
@@ -307,13 +311,13 @@ export default function MemoryDetailPage() {
       // Use router.push for smoother navigation
       router.push('/vault');
     } catch (error) {
-      console.error('Error deleting memory:', error);
+      fatLogger.error('Error deleting memory:', 'fe', { data: error as Error });
     }
   };
 
   const handleShare = () => {
     // TODO: Implement share functionality
-    console.log('Share memory:', id);
+    fatLogger.info('Share memory', 'fe', { memoryId: id });
   };
 
   if (!isAuthorized) {
@@ -429,7 +433,13 @@ export default function MemoryDetailPage() {
                 <p className="text-sm text-muted-foreground">Saved on {format(new Date(memory.createdAt), 'PPP')}</p>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">Storage:</span>
-                  <MemoryStorageBadge memoryId={memory.id} memoryType={memory.type} size="sm" showTooltip={true} />
+                  <MemoryStorageBadge
+                    memoryId={memory.id}
+                    memoryType={memory.type}
+                    storageStatus={memory.storageStatus}
+                    size="sm"
+                    showTooltip={true}
+                  />
                 </div>
               </div>
             </div>
@@ -447,6 +457,17 @@ export default function MemoryDetailPage() {
               fill
               className="rounded-lg object-contain"
               sizes={IMAGE_SIZES.lightbox}
+              onLoad={() => {
+                console.log(
+                  '🔍 [Dashboard Detail] Image loaded successfully for memory:',
+                  memory.id,
+                  'URL:',
+                  memory.url
+                );
+              }}
+              onError={() => {
+                console.log('🔍 [Dashboard Detail] Image error for memory:', memory.id, 'URL:', memory.url);
+              }}
               placeholder="blur"
               blurDataURL={memory.assets?.find?.(a => a.assetType === 'placeholder')?.url || getBlurPlaceholder()}
             />

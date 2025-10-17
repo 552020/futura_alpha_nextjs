@@ -12,6 +12,7 @@
 
 import { NextRequest } from 'next/server';
 
+import { fatLogger } from '@/lib/logger';
 /**
  * Parse form data and extract a single file
  * Used for single file uploads
@@ -19,14 +20,14 @@ import { NextRequest } from 'next/server';
 export async function parseSingleFile(
   request: NextRequest
 ): Promise<{ file: File | null; formData: FormData | null; error: string | null }> {
-  // console.log("📦 Parsing form data...");
+  // fatLogger.info("📦 Parsing form data...");
 
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
 
     if (!file) {
-      console.error('❌ No file found in form data');
+      fatLogger.error('No file found in form data', 'be');
       return {
         file: null,
         formData: null,
@@ -36,7 +37,9 @@ export async function parseSingleFile(
 
     return { file, formData, error: null };
   } catch (error) {
-    console.error('❌ Error parsing form data:', error);
+    fatLogger.error('Error parsing form data', 'be', {
+      error: error instanceof Error ? error : undefined,
+    });
     return {
       file: null,
       formData: null,
@@ -52,7 +55,7 @@ export async function parseSingleFile(
 export async function parseMultipleFiles(
   request: NextRequest
 ): Promise<{ files: File[]; userId?: string; error: string | null }> {
-  // console.log("📦 Parsing form data for folder upload...");
+  // fatLogger.info("📦 Parsing form data for folder upload...");
 
   try {
     const formData = await request.formData();
@@ -60,17 +63,19 @@ export async function parseMultipleFiles(
     const userId = formData.get('userId') as string | null;
 
     if (!files || files.length === 0) {
-      console.error('❌ No files found in form data');
+      fatLogger.error('No files found in form data', 'be');
       return {
         files: [],
         error: 'Missing files',
       };
     }
 
-    // console.log(`📁 Found ${files.length} files in folder upload`);
+    // fatLogger.info(`📁 Found ${files.length} files in folder upload`);
     return { files, userId: userId || undefined, error: null };
   } catch (error) {
-    console.error('❌ Error parsing form data:', error);
+    fatLogger.error('Error parsing form data', 'be', {
+      error: error instanceof Error ? error : undefined,
+    });
     return {
       files: [],
       error: 'Invalid form data',

@@ -20,10 +20,7 @@ This document outlines all API endpoints for the family file sharing application
 
 ### Upload System (413 Solution)
 
-- `POST /api/upload/presign` - Get presigned URL for single file upload
 - `POST /api/upload/batch-presign` - Get presigned URLs for multiple files
-- `POST /api/upload/commit` - Commit single file to database after S3 upload
-- `POST /api/upload/batch-commit` - Commit multiple files to database after S3 upload
 - `POST /api/upload/intent` - Request upload storage configuration
 - `POST /api/upload/verify` - Verify upload completion
 - `POST /api/upload/complete` - Mark upload as complete
@@ -63,13 +60,13 @@ This document outlines all API endpoints for the family file sharing application
 
 ### S3 Integration
 
-- `POST /api/s3/presigned-url` - Generate S3 presigned URLs
+- `POST /api/upload/s3/download` - Generate S3 download presigned URLs
 
 ### Testing & Development
 
 - `GET /api/test/auth` - Test authentication
 - `GET /api/test/hello` - Test endpoint
-- `POST /api/tests/mailgun` - Test Mailgun integration
+- `POST /api/test/mailgun` - Test Mailgun integration
 
 ---
 
@@ -210,7 +207,6 @@ All API routes require authentication unless specified otherwise. Authentication
 
 ### Get Presigned URL (Single File)
 
-- **URL**: `POST /api/upload/presign`
 - **Description**: Get presigned URL for single file upload to S3
 - **Request Body**:
   ```json
@@ -267,7 +263,6 @@ All API routes require authentication unless specified otherwise. Authentication
 
 ### Commit Single File
 
-- **URL**: `POST /api/upload/commit`
 - **Description**: Commit single file to database after S3 upload
 - **Request Body**:
   ```json
@@ -298,7 +293,6 @@ All API routes require authentication unless specified otherwise. Authentication
 
 ### Commit Multiple Files
 
-- **URL**: `POST /api/upload/batch-commit`
 - **Description**: Commit multiple files to database after S3 upload
 - **Request Body**:
   ```json
@@ -638,10 +632,7 @@ Common HTTP status codes:
 
 #### Upload System (413 Solution)
 
-- ✅ `POST /api/upload/presign` - Single file presigned URL
 - ✅ `POST /api/upload/batch-presign` - Multiple files presigned URLs
-- ✅ `POST /api/upload/commit` - Single file commit
-- ✅ `POST /api/upload/batch-commit` - Multiple files commit
 - ✅ `POST /api/upload/intent` - Upload storage configuration
 - ✅ `POST /api/upload/verify` - Upload verification
 - ✅ `POST /api/upload/complete` - Upload completion
@@ -680,19 +671,19 @@ Common HTTP status codes:
 
 #### S3 Integration
 
-- ✅ `POST /api/s3/presigned-url` - Generate S3 presigned URLs
+- ✅ `POST /api/upload/s3/download` - Generate S3 download presigned URLs
 
 #### Testing & Development
 
 - ✅ `GET /api/test/auth` - Test authentication
 - ✅ `GET /api/test/hello` - Test endpoint
-- ✅ `POST /api/tests/mailgun` - Test Mailgun
+- ✅ `POST /api/test/mailgun` - Test Mailgun
 
 ### ❌ **NOT IMPLEMENTED (Legacy Documentation)**
 
 #### File Management (Deprecated)
 
-- ❌ `POST /api/files/upload` - **DEPRECATED** - Use `/api/upload/presign` + `/api/upload/commit`
+- ❌ `POST /api/files/upload` - **DEPRECATED** - Use `/api/upload/s3/presign` + `/api/upload/complete`
 - ❌ `GET /api/files` - **DEPRECATED** - Use `/api/memories`
 - ❌ `GET /api/files/[id]` - **DEPRECATED** - Use `/api/memories/[id]`
 - ❌ `PATCH /api/files/[id]` - **DEPRECATED** - Use `/api/memories/[id]`
@@ -726,7 +717,7 @@ Common HTTP status codes:
 
 ### 📊 **USAGE RECOMMENDATIONS**
 
-- **For new uploads**: Use the 413 solution endpoints (`/api/upload/presign`, `/api/upload/commit`)
+- **For new uploads**: Use the 413 solution endpoints (`/api/upload/s3/presign`, `/api/upload/complete`)
 - **For file management**: Use memory endpoints (`/api/memories/*`)
 - **For sharing**: Use memory sharing endpoints (`/api/memories/[id]/share`)
 - **For organization**: Use folders (`/api/folders`) and galleries (`/api/galleries`)

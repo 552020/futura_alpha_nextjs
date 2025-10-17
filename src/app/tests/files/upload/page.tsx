@@ -5,6 +5,7 @@ import { useSession, signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 
+import { fatLogger } from '@/lib/logger';
 interface UploadResponse {
   id: string;
   url: string;
@@ -25,7 +26,7 @@ export default function TestUpload() {
   // Log the response when it changes
   useEffect(() => {
     if (uploadedFile) {
-      console.log('Upload response:', uploadedFile);
+      fatLogger.info('Upload response:', 'fe', { uploadedFile });
 
       try {
         // Check if we need to force image display based on URL or filename
@@ -34,7 +35,7 @@ export default function TestUpload() {
 
         // Force image display if URL or filename has image extensions
         if (url.match(/\.(jpg|jpeg|png|gif|webp)($|\?)/) || filename.match(/\.(jpg|jpeg|png|gif|webp)$/)) {
-          console.log('Forcing image display based on URL or filename pattern');
+          fatLogger.info('Forcing image display based on URL or filename pattern', 'fe');
           setForceShowAsImage(true);
 
           // Also set a detected type for display purposes
@@ -66,11 +67,11 @@ export default function TestUpload() {
           else if (extension === 'gif') detectedMimeType = 'image/gif';
           else if (extension === 'pdf') detectedMimeType = 'application/pdf';
 
-          console.log('Auto-detected mime type:', detectedMimeType, 'from extension:', extension);
+          fatLogger.info('Auto-detected mime type:', 'fe', { detectedMimeType, extension });
           setDetectedType(detectedMimeType);
         }
       } catch (err) {
-        console.error('Error detecting mime type:', err);
+        fatLogger.error('Error detecting mime type:', 'fe', { data: err });
       }
     }
   }, [uploadedFile]);
@@ -79,7 +80,7 @@ export default function TestUpload() {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
       setFile(selectedFile);
-      console.log('Selected file:', selectedFile.type, selectedFile.name);
+      fatLogger.info('Selected file:', 'fe', { type: selectedFile.type, name: selectedFile.name });
       setError(null);
     }
   };
@@ -113,7 +114,7 @@ export default function TestUpload() {
       const data = await response.json();
       setUploadedFile(data);
     } catch (err) {
-      console.error('Error uploading file:', err);
+      fatLogger.error('Error uploading file:', 'fe', { data: err });
       setError(err instanceof Error ? err.message : 'Failed to upload file');
     } finally {
       setUploading(false);

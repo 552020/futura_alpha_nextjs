@@ -16,7 +16,9 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
+import { detectMemoryTypeFromFile } from '@/utils/memory-type';
 import Image from 'next/image';
+import { fatLogger } from '@/lib/logger';
 import {
   uploadMultipleImagesWithAssets,
   getOptimalAssetUrl,
@@ -44,7 +46,7 @@ export default function MultipleAssetsUpload({
   const handleFiles = useCallback(
     async (files: File[]) => {
       // Filter for image files only
-      const imageFiles = files.filter(file => file.type.startsWith('image/'));
+      const imageFiles = files.filter(file => detectMemoryTypeFromFile(file) === 'image');
 
       if (imageFiles.length === 0) {
         onUploadError?.('Please select image files only');
@@ -58,7 +60,7 @@ export default function MultipleAssetsUpload({
       try {
         // Calculate upload size info
         const sizeInfo = calculateUploadSize(imageFiles);
-        console.log('Upload size info:', sizeInfo);
+        fatLogger.info('Upload size info', 'fe', sizeInfo);
 
         // Upload files
         const results = await uploadMultipleImagesWithAssets(imageFiles, {
@@ -76,7 +78,7 @@ export default function MultipleAssetsUpload({
           onUploadError?.(`${results.failed.length} files failed to upload`);
         }
       } catch (error) {
-        console.error('Upload error:', error);
+        fatLogger.error('Upload error:', 'fe', { data: error instanceof Error ? error : undefined });
         onUploadError?.(error instanceof Error ? error.message : 'Upload failed');
       } finally {
         setIsUploading(false);

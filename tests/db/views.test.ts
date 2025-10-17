@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
 import { eq, sql } from 'drizzle-orm';
-import { storageEdges } from '../db/schema';
+import { storageEdges } from '../../src/db/db';
 import { config } from 'dotenv';
 
 // Load environment variables
@@ -60,7 +60,7 @@ describe('Database Views (Hybrid Approach)', () => {
     ];
 
     const inserted = await db.insert(storageEdges).values(testEdges).returning();
-    testEdgeIds = inserted.map(edge => edge.id);
+    testEdgeIds = inserted.map((edge: any) => edge.id);
 
     expect(inserted).toHaveLength(3);
   });

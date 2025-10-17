@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db/db';
-import { temporaryUsers, relationship, familyRelationship } from '@/db/schema';
+import { temporaryUsers, relationship, familyRelationship } from '@/db';
 import { createTemporaryUserBase } from '../utils';
 import { eq } from 'drizzle-orm';
 
+import { fatLogger } from '@/lib/logger';
 // POST /api/users
 // We use this endpoint to create only temporary users, normal users will be created by the sign-in success callback
 
@@ -67,7 +68,7 @@ export async function POST(request: Request) {
       allUser,
     });
   } catch (error) {
-    console.error('Error creating user:', error);
+    fatLogger.error('Error creating user:', 'be', { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
   }
 }

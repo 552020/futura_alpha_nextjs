@@ -21,10 +21,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
-import { allUsers, memories, memoryAssets } from '@/db/schema';
+import { allUsers, memories, memoryAssets, DBMemoryAsset } from '@/db';
 import { eq } from 'drizzle-orm';
 import { getMemoryAccessLevel } from '../../utils/access';
 
+import { fatLogger } from '@/lib/logger';
 /**
  * PUT /api/memories/:id/assets - Upsert multiple assets for a memory
  *
@@ -176,7 +177,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
       },
     });
   } catch (error) {
-    console.error('Error managing assets:', error);
+    fatLogger.error('Error managing assets:', 'be', { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to manage assets' }, { status: 500 });
   }
 }
@@ -227,7 +228,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       },
     });
   } catch (error) {
-    console.error('Error fetching assets:', error);
+    fatLogger.error('Error fetching assets:', 'be', { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to fetch assets' }, { status: 500 });
   }
 }
@@ -293,7 +294,7 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
 
     // Filter by asset types if specified
     const filteredDeletedAssets =
-      assetTypes.length > 0 ? deletedAssets.filter(asset => assetTypes.includes(asset.assetType)) : deletedAssets;
+      assetTypes.length > 0 ? deletedAssets.filter((asset: DBMemoryAsset) => assetTypes.includes(asset.assetType)) : deletedAssets;
 
     return NextResponse.json({
       success: true,
@@ -304,7 +305,7 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
       },
     });
   } catch (error) {
-    console.error('Error deleting assets:', error);
+    fatLogger.error('Error deleting assets:', 'be', { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to delete assets' }, { status: 500 });
   }
 }

@@ -1,3 +1,5 @@
+import { fatLogger } from '@/lib/logger';
+
 /**
  * FILE PROCESSING UTILITIES
  *
@@ -85,10 +87,10 @@ export function toAcceptedMimeType(mime: string): AcceptedMimeType {
   return mime;
 }
 
+import { detectMemoryType } from '@/utils/memory-type';
+
 export function getMemoryType(mime: AcceptedMimeType): 'document' | 'image' | 'video' {
-  if (ACCEPTED_MIME_TYPES.image.includes(mime as (typeof ACCEPTED_MIME_TYPES.image)[number])) return 'image';
-  if (ACCEPTED_MIME_TYPES.video.includes(mime as (typeof ACCEPTED_MIME_TYPES.video)[number])) return 'video';
-  return 'document';
+  return detectMemoryType(mime) as 'document' | 'image' | 'video';
 }
 
 export async function validateFile(file: File): Promise<{ isValid: boolean; error?: string; buffer?: Buffer }> {
@@ -158,22 +160,22 @@ export async function validateFileWithErrorHandling(
 }> {
   let validationResult;
   try {
-    // console.log("🔍 Starting file validation...");
+    // fatLogger.info("🔍 Starting file validation...");
     validationResult = await validateFile(file);
     if (!validationResult.isValid) {
-      console.error('❌ File validation failed:', validationResult.error);
+      fatLogger.error('❌ File validation failed:', 'be', { data: validationResult.error });
       return {
         validationResult: null,
         error: validationResult.error || 'File validation failed',
       };
     }
-    // console.log("✅ File validation successful:", {
+    // fatLogger.info("✅ File validation successful:", undefined, {
     //   type: file.type,
     //   size: file.size,
     // });
     return { validationResult, error: null };
   } catch (validationError) {
-    console.error('❌ Validation error:', validationError);
+    fatLogger.error('❌ Validation error:', 'be', { data: validationError });
     return {
       validationResult: null,
       error: validationError instanceof Error ? validationError.message : String(validationError),
@@ -187,7 +189,7 @@ export async function validateFileWithErrorHandling(
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function logFileDetails(file: File): void {
-  // console.log("📄 File details:", {
+  // fatLogger.info("📄 File details:", {
   //   name: file.name,
   //   type: file.type,
   //   size: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
@@ -199,10 +201,8 @@ export function logFileDetails(file: File): void {
  * Used for folder uploads
  */
 export function logMultipleFileDetails(files: File[]): void {
-  // console.log(`📁 Folder contains ${files.length} files:`);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   files.forEach((_file, _index) => {
-    // console.log(`  ${_index + 1}. `);
+    // fatLogger.info(`  ${_index + 1}. `);
   });
 }
 

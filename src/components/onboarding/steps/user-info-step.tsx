@@ -60,7 +60,7 @@ export function UserInfoStep({
   const validateEmail = (email: string) => {
     const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
     const isValid = emailRegex.test(email);
-    // console.log("Email validation:", { email, isValid });
+    // userLogger.info("Email validation:", { email, isValid });
     return isValid;
   };
 
@@ -72,7 +72,7 @@ export function UserInfoStep({
 
   const handleEventBasedEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
-    // console.log("Email changed:", newValue);
+    // userLogger.info("Email changed:", newValue);
     setLocalEmail(newValue);
     updateUserData({ email: newValue });
   };
@@ -86,7 +86,7 @@ export function UserInfoStep({
 
   // Add debug log for button state
   const isNextDisabled = collectEmail && !validateEmail(localEmail);
-  // console.log("Button state:", {
+  // userLogger.info("Button state:", {
   //   collectEmail,
   //   localEmail,
   //   isValid: validateEmail(localEmail),

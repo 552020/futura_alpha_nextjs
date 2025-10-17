@@ -10,8 +10,9 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertCircle, ArrowLeft, Save } from 'lucide-react';
 import Image from 'next/image';
-import { DBMemory } from '@/db/schema';
+import { DBMemory } from '@/db';
 
+import { fatLogger } from '@/lib/logger';
 // Extended type for test data that includes legacy fields
 type TestMemoryData = DBMemory & {
   url?: string;
@@ -92,7 +93,7 @@ export default function FileDetailEditor({ fileDetails }: { fileDetails: FileDet
   // Form fields
   const [caption, setCaption] = useState(fileDetails.type === 'image' ? fileDetails.data.description || '' : '');
   const [filename, setFilename] = useState(fileDetails.type === 'document' ? fileDetails.data.title || '' : '');
-  const [isPublic, setIsPublic] = useState(fileDetails.data.isPublic === true);
+  const [isPublic, setIsPublic] = useState(fileDetails.data.sharingStatus === 'public');
   const [title, setTitle] = useState(fileDetails.type === 'note' ? fileDetails.data.title || '' : '');
   const [content, setContent] = useState(fileDetails.type === 'note' ? fileDetails.data.content || '' : '');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -178,7 +179,7 @@ export default function FileDetailEditor({ fileDetails }: { fileDetails: FileDet
       // Refresh the page after successful update
       router.refresh();
     } catch (err) {
-      console.error('Error updating file:', err);
+      fatLogger.error('Error updating file:', 'fe', { data: err });
       setError(err instanceof Error ? err.message : 'Failed to update file');
     } finally {
       setUpdating(false);

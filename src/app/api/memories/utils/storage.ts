@@ -14,6 +14,7 @@ import { put } from '@vercel/blob';
 import { generateBlobFilename } from '@/lib/storage/blob-config';
 import { uploadToS3 } from '@/lib/s3';
 
+import { fatLogger } from '@/lib/logger';
 export async function uploadFileToStorage(
   file: File,
   existingBuffer?: Buffer,
@@ -21,7 +22,7 @@ export async function uploadFileToStorage(
   userId?: string
 ): Promise<string> {
   if (storageBackend === 's3') {
-    console.log('☁️ Using S3 storage backend for file:', file.name);
+    fatLogger.info('☁️ Using S3 storage backend for file:', 'be', { fileName: file.name });
 
     try {
       // Use the existing S3 utility function
@@ -33,16 +34,16 @@ export async function uploadFileToStorage(
 
       // Upload to S3 with the clean file name and user ID
       const url = await uploadToS3(s3File, undefined, userId);
-      console.log('✅ Successfully uploaded to S3:', url);
+      fatLogger.info('✅ Successfully uploaded to S3:', 'be', { url });
       return url;
     } catch (error) {
-      console.error('❌ S3 upload error:', error);
+      fatLogger.error('❌ S3 upload error:', 'be', { data: error instanceof Error ? error : undefined });
       throw new Error(`S3 upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
   // Default to Vercel Blob for other cases
-  console.log('☁️ Using Vercel Blob storage for file:', file.name);
+  fatLogger.info('☁️ Using Vercel Blob storage for file:', 'be', { fileName: file.name });
   try {
     const safeFileName = file.name.replace(/[^a-zA-Z0-9-_\.]/g, '_');
     const buffer = existingBuffer || Buffer.from(await file.arrayBuffer());
@@ -52,7 +53,7 @@ export async function uploadFileToStorage(
     });
     return url;
   } catch (error) {
-    console.error('❌ Vercel Blob upload error:', error);
+    fatLogger.error('❌ Vercel Blob upload error:', 'be', { data: error instanceof Error ? error : undefined });
     throw new Error(`Vercel Blob upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
@@ -69,12 +70,12 @@ export async function uploadFileToStorageWithErrorHandling(
   userId?: string
 ): Promise<{ url: string; error: null } | { url: null; error: string }> {
   try {
-    console.log(`📤 Starting ${storageBackend} file upload for: ${file.name}`);
+    fatLogger.info(`📤 Starting ${storageBackend} file upload for:`, 'be', { fileName: file.name });
     const url = await uploadFn(file, buffer, storageBackend, userId);
-    console.log(`✅ File uploaded successfully to ${storageBackend}:`, url);
+    fatLogger.info(`✅ File uploaded successfully to ${storageBackend}:`, 'be', { url });
     return { url, error: null };
   } catch (uploadError) {
-    console.error(`❌ ${storageBackend} upload error:`, uploadError);
+    fatLogger.error(`❌ ${storageBackend} upload error:`, 'be', { data: uploadError });
     return {
       url: null,
       error: uploadError instanceof Error ? uploadError.message : String(uploadError),

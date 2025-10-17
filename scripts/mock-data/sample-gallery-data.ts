@@ -1,4 +1,3 @@
-import { GalleryWithItems } from '@/types/gallery';
 import { Memory } from '@/types/memory';
 
 // Gallery configurations based on actual folders
@@ -217,7 +216,7 @@ const generateGalleryMemories = (galleryId: string, imageCount: number): Memory[
 };
 
 // Generate all sample galleries
-export const generateSampleGalleries = (): GalleryWithItems[] => {
+export const generateSampleGalleries = () => {
   return GALLERY_CONFIGS.map(config => {
     const memories = generateGalleryMemories(config.id, config.imageCount);
     const createdAt = getRandomDate();
@@ -231,9 +230,10 @@ export const generateSampleGalleries = (): GalleryWithItems[] => {
       updatedAt: new Date(createdAt),
       ownerId: 'mock-user-1',
       totalMemories: config.imageCount,
-      storageLocations: [],
-      averageStorageDuration: null,
-      storageDistribution: {},
+      name: config.title.toLowerCase().replace(/\s+/g, '-'),
+      sharingStatus: 'private',
+      sharedCount: 0,
+      storageLocation: ['s3'],
       items: memories.map((memory, index) => ({
         id: `item-${config.id}-${index}`,
         galleryId: config.id,
@@ -254,7 +254,7 @@ export const generateSampleGalleries = (): GalleryWithItems[] => {
 };
 
 // Get a specific gallery by ID
-export const getSampleGallery = (id: string): GalleryWithItems | undefined => {
+export const getSampleGallery = (id: string) => {
   return generateSampleGalleries().find(gallery => gallery.id === id);
 };
 

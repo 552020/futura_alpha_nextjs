@@ -1,3 +1,5 @@
+import { fatLogger } from '@/lib/logger';
+
 /**
  * Image Processing Web Worker
  *
@@ -19,7 +21,7 @@ interface ProcessResponse {
   ok: boolean;
   display?: ProcessedAsset;
   thumb?: ProcessedAsset;
-  placeholder?: string; // data URL
+  placeholder?: { dataUrl: string; width: number; height: number; bytes: number };
   error?: string;
 }
 
@@ -54,7 +56,7 @@ self.onmessage = async (e: MessageEvent<ProcessMessage>) => {
       return;
     }
 
-    console.log(`🖼️ Worker processing: ${file.name} (${file.type})`);
+    fatLogger.info(`🖼️ Worker processing: ${file.name} (${file.type})`, 'fe');
 
     // Create image from file
     const image = await createImageFromFile(file);
@@ -68,6 +70,26 @@ self.onmessage = async (e: MessageEvent<ProcessMessage>) => {
     // Process placeholder from thumb (32px max, data URL)
     const placeholder = await processToPlaceholder(thumb.blob, maxPlaceholderSize);
 
+    // 🔍 [Worker] Log processing results
+    console.log('🔍 [Worker] Processing completed for:', file.name);
+    console.log('🔍 [Worker] Display result:', {
+      width: display.width,
+      height: display.height,
+      bytes: display.bytes,
+      mimeType: display.mimeType,
+    });
+    console.log('🔍 [Worker] Thumbnail result:', {
+      width: thumb.width,
+      height: thumb.height,
+      bytes: thumb.bytes,
+      mimeType: thumb.mimeType,
+    });
+    console.log('🔍 [Worker] Placeholder result:', {
+      width: placeholder.width,
+      height: placeholder.height,
+      bytes: placeholder.bytes,
+    });
+
     const response: ProcessResponse = {
       kind: 'process',
       ok: true,
@@ -78,7 +100,7 @@ self.onmessage = async (e: MessageEvent<ProcessMessage>) => {
 
     self.postMessage(response);
   } catch (error) {
-    console.error('❌ Worker processing error:', error);
+    fatLogger.error('Worker processing error', 'fe', { data: error as Error });
     const response: ProcessResponse = {
       kind: 'process',
       ok: false,
@@ -157,7 +179,10 @@ async function processToThumb(displayBlob: Blob, maxSize: number): Promise<Proce
 /**
  * Process blob to placeholder (max 32px, data URL)
  */
-async function processToPlaceholder(thumbBlob: Blob, maxSize: number): Promise<string> {
+async function processToPlaceholder(
+  thumbBlob: Blob,
+  maxSize: number
+): Promise<{ dataUrl: string; width: number; height: number; bytes: number }> {
   // Create image from thumb blob
   const image = await createImageFromBlob(thumbBlob);
 
@@ -176,12 +201,19 @@ async function processToPlaceholder(thumbBlob: Blob, maxSize: number): Promise<s
   // Convert to data URL
   const blob = await canvas.convertToBlob({ type: 'image/webp', quality: 0.6 });
 
-  return new Promise((resolve, reject) => {
+  const dataUrl = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result as string);
     reader.onerror = () => reject(new Error('Failed to read blob as data URL'));
     reader.readAsDataURL(blob);
   });
+
+  return {
+    dataUrl,
+    width,
+    height,
+    bytes: blob.size,
+  };
 }
 
 /**
