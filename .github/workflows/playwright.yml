@@ -16,8 +16,8 @@ jobs:
       NEXT_PUBLIC_CANISTER_ID_INTERNET_IDENTITY: rdmx6-jaaaa-aaaaa-aaadq-cai
       NEXT_PUBLIC_II_URL: https://identity.ic0.app
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: lts/*
       - name: Install pnpm
@@ -44,14 +44,13 @@ jobs:
             ${{ runner.os }}-playwright-
       - name: Install Playwright Browsers
         run: pnpm exec playwright install --with-deps
-      - name: Test server startup
+      - name: Start web server
         run: |
-          timeout 60s pnpm dev:nextjs &
+          pnpm dev:nextjs &
           sleep 30
-          curl -f http://localhost:3000 || echo "Server not ready on port 3000"
-          pkill -f "next dev" || true
+          curl -f http://localhost:3000 || echo "Server not ready"
       - name: Run Playwright tests
-        run: pnpm exec playwright test --timeout=300000
+        run: pnpm exec playwright test
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
