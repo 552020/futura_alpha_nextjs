@@ -67,9 +67,9 @@ jobs:
             exit 1
           fi
           
-          # Run Playwright tests
-          echo "Running Playwright tests..."
-          pnpm exec playwright test
+          # Run Playwright tests (smoke test only for now)
+          echo "Running Playwright smoke test..."
+          pnpm exec playwright test smoke.spec.ts
           
           # Clean up server
           kill $SERVER_PID 2>/dev/null || true

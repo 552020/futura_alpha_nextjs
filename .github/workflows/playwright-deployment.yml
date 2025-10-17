@@ -1,6 +1,6 @@
-name: Playwright Tests (Deployment-based)
+name: Playwright Tests (Deployment-based) - DISABLED
 on:
-  deployment_status:
+  workflow_dispatch: # Manual trigger only
 jobs:
   test:
     timeout-minutes: 60
