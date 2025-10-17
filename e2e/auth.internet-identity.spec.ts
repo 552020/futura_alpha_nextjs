@@ -20,16 +20,16 @@ testWithII.describe('Internet Identity Authentication', () => {
     // 1) Go to homepage (not authenticated)
     await page.goto('/en');
 
-    // 2) Click sign in button in header
+    // 2) Click sign in button in header - this opens a modal
     await page.getByRole('button', { name: 'Sign In' }).click();
 
-    // 3) Should redirect to sign-in page, then click Internet Identity option
-    await expect(page).toHaveURL(/\/signin/);
+    // 3) Wait for modal to appear and look for Internet Identity button
+    await expect(page.getByText('Sign in with Internet Identity')).toBeVisible();
 
-    // 4) Look for Internet Identity sign-in option and click it
+    // 4) Click the Internet Identity button in the modal
     await page.getByText('Sign in with Internet Identity').click();
 
-    // 5) Start II flow - use the button text as selector since no data-testid
+    // 5) Start II flow - the button should now be in the modal
     await iiPage.signInWithNewIdentity({ selector: 'button:has-text("Sign in with Internet Identity")' });
 
     // 6) Assert: we are authenticated (avatar visible in header)
