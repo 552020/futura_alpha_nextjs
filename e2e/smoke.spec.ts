@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
 test('the homepage is reachable', async ({ page }) => {
-  await page.goto('http://localhost:3000'); // or whatever your local dev port is
+  await page.goto('/en'); // Use the actual locale route
   await expect(page).toHaveTitle(/Futura|Next\.js/i); // check the title
 });

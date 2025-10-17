@@ -246,23 +246,36 @@ The Playwright tests fill the gap for **complete user workflow testing** that wa
 
 ### **For Local Development:**
 
+**Manual Server Startup (Recommended):**
+
+```bash
+# Terminal 1: Start the server
+pnpm dev:nextjs
+
+# Terminal 2: Run tests
+pnpm exec playwright test
+```
+
 All tests work perfectly locally. The issues are specific to the GitHub Actions CI environment.
 
 ## 🔄 **Two Testing Approaches**
 
 ### **1. Standard Workflow (`playwright.yml`)**
+
 - **Triggers:** Push/PR to main/master
 - **Approach:** Starts server in CI, then runs tests
 - **Status:** 🔧 Working on server startup issues
 - **Use case:** Development testing, PR validation
 
 ### **2. Deployment Workflow (`playwright-deployment.yml`)**
+
 - **Triggers:** After successful deployment
 - **Approach:** Tests against live deployed app
 - **Status:** ✅ Ready to use (when deployment is set up)
 - **Use case:** Production testing, deployment validation
 
 ### **Benefits of Deployment Approach:**
+
 - ✅ **No server startup issues** - App already running
 - ✅ **Real database** - Tests against production database
 - ✅ **Proper environment** - All variables set correctly

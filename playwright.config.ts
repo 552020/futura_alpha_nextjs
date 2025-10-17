@@ -72,5 +72,13 @@ export default defineConfig({
     // },
   ],
 
-  /* Web server is started manually in GitHub Actions workflow */
+  /* Run your local dev server before starting the tests */
+  webServer: process.env.CI
+    ? undefined
+    : {
+        command: 'pnpm dev:nextjs',
+        url: 'http://localhost:3000',
+        reuseExistingServer: !process.env.CI,
+        timeout: 120 * 1000, // 2 minutes timeout for dev server startup
+      },
 });
