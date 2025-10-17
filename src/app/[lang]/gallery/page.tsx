@@ -12,7 +12,7 @@ import { CreateGalleryModal } from '@/components/galleries/create-gallery-modal'
 import { LoadingSpinner } from '@/components/common/loading-spinner';
 import { ErrorState } from '@/components/common/error-state';
 import { GalleryGrid } from '@/components/galleries/gallery-grid';
-import { GalleryShareDialog } from '@/components/galleries/gallery-share-dialog';
+import { GalleryShareDialog } from '@/components/galleries/share-modals/gallery-share';
 
 import { fatLogger } from '@/lib/logger';
 // Mock data flag for development

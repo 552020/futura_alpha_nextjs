@@ -26,7 +26,7 @@ import { GalleryImageModal } from '@/components/galleries/gallery-image-modal';
 import { GallerySelectionBar } from '@/components/galleries/gallery-selection-bar';
 import { GalleryPhotoGrid } from '@/components/galleries/gallery-photo-grid';
 import { GallerySelectionPanel } from '@/components/galleries/gallery-selection-panel';
-import { SendSelectionModal } from '@/components/galleries/send-selection-modal';
+import { SendSelectionModal } from '@/components/galleries/share-modals/send-selection';
 import { toast } from '@/components/ui/use-toast';
 import { ToastContainer } from '@/components/ui/toast-container';
 
