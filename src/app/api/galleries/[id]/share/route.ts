@@ -74,6 +74,20 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       })
       .returning();
 
+    // Update the gallery's sharedCount
+    const shareCount = await db.query.resourceMembership.findMany({
+      where: and(eq(resourceMembership.resourceId, galleryId), eq(resourceMembership.resourceType, 'gallery')),
+    });
+
+    await db
+      .update(galleries)
+      .set({
+        sharedCount: shareCount.length,
+        sharingStatus: shareCount.length > 0 ? 'shared' : 'private',
+        updatedAt: new Date(),
+      })
+      .where(eq(galleries.id, galleryId));
+
     fatLogger.info('Created gallery share:', JSON.stringify(newShare[0]));
 
     return NextResponse.json(
