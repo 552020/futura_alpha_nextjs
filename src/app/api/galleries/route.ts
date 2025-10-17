@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
 import { eq, desc, and, inArray } from 'drizzle-orm';
-import { galleries, allUsers, memories as memoriesTable, folders, galleryItems } from '@/db';
+import { galleries, allUsers, memories as memoriesTable, folders, galleryItems, resourceMembership } from '@/db';
 import { addStorageStatusToGalleries } from './utils';
 
 import { fatLogger } from '@/lib/logger';
@@ -41,27 +41,61 @@ export async function GET(request: NextRequest) {
     //   offset,
     // });
 
-    // Fetch user's galleries
-    const userGalleries = await db.query.galleries.findMany({
+    // Fetch user's owned galleries
+    const ownedGalleries = await db.query.galleries.findMany({
       where: eq(galleries.ownerId, allUserRecord.id),
       orderBy: desc(galleries.createdAt),
-      limit: limit,
-      offset: offset,
     });
 
+    // Fetch galleries shared with the user using the universal resource sharing system
+    const sharedGalleryMemberships = await db.query.resourceMembership.findMany({
+      where: and(
+        eq(resourceMembership.allUserId, allUserRecord.id),
+        eq(resourceMembership.resourceType, 'gallery')
+      ),
+    });
+
+    // Get the actual gallery data for shared galleries
+    const sharedGalleryIds = sharedGalleryMemberships.map(m => m.resourceId);
+    const sharedGalleries = sharedGalleryIds.length > 0
+      ? await db.query.galleries.findMany({
+        where: inArray(galleries.id, sharedGalleryIds),
+        orderBy: desc(galleries.createdAt),
+      })
+      : [];
+
+    // Combine owned and shared galleries
+    const allGalleries = [...ownedGalleries, ...sharedGalleries];
+
+    // Sort by createdAt descending
+    allGalleries.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+    // Apply pagination
+    const paginatedGalleries = allGalleries.slice(offset, offset + limit);
+
     // Add computed storage status to galleries
-    const galleriesWithStorageStatus = await addStorageStatusToGalleries(userGalleries);
+    const galleriesWithStorageStatus = await addStorageStatusToGalleries(paginatedGalleries);
+
+    // Add isOwner flag to each gallery
+    const galleriesWithOwnership = galleriesWithStorageStatus.map(gallery => ({
+      ...gallery,
+      isOwner: gallery.ownerId === allUserRecord.id,
+    }));
 
     // fatLogger.info("Fetched galleries:", undefined, {
     //   page,
     //   limit,
     //   offset,
-    //   galleriesCount: userGalleries.length,
+    //   ownedCount: ownedGalleries.length,
+    //   sharedCount: sharedGalleries.length,
+    //   totalCount: allGalleries.length,
+    //   paginatedCount: paginatedGalleries.length,
     // });
 
     return NextResponse.json({
-      galleries: galleriesWithStorageStatus,
-      hasMore: userGalleries.length === limit,
+      galleries: galleriesWithOwnership,
+      hasMore: offset + limit < allGalleries.length,
+      totalCount: allGalleries.length,
     });
   } catch (error) {
     fatLogger.error('Error listing galleries:', 'be', { data: error instanceof Error ? error : undefined });
@@ -174,8 +208,7 @@ export async function POST(request: NextRequest) {
       .values({
         ownerId: allUserRecord.id,
         title: title || (type === 'from-folder' ? `Gallery from ${folderName}` : 'My Gallery'),
-        description:
-          description || (type === 'from-folder' ? `Gallery created from folder: ${folderName}` : 'Custom gallery'),
+        description: description || '',
         sharingStatus: isPublic ? 'public' : 'private',
         // Storage status fields - will be calculated from memories
         totalMemories: galleryMemories.length,
@@ -250,12 +283,12 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    fatLogger.error('Error creating gallery:', 'be', { 
+    fatLogger.error('Error creating gallery:', 'be', {
       data: error instanceof Error ? error : undefined,
       message: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
     });
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Failed to create gallery',
       details: error instanceof Error ? error.message : String(error),
     }, { status: 500 });

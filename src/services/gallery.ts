@@ -118,7 +118,7 @@ export const galleryService = {
       const newGallery: GalleryWithItems = {
         id: `mock-gallery-${Date.now()}`,
         title: title || `Gallery from ${folderName}`,
-        description: description || `Gallery created from folder: ${folderName}`,
+        description: description || '',
         sharingStatus: isPublic ? 'public' : 'private',
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -139,7 +139,7 @@ export const galleryService = {
         type: 'from-folder',
         folderName,
         title: title || `Gallery from ${folderName}`,
-        description: description || `Gallery created from folder: ${folderName}`,
+        description: description || '',
         isPublic,
       };
 

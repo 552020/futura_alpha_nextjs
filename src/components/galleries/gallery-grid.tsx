@@ -41,9 +41,9 @@ export function GalleryGrid({
           key={gallery.id}
           item={gallery}
           onClick={() => onGalleryClick(gallery)}
-          onEdit={onGalleryEdit ? () => onGalleryEdit(gallery) : undefined}
-          onShare={onGalleryShare ? () => onGalleryShare(gallery) : undefined}
-          onDelete={onGalleryDelete ? () => onGalleryDelete(gallery) : undefined}
+          onEdit={onGalleryEdit && gallery.isOwner ? () => onGalleryEdit(gallery) : undefined}
+          onShare={onGalleryShare && gallery.isOwner ? () => onGalleryShare(gallery) : undefined}
+          onDelete={onGalleryDelete && gallery.isOwner ? () => onGalleryDelete(gallery) : undefined}
           contentType="gallery"
         />
       )}

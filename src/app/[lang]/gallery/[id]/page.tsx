@@ -555,6 +555,12 @@ function GalleryViewContent() {
               </Button>
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-bold">{gallery.title}</h1>
+                {!gallery.isOwner && (
+                  <Badge variant="outline" className="border-blue-300 text-blue-700 bg-blue-50 dark:border-blue-700 dark:text-blue-300 dark:bg-blue-950">
+                    <Share2 className="h-3 w-3 mr-1" />
+                    Shared with you
+                  </Badge>
+                )}
                 <StorageStatusBadge status={getGalleryStorageStatus(gallery)} />
               </div>
             </div>
@@ -574,26 +580,32 @@ function GalleryViewContent() {
                 )}
               </Badge>
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleTogglePrivacy}
-                disabled={isUpdating}
-                className="flex items-center gap-2"
-              >
-                {gallery.sharingStatus === 'public' ? <Globe className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-                {gallery.sharingStatus === 'public' ? 'Make Private' : 'Make Public'}
-              </Button>
+              {/* Only show privacy toggle for gallery owners */}
+              {gallery.isOwner && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleTogglePrivacy}
+                  disabled={isUpdating}
+                  className="flex items-center gap-2"
+                >
+                  {gallery.sharingStatus === 'public' ? <Globe className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+                  {gallery.sharingStatus === 'public' ? 'Make Private' : 'Make Public'}
+                </Button>
+              )}
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleShare}
-                className="flex items-center gap-2"
-              >
-                <Share2 className="h-4 w-4" />
-                Share
-              </Button>
+              {/* Only show share button for gallery owners */}
+              {gallery.isOwner && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleShare}
+                  className="flex items-center gap-2"
+                >
+                  <Share2 className="h-4 w-4" />
+                  Share
+                </Button>
+              )}
 
               <Button
                 variant="outline"
@@ -608,7 +620,9 @@ function GalleryViewContent() {
                 <Maximize2 className="h-4 w-4" />
                 Full Screen
               </Button>
-              {(() => {
+              
+              {/* Only show store forever and delete for gallery owners */}
+              {gallery.isOwner && (() => {
                 const buttonState = getStoreForeverButtonState();
                 return (
                   <>
@@ -648,19 +662,23 @@ function GalleryViewContent() {
                   </>
                 );
               })()}
-              <Button variant="outline" size="sm" onClick={handleDeleteGallery} disabled={isDeleting}>
-                {isDeleting ? (
-                  <>
-                    <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                    Deleting...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </>
-                )}
-              </Button>
+              
+              {/* Only show delete button for gallery owners */}
+              {gallery.isOwner && (
+                <Button variant="outline" size="sm" onClick={handleDeleteGallery} disabled={isDeleting}>
+                  {isDeleting ? (
+                    <>
+                      <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           </div>
         </div>

@@ -569,7 +569,13 @@ export function ContentCard({
         renderTitle={() => gallery.title}
         renderDescription={() => gallery.description}
         renderStorageBadge={() => (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {!gallery.isOwner && (
+              <Badge variant="outline" className="text-xs border-blue-300 text-blue-700 bg-blue-50 dark:border-blue-700 dark:text-blue-300 dark:bg-blue-950">
+                <Share2 className="h-3 w-3 mr-1" />
+                Shared with you
+              </Badge>
+            )}
             <Badge variant={gallery.sharingStatus === 'public' ? 'default' : 'secondary'} className="text-xs">
               {gallery.sharingStatus === 'public' ? (
                 <>
@@ -583,27 +589,30 @@ export function ContentCard({
                 </>
               )}
             </Badge>
-            {gallery.storageStatus && (
-              <span className="text-xs text-muted-foreground">
-                {gallery.storageStatus.icpCompletePercentage}% stored
-              </span>
-            )}
           </div>
         )}
         renderLeftStatus={() => (
-          <Badge variant={gallery.sharingStatus === 'public' ? 'default' : 'secondary'} className="text-xs">
-            {gallery.sharingStatus === 'public' ? (
-              <>
-                <Globe className="h-3 w-3 mr-1" />
-                Public
-              </>
-            ) : (
-              <>
-                <Lock className="h-3 w-3 mr-1" />
-                Private
-              </>
+          <div className="flex items-center gap-2">
+            {!gallery.isOwner && (
+              <Badge variant="outline" className="text-xs border-blue-300 text-blue-700 bg-blue-50 dark:border-blue-700 dark:text-blue-300 dark:bg-blue-950">
+                <Share2 className="h-3 w-3 mr-1" />
+                Shared
+              </Badge>
             )}
-          </Badge>
+            <Badge variant={gallery.sharingStatus === 'public' ? 'default' : 'secondary'} className="text-xs">
+              {gallery.sharingStatus === 'public' ? (
+                <>
+                  <Globe className="h-3 w-3 mr-1" />
+                  Public
+                </>
+              ) : (
+                <>
+                  <Lock className="h-3 w-3 mr-1" />
+                  Private
+                </>
+              )}
+            </Badge>
+          </div>
         )}
       />
     );
