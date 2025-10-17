@@ -1,11 +1,14 @@
 name: Create/Delete Branch for Pull Request
+# Temporarily disabled due to rate limits
+# on:
+#   pull_request:
+#     types:
+#       - opened
+#       - reopened
+#       - synchronize
+#       - closed
 on:
-  pull_request:
-    types:
-      - opened
-      - reopened
-      - synchronize
-      - closed
+  workflow_dispatch: # Manual trigger only
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
 jobs:
