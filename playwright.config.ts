@@ -1,18 +1,31 @@
 import { defineConfig, devices } from '@playwright/test';
-
-/**
- * Read environment variables from file.
- * https://github.com/motdotla/dotenv
- */
-// import dotenv from 'dotenv';
-// import path from 'path';
-// dotenv.config({ path: path.resolve(__dirname, '.env') });
+import { execSync } from 'child_process';
 
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
+
+// Check if dev server is running in local development
+function checkDevServer() {
+  if (process.env.CI) return; // Skip check in CI
+
+  try {
+    execSync('curl -s http://localhost:3000 > /dev/null', { stdio: 'ignore' });
+    console.log('✅ Dev server is running on http://localhost:3000');
+  } catch (_error) {
+    console.error('❌ Dev server is not running on http://localhost:3000');
+    console.error('Please start the dev server first:');
+    console.error('  pnpm dev:nextjs');
+    console.error('Then run the tests again.');
+    process.exit(1);
+  }
+}
+
+// Check dev server before running tests
+checkDevServer();
+
 export default defineConfig({
-  testDir: './e2e',
+  testDir: '.',
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -50,35 +63,21 @@ export default defineConfig({
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
     },
-
-    /* Test against mobile viewports. */
-    // {
-    //   name: 'Mobile Chrome',
-    //   use: { ...devices['Pixel 5'] },
-    // },
-    // {
-    //   name: 'Mobile Safari',
-    //   use: { ...devices['iPhone 12'] },
-    // },
-
-    /* Test against branded browsers. */
-    // {
-    //   name: 'Microsoft Edge',
-    //   use: { ...devices['Desktop Edge'], channel: 'msedge' },
-    // },
-    // {
-    //   name: 'Google Chrome',
-    //   use: { ...devices['Desktop Chrome'], channel: 'chrome' },
-    // },
   ],
 
   /* Run your local dev server before starting the tests */
   webServer: process.env.CI
-    ? undefined
-    : {
+    ? {
         command: 'pnpm dev:nextjs',
         url: 'http://localhost:3000',
-        reuseExistingServer: !process.env.CI,
+        reuseExistingServer: false,
         timeout: 120 * 1000, // 2 minutes timeout for dev server startup
+      }
+    : {
+        // For local dev: just reuse existing server (we already checked it's running)
+        command: 'echo "Using existing dev server"',
+        url: 'http://localhost:3000',
+        reuseExistingServer: true,
+        timeout: 5000, // Quick timeout since server should already be running
       },
 });

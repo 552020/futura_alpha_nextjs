@@ -1,6 +1,43 @@
 import { testWithII, expect } from '@dfinity/internet-identity-playwright';
+import { execSync } from 'child_process';
 
 testWithII.describe('Internet Identity Authentication', () => {
+  // Check if Internet Computer replica is running before tests
+  testWithII.beforeAll(async () => {
+    try {
+      execSync('dfx ping', { stdio: 'ignore' });
+      console.log('✅ Internet Computer replica is running');
+    } catch (_error) {
+      console.error('❌ Internet Computer replica is not running');
+      console.error('Please start the local replica first:');
+      console.error('  dfx start --clean');
+      console.error('  dfx deploy internet_identity');
+      console.error('Then run the tests again.');
+      process.exit(1);
+    }
+  });
+
+  // Configure Internet Identity service URL
+  testWithII.beforeEach(async ({ iiPage }) => {
+    // Get the actual canister ID from dfx
+    let canisterId: string;
+    try {
+      canisterId = execSync('dfx canister id internet_identity', { encoding: 'utf8' }).trim();
+      console.log(`✅ Using Internet Identity canister ID: ${canisterId}`);
+    } catch (_error) {
+      console.error('❌ Failed to get Internet Identity canister ID');
+      console.error('Make sure Internet Identity is deployed:');
+      console.error('  dfx deploy internet_identity');
+      process.exit(1);
+    }
+
+    // Use local Internet Identity service (base URL only, no query params)
+    await iiPage.waitReady({
+      url: 'http://127.0.0.1:4943', // base replica URL only
+      canisterId,
+      timeout: 90_000, // give it more time
+    });
+  });
   testWithII('II sign-in with a new identity logs the user in', async ({ page, iiPage }) => {
     // 1) Go to ICP management page
     await page.goto('/en/user/icp');
@@ -20,19 +57,17 @@ testWithII.describe('Internet Identity Authentication', () => {
     // 1) Go to homepage (not authenticated)
     await page.goto('/en');
 
-    // 2) Click sign in button in header - this opens a modal
+    // 2) Click sign in button in header - this navigates to /en/signin
     await page.getByRole('button', { name: 'Sign In' }).click();
 
-    // 3) Wait for modal to appear and look for Internet Identity button
+    // 3) Wait for navigation to signin page and look for Internet Identity button
+    await expect(page).toHaveURL(/\/en\/signin/);
     await expect(page.getByText('Sign in with Internet Identity')).toBeVisible();
 
-    // 4) Click the Internet Identity button in the modal
-    await page.getByText('Sign in with Internet Identity').click();
+    // 4) Use the II plugin directly with the signin page button
+    await iiPage.signInWithNewIdentity({ selector: '[data-testid="ii-signin-button"]' });
 
-    // 5) Start II flow - the button should now be in the modal
-    await iiPage.signInWithNewIdentity({ selector: 'button:has-text("Sign in with Internet Identity")' });
-
-    // 6) Assert: we are authenticated (avatar visible in header)
+    // 5) Assert: we are authenticated (avatar visible in header)
     await expect(page.getByTestId('user-avatar')).toBeVisible();
   });
 

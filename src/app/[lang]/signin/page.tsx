@@ -217,7 +217,7 @@ function SignInPageInternal() {
           <Button variant="outline" onClick={() => handleProvider('google')} disabled={busy || iiBusy}>
             Sign in with Google
           </Button>
-          <Button variant="outline" onClick={handleInternetIdentity} disabled={iiBusy || busy}>
+          <Button variant="outline" onClick={handleInternetIdentity} disabled={iiBusy || busy} data-testid="ii-signin-button">
             {iiBusy ? 'Connecting to Internet Identity…' : 'Sign in with Internet Identity'}
           </Button>
         </div>
