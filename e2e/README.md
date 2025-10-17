@@ -4,7 +4,7 @@ This directory contains Playwright end-to-end tests for the Futura application.
 
 ## 🎯 **Purpose**
 
-This directory is ready for fresh Playwright test development. The previous tests have been removed to start with a clean slate.
+This directory contains comprehensive end-to-end tests covering authentication, user workflows, and Internet Identity integration.
 
 ## 📁 **Getting Started**
 
@@ -42,10 +42,19 @@ We suggest that you begin by typing:
 pnpm exec playwright test
 ```
 
-And check out the following files:
+## 📋 **Test Files**
 
-- `./e2e/example.spec.ts` - Example end-to-end test
-- `./playwright.config.ts` - Playwright Test configuration
+- `auth.spec.ts` - Authentication page tests
+- `auth.internet-identity.spec.ts` - Internet Identity authentication flow tests
+- `dashboard.spec.ts` - Dashboard page tests
+- `delete-account.spec.ts` - Account deletion workflow tests
+- `mobile-overflow.spec.ts` - Mobile responsive layout tests
+- `signin.spec.ts` - Sign-in page tests
+- `signup.spec.ts` - Sign-up page tests
+- `simple-signup.spec.ts` - Basic sign-up test
+- `smoke.spec.ts` - Basic smoke tests
+- `user-creation.spec.ts` - User creation API tests
+- `example.spec.ts` - Example test file
 
 Visit https://playwright.dev/docs/intro for more information. ✨
 
@@ -91,48 +100,55 @@ The tests are configured in `playwright.config.ts`:
 
 ## 🔐 **Internet Identity Integration**
 
-For proper ICP authentication testing, we should integrate the **Internet Identity Playwright plugin**:
+The Internet Identity Playwright plugin is **already installed and configured** for automated ICP authentication testing.
 
-### **Installation**
+### **Running Internet Identity Tests**
 
 ```bash
-pnpm add -D @dfinity/internet-identity-playwright
+# Run Internet Identity tests
+PLAYWRIGHT=true pnpm exec playwright test auth.internet-identity.spec.ts
+
+# Run with UI mode (interactive)
+PLAYWRIGHT=true pnpm exec playwright test auth.internet-identity.spec.ts --ui
+
+# Run in headed mode (visible browser)
+PLAYWRIGHT=true pnpm exec playwright test auth.internet-identity.spec.ts --headed
 ```
 
-### **Usage Example**
+### **Test Coverage**
 
-```javascript
-import { testWithII } from '@dfinity/internet-identity-playwright';
+The Internet Identity tests (`auth.internet-identity.spec.ts`) cover:
 
-testWithII('should sign-in with a new user', async ({ page, iiPage }) => {
-  await page.goto('/');
-  await iiPage.signInWithNewIdentity();
+- **Basic Sign-in Flow**: New identity → authenticated user
+- **Callback URL Handling**: Returns to original page after authentication
+- **API Integration**: Verifies challenge/nonce flow
+- **State Management**: Shows connected/disconnected states
+- **Sign-out Flow**: Can disconnect from Internet Identity
+- **Error Handling**: Graceful handling of authentication errors
+- **Locale Support**: Preserves language in callback URLs
+- **Session Linking**: Handles existing session scenarios
 
-  // Now authenticated, test protected functionality
-  await page.goto('/vault');
-  // ... continue with asset serving tests
-});
+### **Test Flow**
+
+```
+1. Navigate to /en/user/icp
+2. Click "Connect Internet Identity" button
+3. Redirect to /en/sign-ii-only?callbackUrl=...
+4. Click "Sign in with Internet Identity" button
+5. Internet Identity plugin handles authentication
+6. App processes challenge/nonce
+7. NextAuth 'ii' provider handles session
+8. Redirect back to original page
+9. Verify authenticated state
 ```
 
-### **Benefits**
+### **Required Test IDs**
 
-- **Automated authentication**: No manual Internet Identity setup required
-- **New identity creation**: Each test can create fresh identities
-- **Real ICP integration**: Tests actual Internet Identity flows
-- **Isolated testing**: Each test gets a clean authentication state
+The tests rely on these `data-testid` attributes:
 
-### **Integration with Our Tests**
-
-The current tests skip when authentication is required. With the ICP plugin, we can:
-
-1. **Automate upload tests**: Create identities and test complete upload workflows
-2. **Test delete functionality**: Verify delete all memories works with real authentication
-3. **End-to-end workflows**: Test complete user journeys from login to asset management
-
-### **Resources**
-
-- [Official Developer Update](https://internetcomputer.org/blog/2024/07/10/news-and-updates/update#internet-identity-e2e-testing-playwright-plugin)
-- [DFINITY Forum Post](https://forum.dfinity.org/t/37390)
+- `ii-connect` - "Connect Internet Identity" button on ICP page
+- `ii-start` - "Sign in with Internet Identity" button on sign-ii-only page
+- `user-avatar` - User avatar/authentication indicator
 
 ## 🧪 **Test Strategy**
 
@@ -204,7 +220,6 @@ The Playwright tests fill the gap for **complete user workflow testing** that wa
 
 ## 📈 **Future Enhancements**
 
-- **ICP Plugin Integration**: Install and configure `@dfinity/internet-identity-playwright` for automated authentication
 - **Complete Upload Workflows**: Test full image upload → processing → display pipeline with real authentication
 - **Cross-browser Testing**: Ensure ICP integration works in all browsers (Chrome, Firefox, Safari)
 - **Performance Testing**: Measure asset loading times and optimization

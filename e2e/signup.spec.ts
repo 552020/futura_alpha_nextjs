@@ -16,13 +16,37 @@ test.describe('Email/Password Signup', () => {
     const password = 'testpassword123';
 
     await page.getByLabel(/email/i).fill(email);
-    await page.getByLabel(/password/i).fill(password);
-    await page.getByLabel(/confirm password/i).fill(password);
+    await page.locator('#password').fill(password);
+    await page.locator('#confirmPassword').fill(password);
 
     // Submit signup form
     await page.getByRole('button', { name: /sign up with email/i }).click();
 
-    // Wait for successful signup and redirect
+    // Wait for the operation to complete (button becomes enabled again)
+    await page.waitForFunction(
+      () => {
+        const button = document.querySelector('button[type="submit"]') as HTMLButtonElement;
+        return button && !button.disabled;
+      },
+      { timeout: 10000 }
+    );
+
+    // Add extra wait for redirect to complete
+    await page.waitForTimeout(2000);
+
+    // Check if we're still on signin page (indicating failure)
+    if (page.url().includes('/signin')) {
+      // Look for error messages
+      const errorElement = page.locator('p.text-red-500');
+      if (await errorElement.isVisible()) {
+        const errorText = await errorElement.textContent();
+        throw new Error(`Signup failed: ${errorText}`);
+      } else {
+        throw new Error('Signup failed: No redirect occurred and no error message shown');
+      }
+    }
+
+    // Wait for successful redirect
     await expect(page).toHaveURL(/\/dashboard/);
 
     // Verify user is signed in (should see dashboard content)
@@ -37,8 +61,8 @@ test.describe('Email/Password Signup', () => {
 
     // Fill form with mismatched passwords
     await page.getByLabel(/email/i).fill('test@example.com');
-    await page.getByLabel(/password/i).fill('password123');
-    await page.getByLabel(/confirm password/i).fill('different123');
+    await page.locator('#password').fill('password123');
+    await page.locator('#confirmPassword').fill('different123');
 
     // Submit form
     await page.getByRole('button', { name: /sign up with email/i }).click();
@@ -53,16 +77,31 @@ test.describe('Email/Password Signup', () => {
     // Switch to signup tab
     await page.getByRole('button', { name: /sign up/i }).click();
 
-    // Fill form with invalid email
-    await page.getByLabel(/email/i).fill('invalid-email');
-    await page.getByLabel(/password/i).fill('password123');
-    await page.getByLabel(/confirm password/i).fill('password123');
+    // Fill form with invalid email (valid format but missing TLD)
+    await page.getByLabel(/email/i).fill('invalid@email');
+    await page.locator('#password').fill('password123');
+    await page.locator('#confirmPassword').fill('password123');
 
     // Submit form
     await page.getByRole('button', { name: /sign up with email/i }).click();
 
+    // Wait for form submission to complete
+    await page.waitForTimeout(2000);
+
+    // Debug: Check what's actually on the page
+    const allText = await page.locator('body').textContent();
+    console.log('Page content after invalid email submission:', allText);
+
+    // Check if form was actually submitted (button should be enabled)
+    const buttonText = await page.locator('button[type="submit"]').textContent();
+    console.log('Button text after submission:', buttonText);
+
+    // Check for any validation messages
+    const validationMessages = await page.locator('[class*="error"], [class*="invalid"], p').allTextContents();
+    console.log('All validation messages:', validationMessages);
+
     // Should show validation error
-    await expect(page.getByText(/invalid email format/i)).toBeVisible();
+    await expect(page.getByText(/Invalid email format/i)).toBeVisible();
   });
 
   test('signup shows validation errors for short password', async ({ page }) => {
@@ -73,8 +112,8 @@ test.describe('Email/Password Signup', () => {
 
     // Fill form with short password
     await page.getByLabel(/email/i).fill('test@example.com');
-    await page.getByLabel(/password/i).fill('123');
-    await page.getByLabel(/confirm password/i).fill('123');
+    await page.locator('#password').fill('123');
+    await page.locator('#confirmPassword').fill('123');
 
     // Submit form
     await page.getByRole('button', { name: /sign up with email/i }).click();
@@ -89,13 +128,38 @@ test.describe('Email/Password Signup', () => {
     // Switch to signup tab
     await page.getByRole('button', { name: /sign up/i }).click();
 
-    // Use a known existing email (you might need to adjust this)
-    await page.getByLabel(/email/i).fill('existing@example.com');
-    await page.getByLabel(/password/i).fill('password123');
-    await page.getByLabel(/confirm password/i).fill('password123');
+    // First, create a user to test with
+    const existingEmail = `existing-${Date.now()}@example.com`;
+    const password = 'testpassword123';
+
+    // Create the user first
+    await page.getByLabel(/email/i).fill(existingEmail);
+    await page.locator('#password').fill(password);
+    await page.locator('#confirmPassword').fill(password);
+    await page.getByRole('button', { name: /sign up with email/i }).click();
+
+    // Wait for successful signup
+    await page.waitForFunction(
+      () => {
+        const button = document.querySelector('button[type="submit"]') as HTMLButtonElement;
+        return button && !button.disabled;
+      },
+      { timeout: 10000 }
+    );
+    await page.waitForTimeout(2000);
+
+    // Now try to sign up with the same email again
+    await page.goto('/en/signin');
+    await page.getByRole('button', { name: /sign up/i }).click();
+    await page.getByLabel(/email/i).fill(existingEmail);
+    await page.locator('#password').fill('password123');
+    await page.locator('#confirmPassword').fill('password123');
 
     // Submit form
     await page.getByRole('button', { name: /sign up with email/i }).click();
+
+    // Wait for form submission to complete
+    await page.waitForTimeout(2000);
 
     // Should show error for existing email
     await expect(page.getByText(/user with this email already exists/i)).toBeVisible();
@@ -109,8 +173,8 @@ test.describe('Email/Password Signup', () => {
 
     // Check that all required fields are present
     await expect(page.getByLabel(/email/i)).toBeVisible();
-    await expect(page.getByLabel(/password/i)).toBeVisible();
-    await expect(page.getByLabel(/confirm password/i)).toBeVisible();
+    await expect(page.locator('#password')).toBeVisible();
+    await expect(page.locator('#confirmPassword')).toBeVisible();
 
     // Check that submit button is present
     await expect(page.getByRole('button', { name: /sign up with email/i })).toBeVisible();
@@ -131,7 +195,7 @@ test.describe('Email/Password Signup', () => {
     await expect(page.getByLabel(/confirm password/i)).toBeVisible();
 
     // Switch back to signin tab
-    await page.getByRole('button', { name: /sign in/i }).click();
+    await page.getByRole('button', { name: 'Sign In', exact: true }).click();
 
     // Should show signin form
     await expect(page.getByRole('button', { name: /sign in with email/i })).toBeVisible();
