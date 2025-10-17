@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 
 test('simple signup with email and password', async ({ page }) => {
   // Go to signin page with full URL

@@ -77,6 +77,8 @@ export default defineConfig({
     command: 'pnpm dev:nextjs',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000, // 2 minutes timeout for dev server startup
+    timeout: 180 * 1000, // 3 minutes timeout for dev server startup
+    stdout: 'pipe',
+    stderr: 'pipe',
   },
 });

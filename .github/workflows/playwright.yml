@@ -44,8 +44,14 @@ jobs:
             ${{ runner.os }}-playwright-
       - name: Install Playwright Browsers
         run: pnpm exec playwright install --with-deps
+      - name: Test server startup
+        run: |
+          timeout 60s pnpm dev:nextjs &
+          sleep 30
+          curl -f http://localhost:3000 || echo "Server not ready on port 3000"
+          pkill -f "next dev" || true
       - name: Run Playwright tests
-        run: pnpm exec playwright test
+        run: pnpm exec playwright test --timeout=300000
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:

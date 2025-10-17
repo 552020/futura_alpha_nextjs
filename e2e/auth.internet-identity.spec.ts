@@ -25,12 +25,12 @@ testWithII.describe('Internet Identity Authentication', () => {
 
     // 3) Should redirect to sign-in page, then click Internet Identity option
     await expect(page).toHaveURL(/\/signin/);
-
+    
     // 4) Look for Internet Identity sign-in option and click it
     await page.getByText('Sign in with Internet Identity').click();
 
-    // 5) Start II flow
-    await iiPage.signInWithNewIdentity({ selector: '[data-testid="ii-start"]' });
+    // 5) Start II flow - use the button text as selector since no data-testid
+    await iiPage.signInWithNewIdentity({ selector: 'button:has-text("Sign in with Internet Identity")' });
 
     // 6) Assert: we are authenticated (avatar visible in header)
     await expect(page.getByTestId('user-avatar')).toBeVisible();
