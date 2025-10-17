@@ -1,6 +1,6 @@
 // Script to sync users from users table to all_users table
 import { db } from '@/db/db';
-import { allUsers } from '@/db/schema';
+import { allUsers } from '@/db';
 import { eq } from 'drizzle-orm';
 
 async function syncUsersToAllUsers() {

@@ -1,5 +1,5 @@
 import { db } from '@/db/db';
-import { allUsers, users, memories, memoryAssets } from '@/db/schema';
+import { allUsers, users, memories, memoryAssets } from '@/db';
 import { faker } from '@faker-js/faker';
 import { inArray } from 'drizzle-orm';
 import { uploadFileToStorage } from '@/app/api/memories/utils/storage';

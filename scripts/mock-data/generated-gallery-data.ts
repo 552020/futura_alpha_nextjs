@@ -1,5 +1,4 @@
-import { GalleryWithItems } from '@/types/gallery';
-import { Memory } from '@/types/memory';
+import type { Memory } from '@/types/memory';
 
 // Generate a memory object
 function generateMemory(id: string, title: string, description: string): Memory {
@@ -41,7 +40,7 @@ function generateGalleryItem(galleryId: string, index: number, title: string, de
 }
 
 // Generate a gallery with items
-function generateGallery(id: string, title: string, description: string, itemCount: number = 15): GalleryWithItems {
+function generateGallery(id: string, title: string, description: string, itemCount: number = 15) {
   const items = Array.from({ length: itemCount }, (_, i) =>
     generateGalleryItem(id, i, `Photo ${i + 1}`, `Beautiful ${title.toLowerCase()} photo ${i + 1}`)
   );
@@ -57,7 +56,7 @@ function generateGallery(id: string, title: string, description: string, itemCou
     totalMemories: itemCount,
     sharingStatus: 'private',
     sharedCount: 0,
-    storageLocation: ['s3'],
+    storageLocation: ['s3'] as any,
     items,
     imageCount: itemCount,
     isOwner: true,
@@ -65,7 +64,7 @@ function generateGallery(id: string, title: string, description: string, itemCou
 }
 
 // Generate all galleries
-export const generatedGalleries: GalleryWithItems[] = [
+export const generatedGalleries = [
   generateGallery(
     'portrait-gallery',
     'Portrait Collection',
@@ -96,6 +95,6 @@ export const generatedGalleries: GalleryWithItems[] = [
 ];
 
 // Export function to get a specific gallery by ID
-export function getGeneratedGallery(id: string): GalleryWithItems | undefined {
+export function getGeneratedGallery(id: string) {
   return generatedGalleries.find(gallery => gallery.id === id);
 }

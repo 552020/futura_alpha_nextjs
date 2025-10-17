@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
 import { eq, and } from 'drizzle-orm';
-import { galleries, allUsers, resourceMembership } from '@/db/schema';
+import { galleries, allUsers, resourceMembership } from '@/db';
 import { randomUUID } from 'crypto';
 
 import { fatLogger } from '@/lib/logger';
@@ -73,6 +73,20 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         createdAt: new Date(),
       })
       .returning();
+
+    // Update the gallery's sharedCount
+    const shareCount = await db.query.resourceMembership.findMany({
+      where: and(eq(resourceMembership.resourceId, galleryId), eq(resourceMembership.resourceType, 'gallery')),
+    });
+
+    await db
+      .update(galleries)
+      .set({
+        sharedCount: shareCount.length,
+        sharingStatus: shareCount.length > 0 ? 'shared' : 'private',
+        updatedAt: new Date(),
+      })
+      .where(eq(galleries.id, galleryId));
 
     fatLogger.info('Created gallery share:', JSON.stringify(newShare[0]));
 

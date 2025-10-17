@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 
 import { db } from '@/db/db';
-import { users } from '@/db/schema';
+import { users } from '@/db';
 import { eq } from 'drizzle-orm';
 
 type UserRole = 'user' | 'moderator' | 'admin' | 'developer' | 'superadmin';

@@ -5,7 +5,7 @@
  * Replaces scattered, duplicated logic across the codebase.
  */
 
-import type { MemoryType } from '@/db/schema';
+import type { MemoryType } from '@/db/enums';
 
 /**
  * Extract memory type from MIME type and optional file name

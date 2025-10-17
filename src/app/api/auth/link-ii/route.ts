@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
-import { accounts } from '@/db/schema';
+import { accounts } from '@/db';
 import { createServerSideActor } from '@/lib/server-actor';
 
 import { fatLogger } from '@/lib/logger';

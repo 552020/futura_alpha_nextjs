@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db/db';
-import { temporaryUsers, relationship, familyRelationship } from '@/db/schema';
+import { temporaryUsers, relationship, familyRelationship } from '@/db';
 import { createTemporaryUserBase } from '../utils';
 import { eq } from 'drizzle-orm';
 

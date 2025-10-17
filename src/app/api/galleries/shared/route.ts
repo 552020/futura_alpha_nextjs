@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
-import { allUsers, galleries, users, temporaryUsers, resourceMembership } from '@/db/schema';
+import { allUsers, galleries, users, temporaryUsers, resourceMembership } from '@/db';
 import { addStorageStatusToGallery } from '../utils';
 import { eq, and, desc, sql } from 'drizzle-orm';
 

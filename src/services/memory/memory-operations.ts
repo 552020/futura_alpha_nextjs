@@ -1,5 +1,5 @@
 import { db } from '@/db/db';
-import { memories, allUsers, type MemoryType } from '@/db/schema';
+import { memories, allUsers, type MemoryType } from '@/db';
 import { eq, and, desc, asc, isNull } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import { randomBytes } from 'crypto';

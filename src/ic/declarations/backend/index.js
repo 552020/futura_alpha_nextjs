@@ -11,26 +11,6 @@ export { idlFactory } from './backend.did.js';
  */
 export const canisterId = process.env.NEXT_PUBLIC_CANISTER_ID_BACKEND;
 
-// Health check function to prevent crashes when ICP is unavailable
-const isIcpAvailable = async () => {
-  try {
-    const host = process.env.NEXT_PUBLIC_IC_HOST || 'http://127.0.0.1:4943';
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
-
-    const res = await fetch(`${host}/api/v2/status`, {
-      method: 'GET',
-      signal: controller.signal,
-      cache: 'no-store',
-    });
-
-    clearTimeout(timeoutId);
-    return res.ok;
-  } catch {
-    return false;
-  }
-};
-
 export const createActor = (canisterId, options = {}) => {
   const agent = options.agent || new HttpAgent({ ...options.agentOptions });
 
@@ -40,18 +20,11 @@ export const createActor = (canisterId, options = {}) => {
     );
   }
 
-  // SAFE fetchRootKey with health check - only call if ICP is available
-  if (process.env.NEXT_PUBLIC_DFX_NETWORK !== 'ic') {
-    // Check if ICP is available before calling fetchRootKey
-    isIcpAvailable().then(available => {
-      if (available) {
-        agent.fetchRootKey().catch(err => {
-          console.warn('Unable to fetch root key. ICP may be unavailable');
-          console.error(err);
-        });
-      } else {
-        console.warn('ICP network unavailable, skipping fetchRootKey to prevent crashes');
-      }
+  // Fetch root key for certificate validation during development
+  if (process.env.DFX_NETWORK !== 'ic') {
+    agent.fetchRootKey().catch(err => {
+      console.warn('Unable to fetch root key. Check to ensure that your local replica is running');
+      console.error(err);
     });
   }
 

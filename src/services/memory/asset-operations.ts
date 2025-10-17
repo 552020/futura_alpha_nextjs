@@ -1,5 +1,5 @@
 import { db } from '@/db/db';
-import { memoryAssets, type AssetType, type ProcessingStatus } from '@/db/schema';
+import { memoryAssets, type AssetType, type ProcessingStatus } from '@/db';
 import { eq, and } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import { fatLogger } from '@/lib/logger';

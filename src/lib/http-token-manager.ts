@@ -79,7 +79,11 @@ export function getHttpBaseUrl(): string {
   const isLocal = process.env.NEXT_PUBLIC_DFX_NETWORK === 'local';
 
   if (isLocal) {
-    return 'http://uxrrr-q7777-77774-qaaaq-cai.localhost:4943';
+    const canisterId = process.env.NEXT_PUBLIC_CANISTER_ID_BACKEND;
+    if (!canisterId) {
+      throw new Error('NEXT_PUBLIC_CANISTER_ID_BACKEND not set for local development');
+    }
+    return `http://${canisterId}.localhost:4943`;
   }
 
   // Production ICP HTTP gateway

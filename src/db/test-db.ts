@@ -2,7 +2,7 @@ import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
 import { config } from 'dotenv';
 import { fatLogger } from '@/lib/logger';
-import * as schema from './schema'; // Import the SAME schema
+import * as schema from './index'; // Import the SAME schema
 
 // Load environment variables
 config({ path: '.env.local' });

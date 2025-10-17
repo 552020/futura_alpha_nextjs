@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
-import { allUsers, users, temporaryUsers } from '@/db/schema';
+import { allUsers, users, temporaryUsers } from '@/db';
 import { findMemory } from '@/app/api/memories/utils/memory';
 import { eq } from 'drizzle-orm';
 // import { sendInvitationEmail, sendSharedMemoryEmail } from "@/app/api/memories/utils/email";
-import type { RelationshipType, FamilyRelationshipType } from '@/db/schema';
+import type { RelationshipType, FamilyRelationshipType } from '@/db';
 // import crypto from 'crypto';
 
 // function _generateSecureCode(): string {
