@@ -3,7 +3,7 @@
 // Script to check business relationships for a specific email
 import { db } from '@/db/db';
 import { businessRelationship, users, allUsers } from '@/db';
-import { eq, or } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 
 interface CheckOptions {
   email: string;
@@ -13,7 +13,7 @@ interface CheckOptions {
 }
 
 async function checkBusinessRelationships(options: CheckOptions) {
-  const { email, verbose = false, showClients = false, showPhotographers = false } = options;
+  const { email, verbose = false } = options;
 
   try {
     if (verbose) {
