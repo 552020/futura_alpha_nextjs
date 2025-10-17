@@ -57,7 +57,7 @@ export interface ShareGalleryParams {
     galleryId: string;
     allUserId?: string | null;
     role: 'owner' | 'member' | 'guest';
-    grantSource: 'user' | 'group' | 'relationship';
+    grantSource: 'user' | 'group' | 'magic_link' | 'public_mode' | 'system';
 }
 
 export interface GalleryAccessCheckParams {
