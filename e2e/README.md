@@ -271,7 +271,7 @@ All tests work perfectly locally. The issues are specific to the GitHub Actions 
 
 - **Triggers:** After successful deployment
 - **Approach:** Tests against live deployed app
-- **Status:** ✅ Ready to use (when deployment is set up)
+- **Status:** 🔧 **DISABLED** (focusing on standard workflow first)
 - **Use case:** Production testing, deployment validation
 
 ### **Benefits of Deployment Approach:**
