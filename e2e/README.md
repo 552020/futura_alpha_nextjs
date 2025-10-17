@@ -12,20 +12,31 @@ Create new test files with the `.spec.ts` extension in this directory. Playwrigh
 
 ## 🚀 **Running Tests**
 
+- Start the Next.js development server with `npm run dev`
+- ICP backend only needed for Internet Identity tests
+- Some tests require authentication
+
 ### Basic Commands
 
 ```bash
-# Run all end-to-end tests
+# Run all tests
 pnpm exec playwright test
 
-# Start the interactive UI mode
-pnpm exec playwright test --ui
+# Run single test
+pnpm exec playwright test example.spec.ts
 
-# Run tests only on Desktop Chrome
+# Run only with Chrome
 pnpm exec playwright test --project=chromium
 
-# Run tests in a specific file
-pnpm exec playwright test example
+# Run with reporter list
+pnpm exec playwright test --reporter=list
+```
+
+### Other Commands
+
+```bash
+# Start the interactive UI mode
+pnpm exec playwright test --ui
 
 # Run tests in debug mode
 pnpm exec playwright test --debug
@@ -34,62 +45,17 @@ pnpm exec playwright test --debug
 pnpm exec playwright codegen
 ```
 
-### Getting Started
-
-We suggest that you begin by typing:
-
-```bash
-pnpm exec playwright test
-```
-
 ## 📋 **Test Files**
 
-- `auth.spec.ts` - Authentication page tests
-- `auth.internet-identity.spec.ts` - Internet Identity authentication flow tests
-- `dashboard.spec.ts` - Dashboard page tests
-- `delete-account.spec.ts` - Account deletion workflow tests
-- `mobile-overflow.spec.ts` - Mobile responsive layout tests
-- `signin.spec.ts` - Sign-in page tests
-- `signup.spec.ts` - Sign-up page tests
-- `simple-signup.spec.ts` - Basic sign-up test
-- `smoke.spec.ts` - Basic smoke tests
-- `user-creation.spec.ts` - User creation API tests
-- `example.spec.ts` - Example test file
-
-Visit https://playwright.dev/docs/intro for more information. ✨
-
-Happy hacking! 🎭
-
-### Prerequisites
-
-1. **Backend running**: Make sure the ICP backend is deployed locally
-2. **Frontend running**: The dev server will be started automatically by Playwright
-3. **Authentication**: Some tests require Internet Identity authentication
-
-### Commands
-
-```bash
-# Run all e2e tests
-pnpm test:e2e
-
-# Run tests with UI (interactive mode)
-pnpm test:e2e:ui
-
-# Run tests in headed mode (see browser)
-pnpm test:e2e:headed
-
-# Debug tests step by step
-pnpm test:e2e:debug
-
-# Run specific test file
-pnpm playwright test asset-serving.spec.ts
-
-# Run specific test
-pnpm playwright test asset-serving.spec.ts -g "images display with correct dimensions"
-
-# Run single test file
-pnpm playwright test signup.spec.ts
-```
+- `auth.internet-identity.spec.ts` - Internet Identity authentication flow with II plugin integration
+- `dashboard.spec.ts` - Dashboard page loading and authentication state verification
+- `debug-signin.spec.ts` - Diagnostic test for signin modal structure and OAuth providers
+- `delete-account.spec.ts` - Complete account deletion workflow with confirmation
+- `mobile-overflow.spec.ts` - Mobile responsive layout and horizontal overflow testing
+- `signin.spec.ts` - Sign-in page functionality and OAuth provider testing
+- `signup.spec.ts` - Comprehensive email/password signup with validation tests
+- `smoke.spec.ts` - Basic smoke test for homepage accessibility
+- `user-creation.spec.ts` - API tests for programmatic user creation via /api/users endpoint
 
 ## 🔧 **Configuration**
 
