@@ -5,7 +5,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useAuthGuard } from '@/utils/authentication';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Globe, Lock, Trash2, Maximize2, HardDrive, Eye, Check } from 'lucide-react';
+import { Globe, Lock, Trash2, Maximize2, HardDrive, Eye, Check, Share2 } from 'lucide-react';
 import { galleryService } from '@/services/gallery';
 import { GalleryWithItems } from '@/types/gallery';
 import { Memory } from '@/types/memory';
@@ -27,6 +27,7 @@ import { GallerySelectionBar } from '@/components/galleries/gallery-selection-ba
 import { GalleryPhotoGrid } from '@/components/galleries/gallery-photo-grid';
 import { GallerySelectionPanel } from '@/components/galleries/gallery-selection-panel';
 import { SendSelectionModal } from '@/components/galleries/share-modals/send-selection';
+import { GalleryShareDialog } from '@/components/galleries/share-modals/gallery-share';
 import { toast } from '@/components/ui/use-toast';
 import { ToastContainer } from '@/components/ui/toast-container';
 
@@ -55,6 +56,7 @@ function GalleryViewContent() {
   const [showSidePanel, setShowSidePanel] = useState(false);
   const [showForeverStorageModal, setShowForeverStorageModal] = useState(false);
   const [businessEmail, setBusinessEmail] = useState<string | null>(null);
+  const [showShareDialog, setShowShareDialog] = useState(false);
 
   // Image modal state
   const [selectedImage, setSelectedImage] = useState<{
@@ -384,6 +386,10 @@ function GalleryViewContent() {
     setShowForeverStorageModal(true);
   };
 
+  const handleShare = () => {
+    setShowShareDialog(true);
+  };
+
   const getStoreForeverButtonState = () => {
     // TODO: Implement button state logic
     return {
@@ -582,6 +588,16 @@ function GalleryViewContent() {
               <Button
                 variant="outline"
                 size="sm"
+                onClick={handleShare}
+                className="flex items-center gap-2"
+              >
+                <Share2 className="h-4 w-4" />
+                Share
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={_toggleSelectionMode}
                 className={`flex items-center gap-2 ${isSelecting ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800' : ''}`}
               >
@@ -761,6 +777,16 @@ function GalleryViewContent() {
         selectedCount={selectedImages.length}
         onSend={handleSendSelection}
       />
+
+      {/* Share Gallery Dialog */}
+      {gallery && (
+        <GalleryShareDialog
+          galleryId={gallery.id}
+          galleryTitle={gallery.title}
+          open={showShareDialog}
+          onOpenChange={setShowShareDialog}
+        />
+      )}
 
       {/* Toast Notifications */}
       <ToastContainer />
