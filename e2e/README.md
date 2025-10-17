@@ -218,6 +218,58 @@ These Playwright tests complement the existing test suite:
 
 The Playwright tests fill the gap for **complete user workflow testing** that was previously done manually.
 
+## ⚠️ **Current GitHub Actions Status**
+
+**Status:** 🔧 **In Progress** - Working on resolving CI timeout issues
+
+### **Known Issues:**
+
+- **Server Startup Timeout**: Web server fails to start within 2-minute timeout in GitHub Actions
+- **Environment Variables**: Database connection issues in CI environment
+- **Middleware Locale Crashes**: Fixed with `PLAYWRIGHT=true` environment variable
+
+### **Recent Fixes Applied:**
+
+- ✅ **Updated GitHub Actions workflow** to follow official Playwright template
+- ✅ **Added proper environment variables** (DATABASE_URL, AUTH_SECRET, II configs)
+- ✅ **Implemented caching** for dependencies and Playwright browsers
+- ✅ **Fixed middleware issues** with Playwright environment detection
+- ✅ **Manual server startup** instead of webServer config
+- ✅ **Added deployment-based workflow** as alternative approach
+
+### **Next Steps:**
+
+1. **Verify GitHub Secrets** are properly configured
+2. **Test database connectivity** from GitHub Actions
+3. **Monitor CI performance** after fixes
+4. **Resolve any remaining timeout issues**
+
+### **For Local Development:**
+
+All tests work perfectly locally. The issues are specific to the GitHub Actions CI environment.
+
+## 🔄 **Two Testing Approaches**
+
+### **1. Standard Workflow (`playwright.yml`)**
+- **Triggers:** Push/PR to main/master
+- **Approach:** Starts server in CI, then runs tests
+- **Status:** 🔧 Working on server startup issues
+- **Use case:** Development testing, PR validation
+
+### **2. Deployment Workflow (`playwright-deployment.yml`)**
+- **Triggers:** After successful deployment
+- **Approach:** Tests against live deployed app
+- **Status:** ✅ Ready to use (when deployment is set up)
+- **Use case:** Production testing, deployment validation
+
+### **Benefits of Deployment Approach:**
+- ✅ **No server startup issues** - App already running
+- ✅ **Real database** - Tests against production database
+- ✅ **Proper environment** - All variables set correctly
+- ✅ **No timeout issues** - No need to start servers
+
+---
+
 ## 📈 **Future Enhancements**
 
 - **Complete Upload Workflows**: Test full image upload → processing → display pipeline with real authentication

@@ -25,7 +25,7 @@ testWithII.describe('Internet Identity Authentication', () => {
 
     // 3) Should redirect to sign-in page, then click Internet Identity option
     await expect(page).toHaveURL(/\/signin/);
-    
+
     // 4) Look for Internet Identity sign-in option and click it
     await page.getByText('Sign in with Internet Identity').click();
 

@@ -1,13 +1,11 @@
-name: Playwright Tests
+name: Playwright Tests (Deployment-based)
 on:
-  push:
-    branches: [main, master]
-  pull_request:
-    branches: [main, master]
+  deployment_status:
 jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
+    if: github.event.deployment_status.state == 'success'
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
@@ -44,38 +42,13 @@ jobs:
             ${{ runner.os }}-playwright-
       - name: Install Playwright Browsers
         run: pnpm exec playwright install --with-deps
-      - name: Start web server and run tests
-        run: |
-          # Start server in background
-          pnpm dev:nextjs &
-          SERVER_PID=$!
-          
-          # Wait for server to be ready
-          echo "Waiting for server to start..."
-          for i in {1..30}; do
-            if curl -f http://localhost:3000/en >/dev/null 2>&1; then
-              echo "Server is ready!"
-              break
-            fi
-            echo "Attempt $i/30: Server not ready yet..."
-            sleep 2
-          done
-          
-          # Verify server is running
-          if ! curl -f http://localhost:3000/en >/dev/null 2>&1; then
-            echo "Server failed to start"
-            exit 1
-          fi
-          
-          # Run Playwright tests
-          echo "Running Playwright tests..."
-          pnpm exec playwright test
-          
-          # Clean up server
-          kill $SERVER_PID 2>/dev/null || true
+      - name: Run Playwright tests
+        run: pnpm exec playwright test
+        env:
+          PLAYWRIGHT_TEST_BASE_URL: ${{ github.event.deployment_status.target_url }}
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
-          name: playwright-report
+          name: playwright-report-deployment
           path: playwright-report/
           retention-days: 30
