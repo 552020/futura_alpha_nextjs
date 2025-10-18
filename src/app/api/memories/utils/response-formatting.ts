@@ -13,6 +13,7 @@
 
 import { NextResponse } from 'next/server';
 
+import { fatLogger } from '@/lib/logger';
 export type UploadResult = {
   fileName: string;
   url: string;
@@ -73,7 +74,7 @@ export function formatFolderUploadResponse(params: {
  * Format error response
  */
 export function formatErrorResponse(error: unknown, message: string = 'Unexpected error occurred'): NextResponse {
-  console.error('❌ Error:', error);
+  fatLogger.error('❌ Error:', 'be', { data: error instanceof Error ? error : undefined });
   return NextResponse.json(
     {
       error: message,

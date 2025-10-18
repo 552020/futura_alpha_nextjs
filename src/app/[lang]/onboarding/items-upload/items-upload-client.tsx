@@ -23,7 +23,7 @@ export default function ItemsUploadClient({ lang, dict }: ItemsUploadClientProps
   const router = useRouter();
   const { setMode } = useInterface();
   const [showOnboardModal, setShowOnboardModal] = useState(false);
-  const [uploadMode, setUploadMode] = useState<'folder' | 'files'>('folder'); // eslint-disable-line @typescript-eslint/no-unused-vars
+  const [_uploadMode, _setUploadMode] = useState<'folder' | 'files'>('folder');
 
   const handleUploadSuccess = () => {
     setShowOnboardModal(true);

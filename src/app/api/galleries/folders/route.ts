@@ -2,9 +2,10 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
 import { eq, sql } from 'drizzle-orm';
-import { allUsers, images, videos, documents, notes, audio } from '@/db/schema';
+import { allUsers, images, videos, documents, notes, audio } from '@/db';
 import { FolderInfo } from '@/types/gallery';
 
+import { fatLogger } from '@/lib/logger';
 export async function GET() {
   // Check authentication
   const session = await auth();
@@ -19,11 +20,11 @@ export async function GET() {
     });
 
     if (!allUserRecord) {
-      console.error('No allUsers record found for user:', session.user.id);
+      fatLogger.error('No allUsers record found for user:', 'be', { data: session.user.id });
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
-    // console.log("Fetching folders for user:", {
+    // fatLogger.info("Fetching folders for user:", undefined, {
     //   sessionUserId: session.user.id,
     //   allUserId: allUserRecord.id,
     //   useMockData,
@@ -126,14 +127,14 @@ export async function GET() {
     // Sort folders by name
     folders.sort((a, b) => a.name.localeCompare(b.name));
 
-    // console.log("Found folders:", {
+    // fatLogger.info("Found folders:", undefined, {
     //   count: folders.length,
     //   folders: folders.map(f => ({ name: f.name, count: f.count })),
     // });
 
     return NextResponse.json(folders);
   } catch (error) {
-    console.error('Error fetching folders:', error);
+    fatLogger.error('Error fetching folders:', 'be', { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to fetch folders' }, { status: 500 });
   }
 }

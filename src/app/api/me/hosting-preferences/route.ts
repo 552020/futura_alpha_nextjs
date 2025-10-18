@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
-import { userHostingPreferences } from '@/db/schema';
+import { userHostingPreferences } from '@/db';
 import { eq } from 'drizzle-orm';
-import type { HostingPreferences } from '@/hooks/use-storage-preferences';
+import type { HostingPreferences } from '@/hooks/use-hosting-preferences';
 
+import { fatLogger } from '@/lib/logger';
 /**
  * GET /api/me/hosting-preferences
  * Returns the user's current hosting preferences
@@ -17,35 +18,45 @@ export async function GET(): Promise<NextResponse> {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user's hosting preferences
-    const preferences = await db.query.userHostingPreferences.findFirst({
-      where: eq(userHostingPreferences.userId, session.user.id),
-    });
+    // Get user's hosting preferences - using direct query for debugging
+    const preferences = await db.select().from(userHostingPreferences).where(eq(userHostingPreferences.userId, session.user.id)).limit(1);
+    const preference = preferences[0];
 
     // If no preferences exist, return defaults
-    if (!preferences) {
+    if (!preference) {
       const defaultPreferences: HostingPreferences = {
         frontendHosting: 'vercel',
         backendHosting: 'vercel',
-        databaseHosting: 'neon',
-        blobHosting: 's3',
+        databaseHosting: ['neon'],
+        blobHosting: ['s3'],
       };
       return NextResponse.json(defaultPreferences);
     }
 
-    // Return existing preferences
+    // Return preferences directly (already in correct format)
     const response: HostingPreferences = {
-      frontendHosting: preferences.frontendHosting as HostingPreferences['frontendHosting'],
-      backendHosting: preferences.backendHosting as HostingPreferences['backendHosting'],
-      databaseHosting: preferences.databaseHosting as HostingPreferences['databaseHosting'],
-      blobHosting: preferences.blobHosting as HostingPreferences['blobHosting'],
-      updatedAt: preferences.updatedAt.toISOString(),
+      frontendHosting: preference.frontendHosting,
+      backendHosting: preference.backendHosting,
+      databaseHosting: preference.databaseHosting,
+      blobHosting: preference.blobHosting,
+      updatedAt: preference.updatedAt.toISOString(),
     };
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error('Error fetching hosting preferences:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Detailed error fetching hosting preferences:', {
+      error,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    fatLogger.error('Error fetching hosting preferences:', 'be', {
+      data: error instanceof Error ? error : undefined,
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }
 
@@ -92,6 +103,14 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
         .returning();
 
       updatedPreferences = updated;
+
+      // Log preference update
+      fatLogger.info('🔄 Hosting preferences updated in database', 'be', {
+        userId: session.user.id,
+        changes: updates,
+        previousValues: existingPreferences,
+        newValues: updated,
+      });
     } else {
       // Create new preferences with defaults + updates
       const [created] = await db
@@ -100,26 +119,34 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
           userId: session.user.id,
           frontendHosting: updates.frontendHosting || 'vercel',
           backendHosting: updates.backendHosting || 'vercel',
-          databaseHosting: updates.databaseHosting || 'neon',
-          blobHosting: updates.blobHosting || 's3',
+          databaseHosting: updates.databaseHosting || ['neon'],
+          blobHosting: updates.blobHosting || ['s3'],
         })
         .returning();
 
       updatedPreferences = created;
+
+      // Log preference creation
+      fatLogger.info('🆕 Hosting preferences created in database', 'be', {
+        userId: session.user.id,
+        initialValues: created,
+      });
     }
 
-    // Return updated preferences
+    // Return updated preferences directly
     const response: HostingPreferences = {
-      frontendHosting: updatedPreferences.frontendHosting as HostingPreferences['frontendHosting'],
-      backendHosting: updatedPreferences.backendHosting as HostingPreferences['backendHosting'],
-      databaseHosting: updatedPreferences.databaseHosting as HostingPreferences['databaseHosting'],
-      blobHosting: updatedPreferences.blobHosting as HostingPreferences['blobHosting'],
+      frontendHosting: updatedPreferences.frontendHosting,
+      backendHosting: updatedPreferences.backendHosting,
+      databaseHosting: updatedPreferences.databaseHosting,
+      blobHosting: updatedPreferences.blobHosting,
       updatedAt: updatedPreferences.updatedAt.toISOString(),
     };
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error('Error updating hosting preferences:', error);
+    fatLogger.error('Error updating hosting preferences:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

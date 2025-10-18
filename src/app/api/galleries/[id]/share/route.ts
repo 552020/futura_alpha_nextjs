@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
 import { eq, and } from 'drizzle-orm';
-import { galleries, allUsers, galleryShares } from '@/db/schema';
+import { galleries, allUsers, resourceMembership } from '@/db';
 import { randomUUID } from 'crypto';
 
+import { fatLogger } from '@/lib/logger';
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     });
 
     if (!allUserRecord) {
-      console.error('No allUsers record found for user:', session.user.id);
+      fatLogger.error('No allUsers record found for user:', 'be', { userId: session.user.id });
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
@@ -60,31 +61,44 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // Generate secure code for access
     const inviteeSecureCode = randomUUID();
 
-    // Create gallery share record
+    // Create gallery share record using the new universal resource sharing system
     const newShare = await db
-      .insert(galleryShares)
+      .insert(resourceMembership)
       .values({
-        galleryId,
-        ownerId: allUserRecord.id,
-        sharedWithType,
-        sharedWithId: sharedWithType === 'user' ? sharedWithId : null,
-        groupId: sharedWithType === 'group' ? groupId : null,
-        sharedRelationshipType: sharedWithType === 'relationship' ? sharedRelationshipType : null,
-        accessLevel,
-        inviteeSecureCode,
+        resourceId: galleryId,
+        resourceType: 'gallery',
+        allUserId: sharedWithType === 'user' ? sharedWithId : null,
+        role: accessLevel === 'write' ? 'member' : 'guest',
+        grantSource: 'user',
+        createdAt: new Date(),
       })
       .returning();
 
-    // console.log("Created gallery share:", newShare[0]);
+    // Update the gallery's sharedCount
+    const shareCount = await db.query.resourceMembership.findMany({
+      where: and(eq(resourceMembership.resourceId, galleryId), eq(resourceMembership.resourceType, 'gallery')),
+    });
+
+    await db
+      .update(galleries)
+      .set({
+        sharedCount: shareCount.length,
+        sharingStatus: shareCount.length > 0 ? 'shared' : 'private',
+        updatedAt: new Date(),
+      })
+      .where(eq(galleries.id, galleryId));
+
+    fatLogger.info('Created gallery share:', JSON.stringify(newShare[0]));
 
     return NextResponse.json(
       {
         share: newShare[0],
+        inviteeSecureCode,
       },
       { status: 201 }
     );
   } catch (error) {
-    console.error('Error sharing gallery:', error);
+    fatLogger.error('Error sharing gallery:', 'be', { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to share gallery' }, { status: 500 });
   }
 }
@@ -105,7 +119,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     });
 
     if (!allUserRecord) {
-      console.error('No allUsers record found for user:', session.user.id);
+      fatLogger.error('No allUsers record found for user:', 'be', { userId: session.user.id });
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
@@ -120,18 +134,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Gallery not found' }, { status: 404 });
     }
 
-    // Get all shares for this gallery
-    const gallerySharesList = await db.query.galleryShares.findMany({
-      where: eq(galleryShares.galleryId, galleryId),
+    // Get all shares for this gallery using the new universal resource sharing system
+    const gallerySharesList = await db.query.resourceMembership.findMany({
+      where: and(eq(resourceMembership.resourceId, galleryId), eq(resourceMembership.resourceType, 'gallery')),
     });
 
-    // console.log("Fetched gallery shares:", gallerySharesList.length);
+    fatLogger.info('Fetched gallery shares:', gallerySharesList.length.toString());
 
     return NextResponse.json({
       shares: gallerySharesList,
     });
   } catch (error) {
-    console.error('Error fetching gallery shares:', error);
+    fatLogger.error('Error fetching gallery shares:', 'be', { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to fetch gallery shares' }, { status: 500 });
   }
 }

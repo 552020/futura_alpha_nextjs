@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import { testDb } from '@/db/test-db';
-import { users, allUsers } from '@/db/schema';
+import { users, allUsers } from '@/db';
 import { eq } from 'drizzle-orm';
+import { fatLogger } from '@/lib/logger';
 import {
   generateGoogleSessionCookie,
   generateIISessionCookie,
@@ -23,7 +24,8 @@ describe('Hybrid Authentication Testing - Session Cookies', () => {
   let testUser3Id: string;
 
   beforeAll(async () => {
-    console.log(`
+    fatLogger.info(
+      `
 🎯 SETTING UP HYBRID AUTHENTICATION TESTING WITH SESSION COOKIES
 
 We're combining:
@@ -32,7 +34,9 @@ We're combining:
 3. Real endpoint testing - Test your ICP authentication logic
 
 This approach works WITH NextAuth's session system!
-    `);
+    `,
+      'be'
+    );
 
     try {
       // Create test users in the database
@@ -90,16 +94,19 @@ This approach works WITH NextAuth's session system!
       testUser2Id = testUser2.id;
       testUser3Id = testUser3.id;
 
-      console.log(`
+      fatLogger.info(
+        `
 ✅ TEST USERS CREATED SUCCESSFULLY:
 - User 1: ${testUser1.email} (ID: ${testUser1.id}) - Role: ${testUser1.role}
 - User 2: ${testUser2.email} (ID: ${testUser2.id}) - Role: ${testUser2.role}
 - User 3: ${testUser3.email} (ID: ${testUser3.id}) - Role: ${testUser3.role}
 
 Now let's test authentication with session cookies!
-      `);
+      `,
+        'be'
+      );
     } catch (error) {
-      console.error('❌ Error creating test users:', error);
+      fatLogger.error('❌ Error creating test users:', 'be', { data: error instanceof Error ? error : undefined });
       throw error;
     }
   });
@@ -110,9 +117,9 @@ Now let's test authentication with session cookies!
       await testDb.delete(users).where(eq(users.id, testUser1Id));
       await testDb.delete(users).where(eq(users.id, testUser2Id));
       await testDb.delete(users).where(eq(users.id, testUser3Id));
-      console.log('🧹 Test users cleaned up successfully');
+      fatLogger.info('🧹 Test users cleaned up successfully', 'be');
     } catch (error) {
-      console.error('❌ Error cleaning up test users:', error);
+      fatLogger.error('❌ Error cleaning up test users:', 'be', { data: error instanceof Error ? error : undefined });
     }
   });
 
@@ -129,7 +136,8 @@ Now let's test authentication with session cookies!
       // Generate a valid session cookie for this user
       const sessionCookie = generateGoogleSessionCookie(testUser);
 
-      console.log(`
+      fatLogger.info(
+        `
 🔍 TESTING BASIC GOOGLE AUTHENTICATION WITH SESSION COOKIE:
 - User: ${testUser.email}
 - Role: ${testUser.role}
@@ -137,7 +145,9 @@ Now let's test authentication with session cookies!
 - Cookie length: ${sessionCookie.length} characters
 
 Now testing authenticated endpoint with session cookie...
-      `);
+      `,
+        'be'
+      );
 
       // Test the authenticated endpoint with session cookie
       const response = await request(baseURL).get('/api/test/auth').set('Cookie', sessionCookie).expect(200);
@@ -152,12 +162,15 @@ Now testing authenticated endpoint with session cookie...
         status: 'success',
       });
 
-      console.log(`
+      fatLogger.info(
+        `
 ✅ BASIC AUTHENTICATION WITH SESSION COOKIE PASSED!
 - Endpoint returned 200 (authenticated)
 - User data correctly returned
 - Session cookie authentication working
-      `);
+      `,
+        'be'
+      );
     });
 
     it('should test Internet Identity user with linked Principal', async () => {
@@ -174,14 +187,17 @@ Now testing authenticated endpoint with session cookie...
       // Generate session cookie for user with linked II Principal
       const sessionCookie = generateIISessionCookie(testUser, linkedPrincipal);
 
-      console.log(`
+      fatLogger.info(
+        `
 🔍 TESTING II USER WITH LINKED PRINCIPAL (SESSION COOKIE):
 - User: ${testUser.email}
 - Linked Principal: ${linkedPrincipal}
 - Session cookie generated: ✅
 
 Testing authenticated endpoint with II user session...
-      `);
+      `,
+        'be'
+      );
 
       // Test the authenticated endpoint
       const response = await request(baseURL).get('/api/test/auth').set('Cookie', sessionCookie).expect(200);
@@ -196,12 +212,15 @@ Testing authenticated endpoint with II user session...
         status: 'success',
       });
 
-      console.log(`
+      fatLogger.info(
+        `
 ✅ II USER AUTHENTICATION WITH SESSION COOKIE PASSED!
 - Endpoint returned 200 (authenticated)
 - II user data correctly returned
 - Session cookie with II Principal working
-      `);
+      `,
+        'be'
+      );
     });
 
     it('should test admin user with different role', async () => {
@@ -215,14 +234,17 @@ Testing authenticated endpoint with II user session...
 
       const sessionCookie = generateGoogleSessionCookie(testUser);
 
-      console.log(`
+      fatLogger.info(
+        `
 🔍 TESTING ADMIN USER AUTHENTICATION (SESSION COOKIE):
 - User: ${testUser.email}
 - Role: ${testUser.role}
 - Session cookie generated: ✅
 
 Testing authenticated endpoint with admin user session...
-      `);
+      `,
+        'be'
+      );
 
       // Test the authenticated endpoint
       const response = await request(baseURL).get('/api/test/auth').set('Cookie', sessionCookie).expect(200);
@@ -237,12 +259,15 @@ Testing authenticated endpoint with admin user session...
         status: 'success',
       });
 
-      console.log(`
+      fatLogger.info(
+        `
 ✅ ADMIN USER AUTHENTICATION WITH SESSION COOKIE PASSED!
 - Endpoint returned 200 (authenticated)
 - Admin user data correctly returned
 - Role-based authentication working with session cookies
-      `);
+      `,
+        'be'
+      );
     });
   });
 
@@ -260,7 +285,8 @@ Testing authenticated endpoint with admin user session...
       // Generate session cookie for user with active II co-auth
       const sessionCookie = generateActiveIISessionCookie(testUser, activePrincipal);
 
-      console.log(`
+      fatLogger.info(
+        `
 🔍 TESTING ACTIVE II CO-AUTHENTICATION (SESSION COOKIE):
 - User: ${testUser.email}
 - Active Principal: ${activePrincipal}
@@ -268,7 +294,9 @@ Testing authenticated endpoint with admin user session...
 - Session cookie generated: ✅
 
 Testing authenticated endpoint with active co-auth session...
-      `);
+      `,
+        'be'
+      );
 
       // Test the authenticated endpoint
       const response = await request(baseURL).get('/api/test/auth').set('Cookie', sessionCookie).expect(200);
@@ -283,18 +311,22 @@ Testing authenticated endpoint with active co-auth session...
         status: 'success',
       });
 
-      console.log(`
+      fatLogger.info(
+        `
 ✅ ACTIVE II CO-AUTHENTICATION WITH SESSION COOKIE PASSED!
 - Endpoint returned 200 (authenticated)
 - Active co-auth user data correctly returned
 - Co-authentication state working in session cookie
-      `);
+      `,
+        'be'
+      );
     });
   });
 
   describe('Next Steps: Testing Real ICP Endpoints', () => {
     it('should outline how to test your real ICP endpoints', () => {
-      console.log(`
+      fatLogger.info(
+        `
 🎯 NEXT STEPS: TESTING REAL ICP ENDPOINTS WITH SESSION COOKIES
 
 Now that we have session cookie authentication working, we can test:
@@ -320,7 +352,9 @@ Now that we have session cookie authentication working, we can test:
    - TTL expiration testing
 
 💡 READY TO TEST: We now have the foundation to test your real ICP authentication system with proper session cookies!
-      `);
+      `,
+        'be'
+      );
 
       expect(true).toBe(true);
     });

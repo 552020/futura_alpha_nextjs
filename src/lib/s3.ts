@@ -1,6 +1,7 @@
 import { S3Client, PutObjectCommand, PutObjectCommandInput } from '@aws-sdk/client-s3';
 import { generateS3Key } from './s3-service';
 
+import { fatLogger } from '@/lib/logger';
 // S3 Configuration
 const s3Config = {
   region: process.env.AWS_S3_REGION || 'eu-central-1',
@@ -10,15 +11,10 @@ const s3Config = {
   },
 };
 
-console.log('S3 Config:', s3Config);
-
 const s3Client = new S3Client(s3Config);
 
 export const S3_BUCKET = process.env.AWS_S3_BUCKET || '';
 export const S3_REGION = process.env.AWS_S3_REGION || 'eu-central-1';
-
-console.log('S3 Bucket:', S3_BUCKET);
-console.log('S3 Region:', S3_REGION);
 
 // Check if S3 is properly configured
 export function isS3Configured(): boolean {
@@ -27,7 +23,13 @@ export function isS3Configured(): boolean {
     process.env.AWS_SECRET_ACCESS_KEY &&
     process.env.AWS_S3_BUCKET
   );
-  console.log('Is S3 Configured?', configured);
+
+  // Log S3 configuration when this function is called (not at module import)
+  fatLogger.info('S3 Config', 'be', { config: s3Config });
+  fatLogger.info('S3 Bucket', 'be', { bucket: S3_BUCKET });
+  fatLogger.info('S3 Region', 'be', { region: S3_REGION });
+  fatLogger.info('S3 Configuration Check', 'be', { isConfigured: configured });
+
   return configured;
 }
 
@@ -51,17 +53,17 @@ export async function uploadToS3(file: File, buffer?: Buffer, userId?: string): 
     // ACL: 'public-read', // Make the object publicly readable
   };
 
-  console.log('Uploading to S3 with params:', uploadParams);
+  fatLogger.info('Uploading to S3 with params:', 'be', { uploadParams });
 
   try {
     const command = new PutObjectCommand(uploadParams);
     await s3Client.send(command);
 
     const publicUrl = `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/${fileName}`;
-    console.log('Uploaded file public URL:', publicUrl);
+    fatLogger.info('Uploaded file public URL:', 'be', { publicUrl });
     return publicUrl;
   } catch (error) {
-    console.error('Error uploading to S3:', error);
+    fatLogger.error('Error uploading to S3:', 'be', { data: error instanceof Error ? error : undefined });
     throw new Error('Failed to upload file to S3');
   }
 }
@@ -72,7 +74,7 @@ export function extractS3KeyFromUrl(url: string): string | null {
     const urlObj = new URL(url);
     if (urlObj.hostname.includes('s3') || urlObj.hostname.includes('amazonaws.com')) {
       const key = urlObj.pathname.slice(1);
-      console.log('Extracted S3 key from URL:', key);
+      fatLogger.info('Extracted S3 key from URL:', 'be', { key });
       return key;
     }
     return null;

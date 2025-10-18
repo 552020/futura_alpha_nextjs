@@ -37,6 +37,7 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import RequireAuth from '@/components/auth/require-auth';
 
+import { fatLogger } from '@/lib/logger';
 export default function SharedMemoriesPage({ params }: { params: Promise<{ lang: string }> }) {
   // Unwrap params using React.use()
   const { lang } = use(params);
@@ -80,12 +81,12 @@ export default function SharedMemoriesPage({ params }: { params: Promise<{ lang:
   }, [memories]);
 
   // Log route parameters for debugging
-  // console.log("Rendering SharedMemoriesPage", { lang, isAuthorized, userId });
+  // fatLogger.info("Rendering SharedMemoriesPage", undefined, { lang, isAuthorized, userId });
 
   const fetchMemories = useCallback(async () => {
     const timestamp = new Date().toISOString();
     try {
-      // console.log("🔄 FETCH SHARED MEMORIES - Starting fetch:", {
+      // fatLogger.info("🔄 FETCH SHARED MEMORIES - Starting fetch:", undefined, {
       //   page: currentPage,
       //   timestamp,
       //   lang,
@@ -97,7 +98,7 @@ export default function SharedMemoriesPage({ params }: { params: Promise<{ lang:
       }
 
       const data = await response.json();
-      // console.log("✅ FETCH SHARED MEMORIES - Success:", {
+      // fatLogger.info("✅ FETCH SHARED MEMORIES - Success:", undefined, {
       //   memoriesCount: data.data.length,
       //   hasMore: data.hasMore,
       //   timestamp,
@@ -117,8 +118,7 @@ export default function SharedMemoriesPage({ params }: { params: Promise<{ lang:
       });
       setHasMore(data.hasMore);
     } catch (error) {
-      console.error('❌ FETCH SHARED MEMORIES ERROR:', {
-        error,
+      fatLogger.error('FETCH SHARED MEMORIES ERROR', 'fe', {
         message: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
         timestamp,
@@ -185,7 +185,7 @@ export default function SharedMemoriesPage({ params }: { params: Promise<{ lang:
         });
       }
     } catch (error) {
-      console.error('Error deleting memory:', error);
+      fatLogger.error('Error deleting memory', 'fe', { data: error as Error });
       toast({
         title: 'Error',
         description: 'Failed to delete memory. Please try again.',

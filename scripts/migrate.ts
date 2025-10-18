@@ -22,11 +22,11 @@ import { glob } from 'glob';
 // Load environment variables
 config({ path: '.env.local' });
 
-interface MigrationStep {
-  name: string;
-  description: string;
-  execute: () => Promise<void>;
-}
+// interface _MigrationStep {
+//   name: string;
+//   description: string;
+//   execute: () => Promise<void>;
+// }
 
 async function runDrizzleMigrations(): Promise<void> {
   console.log('🔄 Running Drizzle migrations...');
@@ -85,9 +85,15 @@ async function verifyDatabaseIntegrity(): Promise<void> {
   // Check that all required constraints exist
   const requiredConstraints = [
     {
-      name: 'check_storage_backends',
-      table: 'user',
-      description: 'Ensures at least one storage backend is enabled for each user',
+      name: 'memory_assets_bytes_positive',
+      table: 'memory_assets',
+      description: 'Ensures memory asset bytes are positive (> 0) - defined in schema.ts but Drizzle cannot verify',
+    },
+    {
+      name: 'memory_assets_dimensions_positive',
+      table: 'memory_assets',
+      description:
+        'Ensures memory asset dimensions are positive when not null - defined in schema.ts but Drizzle cannot verify',
     },
   ];
 

@@ -66,10 +66,14 @@ export async function uploadFileWithProgress(
   });
 }
 
-// 413 Solution: Check ICP authentication
+// Re-export unified types for backward compatibility
+export type { UploadServiceResult } from './types';
+
+// 413 Solution: Check ICP authentication using functional approach
 export async function checkICPAuthentication(): Promise<void> {
-  const { icpUploadService } = await import('./icp-upload');
-  const isAuthenticated = await icpUploadService.isAuthenticated();
+  const { getAuthClient } = await import('@/ic/ii');
+  const authClient = await getAuthClient();
+  const isAuthenticated = await authClient.isAuthenticated();
   if (!isAuthenticated) {
     throw new Error('Please connect your Internet Identity to upload to ICP');
   }
@@ -78,7 +82,7 @@ export async function checkICPAuthentication(): Promise<void> {
 // 413 Solution: Extract folder name from files
 export function extractFolderName(file: File): string {
   const fileWithPath = file as File & { webkitRelativePath?: string };
-  console.log(`🔍 DEBUG: extractFolderName for file:`, {
+  fatLogger.info('DEBUG: extractFolderName for file', 'be', {
     name: file.name,
     webkitRelativePath: fileWithPath.webkitRelativePath,
     hasWebkitRelativePath: !!fileWithPath.webkitRelativePath,
@@ -87,12 +91,54 @@ export function extractFolderName(file: File): string {
   if (fileWithPath.webkitRelativePath) {
     const pathParts = fileWithPath.webkitRelativePath.split('/');
     const folderName = pathParts.length > 1 ? pathParts[0] : 'Ungrouped';
-    console.log(`🔍 DEBUG: Extracted folder name from webkitRelativePath:`, folderName);
+    fatLogger.info('DEBUG: Extracted folder name from webkitRelativePath', 'be', { folderName });
     return folderName;
   }
 
-  console.log(`🔍 DEBUG: No webkitRelativePath, returning 'Ungrouped'`);
+  fatLogger.info("DEBUG: No webkitRelativePath, returning 'Ungrouped'", 'be');
   return 'Ungrouped';
+}
+
+/**
+ * Create folder for directory mode uploads
+ *
+ * This function creates a folder in the database when uploading in directory mode.
+ * It extracts the folder name from the first file and creates a folder record.
+ *
+ * Used by:
+ * - uploadMultipleToS3WithProcessing() in s3-with-processing.ts
+ * - uploadMultipleToICPWithProcessing() in icp-with-processing.ts
+ * - Any other upload service that supports folder organization
+ *
+ * @param mode - Upload mode: 'directory' or 'multiple-files'
+ * @param files - Array of files being uploaded
+ * @returns Promise<string | undefined> - Folder ID if created, undefined if not needed
+ */
+export async function createFolderIfNeeded(
+  mode: 'directory' | 'multiple-files',
+  files: File[]
+): Promise<string | undefined> {
+  if (mode !== 'directory') {
+    return undefined;
+  }
+
+  const folderName = extractFolderName(files[0]);
+
+  const folderResponse = await fetch('/api/folders', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ folderName }),
+  });
+
+  if (!folderResponse.ok) {
+    const error = await folderResponse.json();
+    throw new Error(error.error || 'Failed to create folder');
+  }
+
+  const { folder } = await folderResponse.json();
+  return folder.id;
 }
 
 /**
@@ -139,6 +185,168 @@ export function handleUploadError(
     }
   }
 
-  console.error('❌ Upload error:', error);
+  fatLogger.error('Upload error', 'fe', { error });
   showToast({ variant: 'destructive', title, description });
+}
+
+/**
+ * Shared validation function for upload processors
+ *
+ * Validates file size, file count, and total size limits based on the hosting platform.
+ * Shows appropriate toast messages for validation failures.
+ *
+ * @param files - Array of files to validate
+ * @param showToast - Toast function to show error messages
+ * @param uploadLimits - Upload limits object (S3 or ICP specific)
+ * @returns true if validation passes, false if validation fails
+ */
+import {
+  UPLOAD_LIMITS_S3,
+  UPLOAD_LIMITS_ICP,
+  UPLOAD_LIMITS_VERCEL_BLOB,
+  UPLOAD_LIMITS_ARWEAVE,
+  UPLOAD_LIMITS_IPFS,
+} from '@/config/upload-limits';
+
+import { fatLogger } from '@/lib/logger';
+
+// Type for upload limits that support file count and total size validation
+type UploadLimitsWithCountAndTotal = {
+  isFileCountValid: (count: number) => boolean;
+  isFileSizeValid: (size: number) => boolean;
+  isTotalSizeValid: (size: number) => boolean;
+  getFileCountErrorMessage: (count: number) => string;
+  getFileSizeErrorMessage: (size: number) => string;
+  getTotalSizeErrorMessage: (size: number) => string;
+};
+
+export function validateUploadFiles(
+  files: File[],
+  showToast: (toast: { variant: 'destructive'; title: string; description: string }) => void,
+  uploadLimits: UploadLimitsWithCountAndTotal = UPLOAD_LIMITS_S3
+): boolean {
+  // Validate file count limit
+  if (!uploadLimits.isFileCountValid(files.length)) {
+    showToast({
+      variant: 'destructive',
+      title: 'Too many files',
+      description: uploadLimits.getFileCountErrorMessage(files.length),
+    });
+    return false;
+  }
+
+  // Validate individual file sizes
+  for (const file of files) {
+    if (!uploadLimits.isFileSizeValid(file.size)) {
+      showToast({
+        variant: 'destructive',
+        title: 'File too large',
+        description: uploadLimits.getFileSizeErrorMessage(file.size),
+      });
+      return false;
+    }
+  }
+
+  // Validate total size limit
+  const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+  if (!uploadLimits.isTotalSizeValid(totalSize)) {
+    showToast({
+      variant: 'destructive',
+      title: 'Upload too large',
+      description: uploadLimits.getTotalSizeErrorMessage(totalSize),
+    });
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Validate upload files for S3 (default behavior)
+ */
+export function validateUploadFilesS3(
+  files: File[],
+  showToast: (toast: { variant: 'destructive'; title: string; description: string }) => void
+): boolean {
+  return validateUploadFiles(files, showToast, UPLOAD_LIMITS_S3);
+}
+
+/**
+ * Validate upload files for ICP (chunked upload with different limits)
+ */
+export function validateUploadFilesICP(
+  files: File[],
+  showToast: (toast: { variant: 'destructive'; title: string; description: string }) => void
+): boolean {
+  // ICP doesn't have file count or total size limits in the same way as S3
+  // It uses chunking, so we only validate individual file sizes
+  for (const file of files) {
+    if (!UPLOAD_LIMITS_ICP.isFileSizeValid(file.size)) {
+      showToast({
+        variant: 'destructive',
+        title: 'File too large',
+        description: UPLOAD_LIMITS_ICP.getFileSizeErrorMessage(file.size),
+      });
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Validate upload files for Vercel Blob
+ */
+export function validateUploadFilesVercelBlob(
+  files: File[],
+  showToast: (toast: { variant: 'destructive'; title: string; description: string }) => void
+): boolean {
+  return validateUploadFiles(files, showToast, UPLOAD_LIMITS_VERCEL_BLOB);
+}
+
+/**
+ * Validate upload files for Arweave
+ */
+export function validateUploadFilesArweave(
+  files: File[],
+  showToast: (toast: { variant: 'destructive'; title: string; description: string }) => void
+): boolean {
+  return validateUploadFiles(files, showToast, UPLOAD_LIMITS_ARWEAVE);
+}
+
+/**
+ * Validate upload files for IPFS
+ */
+export function validateUploadFilesIPFS(
+  files: File[],
+  showToast: (toast: { variant: 'destructive'; title: string; description: string }) => void
+): boolean {
+  return validateUploadFiles(files, showToast, UPLOAD_LIMITS_IPFS);
+}
+
+/**
+ * Get upload limits for a specific blob hosting service
+ */
+export function getUploadLimitsForBlobService(blobService: string) {
+  switch (blobService) {
+    case 's3':
+      return UPLOAD_LIMITS_S3;
+    case 'icp':
+      return UPLOAD_LIMITS_ICP;
+    case 'vercel-blob':
+      return UPLOAD_LIMITS_VERCEL_BLOB;
+    case 'arweave':
+      return UPLOAD_LIMITS_ARWEAVE;
+    case 'ipfs':
+      return UPLOAD_LIMITS_IPFS;
+    default:
+      return UPLOAD_LIMITS_S3; // Default to S3
+  }
+}
+
+/**
+ * @deprecated Use getUploadLimitsForBlobService instead
+ */
+export function getUploadLimitsForPlatform(platform: string) {
+  return getUploadLimitsForBlobService(platform);
 }

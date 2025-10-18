@@ -1,6 +1,7 @@
 import { put } from '@vercel/blob';
 import { join } from 'path';
 
+import { fatLogger } from '@/lib/logger';
 /**
  * Uploads a file to blob storage from a buffer or file path
  * @param content The file content as a Buffer
@@ -16,7 +17,7 @@ export async function uploadFromPath(content: Buffer, filename: string, folder?:
     });
     return url;
   } catch (error) {
-    console.error('Error uploading to blob storage:', error);
+    fatLogger.error('Error uploading to blob storage:', 'fe', { data: error instanceof Error ? error : undefined });
     throw error;
   }
 }

@@ -21,10 +21,17 @@ export interface Memory {
   fileCreatedAt?: string;
   unlockDate?: string;
   deletedAt?: string;
+  // Rating information
+  rating?: number;
+
   // Flexible metadata
   metadata?: {
     originalPath?: string;
     custom?: Record<string, unknown>;
+  };
+  // Storage information
+  storageStatus?: {
+    storageLocations: string[];
   };
   // Folder-specific properties
   itemCount?: number;

@@ -1,39 +1,42 @@
-import { allUsers, users, memories, memoryAssets, memoryShares } from '@/db/schema';
+import { allUsers, users, memories, memoryAssets, resourceMembership } from '@/db';
 import { eq } from 'drizzle-orm';
 import { db } from '@/db/db';
 
 export async function getSharedMemories(userId: string) {
-  // Get all memory shares for this user
-  const shares = await db.query.memoryShares.findMany({
-    where: eq(memoryShares.sharedWithId, userId),
+  // Get all memory shares for this user using the new universal resource sharing system
+  const shares = await db.query.resourceMembership.findMany({
+    where: eq(resourceMembership.allUserId, userId),
   });
+
+  // Filter for memory resources only
+  const memoryShares = shares.filter(share => share.resourceType === 'memory');
 
   // Fetch the actual memories
   const sharedMemories = await Promise.all(
-    shares.map(async share => {
+    memoryShares.map(async share => {
       const memory = await db.query.memories.findFirst({
-        where: eq(memories.id, share.memoryId),
+        where: eq(memories.id, share.resourceId),
       });
       if (!memory) return null;
 
       // Get thumbnail URL from assets (prefer thumb, fallback to original)
       const assets = await db.query.memoryAssets.findMany({
-        where: eq(memoryAssets.memoryId, share.memoryId),
+        where: eq(memoryAssets.memoryId, share.resourceId),
       });
       const thumbnailAsset =
         assets.find(asset => asset.assetType === 'thumb') || assets.find(asset => asset.assetType === 'original');
       const thumbnailUrl = thumbnailAsset?.url || null;
 
       return {
-        id: share.memoryId,
-        type: share.memoryType,
+        id: share.resourceId,
+        type: memory.type,
         title: memory.title,
         thumbnailUrl,
         createdAt: memory.createdAt,
-        ownerId: share.ownerId,
+        ownerId: memory.ownerId,
         sharedBy: {
-          id: share.ownerId,
-          name: await getOwnerName(share.ownerId),
+          id: memory.ownerId,
+          name: await getOwnerName(memory.ownerId),
         },
       };
     })

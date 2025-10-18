@@ -2,6 +2,19 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import { createServer, IncomingMessage, ServerResponse } from 'http';
 
+import { fatLogger } from '@/lib/logger';
+
+type EndpointResponse = {
+  status: number;
+  body: Record<string, unknown>;
+};
+
+type EndpointHandler = {
+  GET?: () => EndpointResponse;
+  POST?: (body: Record<string, unknown>) => EndpointResponse;
+};
+
+type SimpleEndpoints = Record<string, EndpointHandler>;
 // ============================================================================
 // SIMPLE ENDPOINT FOR SUPERTEST EXPERIMENTATION
 // ============================================================================
@@ -12,7 +25,7 @@ import { createServer, IncomingMessage, ServerResponse } from 'http';
 let server: ReturnType<typeof createServer>;
 
 // Simple mock endpoints for experimentation
-const simpleEndpoints = {
+const simpleEndpoints: SimpleEndpoints = {
   // Basic GET endpoint
   '/api/hello': {
     GET: () => ({
@@ -102,20 +115,20 @@ beforeAll(async () => {
     const url = req.url;
     const method = req.method;
 
-    console.log(`🔍 Simple Server: ${method} ${url}`);
+    fatLogger.info(`🔍 Simple Server: ${method} ${url}`, 'be');
 
     // Handle requests to our simple endpoints
     if (url && simpleEndpoints[url as keyof typeof simpleEndpoints]) {
       const endpoint = simpleEndpoints[url as keyof typeof simpleEndpoints];
 
-      if (method === 'GET' && endpoint.GET) {
+      if (method === 'GET' && endpoint && 'GET' in endpoint && endpoint.GET) {
         const result = endpoint.GET();
-        res.writeHead(result.status, { 'Content-Type': 'application/json' });
+        res.writeHead(result.status, undefined, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(result.body));
         return;
       }
 
-      if (method === 'POST' && endpoint.POST) {
+      if (method === 'POST' && endpoint && 'POST' in endpoint) {
         // Parse request body
         let body = '';
         req.on('data', (chunk: Buffer) => {
@@ -132,10 +145,15 @@ beforeAll(async () => {
             parsedBody = {};
           }
 
-          console.log(`🔍 Request body:`, parsedBody);
-          const result = endpoint.POST(parsedBody);
-          res.writeHead(result.status, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify(result.body));
+          fatLogger.info(`🔍 Request body:`, 'be', { parsedBody });
+          if (endpoint.POST) {
+            const result = endpoint.POST(parsedBody);
+            res.writeHead(result.status, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(result.body));
+          } else {
+            res.writeHead(405, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Method not allowed' }));
+          }
         });
         return;
       }

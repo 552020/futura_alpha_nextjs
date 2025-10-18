@@ -11,6 +11,7 @@
  */
 
 import { generateProcessedImageFilename } from '@/lib/storage/blob-config';
+import { detectMemoryTypeFromFile } from '@/utils/memory-type';
 
 /**
  * - Support multiple image formats (JPEG, PNG, WebP)
@@ -48,7 +49,7 @@ export interface ImageProcessingResult {
  */
 export async function processImageForMultipleAssets(file: File): Promise<ImageProcessingResult> {
   // Validate file type
-  if (!file.type.startsWith('image/')) {
+  if (detectMemoryTypeFromFile(file) !== 'image') {
     throw new Error('File is not an image');
   }
 

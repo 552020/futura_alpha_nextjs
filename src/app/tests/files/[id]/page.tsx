@@ -1,7 +1,7 @@
 import { auth } from '@/auth';
 import { db } from '@/db/db';
 import { eq } from 'drizzle-orm';
-import { documents, images, notes } from '@/db/schema';
+import { documents, images, notes } from '@/db';
 import { notFound } from 'next/navigation';
 import FileDetailEditor from '@/app/tests/files/[id]/file-detail-editor';
 
@@ -29,7 +29,7 @@ export default async function FileDetailPage({ params }: { params: Promise<{ id:
 
   if (photo) {
     // Verify access
-    if (photo.ownerId !== session.user.id && !photo.isPublic) {
+    if (photo.ownerId !== session.user.id && photo.sharingStatus !== 'public') {
       return (
         <div className="p-8 max-w-xl mx-auto">
           <h1 className="text-2xl font-bold mb-6">Access Denied</h1>

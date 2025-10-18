@@ -50,7 +50,7 @@ export function InterfaceProvider({ children }: { children: ReactNode }) {
   const isAtLeastDeveloper = ['developer', 'superadmin'].includes(userRole);
 
   useEffect(() => {
-    // console.log("InterfaceProvider Debug:", {
+    // icpLogger.info("InterfaceProvider Debug:", {
     //   pathname,
     //   isAppRoute: isAppRoute(pathname),
     //   newMode: isAppRoute(pathname) ? "app" : "marketing",

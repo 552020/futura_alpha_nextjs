@@ -2,24 +2,24 @@
 
 import React, { useEffect } from 'react';
 
+import { fatLogger } from '@/lib/logger';
 export default function TailwindTestPage() {
   useEffect(() => {
-    console.log('TailwindTestPage mounted');
+    fatLogger.info('TailwindTestPage mounted', 'fe');
 
     // Log all loaded stylesheets
-    console.log(
-      'All loaded stylesheets:',
-      Array.from(document.styleSheets).map(sheet => ({
+    fatLogger.info('All loaded stylesheets:', 'fe', {
+      stylesheets: Array.from(document.styleSheets).map(sheet => ({
         href: sheet.href,
         type: sheet.type,
         rules: sheet.cssRules?.length,
-      }))
-    );
+      })),
+    });
 
     // Check specific Tailwind classes
     //     const testElement = document.querySelector(".test-tailwind");
     //     if (testElement) {
-    //       console.log("Test element styles:", {
+    //       fatLogger.info("Test element styles:", undefined, {
     //         computed: window.getComputedStyle(testElement),
     //         classList: testElement.classList,
     //         backgroundColor: window.getComputedStyle(testElement).backgroundColor,

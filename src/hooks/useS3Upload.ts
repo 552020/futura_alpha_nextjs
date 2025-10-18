@@ -19,10 +19,7 @@ export interface UseS3UploadResult {
   reset: () => void;
 }
 
-export function useS3Upload({
-  onComplete,
-  onError,
-}: Omit<UploadOptions, 'onProgress'> = {}): UseS3UploadResult {
+export function useS3Upload({ onComplete, onError }: Omit<UploadOptions, 'onProgress'> = {}): UseS3UploadResult {
   const [progress, setProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -42,15 +39,17 @@ export function useS3Upload({
 
       try {
         // 1. Request a presigned URL from our API
-        const response = await fetch('/api/upload/request', {
+        const response = await fetch('/api/upload/s3/presign', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            fileName: file.name,
-            fileType: file.type,
-            fileSize: file.size,
+            files: [{
+              fileName: file.name,
+              fileType: file.type,
+              fileSize: file.size,
+            }],
           }),
         });
 
@@ -59,7 +58,7 @@ export function useS3Upload({
           throw new Error(errorData.error || 'Failed to get upload URL');
         }
 
-const { uploadUrl, fileKey } = await response.json();
+        const { uploadUrl, fileKey } = await response.json();
 
         // 2. Upload the file directly to S3 using the presigned URL
         const uploadResponse = await fetch(uploadUrl, {
@@ -96,13 +95,13 @@ const { uploadUrl, fileKey } = await response.json();
         }
 
         const { url: finalUrl } = await completeResponse.json();
-        
+
         // Update progress to 100%
         setProgress(100);
-        
+
         // Call the completion callback
         onComplete?.(finalUrl, fileKey);
-        
+
         return finalUrl;
       } catch (err) {
         const error = err instanceof Error ? err : new Error('Upload failed');
@@ -135,8 +134,8 @@ const { uploadUrl, fileKey } = await response.json();
 /*
 function UploadComponent() {
   const { upload, progress, isUploading, error } = useS3Upload({
-    onComplete: (url) => console.log('Upload complete:', url),
-    onError: (error) => console.error('Upload error:', error),
+    onComplete: (url) => icpLogger.info('Upload complete:', url),
+    onError: (error) => icpLogger.error('Upload error:', error as Error),
   });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

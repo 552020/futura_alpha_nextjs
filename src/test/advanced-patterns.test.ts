@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
 
+import { fatLogger } from '@/lib/logger';
 // ============================================================================
 // 1. MOCKING - Replacing real functions with fake ones for testing
 // ============================================================================
@@ -40,12 +41,12 @@ function updateUserStatus(userId: string, status: string) {
 describe('Advanced Testing Patterns', () => {
   // Runs once before ALL tests in this suite
   beforeAll(() => {
-    console.log('🚀 Setting up test environment...');
+    fatLogger.info('🚀 Setting up test environment...', 'be');
   });
 
   // Runs before EACH test
   beforeEach(() => {
-    console.log('📝 Starting new test...');
+    fatLogger.info('📝 Starting new test...', 'be');
     // Clear all mocks before each test
     vi.clearAllMocks();
 
@@ -60,12 +61,12 @@ describe('Advanced Testing Patterns', () => {
 
   // Runs after EACH test
   afterEach(() => {
-    console.log('✅ Test completed');
+    fatLogger.info('✅ Test completed', 'be');
   });
 
   // Runs once after ALL tests in this suite
   afterAll(() => {
-    console.log('🏁 All tests completed, cleaning up...');
+    fatLogger.info('🏁 All tests completed, cleaning up...', 'be');
   });
 
   // ============================================================================

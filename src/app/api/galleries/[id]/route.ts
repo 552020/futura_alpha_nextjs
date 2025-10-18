@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
 import { eq, and, inArray } from 'drizzle-orm';
-import { galleries, allUsers, galleryShares, galleryItems, memories } from '@/db/schema';
+import { galleries, allUsers, galleryItems, memories, resourceMembership } from '@/db';
 import { addStorageStatusToGallery } from '../utils';
-import { generatePresignedUrlFromS3Url } from '@/lib/presigned-url-utils';
+import { generateBestAssetUrl } from '@/lib/presigned-url-utils';
 
+import { fatLogger } from '@/lib/logger';
 // Helper function to check if user has access to a memory, considering gallery override
 async function checkMemoryAccess(
   memoryId: string,
@@ -21,7 +22,7 @@ async function checkMemoryAccess(
 
     if (gallery) {
       // Gallery override: if gallery is public, all memories are accessible
-      if (gallery.isPublic) {
+      if (gallery.sharingStatus === 'public') {
         return true;
       }
 
@@ -30,18 +31,20 @@ async function checkMemoryAccess(
         return true;
       }
 
-      // Check if gallery is shared with user
-      const galleryShare = await db.query.galleryShares.findFirst({
+      // Check if gallery is shared with user using the new universal resource sharing system
+      const galleryShare = await db.query.resourceMembership.findFirst({
         where: and(
-          eq(galleryShares.galleryId, galleryId),
-          eq(galleryShares.sharedWithType, 'user'),
-          eq(galleryShares.sharedWithId, allUserId)
+          eq(resourceMembership.resourceId, galleryId),
+          eq(resourceMembership.resourceType, 'gallery'),
+          eq(resourceMembership.allUserId, allUserId)
         ),
       });
 
       if (galleryShare) {
         return true;
       }
+
+      return false;
     }
   }
 
@@ -63,7 +66,7 @@ async function checkMemoryAccess(
   }
 
   // Check if memory is public
-  if (memory.isPublic) {
+  if (memory.sharingStatus === 'public') {
     return true;
   }
 
@@ -94,7 +97,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     });
 
     if (!allUserRecord) {
-      console.error('No allUsers record found for user:', session.user.id);
+      fatLogger.error('No allUsers record found for user', 'be', {
+        userId: session.user.id,
+      });
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
@@ -116,16 +121,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     let accessibleGallery = null;
 
     if (ownedGallery) {
-      // console.log("User owns gallery:", ownedGallery);
+      // fatLogger.info("User owns gallery:", ownedGallery);
       accessibleGallery = ownedGallery;
     } else {
       // Check if gallery exists and is public (gallery override)
       const publicGallery = await db.query.galleries.findFirst({
-        where: and(eq(galleries.id, galleryId), eq(galleries.isPublic, true)),
+        where: and(eq(galleries.id, galleryId), eq(galleries.sharingStatus, 'public')),
       });
 
       if (publicGallery) {
-        // console.log("User accessing public gallery:", publicGallery);
+        // fatLogger.info("User accessing public gallery:", publicGallery);
         accessibleGallery = publicGallery;
       } else {
         // Check if gallery is shared with this user
@@ -134,17 +139,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         });
 
         if (sharedGallery) {
-          // Check if gallery is shared with this user
-          const shareRecord = await db.query.galleryShares.findFirst({
+          // Check if gallery is shared with this user using the new universal resource sharing system
+          const shareRecord = await db.query.resourceMembership.findFirst({
             where: and(
-              eq(galleryShares.galleryId, galleryId),
-              eq(galleryShares.sharedWithType, 'user'),
-              eq(galleryShares.sharedWithId, allUserRecord.id)
+              eq(resourceMembership.resourceId, galleryId),
+              eq(resourceMembership.resourceType, 'gallery'),
+              eq(resourceMembership.allUserId, allUserRecord.id)
             ),
           });
 
           if (shareRecord) {
-            // console.log("User has shared access to gallery:", sharedGallery);
+            // fatLogger.info("User has shared access to gallery:", sharedGallery);
             accessibleGallery = sharedGallery;
           }
         }
@@ -170,7 +175,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       }
     }
 
-    // console.log("Gallery access result:", {
+    // fatLogger.info("Gallery access result:", undefined, {
     //   galleryId,
     //   totalItems: galleryItemsList.length,
     //   accessibleItems: accessibleItems.length,
@@ -178,11 +183,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // Get the actual memory data for each item
     const itemsWithMemories = [];
-    // console.log("Processing accessible items:", accessibleItems.length);
+    // fatLogger.info("Processing accessible items:", accessibleItems.length);
 
     for (const item of accessibleItems) {
       try {
-        // console.log(`Processing item: ${item.memoryId} (type: ${item.memoryType})`);
+        // fatLogger.info(`Processing item: ${item.memoryId} (type: ${item.memoryType})`);
 
         // Fetch memory from unified memories table with assets
         const memory = await db.query.memories.findFirst({
@@ -196,7 +201,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         });
 
         if (memory) {
-          console.log(`🔍 Found memory for item ${item.memoryId}:`, {
+          fatLogger.info(`Found memory for item ${item.memoryId}`, 'be', {
             memoryId: memory.id,
             title: memory.title,
             type: memory.type,
@@ -210,33 +215,26 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             })),
           });
 
-          // Extract URL from assets (similar to dashboard logic)
-          const getAssetUrl = (
-            assets: GalleryAsset[] | undefined,
-            preferredType: 'display' | 'original' = 'display'
-          ): string | undefined => {
+          // Extract best asset URL (prefer thumb for gallery grid, then display, then original)
+          const getBestAssetUrl = async (assets: GalleryAsset[] | undefined): Promise<string | undefined> => {
             if (!assets || assets.length === 0) {
-              console.log(`❌ No assets found for memory ${item.memoryId}`);
+              fatLogger.info(`No assets found for memory ${item.memoryId}`, 'be');
               return undefined;
             }
 
-            const preferredAsset = assets.find(asset => asset.assetType === preferredType);
-            if (preferredAsset) {
-              console.log(`✅ Found ${preferredType} asset for memory ${item.memoryId}:`, preferredAsset.url);
-              return preferredAsset.url;
+            // Prefer thumb for gallery grid, then display, then original
+            const preferredOrder = ['thumb', 'display', 'original'];
+            for (const assetType of preferredOrder) {
+              const asset = assets.find(a => a.assetType === assetType);
+              if (asset) {
+                fatLogger.info(`Found ${assetType} asset for memory ${item.memoryId}`, 'be');
+                return await generateBestAssetUrl(asset);
+              }
             }
 
-            const originalAsset = assets.find(asset => asset.assetType === 'original');
-            if (originalAsset) {
-              console.log(`✅ Found original asset for memory ${item.memoryId}:`, originalAsset.url);
-              return originalAsset.url;
-            }
-
-            console.log(
-              `⚠️ No display/original asset found for memory ${item.memoryId}, using first asset:`,
-              assets[0]?.url
-            );
-            return assets[0]?.url;
+            // Fallback to first available asset
+            fatLogger.info(`No preferred asset found for memory ${item.memoryId}, using first asset`, 'be');
+            return await generateBestAssetUrl(assets[0]);
           };
           // Define asset type
           interface GalleryAsset {
@@ -260,17 +258,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           };
 
           // Transform memory to include url and mimeType from assets
-          const assetUrl = getAssetUrl(memory.assets);
-          const finalUrl = await generatePresignedUrlFromS3Url(assetUrl || '');
+          const finalUrl = await getBestAssetUrl(memory.assets);
 
           const memoryWithUrl = {
             ...memory,
-            url: finalUrl,
+            url: finalUrl || '',
             mimeType: getAssetMimeType(memory.assets),
           };
 
-          console.log(`🔗 Generated URL for memory ${item.memoryId}:`, {
-            originalUrl: assetUrl,
+          fatLogger.info(`Generated URL for memory ${item.memoryId}`, 'be', {
             finalUrl: finalUrl,
             hasUrl: !!finalUrl,
             urlLength: finalUrl?.length || 0,
@@ -281,10 +277,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             memory: memoryWithUrl,
           });
         } else {
-          console.warn(`Memory not found for item: ${item.memoryId} (type: ${item.memoryType})`);
+          fatLogger.warn(`Memory not found for item: ${item.memoryId} (type: ${item.memoryType})`, 'be');
         }
       } catch (itemError) {
-        console.error(`Error fetching memory for item ${item.memoryId}:`, itemError);
+        fatLogger.error(`Error fetching memory for item ${item.memoryId}`, 'be', {
+          error: itemError instanceof Error ? itemError : undefined,
+        });
       }
     }
 
@@ -299,7 +297,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       isOwner: accessibleGallery.ownerId === allUserRecord.id,
     };
 
-    // console.log("Returning gallery with items:", {
+    // fatLogger.info("Returning gallery with items:", undefined, {
     //   galleryId,
     //   itemsCount: itemsWithMemories.length,
     //   isOwner: galleryWithItems.isOwner,
@@ -309,8 +307,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       gallery: galleryWithItems,
     });
   } catch (error) {
-    console.error('Error fetching gallery:', error);
-    console.error('Error details:', {
+    fatLogger.error('Error fetching gallery', 'be', {
+      error: error instanceof Error ? error : undefined,
+    });
+    fatLogger.error('Error details', 'be', {
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
     });
@@ -333,7 +333,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     });
 
     if (!allUserRecord) {
-      console.error('No allUsers record found for user:', session.user.id);
+      fatLogger.error('No allUsers record found for user', 'be', {
+        userId: session.user.id,
+      });
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
@@ -356,7 +358,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       .set({
         title: title !== undefined ? title : existingGallery.title,
         description: description !== undefined ? description : existingGallery.description,
-        isPublic: isPublic !== undefined ? isPublic : existingGallery.isPublic,
+        sharingStatus: isPublic !== undefined ? (isPublic ? 'public' : 'private') : existingGallery.sharingStatus,
         updatedAt: new Date(),
       })
       .where(eq(galleries.id, galleryId))
@@ -408,7 +410,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       }
     }
 
-    // console.log("Updated gallery:", {
+    // fatLogger.info("Updated gallery:", undefined, {
     //   gallery: updatedGallery[0],
     //   items: itemsResult,
     // });
@@ -419,7 +421,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       items: itemsResult,
     });
   } catch (error) {
-    console.error('Error updating gallery:', error);
+    fatLogger.error('Error updating gallery', 'be', {
+      error: error instanceof Error ? error : undefined,
+    });
     return NextResponse.json({ error: 'Failed to update gallery' }, { status: 500 });
   }
 }
@@ -439,7 +443,9 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     });
 
     if (!allUserRecord) {
-      console.error('No allUsers record found for user:', session.user.id);
+      fatLogger.error('No allUsers record found for user', 'be', {
+        userId: session.user.id,
+      });
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
@@ -454,16 +460,26 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       return NextResponse.json({ error: 'Gallery not found' }, { status: 404 });
     }
 
+    // Delete gallery shares first (resourceMembership doesn't have FK cascade)
+    await db.delete(resourceMembership).where(
+      and(
+        eq(resourceMembership.resourceType, 'gallery'),
+        eq(resourceMembership.resourceId, galleryId)
+      )
+    );
+
     // Delete gallery (cascade will handle gallery_items)
     await db.delete(galleries).where(eq(galleries.id, galleryId));
 
-    // console.log("Deleted gallery:", galleryId);
+    // fatLogger.info("Deleted gallery:", galleryId);
 
     return NextResponse.json({
       message: 'Gallery deleted successfully',
     });
   } catch (error) {
-    console.error('Error deleting gallery:', error);
+    fatLogger.error('Error deleting gallery', 'be', {
+      error: error instanceof Error ? error : undefined,
+    });
     return NextResponse.json({ error: 'Failed to delete gallery' }, { status: 500 });
   }
 }

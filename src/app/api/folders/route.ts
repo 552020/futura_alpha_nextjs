@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db/db';
-import { folders } from '@/db/schema';
+import { folders } from '@/db';
 import { getUserIdForUpload } from '../memories/utils/user-management';
 
+import { fatLogger } from '@/lib/logger';
 export async function POST(request: NextRequest) {
   try {
     const { folderName, parentFolderId } = await request.json();
@@ -21,13 +22,14 @@ export async function POST(request: NextRequest) {
       .values({
         ownerId: allUserId,
         name: folderName,
+        title: folderName, // Add required title field
         parentFolderId: parentFolderId || null,
       })
       .returning();
 
     return NextResponse.json({ folder: createdFolder });
   } catch (error) {
-    console.error('Error creating folder:', error);
+    fatLogger.error('Error creating folder:', 'be', { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to create folder' }, { status: 500 });
   }
 }

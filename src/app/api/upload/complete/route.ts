@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
-import { memories, memoryAssets, allUsers, type MemoryType, type AssetType, type ProcessingStatus } from '@/db/schema';
+import { memories, memoryAssets, allUsers, type MemoryType, type AssetType, type ProcessingStatus } from '@/db';
 import { randomBytes } from 'crypto';
 import { randomUUID } from 'crypto';
 import { eq, and } from 'drizzle-orm';
+import { fatLogger } from '@/lib/logger';
+import { detectMemoryType } from '@/utils/memory-type';
 // Drizzle ORM imports are used in the where clause
 
 interface FileMetadata {
@@ -59,12 +61,15 @@ interface CompleteUploadRequest {
 
 export async function POST(request: Request) {
   try {
+    console.log('🔍 [DEBUG] Starting upload complete request');
     const session = await auth();
     if (!session?.user?.id) {
+      console.log('❌ [DEBUG] No session or user ID');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const userId = session.user.id;
+    console.log('✅ [DEBUG] User authenticated:', userId);
 
     // Check if the user exists in the all_user table
     const existingUser = await db.query.allUsers.findFirst({
@@ -91,16 +96,22 @@ export async function POST(request: Request) {
     }
 
     const requestData = (await request.json()) as CompleteUploadRequest;
+    console.log('📋 [DEBUG] Request data:', JSON.stringify(requestData, null, 2));
 
     // Handle new parallel processing format (Format 3)
     if (requestData.memoryId && requestData.assets) {
+      console.log('🔄 [DEBUG] Using Format 3 (parallel processing)');
       return await handleParallelProcessingFinalize(requestData as FinalizeRequest, allUserId);
     }
 
     // Handle legacy formats (Format 1 & 2)
+    console.log('🔄 [DEBUG] Using legacy format (Format 1 or 2)');
     return await handleLegacyComplete(requestData, allUserId);
   } catch (error) {
-    console.error('Error completing upload:', error);
+    console.log('❌ [DEBUG] Error in upload complete:', error);
+    console.log('❌ [DEBUG] Error message:', error instanceof Error ? error.message : 'Unknown error');
+    console.log('❌ [DEBUG] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    fatLogger.error('Error completing upload:', 'be', { data: error instanceof Error ? error : undefined });
     return NextResponse.json({ error: 'Failed to complete upload' }, { status: 500 });
   }
 }
@@ -111,9 +122,9 @@ export async function POST(request: Request) {
 async function handleParallelProcessingFinalize(request: FinalizeRequest, allUserId: string) {
   const { memoryId, assets, parentFolderId } = request;
 
-  console.log(`🔄 Processing parallel finalize for memory: ${memoryId} with ${assets.length} assets`);
+  fatLogger.info(`🔄 Processing parallel finalize for memory: ${memoryId} with ${assets.length} assets`, 'be');
   if (parentFolderId) {
-    console.log(`📁 Linking memory to folder: ${parentFolderId}`);
+    fatLogger.info(`📁 Linking memory to folder: ${parentFolderId}`, 'be');
   }
 
   // Verify the memory exists and belongs to the user
@@ -137,7 +148,7 @@ async function handleParallelProcessingFinalize(request: FinalizeRequest, allUse
       })
       .where(eq(memories.id, memoryId));
 
-    console.log(`✅ Updated memory ${memoryId} with parentFolderId: ${parentFolderId}`);
+    fatLogger.info(`✅ Updated memory ${memoryId} with parentFolderId: ${parentFolderId}`, 'be');
   }
 
   // Process each asset with idempotent upserts
@@ -170,7 +181,7 @@ async function handleParallelProcessingFinalize(request: FinalizeRequest, allUse
           })
           .where(and(eq(memoryAssets.memoryId, memoryId), eq(memoryAssets.assetType, asset.assetType)));
 
-        console.log(`✅ Updated existing asset: ${asset.assetType} -> ${asset.processingStatus}`);
+        fatLogger.info(`✅ Updated existing asset: ${asset.assetType} -> ${asset.processingStatus}`, 'be');
       } else {
         // Create new asset
         const assetId = randomUUID();
@@ -183,7 +194,7 @@ async function handleParallelProcessingFinalize(request: FinalizeRequest, allUse
           url: asset.url || '', // Use url field for all assets
           assetLocation: asset.assetLocation || 's3',
           storageKey: asset.storageKey || '',
-          bucket: process.env.S3_BUCKET_NAME || 'default-bucket',
+          bucket: process.env.AWS_S3_BUCKET || 'futura0',
           bytes: asset.bytes || 0,
           width: asset.width || null,
           height: asset.height || null,
@@ -194,7 +205,7 @@ async function handleParallelProcessingFinalize(request: FinalizeRequest, allUse
           updatedAt: new Date(),
         });
 
-        console.log(`✅ Created new asset: ${asset.assetType} -> ${asset.processingStatus}`);
+        fatLogger.info(`✅ Created new asset: ${asset.assetType} -> ${asset.processingStatus}`, 'be');
       }
 
       processedAssets.push({
@@ -203,7 +214,9 @@ async function handleParallelProcessingFinalize(request: FinalizeRequest, allUse
         url: asset.url,
       });
     } catch (error) {
-      console.error(`❌ Failed to process asset ${asset.assetType}:`, error);
+      fatLogger.error(`❌ Failed to process asset ${asset.assetType}:`, 'be', {
+        data: error instanceof Error ? error : undefined,
+      });
       // Continue processing other assets even if one fails
     }
   }
@@ -221,6 +234,7 @@ async function handleParallelProcessingFinalize(request: FinalizeRequest, allUse
  * Handle legacy complete formats (backward compatibility)
  */
 async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserId: string) {
+  console.log('🔍 [DEBUG] Starting handleLegacyComplete with allUserId:', allUserId);
   // Handle both request formats
   let fileKey: string;
   let originalName: string;
@@ -247,7 +261,7 @@ async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserI
         const tokenData = JSON.parse(requestData.token);
         metadata.userId = tokenData.userId || metadata.userId;
       } catch (e) {
-        console.warn('Failed to parse token data', e);
+        fatLogger.warn('Failed to parse token data', 'be', { error: e instanceof Error ? e : undefined });
       }
     }
   } else {
@@ -261,84 +275,91 @@ async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserI
   }
 
   if (!size) {
+    console.log('❌ [DEBUG] Missing required field: size');
     return NextResponse.json({ error: 'Missing required field: size' }, { status: 400 });
   }
 
+  console.log('✅ [DEBUG] Parsed request data:', { fileKey, originalName, size, mimeType, metadata });
+
   // Determine memory type from content type or file extension
-  const memoryType: MemoryType = mimeType.startsWith('image/')
-    ? 'image'
-    : mimeType.startsWith('video/')
-      ? 'video'
-      : mimeType.startsWith('audio/')
-        ? 'audio'
-        : originalName.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)
-          ? 'image'
-          : originalName.match(/\.(mp4|webm|mov|avi|wmv|flv|mkv)$/i)
-            ? 'video'
-            : originalName.match(/\.(mp3|wav|ogg|m4a|flac|aac)$/i)
-              ? 'audio'
-              : 'document';
+  const memoryType: MemoryType = detectMemoryType(mimeType, originalName);
 
   // Construct the file URL based on storage backend
   let fileUrl: string;
   if (metadata.storageBackend === 's3' && metadata.storageKey) {
-    fileUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_S3_REGION}.amazonaws.com/${metadata.storageKey}`;
+    fileUrl = `https://${process.env.AWS_S3_BUCKET || 'futura0'}.s3.${process.env.AWS_S3_REGION}.amazonaws.com/${metadata.storageKey}`;
   } else {
     fileUrl = requestData.url || `/${fileKey}`;
   }
   const memoryId = randomUUID();
+  console.log('🆔 [DEBUG] Generated memoryId:', memoryId);
 
   // Create memory record
-  await db
-    .insert(memories)
-    .values({
-      id: memoryId,
-      ownerId: allUserId,
-      type: memoryType,
-      title: originalName.split('.')[0] || 'Untitled',
-      description: '',
-      fileCreatedAt: new Date(),
-      isPublic: false,
-      ownerSecureCode: randomBytes(16).toString('hex'),
-      parentFolderId: null,
-      tags: [],
-      recipients: [],
-      unlockDate: null,
-      metadata: {
-        originalPath: originalName,
-        custom: Object.entries(metadata).reduce<Record<string, unknown>>((acc, [key, value]) => {
-          if (key !== 'width' && key !== 'height') {
-            acc[key] = value;
-          }
-          return acc;
-        }, {}),
-      },
-      storageDuration: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      deletedAt: null,
-    })
-    .returning();
+  console.log('💾 [DEBUG] About to create memory record in database');
+  try {
+    await db
+      .insert(memories)
+      .values({
+        id: memoryId,
+        ownerId: allUserId,
+        type: memoryType,
+        title: originalName.split('.')[0] || 'Untitled',
+        description: '',
+        fileCreatedAt: new Date(),
+        sharingStatus: 'private',
+        ownerSecureCode: randomBytes(16).toString('hex'),
+        parentFolderId: null,
+        tags: [],
+        recipients: [],
+        unlockDate: null,
+        metadata: {
+          originalPath: originalName,
+          custom: Object.entries(metadata).reduce<Record<string, unknown>>((acc, [key, value]) => {
+            if (key !== 'width' && key !== 'height') {
+              acc[key] = value;
+            }
+            return acc;
+          }, {}),
+        },
+        storageDuration: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        deletedAt: null,
+      })
+      .returning();
+    console.log('✅ [DEBUG] Memory record created successfully');
+  } catch (error) {
+    console.log('❌ [DEBUG] Error creating memory record:', error);
+    throw error;
+  }
 
   // Create asset record
-  await db.insert(memoryAssets).values({
-    memoryId: memoryId,
-    assetType: 'original',
-    variant: null,
-    url: fileUrl,
-    assetLocation: 's3',
-    storageKey: fileKey,
-    bucket: process.env.S3_BUCKET_NAME || 'default-bucket',
-    bytes: size,
-    width: metadata.width ? Number(metadata.width) : null,
-    height: metadata.height ? Number(metadata.height) : null,
-    mimeType: mimeType,
-    processingStatus: 'completed' as const,
-    processingError: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  });
+  console.log('💾 [DEBUG] About to create asset record in database');
+  try {
+    await db.insert(memoryAssets).values({
+      memoryId: memoryId,
+      assetType: 'original',
+      variant: null,
+      url: fileUrl,
+      assetLocation: 's3',
+      storageKey: fileKey,
+      bucket: process.env.AWS_S3_BUCKET || 'futura0',
+      bytes: size,
+      width: metadata.width ? Number(metadata.width) : null,
+      height: metadata.height ? Number(metadata.height) : null,
+      mimeType: mimeType,
+      processingStatus: 'completed' as const,
+      processingError: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    console.log('✅ [DEBUG] Asset record created successfully');
+  } catch (error) {
+    console.log('❌ [DEBUG] Error creating asset record:', error);
+    throw error;
+  }
 
+  console.log('🎉 [DEBUG] Both memory and asset records created successfully');
   return NextResponse.json({
     success: true,
     data: {
@@ -359,7 +380,7 @@ async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserI
       title: originalName.split('.')[0] || 'Untitled',
       description: '',
       fileCreatedAt: new Date().toISOString(),
-      isPublic: false,
+      sharingStatus: 'private',
       parentFolderId: null,
       tags: [],
       recipients: [],
