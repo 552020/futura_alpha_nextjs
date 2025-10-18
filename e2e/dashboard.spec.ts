@@ -4,7 +4,7 @@ test.describe('Dashboard', () => {
   test('dashboard page loads and shows authentication state', async ({ page }) => {
     // Set desktop viewport to ensure navigation is visible
     await page.setViewportSize({ width: 1280, height: 720 });
-    
+
     await page.goto('/en/dashboard');
 
     // Check that we're on the dashboard page
@@ -60,8 +60,11 @@ test.describe('Dashboard', () => {
     await page.waitForLoadState('networkidle');
 
     // Look for any navigation elements (header, nav, or links)
-    const hasNavigation = await page.locator('header, nav, [role="navigation"], a[href*="/dashboard"], a[href*="/memories"], a[href*="/settings"]').count() > 0;
-    
+    const hasNavigation =
+      (await page
+        .locator('header, nav, [role="navigation"], a[href*="/dashboard"], a[href*="/memories"], a[href*="/settings"]')
+        .count()) > 0;
+
     // Just check that some navigation exists (don't require visibility)
     expect(hasNavigation).toBeTruthy();
   });
