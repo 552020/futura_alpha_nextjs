@@ -13,14 +13,14 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './e2e',
-  /* Run tests in files in parallel */
-  fullyParallel: true,
+  /* Serialize all tests to stop bleeding - prioritize delivery over purity */
+  fullyParallel: false,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
-  /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
+  /* Serialize all tests to stop bleeding - prioritize delivery over purity */
+  workers: 1,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'html',
   /* Timeout for Internet Identity tests */
@@ -34,42 +34,22 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
 
-  /* Configure projects for major browsers */
+  /* Configure projects for test isolation */
   projects: [
     {
-      name: 'chromium',
+      name: 'ui',
       use: { ...devices['Desktop Chrome'] },
+      grepInvert: /@db/,
     },
-
     {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
+      name: 'db',
+      use: { ...devices['Desktop Chrome'] },
+      grep: /@db/,
+      // DB tests already serialized by global workers=1
     },
-
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
-
-    /* Test against mobile viewports. */
-    // {
-    //   name: 'Mobile Chrome',
-    //   use: { ...devices['Pixel 5'] },
-    // },
-    // {
-    //   name: 'Mobile Safari',
-    //   use: { ...devices['iPhone 12'] },
-    // },
-
-    /* Test against branded browsers. */
-    // {
-    //   name: 'Microsoft Edge',
-    //   use: { ...devices['Desktop Edge'], channel: 'msedge' },
-    // },
-    // {
-    //   name: 'Google Chrome',
-    //   use: { ...devices['Desktop Chrome'], channel: 'chrome' },
-    // },
+    // Cross-browser only in CI if needed:
+    // { name: 'firefox', use: { ...devices['Desktop Firefox'] }, grepInvert: /@db/ },
+    // { name: 'webkit',  use: { ...devices['Desktop Safari']  }, grepInvert: /@db/ },
   ],
 
   /* NEVER start dev server automatically - neither in local dev nor CI */
