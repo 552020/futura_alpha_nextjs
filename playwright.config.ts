@@ -72,13 +72,7 @@ export default defineConfig({
     // },
   ],
 
-  /* Run your local dev server before starting the tests */
-  webServer: process.env.CI
-    ? undefined
-    : {
-        command: 'pnpm dev:nextjs',
-        url: 'http://localhost:3000',
-        reuseExistingServer: !process.env.CI,
-        timeout: 120 * 1000, // 2 minutes timeout for dev server startup
-      },
+  /* NEVER start dev server automatically - neither in local dev nor CI */
+  /* CI pipeline should start the dev server, not Playwright */
+  webServer: undefined,
 });
