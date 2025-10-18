@@ -14,8 +14,8 @@ test.describe('Delete Account', () => {
     const password = 'testpassword123';
 
     await page.getByLabel(/email/i).fill(email);
-    await page.getByLabel(/confirm password/i).fill(password);
-    await page.getByLabel(/password/i).fill(password);
+    await page.locator('#password').fill(password);
+    await page.locator('#confirmPassword').fill(password);
 
     // Submit signup
     await page.getByRole('button', { name: /sign up with email/i }).click();
@@ -32,6 +32,9 @@ test.describe('Delete Account', () => {
 
     // Confirm deletion in modal
     await page.getByRole('button', { name: /delete account/i }).click();
+
+    // Wait for deletion to complete
+    await page.waitForTimeout(3000);
 
     // Should be redirected to home page after deletion
     await expect(page).toHaveURL('/en');
@@ -50,8 +53,8 @@ test.describe('Delete Account', () => {
     const password = 'testpassword123';
 
     await page.getByLabel(/email/i).fill(email);
-    await page.getByLabel(/confirm password/i).fill(password);
-    await page.getByLabel(/password/i).fill(password);
+    await page.locator('#password').fill(password);
+    await page.locator('#confirmPassword').fill(password);
 
     // Submit signup
     await page.getByRole('button', { name: /sign up with email/i }).click();
