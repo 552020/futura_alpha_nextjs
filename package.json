@@ -26,9 +26,9 @@
     "seed": "tsx src/db/seed.ts",
     "create-test-users": "tsx src/db/create-test-users.ts",
     "manage-user-roles": "tsx scripts/manage-user-roles.ts",
-    "setup-business-relationship": "tsx scripts/db/setup-business-relationship-interactive.ts",
-    "setup-business-relationship-cli": "tsx scripts/db/setup-business-relationship-cli.ts",
-    "check-business-relationships": "tsx scripts/db/check-business-relationships.ts"
+    "setup-business-relationship": "tsx scripts/db/business-relationship/setup-interactive.ts",
+    "setup-business-relationship-cli": "tsx scripts/db/business-relationship/setup-cli.ts",
+    "check-business-relationships": "tsx scripts/db/business-relationship/check.ts"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.10.0",
