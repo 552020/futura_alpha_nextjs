@@ -422,7 +422,7 @@ async function handleOnboardingComplete(request: Request) {
     await db.insert(allUsers).values({
       id: allUserId,
       type: 'temporary',
-      userId: tempUserId,
+      temporaryUserId: tempUserId,
       createdAt: new Date(),
     });
 

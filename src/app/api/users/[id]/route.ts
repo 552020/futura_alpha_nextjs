@@ -153,7 +153,49 @@ export async function PATCH(_request: NextRequest, { params }: { params: Promise
       userId: allUser.userId,
     });
 
+    console.log('🔍 [DEBUG] Full allUser object:', JSON.stringify(allUser, null, 2));
+
     if (allUser.type === 'temporary') {
+      // Handle case where temporaryUserId is missing (old broken records)
+      if (!allUser.temporaryUserId) {
+        console.log('❌ [DEBUG] temporaryUserId is missing from allUser - this is an old broken record');
+        console.log('🔧 [DEBUG] Attempting to find temporary user by userId field...');
+
+        // Try to find the temporary user by the userId field (old structure)
+        if (allUser.userId) {
+          console.log('🔄 [DEBUG] Looking for temporary user with userId:', allUser.userId);
+          const tempUser = await db.query.temporaryUsers.findFirst({
+            where: eq(temporaryUsers.id, allUser.userId),
+          });
+
+          if (tempUser) {
+            console.log('✅ [DEBUG] Found temporary user, updating...');
+            const [updatedTemporaryUser] = await db
+              .update(temporaryUsers)
+              .set({
+                name,
+                email,
+                updatedAt: new Date(),
+              })
+              .where(eq(temporaryUsers.id, allUser.userId))
+              .returning();
+
+            console.log('✅ [DEBUG] Temporary user updated successfully:', {
+              id: updatedTemporaryUser.id,
+              name: updatedTemporaryUser.name,
+              email: updatedTemporaryUser.email,
+            });
+
+            return NextResponse.json({
+              user: updatedTemporaryUser,
+              allUser,
+            });
+          }
+        }
+
+        return NextResponse.json({ error: 'Invalid user data - missing temporaryUserId' }, { status: 400 });
+      }
+
       console.log('🔄 [DEBUG] Updating temporary user with ID:', allUser.temporaryUserId);
       // Update temporary user
       const [updatedTemporaryUser] = await db
@@ -163,7 +205,7 @@ export async function PATCH(_request: NextRequest, { params }: { params: Promise
           email,
           updatedAt: new Date(),
         })
-        .where(eq(temporaryUsers.id, allUser.temporaryUserId!))
+        .where(eq(temporaryUsers.id, allUser.temporaryUserId))
         .returning();
 
       console.log('✅ [DEBUG] Temporary user updated successfully:', {
