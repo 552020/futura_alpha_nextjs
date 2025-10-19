@@ -9,12 +9,23 @@ import { fatLogger } from '@/lib/logger';
  * POST /api/auth/ii/link
  *
  * Links an Internet Identity principal to the current user's account.
- * Used by the useIILinks hook for linking operations.
  * 
- * NOTE: This endpoint accepts a direct principal (no nonce verification).
- * For nonce-verified linking, use /api/auth/link-ii instead.
+ * ACTIVELY USED BY:
+ * - useIILinks hook (src/hooks/use-ii-links.ts)
+ * - Account management components (linked-accounts, internet-identity-management, etc.)
+ * - Forever storage modal for ICP operations
  * 
- * @deprecated Consider migrating to /api/auth/link-ii for better security
+ * SECURITY NOTES:
+ * - Supports both direct principal linking AND nonce verification
+ * - When nonce is provided, verifies with canister for better security
+ * - When only principal is provided, links directly (less secure, legacy behavior)
+ * 
+ * RELATED ROUTES:
+ * - /api/auth/link-ii - Alternative route used by sign-in flows (always uses nonce)
+ * - /api/auth/ii/linked - GET linked principals
+ * - /api/auth/ii/unlink - Unlink a principal
+ * 
+ * TODO: Update useIILinks hook to always pass nonce for better security
  */
 export async function POST(request: NextRequest) {
   try {

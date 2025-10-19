@@ -5,6 +5,25 @@ import { accounts } from '@/db';
 import { createServerSideActor } from '@/lib/server-actor';
 
 import { fatLogger } from '@/lib/logger';
+
+/**
+ * POST /api/auth/link-ii
+ *
+ * Links an Internet Identity principal to the current user's account with nonce verification.
+ * 
+ * ACTIVELY USED BY:
+ * - useInternetIdentitySignIn hook (src/hooks/use-internet-identity-signin.ts)
+ * - Sign-in flows (/signin and /sign-ii-only pages)
+ * 
+ * SECURITY:
+ * - ALWAYS requires nonce verification via canister
+ * - More secure than /api/auth/ii/link
+ * 
+ * RELATED ROUTES:
+ * - /api/auth/ii/link - Alternative route used by account management (supports optional nonce)
+ * - /api/ii/challenge - Creates nonce for verification
+ * - /api/ii/verify-nonce - Verifies nonce with canister
+ */
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
