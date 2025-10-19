@@ -1,5 +1,5 @@
 import { S3Client, PutObjectCommand, PutObjectCommandInput } from '@aws-sdk/client-s3';
-// import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { generateS3Key } from './s3-service';
 
 import { fatLogger } from '@/lib/logger';
 // S3 Configuration
@@ -33,16 +33,6 @@ export function isS3Configured(): boolean {
   return configured;
 }
 
-// Generate a safe file name with user ID in the path
-function generateSafeFileName(originalName: string, userId: string = 'anonymous'): string {
-  const timestamp = Date.now();
-  const safeFileName = originalName.replace(/[^a-zA-Z0-9-_\.]/g, '_');
-  // Include user ID in the path: uploads/{userId}/{timestamp}-{filename}
-  const fullName = `uploads/${userId}/${timestamp}-${safeFileName}`;
-  fatLogger.info('Generated file name', 'be', { fileName: fullName });
-  return fullName;
-}
-
 // Upload file to S3
 export async function uploadToS3(file: File, buffer?: Buffer, userId?: string): Promise<string> {
   if (!isS3Configured()) {
@@ -51,7 +41,8 @@ export async function uploadToS3(file: File, buffer?: Buffer, userId?: string): 
 
   const fileBuffer = buffer || Buffer.from(await file.arrayBuffer());
   const cleanFileName = file.name.split('/').pop() || file.name; // Remove any path from the file name
-  const fileName = generateSafeFileName(cleanFileName, userId);
+  // Use unified S3 key generation for consistent folder structure
+  const fileName = generateS3Key(cleanFileName, userId || 'anonymous');
 
   const uploadParams: PutObjectCommandInput = {
     Bucket: S3_BUCKET,
@@ -77,62 +68,6 @@ export async function uploadToS3(file: File, buffer?: Buffer, userId?: string): 
   }
 }
 
-// Generate presigned URL for upload (if needed) - COMMENTED OUT FOR MVP
-// export async function generatePresignedUploadUrl(fileName: string, contentType: string): Promise<string> {
-//   if (!isS3Configured()) {
-//     throw new Error('S3 is not properly configured. Please check your environment variables.');
-//   }
-
-//   const safeFileName = generateSafeFileName(fileName);
-
-//   const command = new PutObjectCommand({
-//     Bucket: S3_BUCKET,
-//     Key: safeFileName,
-//     ContentType: contentType,
-//     // ACL: 'public-read',
-//   });
-
-//   fatLogger.info('Generating presigned URL for:', safeFileName);
-
-//   try {
-//     const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 }); // 1 hour
-//     fatLogger.info('Presigned URL:', signedUrl);
-//     return signedUrl;
-//   } catch (error) {
-//     fatLogger.error('Error generating presigned URL:', undefined, { data: error instanceof Error ? error : undefined });
-//     throw new Error('Failed to generate presigned URL');
-//   }
-// }
-
-// Get public URL for an S3 object - COMMENTED OUT FOR MVP
-// export function getS3PublicUrl(key: string): string {
-//   const url = `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/${key}`;
-//   fatLogger.info('S3 Public URL:', url);
-//   return url;
-// }
-
-// Delete file from S3 - COMMENTED OUT FOR MVP
-// export async function deleteFromS3(key: string): Promise<void> {
-//   if (!isS3Configured()) {
-//     throw new Error('S3 is not properly configured. Please check your environment variables.');
-//   }
-
-//   try {
-//     const { DeleteObjectCommand } = await import('@aws-sdk/client-s3');
-//     const command = new DeleteObjectCommand({
-//       Bucket: S3_BUCKET,
-//       Key: key,
-//     });
-
-//     fatLogger.info('Deleting from S3:', key);
-//     await s3Client.send(command);
-//     fatLogger.info('Deleted successfully:', key);
-//   } catch (error) {
-//     fatLogger.error('Error deleting from S3:', undefined, { data: error instanceof Error ? error : undefined });
-//     throw new Error('Failed to delete file from S3');
-//   }
-// }
-
 // Extract S3 key from URL
 export function extractS3KeyFromUrl(url: string): string | null {
   try {
@@ -147,20 +82,3 @@ export function extractS3KeyFromUrl(url: string): string | null {
     return null;
   }
 }
-
-// Storage type enum - COMMENTED OUT FOR MVP
-// export type StorageType = 'vercel-blob' | 's3' | 'icp-canister' | 'neon-db';
-
-// Get preferred storage type - COMMENTED OUT FOR MVP
-// export function getPreferredStorageType(): StorageType {
-//   const preferred = process.env.PREFERRED_STORAGE_TYPE as StorageType;
-
-//   if (preferred && ['vercel-blob', 's3', 'icp-canister', 'neon-db'].includes(preferred)) {
-//     fatLogger.info('Preferred storage type from env:', preferred);
-//     return preferred;
-//   }
-
-//   const fallback = isS3Configured() ? 's3' : 'vercel-blob';
-//   fatLogger.info('Using storage type fallback:', fallback);
-//   return fallback;
-// }
