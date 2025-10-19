@@ -276,7 +276,7 @@ export function OnboardModal({ isOpen, onClose }: OnboardModalProps) {
 
   return (
     <Dialog open={showModal} onOpenChange={open => !open && onClose()}>
-      <DialogContent className="max-w-md max-h-[98vh] overflow-y-auto sm:max-h-[90vh]">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto overflow-x-hidden sm:max-h-[85vh]">
         <VisuallyHidden asChild>
           <DialogTitle>
             {currentStep === 'user-info' && 'Enter Your Information'}

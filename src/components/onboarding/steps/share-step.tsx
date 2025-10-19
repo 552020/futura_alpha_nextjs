@@ -70,7 +70,7 @@ export function ShareStep({ onNext, onBack }: ShareStepProps) {
   return (
     <StepContainer>
       <div className="pt-1 sm:pt-4">
-        <p className="text-xl sm:text-4xl font-bold mb-2 sm:mb-8">Let&apos;s share your memory with someone special!</p>
+        <p className="text-lg sm:text-4xl font-bold mb-2 sm:mb-8">Let&apos;s share your memory with someone special!</p>
         <p className="text-sm sm:text-xl text-muted-foreground mb-3 sm:mb-8 italic">
           Tell us about the person you want to share this memory with.
         </p>

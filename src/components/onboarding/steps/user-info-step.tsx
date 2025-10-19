@@ -112,7 +112,7 @@ export function UserInfoStep({
       <div className="space-y-2 sm:space-y-4 py-1 sm:py-4">
         {!withImage && (
           <div className="pt-1 sm:pt-4">
-            <p className="text-2xl sm:text-5xl font-bold">How should we call you?</p>
+            <p className="text-lg sm:text-5xl font-bold">How should we call you?</p>
             {userData.uploadedFileCount && userData.uploadedFileCount > 1 && (
               <p className="text-sm text-muted-foreground mt-1">
                 Great! You&apos;ve uploaded {userData.uploadedFileCount} files.

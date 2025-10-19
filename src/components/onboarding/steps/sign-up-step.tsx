@@ -59,7 +59,7 @@ export function SignUpStep({ onBack }: SignUpStepProps) {
   return (
     <StepContainer>
       <div className="pt-4">
-        <p className="text-4xl font-bold mb-8">Last Step: Sign Up! </p>
+        <p className="text-xl sm:text-4xl font-bold mb-8">Last Step: Sign Up! </p>
         <p className="text-xl text-muted-foreground">
           If you want the real deal! Keep your memories forever by creating an account.
         </p>
