@@ -226,20 +226,19 @@ export async function createCapsule(
   clearActor: () => void
 ): Promise<Capsule> {
   try {
-    fatLogger.info('Creating new capsule', 'be');
-    console.log('🔍 Create Capsule Debug:', {
+    fatLogger.info('Creating new capsule', 'be', {
       subject,
       subjectType: subject ? ('Principal' in subject ? 'Principal' : 'Opaque') : 'null',
     });
 
     const authenticatedActor = await getActor();
-    console.log('🔍 Actor obtained:', {
+    fatLogger.info('Actor retrieved', 'be', {
       actorType: typeof authenticatedActor,
       hasCapsulesCreate: typeof authenticatedActor.capsules_create === 'function',
     });
 
     const capsuleResult = await authenticatedActor.capsules_create(subject ? [subject] : []);
-    console.log('🔍 Capsule creation result:', {
+    fatLogger.info('Capsule creation result', 'be', {
       resultType: typeof capsuleResult,
       hasOk: 'Ok' in capsuleResult,
       hasErr: 'Err' in capsuleResult,
@@ -253,7 +252,7 @@ export async function createCapsule(
       throw createServiceError(`Failed to create capsule: ${JSON.stringify(capsuleResult.Err)}`);
     }
   } catch (error) {
-    console.log('🔍 Create Capsule Error Debug:', {
+    fatLogger.error('Failed to create capsule', 'be', {
       error,
       errorType: typeof error,
       errorName: error instanceof Error ? error.name : 'unknown',
@@ -261,13 +260,10 @@ export async function createCapsule(
       errorStack: error instanceof Error ? error.stack : 'no stack',
     });
 
-    fatLogger.error('Failed to create capsule', 'be', { data: error as Error });
-
     const errorMessage = error instanceof Error ? error.message : String(error);
 
     // Handle backend connection issues
     if (isBackendConnectionError(error)) {
-      console.log('🔍 Detected backend connection error');
       throw createBackendConnectionError(
         'Cannot connect to the backend service. Please check your internet connection and try again.'
       );
@@ -275,12 +271,10 @@ export async function createCapsule(
 
     // Handle authentication expiration
     if (isAuthenticationError(error)) {
-      console.log('🔍 Detected authentication error, clearing actor');
       clearActor();
       throw createAuthenticationExpiredError('Your session has expired. Please sign in again.');
     }
 
-    console.log('🔍 Throwing generic service error');
     throw createServiceError(`Failed to create capsule: ${errorMessage}`);
   }
 }

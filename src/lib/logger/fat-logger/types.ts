@@ -47,6 +47,7 @@ export interface ServiceFlags {
   ENABLE_MEMORY_GRID_LOGGING: boolean;
   ENABLE_USE_EFFECT_LOGGING: boolean;
   ENABLE_HOSTING_PREFERENCES: boolean;
+  ENABLE_WEBWORKER_LOGGING: boolean;
 }
 
 export interface LoggerConfig {
