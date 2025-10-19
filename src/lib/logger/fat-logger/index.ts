@@ -1,40 +1,26 @@
 import { FatLogger } from './fat-logger';
+import {
+  ENABLE_LOGGING,
+  ENABLE_FRONTEND_LOGGING,
+  ENABLE_BACKEND_LOGGING,
+  LOG_LEVELS,
+  ENABLED_TAGS,
+  EXCLUDED_TAGS,
+  SERVICE_FLAGS,
+} from './config';
 
-// Simple ICP upload tracking flag
-export const ICP_DEBUG = true; // Set to false to disable ICP logs
+// Export config values for external use
+export { ENABLE_LOGGING, ICP_DEBUG } from './config';
 
 // Create the unified fatLogger instance with localStorage support
 export const fatLogger = new FatLogger({
-  enabled: true,
-  frontend: true,
-  backend: true,
-  levels: {
-    debug: true,
-    info: true,
-    warn: true,
-    error: true,
-  },
-  enabledTags: [],
-  excludedTags: [],
-  serviceFlags: {
-    ENABLE_LOGGING: false,
-    ENABLE_FRONTEND_LOGGING: true,
-    ENABLE_BACKEND_LOGGING: true,
-    ENABLE_UPLOAD_LOGGING: true,
-    ENABLE_DATABASE_LOGGING: true,
-    ENABLE_AUTH_LOGGING: true,
-    ENABLE_ASSET_LOGGING: true,
-    ENABLE_S3_LOGGING: true,
-    ENABLE_ICP_UPLOAD_LOGGING: true,
-    ENABLE_DASHBOARD_LOGGING: true,
-    ENABLE_MEMORY_PROCESSING_LOGGING: true,
-    ENABLE_RENDERING_LOGGING: true,
-    ENABLE_API_RESPONSE_LOGGING: true,
-    ENABLE_FOLDER_GROUPING_LOGGING: true,
-    ENABLE_MEMORY_GRID_LOGGING: true,
-    ENABLE_USE_EFFECT_LOGGING: true,
-    ENABLE_HOSTING_PREFERENCES: true,
-  },
+  enabled: ENABLE_LOGGING,
+  frontend: ENABLE_FRONTEND_LOGGING,
+  backend: ENABLE_BACKEND_LOGGING,
+  levels: LOG_LEVELS,
+  enabledTags: ENABLED_TAGS,
+  excludedTags: EXCLUDED_TAGS,
+  serviceFlags: SERVICE_FLAGS,
 });
 
 // Export types for external use

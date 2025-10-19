@@ -54,7 +54,7 @@ export function IICoAuthControls({ className = '' }: IICoAuthControlsProps) {
   // Placeholder disconnect function (will be implemented later)
   const disconnectII = async () => {
     // TODO: Implement disconnect functionality
-    console.log('Disconnect II - not implemented yet');
+    fatLogger.info('Disconnect II - not implemented yet', 'fe');
   };
 
   const { toast } = useToast();

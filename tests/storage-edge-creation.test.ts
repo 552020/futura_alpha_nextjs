@@ -48,7 +48,7 @@ describe('Storage Edge Creation Logic', () => {
 
   it('should create correct storage edge data structure for image memory', async () => {
     // Import the function after mocking
-    const { createStorageEdgesForMemory } = await import('@/app/api/memories/utils/memory-database');
+    const { createMemoryStorageEdges } = await import('@/lib/usecases/memory/create-memory-storage-edges');
     const { db } = await import('@/db/db');
 
     // Mock the database insert to return success
@@ -62,7 +62,7 @@ describe('Storage Edge Creation Logic', () => {
     });
     db.insert = mockInsert;
 
-    const result = await createStorageEdgesForMemory({
+    const result = await createMemoryStorageEdges({
       memoryId: 'test-memory',
       memoryType: 'image',
       url: 'https://test-url.com/image.jpg',
@@ -78,7 +78,7 @@ describe('Storage Edge Creation Logic', () => {
   });
 
   it('should handle different memory types correctly', async () => {
-    const { createStorageEdgesForMemory } = await import('@/app/api/memories/utils/memory-database');
+    const { createMemoryStorageEdges } = await import('@/lib/usecases/memory/create-memory-storage-edges');
     const { db } = await import('@/db/db');
 
     const mockInsert = vi.fn().mockReturnValue({
@@ -91,7 +91,7 @@ describe('Storage Edge Creation Logic', () => {
     const memoryTypes = ['image', 'video', 'document'] as const;
 
     for (const memoryType of memoryTypes) {
-      const result = await createStorageEdgesForMemory({
+      const result = await createMemoryStorageEdges({
         memoryId: `test-${memoryType}`,
         memoryType,
         url: 'https://test-url.com/file',
@@ -103,7 +103,7 @@ describe('Storage Edge Creation Logic', () => {
   });
 
   it('should handle database errors gracefully', async () => {
-    const { createStorageEdgesForMemory } = await import('@/app/api/memories/utils/memory-database');
+    const { createMemoryStorageEdges } = await import('@/lib/usecases/memory/create-memory-storage-edges');
     const { db } = await import('@/db/db');
 
     // Mock database to throw an error
@@ -114,7 +114,7 @@ describe('Storage Edge Creation Logic', () => {
     });
     db.insert = mockInsert;
 
-    const result = await createStorageEdgesForMemory({
+    const result = await createMemoryStorageEdges({
       memoryId: 'test-memory',
       memoryType: 'image',
       url: 'https://test-url.com/image.jpg',
