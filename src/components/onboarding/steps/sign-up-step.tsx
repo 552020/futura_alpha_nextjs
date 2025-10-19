@@ -1,6 +1,5 @@
 import { Button } from '@/components/ui/button';
 import { signIn } from 'next-auth/react';
-import { Github } from 'lucide-react';
 import { useOnboarding } from '@/contexts/onboarding-context';
 import { StepContainer } from '../common/step-container';
 import { StepNavigation } from '../common/step-navigation';
@@ -14,23 +13,59 @@ interface SignUpStepProps {
 }
 
 export function SignUpStep({ onBack }: SignUpStepProps) {
-  const { currentStep, userData } = useOnboarding();
+  const { currentStep } = useOnboarding();
   const params = useParams();
   const lang = params.lang || 'en';
-  const [email, setEmail] = useState(userData.email || '');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const handleGithubSignIn = () => {
-    signIn('github', {
-      callbackUrl: `/${lang}/vault`,
+  const handleGoogleSignIn = () => {
+    signIn('google', {
+      callbackUrl: `/${lang}/dashboard`,
     });
   };
 
-  const handleGoogleSignIn = () => {
-    signIn('google', {
-      callbackUrl: `/${lang}/vault`,
-    });
+  const handleInternetIdentity = async () => {
+    try {
+      // 1. Ensure II identity with AuthClient.login
+      const { loginWithII } = await import('@/ic/ii');
+      const { principal, identity } = await loginWithII();
+
+      // Fetch challenge → get { nonceId, nonce }
+      const { fetchChallenge } = await import('@/lib/ii-client');
+      const challenge = await fetchChallenge(`/${lang}/dashboard`);
+
+      // Register user and prove nonce in one call
+      const { registerWithNonce } = await import('@/lib/ii-client');
+      await registerWithNonce(challenge.nonce, identity);
+
+      // Call signIn with principal + nonceId + actual nonce
+      const signInResult = await signIn('ii', {
+        principal,
+        nonceId: challenge.nonceId,
+        nonce: challenge.nonce,
+        redirect: false,
+      });
+
+      // (Optional) After success, call capsules_bind_neon() on canister
+      if (signInResult?.ok) {
+        try {
+          const { markBoundOnCanister } = await import('@/lib/ii-client');
+          await markBoundOnCanister(identity);
+        } catch (_error) {
+          // Don't fail the auth flow if this optional step fails
+        }
+
+        // Redirect manually after successful authentication
+        window.location.href = `/${lang}/dashboard`;
+      } else {
+        setError(`Authentication failed: ${signInResult?.error || 'Unknown error'}`);
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(`Internet Identity sign-in failed: ${msg}`);
+    }
   };
 
   const handleEmailSignUp = async (e: React.FormEvent) => {
@@ -49,8 +84,8 @@ export function SignUpStep({ onBack }: SignUpStepProps) {
         return;
       }
 
-      // If successful, redirect to vault
-      window.location.href = `/${lang}/vault`;
+      // If successful, redirect to dashboard
+      window.location.href = `/${lang}/dashboard`;
     } catch {
       setError('An error occurred. Please try again.');
     }
@@ -66,10 +101,6 @@ export function SignUpStep({ onBack }: SignUpStepProps) {
       </div>
 
       <div className="grid gap-4 mt-8">
-        <Button variant="outline" className="gap-2" onClick={handleGithubSignIn}>
-          <Github className="h-4 w-4" />
-          Continue with GitHub
-        </Button>
         <Button variant="outline" className="gap-2" onClick={handleGoogleSignIn}>
           <svg className="h-4 w-4" viewBox="0 0 24 24">
             <path
@@ -90,6 +121,9 @@ export function SignUpStep({ onBack }: SignUpStepProps) {
             />
           </svg>
           Continue with Google
+        </Button>
+        <Button variant="outline" className="gap-2" onClick={handleInternetIdentity}>
+          Continue with Internet Identity
         </Button>
       </div>
 
