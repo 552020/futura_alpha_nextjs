@@ -9,11 +9,11 @@ import { fatLogger } from '@/lib/logger';
 /**
  * GET /api/users/[id]
  * GET /api/users/[id]?email=user@example.com
- * 
+ *
  * Retrieves a user by ID or email.
  * - If [id] is provided in the path, retrieves by ID
  * - If ?email query parameter is provided, retrieves by email (ignores [id])
- * 
+ *
  * Requires authentication.
  */
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -55,12 +55,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
         },
-        allUser: allUser ? {
-          id: allUser.id,
-          type: allUser.type,
-          userId: allUser.userId,
-          createdAt: allUser.createdAt,
-        } : null,
+        allUser: allUser
+          ? {
+              id: allUser.id,
+              type: allUser.type,
+              userId: allUser.userId,
+              createdAt: allUser.createdAt,
+            }
+          : null,
       });
     }
 
@@ -128,19 +130,31 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 export async function PATCH(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   try {
+    console.log('🔍 [DEBUG] Starting PATCH /api/users/[id] request for ID:', id);
     const body = await _request.json();
+    console.log('📋 [DEBUG] Request body:', JSON.stringify(body, null, 2));
     const { name, email } = body;
 
     // First, check if this is a temporary user or a permanent user
+    console.log('🔄 [DEBUG] Looking up allUser with ID:', id);
     const allUser = await db.query.allUsers.findFirst({
       where: (allUsers, { eq }) => eq(allUsers.id, id),
     });
 
     if (!allUser) {
+      console.log('❌ [DEBUG] AllUser not found for ID:', id);
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    console.log('✅ [DEBUG] AllUser found:', {
+      id: allUser.id,
+      type: allUser.type,
+      temporaryUserId: allUser.temporaryUserId,
+      userId: allUser.userId,
+    });
+
     if (allUser.type === 'temporary') {
+      console.log('🔄 [DEBUG] Updating temporary user with ID:', allUser.temporaryUserId);
       // Update temporary user
       const [updatedTemporaryUser] = await db
         .update(temporaryUsers)
@@ -151,6 +165,12 @@ export async function PATCH(_request: NextRequest, { params }: { params: Promise
         })
         .where(eq(temporaryUsers.id, allUser.temporaryUserId!))
         .returning();
+
+      console.log('✅ [DEBUG] Temporary user updated successfully:', {
+        id: updatedTemporaryUser.id,
+        name: updatedTemporaryUser.name,
+        email: updatedTemporaryUser.email,
+      });
 
       return NextResponse.json({
         user: updatedTemporaryUser,
@@ -174,8 +194,19 @@ export async function PATCH(_request: NextRequest, { params }: { params: Promise
       });
     }
   } catch (error) {
-    fatLogger.error('Error updating user:', 'be', { data: error instanceof Error ? error : undefined });
-    return NextResponse.json({ error: 'Failed to update user' }, { status: 500 });
+    console.log('❌ [DEBUG] Error updating user:', error);
+    fatLogger.error('Error updating user:', 'be', {
+      data: error instanceof Error ? error : undefined,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    return NextResponse.json(
+      {
+        error: 'Failed to update user',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    );
   }
 }
 

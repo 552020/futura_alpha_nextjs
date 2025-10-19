@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
-import { allUsers, users, temporaryUsers } from '@/db';
+import { allUsers, users, temporaryUsers, resourceMembership } from '@/db';
 import { findMemory } from '@/app/api/memories/utils/memory';
 import { eq } from 'drizzle-orm';
 // import { sendInvitationEmail, sendSharedMemoryEmail } from "@/app/api/memories/utils/email";
@@ -138,21 +138,36 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     }
     fatLogger.info('📧 Will send email to:', 'be', { userEmail, isInviteeNew });
 
-    // TODO: Update to use new universal resource sharing system
-    // Create share record
-    // const [share] = await db
-    //   .insert(resourceMembership)
-    //   .values({
-    //     resourceId: memoryId,
-    //     resourceType: 'memory',
-    //     allUserId: target.type === 'user' ? target.allUserId! : target.groupId!,
-    //     accessLevel: 'read',
-    //     createdAt: new Date(),
-    //   })
-    //   .returning();
+    // Create share record using the universal resource sharing system
+    const [share] = await db
+      .insert(resourceMembership)
+      .values({
+        resourceId: memoryId,
+        resourceType: 'memory',
+        allUserId: target.type === 'user' ? target.allUserId! : target.groupId!,
+        grantSource: 'user',
+        role: 'member',
+        permMask: 1, // Read permission
+        invitedByAllUserId: authenticatedUserId,
+      })
+      .returning();
 
-    // Temporarily return error until sharing system is fully migrated
-    return NextResponse.json({ error: 'Sharing system under migration' }, { status: 503 });
+    fatLogger.info('✅ Memory shared successfully', 'be', {
+      shareId: share.id,
+      memoryId,
+      targetUserId: target.allUserId,
+      userEmail,
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: 'Memory shared successfully',
+      shareId: share.id,
+      targetUser: {
+        id: target.allUserId,
+        email: userEmail,
+      },
+    });
   } catch (error) {
     fatLogger.error('🔴 Error sharing memory:', 'be', {
       error: error instanceof Error ? error : undefined,
