@@ -26,7 +26,7 @@ import {
 } from '@/components/settings';
 
 export default function SettingsPage() {
-  const { isAuthorized, isTemporaryUser, userId, isLoading } = useAuthGuard();
+  const { isAuthorized, isTemporaryUser, isLoading } = useAuthGuard();
   const { isAdmin, devMode, setDevMode, isAtLeastDeveloper } = useInterface();
   const { data: preferences, isLoading: preferencesLoading, error: preferencesError } = useHostingPreferences();
   const updatePreferences = useUpdateHostingPreferences();
@@ -49,7 +49,7 @@ export default function SettingsPage() {
   // Show loading state for preferences
   if (preferencesLoading) {
     return (
-      <div className="container mx-auto px-6 py-8">
+      <div className="container mx-auto px-6 py-8 max-w-full">
         <div className="max-w-2xl mx-auto space-y-6">
           <div>
             <h1 className="text-3xl font-bold">Settings</h1>
@@ -69,7 +69,7 @@ export default function SettingsPage() {
   // Show error state for preferences
   if (preferencesError) {
     return (
-      <div className="container mx-auto px-6 py-8">
+      <div className="container mx-auto px-6 py-8 max-w-full">
         <div className="max-w-2xl mx-auto space-y-6">
           <div>
             <h1 className="text-3xl font-bold">Settings</h1>
@@ -88,7 +88,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="container mx-auto px-6 py-8">
+    <div className="container mx-auto px-6 py-8 max-w-full">
       <div className="max-w-2xl mx-auto space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Settings</h1>
@@ -308,7 +308,7 @@ export default function SettingsPage() {
         {/* Settings Cards */}
         <NotificationsCard />
         <PrivacyCard />
-        <AccountCard isTemporaryUser={isTemporaryUser || false} userId={userId || ''} />
+        <AccountCard />
         <UserRolesCard
           isAtLeastDeveloper={isAtLeastDeveloper}
           isAdmin={isAdmin}

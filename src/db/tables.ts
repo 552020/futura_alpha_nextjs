@@ -58,6 +58,7 @@ export const allUsers = pgTable(
     temporaryUserId: text('temporary_user_id'), // FK defined below
 
     createdAt: timestamp('created_at').defaultNow().notNull(),
+    deletedAt: timestamp('deleted_at'), // Soft delete support
   },
   table => [
     // Ensure exactly one of userId or temporaryUserId is set
@@ -120,6 +121,7 @@ export const users = pgTable(
     // Timestamp fields
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
+    deletedAt: timestamp('deleted_at'), // Soft delete support
     metadata: json('metadata')
       .$type<{
         bio?: string;
@@ -811,8 +813,7 @@ export const resourceMembership = pgTable(
     sourceId: text('source_id'), // e.g., group id or magic_link id
     role: membership_role_t('role').notNull(),
     permMask: integer('perm_mask').notNull().default(0),
-    invitedByAllUserId: text('invited_by_all_user_id')
-      .references(() => allUsers.id, { onDelete: 'set null' }),
+    invitedByAllUserId: text('invited_by_all_user_id').references(() => allUsers.id, { onDelete: 'set null' }),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
@@ -825,7 +826,6 @@ export const resourceMembership = pgTable(
     uniqueIndex('rm_unique_grant').on(t.resourceType, t.resourceId, t.allUserId, t.grantSource, t.sourceId),
   ]
 );
-
 
 // This table is for shared groups where all members see the same group composition
 // (e.g., book clubs, work teams, shared family groups).
@@ -1119,7 +1119,9 @@ export const storageEdges = pgTable(
   'storage_edges',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    memoryId: uuid('memory_id').notNull(), // References memories.id
+    memoryId: uuid('memory_id')
+      .notNull()
+      .references(() => memories.id, { onDelete: 'cascade' }), // References memories.id with cascade delete
     memoryType: memory_type_t('memory_type').notNull(), // 'image' | 'video' | 'note' | 'document' | 'audio'
     artifact: artifact_t('artifact').notNull(), // 'metadata' | 'asset'
     locationMetadata: database_hosting_t('location_metadata'), // 'neon' | 'icp' (for metadata artifacts)
@@ -1147,7 +1149,9 @@ export const memoryMetadata = pgTable(
   'memory_metadata',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    memoryId: uuid('memory_id').notNull(),
+    memoryId: uuid('memory_id')
+      .notNull()
+      .references(() => memories.id, { onDelete: 'cascade' }), // References memories.id with cascade delete
     memoryType: memory_type_t('memory_type').notNull(),
     // Universal metadata that applies to all memory types
     universalData: json('universal_data').$type<{

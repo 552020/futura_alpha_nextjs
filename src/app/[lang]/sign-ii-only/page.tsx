@@ -161,7 +161,13 @@ function SignIIOnlyContent() {
         </div>
 
         <div className="grid gap-3">
-          <Button variant="outline" onClick={handleInternetIdentity} disabled={iiBusy} className="h-12">
+          <Button
+            variant="outline"
+            onClick={handleInternetIdentity}
+            disabled={iiBusy}
+            className="h-12"
+            data-testid="ii-start"
+          >
             {iiBusy ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

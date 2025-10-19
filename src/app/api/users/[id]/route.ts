@@ -3,8 +3,8 @@ import { db } from '@/db/db';
 import { allUsers, temporaryUsers, users } from '@/db';
 import { eq } from 'drizzle-orm';
 import { auth } from '@/auth';
-
 import { fatLogger } from '@/lib/logger';
+import { getUserByEmail, getAllUserRecordById, getUserRecord, getAllUserRecord } from '@/services/user/user-operations';
 
 /**
  * GET /api/users/[id]
@@ -29,51 +29,35 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // If email parameter is provided, search by email instead of ID
     if (emailParam) {
-      const user = await db.query.users.findFirst({
-        where: eq(users.email, emailParam),
-      });
+      const userResult = await getUserByEmail(emailParam);
 
-      if (!user) {
+      if (!userResult.success || !userResult.data) {
         return NextResponse.json({ error: 'User not found' }, { status: 404 });
       }
 
-      // Find corresponding allUsers entry
-      const allUser = await db.query.allUsers.findFirst({
-        where: eq(allUsers.userId, user.id),
-      });
+      const user = userResult.data as Record<string, unknown>;
+      const allUserResult = await getAllUserRecord(user.id as string);
+
+      // Filter out sensitive fields
+      const { password: _password, emailVerified: _emailVerified, parentId: _parentId, invitedByAllUserId: _invitedByAllUserId, invitedAt: _invitedAt,
+        registrationStatus: _registrationStatus, premiumExpiresAt: _premiumExpiresAt, deletedAt: _deletedAt, metadata: _metadata, ...safeUserData } = user;
 
       return NextResponse.json({
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          image: user.image,
-          username: user.username,
-          userType: user.userType,
-          role: user.role,
-          plan: user.plan,
-          createdAt: user.createdAt,
-          updatedAt: user.updatedAt,
-        },
-        allUser: allUser ? {
-          id: allUser.id,
-          type: allUser.type,
-          userId: allUser.userId,
-          createdAt: allUser.createdAt,
-        } : null,
+        user: safeUserData,
+        allUser: allUserResult.success ? allUserResult.data : null,
       });
     }
 
     // Otherwise, search by ID from the path parameter
     const { id } = await params;
 
-    const allUser = await db.query.allUsers.findFirst({
-      where: eq(allUsers.id, id),
-    });
+    const allUserResult = await getAllUserRecordById(id);
 
-    if (!allUser) {
+    if (!allUserResult.success || !allUserResult.data) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
+
+    const allUser = allUserResult.data as { type: string; userId?: string; temporaryUserId?: string };
 
     if (allUser.type === 'temporary') {
       const temporaryUser = await db.query.temporaryUsers.findFirst({
@@ -82,41 +66,24 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
       return NextResponse.json({
         user: temporaryUser,
-        allUser: {
-          id: allUser.id,
-          type: allUser.type,
-          temporaryUserId: allUser.temporaryUserId,
-          createdAt: allUser.createdAt,
-        },
+        allUser: allUserResult.data,
       });
     } else {
-      const user = await db.query.users.findFirst({
-        where: eq(users.id, allUser.userId!),
-      });
+      const userResult = await getUserRecord(allUser.userId!);
 
-      if (!user) {
+      if (!userResult.success || !userResult.data) {
         return NextResponse.json({ error: 'User not found' }, { status: 404 });
       }
 
+      const user = userResult.data as Record<string, unknown>;
+
+      // Filter out sensitive fields
+      const { password: _password, emailVerified: _emailVerified, parentId: _parentId, invitedByAllUserId: _invitedByAllUserId, invitedAt: _invitedAt,
+        registrationStatus: _registrationStatus, premiumExpiresAt: _premiumExpiresAt, deletedAt: _deletedAt, metadata: _metadata, ...safeUserData } = user;
+
       return NextResponse.json({
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          image: user.image,
-          username: user.username,
-          userType: user.userType,
-          role: user.role,
-          plan: user.plan,
-          createdAt: user.createdAt,
-          updatedAt: user.updatedAt,
-        },
-        allUser: {
-          id: allUser.id,
-          type: allUser.type,
-          userId: allUser.userId,
-          createdAt: allUser.createdAt,
-        },
+        user: safeUserData,
+        allUser: allUserResult.data,
       });
     }
   } catch (error) {

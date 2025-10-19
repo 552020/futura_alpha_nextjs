@@ -108,7 +108,7 @@ function Hero({ dict, lang }: HeroProps) {
 
         {/* Right Column - Image */}
         <div className="w-full lg:w-1/2 flex items-center justify-center p-0 lg:p-4">
-          <div className="relative w-screen lg:w-full lg:max-w-lg min-h-[calc(100vh-4rem)] lg:min-h-[400px] bg-gray-100 dark:bg-gray-800 rounded-none lg:rounded-lg flex items-center justify-center">
+          <div className="relative w-full lg:w-full lg:max-w-lg min-h-[calc(100vh-4rem)] lg:min-h-[400px] bg-gray-100 dark:bg-gray-800 rounded-none lg:rounded-lg flex items-center justify-center">
             <Image
               src="/hero/diana_charles.jpg"
               alt="Futura Hero Image"
