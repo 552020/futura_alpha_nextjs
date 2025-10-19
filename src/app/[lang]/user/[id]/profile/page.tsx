@@ -2,7 +2,7 @@ import React from 'react';
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 // import { LiveChatWrapper } from '@/components/chat/livechat-wrapper';
-import { ICPCard } from '@/components/user/icp-card';
+// import { ICPCard } from '@/components/user/icp-card';
 import { ProfileHeader } from '@/components/user/profile-header';
 import { ProfileInfo } from '@/components/user/profile-info';
 // import { ProfileStats } from "@/components/user/profile-stats";
@@ -25,7 +25,7 @@ const ProfilePage = async (props: Props) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-      <div className="container mx-auto p-6 max-w-4xl">
+      <div className="container mx-auto p-6 max-w-4xl max-w-full">
         {/* Profile Header with Avatar */}
         <ProfileHeader user={session.user} />
 
@@ -36,8 +36,8 @@ const ProfilePage = async (props: Props) => {
           {/* Profile Statistics */}
           {/* <ProfileStats /> */}
 
-          {/* ICP Card - Unified Internet Identity Management */}
-          <ICPCard />
+          {/* ICP Card - Removed since users have dedicated ICP page */}
+          {/* <ICPCard /> */}
         </div>
 
         {/* LiveChat */}
