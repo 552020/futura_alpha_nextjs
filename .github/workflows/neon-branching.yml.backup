@@ -1,0 +1,142 @@
+name: Create/Delete Branch for Pull Request
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - closed
+  workflow_dispatch:
+    inputs:
+      skip_neon_operations:
+        description: 'Skip Neon database operations (create branch, migrations, etc.)'
+        required: false
+        default: false
+        type: boolean
+      force_run:
+        description: 'Force run Neon operations even if normally skipped'
+        required: false
+        default: false
+        type: boolean
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+jobs:
+  setup:
+    name: Setup
+    outputs:
+      branch: ${{ steps.branch_name.outputs.current_branch }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get branch name
+        id: branch_name
+        uses: tj-actions/branch-names@v8
+  create_neon_branch:
+    name: Create Neon Branch
+    outputs:
+      db_url: ${{ steps.create_neon_branch_encode.outputs.db_url }}
+      db_url_with_pooler: ${{ steps.create_neon_branch_encode.outputs.db_url_with_pooler }}
+    needs: setup
+    if: |
+      (github.event_name == 'pull_request' && (
+      github.event.action == 'synchronize'
+      || github.event.action == 'opened'
+      || github.event.action == 'reopened'))
+      || (github.event_name == 'workflow_dispatch' && github.event.inputs.force_run == true)
+      && !(github.event_name == 'workflow_dispatch' && github.event.inputs.skip_neon_operations == true)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Check if Neon operations should be skipped
+        id: check_skip
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.skip_neon_operations }}" == "true" ]]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "Skipping Neon operations as requested"
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "Proceeding with Neon operations"
+          fi
+
+      - name: Checkout code
+        if: steps.check_skip.outputs.skip == 'false'
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        if: steps.check_skip.outputs.skip == 'false'
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Setup Node.js
+        if: steps.check_skip.outputs.skip == 'false'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        if: steps.check_skip.outputs.skip == 'false'
+        run: pnpm install --frozen-lockfile
+
+      - name: Create Neon Branch
+        if: steps.check_skip.outputs.skip == 'false'
+        id: create_neon_branch
+        uses: neondatabase/create-branch-action@v5
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch_name: preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+          username: neondb_owner
+
+      # Run database migrations on the new branch
+      - name: Run Database Migrations
+        if: steps.check_skip.outputs.skip == 'false'
+        run: pnpm run db:push
+        env:
+          DATABASE_URL_UNPOOLED: '${{ steps.create_neon_branch.outputs.db_url_with_pooler }}'
+
+      # Optional: Run database tests
+      # - name: Run Database Tests
+      #   if: steps.check_skip.outputs.skip == 'false'
+      #   run: npm run test:db
+      #   env:
+      #     DATABASE_URL: "${{ steps.create_neon_branch.outputs.db_url_with_pooler }}"
+
+      # Post schema diff as PR comment
+      - name: Post Schema Diff Comment to PR
+        if: steps.check_skip.outputs.skip == 'false'
+        uses: neondatabase/schema-diff-action@v1
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          compare_branch: preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+
+  delete_neon_branch:
+    name: Delete Neon Branch
+    needs: setup
+    if: |
+      (github.event_name == 'pull_request' && github.event.action == 'closed')
+      || (github.event_name == 'workflow_dispatch' && github.event.inputs.force_run == true)
+      && !(github.event_name == 'workflow_dispatch' && github.event.inputs.skip_neon_operations == true)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if Neon operations should be skipped
+        id: check_skip_delete
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.skip_neon_operations }}" == "true" ]]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "Skipping Neon branch deletion as requested"
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "Proceeding with Neon branch deletion"
+          fi
+
+      - name: Delete Neon Branch
+        if: steps.check_skip_delete.outputs.skip == 'false'
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch: preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}
+          api_key: ${{ secrets.NEON_API_KEY }}
