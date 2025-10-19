@@ -7,8 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { X } from 'lucide-react';
-import { fatLogger } from '@/lib/logger';
-// ICP imports moved to dynamic imports inside functions
+import { useInternetIdentitySignIn } from '@/hooks/use-internet-identity-signin';
 
 // Prevent static generation of this page
 export const dynamic = 'force-dynamic';
@@ -28,8 +27,8 @@ function SignInPageInternal() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [iiBusy, setIiBusy] = useState(false);
   const [activeTab, setActiveTab] = useState<'signin' | 'signup'>('signin');
+  const { signInWithII, isBusy: iiBusy } = useInternetIdentitySignIn();
 
   async function handleCredentialsSignIn(e: React.FormEvent) {
     // fatLogger.info("handleCredentialsSignIn", email, password);
@@ -123,75 +122,13 @@ function SignInPageInternal() {
   }
 
   async function handleInternetIdentity() {
-    // fatLogger.info("handleInternetIdentity", iiBusy, busy);
     if (iiBusy || busy) return;
     setError(null);
-    setIiBusy(true);
-    try {
-      // 1. Ensure II identity with AuthClient.login
-      // fatLogger.info("handleInternetIdentity", "before loginWithII");
-      const { loginWithII } = await import('@/ic/ii');
-      const { principal, identity } = await loginWithII();
-      // fatLogger.info("handleInternetIdentity", "after loginWithII", principal);
 
-      // Fetch challenge → get { nonceId, nonce }
-      // fatLogger.info("handleInternetIdentity", "before fetchChallenge");
-      const { fetchChallenge } = await import('@/lib/ii-client');
-      const challenge = await fetchChallenge(safeCallbackUrl);
-      // fatLogger.info("handleInternetIdentity", "after fetchChallenge", challenge);
-
-      // Register user and prove nonce in one call
-      // fatLogger.info("handleInternetIdentity", "before registerWithNonce");
-      const { registerWithNonce } = await import('@/lib/ii-client');
-      await registerWithNonce(challenge.nonce, identity);
-      // fatLogger.info("handleInternetIdentity", "after registerWithNonce");
-
-      // Call signIn with principal + nonceId + actual nonce (without callbackUrl to avoid URL construction error)
-      // fatLogger.info("handleInternetIdentity", "before signIn", principal, challenge.nonceId);
-      const signInResult = await signIn('ii', {
-        principal,
-        nonceId: challenge.nonceId,
-        nonce: challenge.nonce, // Pass the actual nonce for verification
-        redirect: false,
-        // Remove callbackUrl to avoid NextAuth URL construction error
-      });
-      // fatLogger.info("handleInternetIdentity", "after signIn", signInResult);
-
-      // (Optional) After success, call capsules_bind_neon() on canister
-      if (signInResult?.ok) {
-        // fatLogger.info("handleInternetIdentity", "before markBoundOnCanister");
-        try {
-          const { markBoundOnCanister } = await import('@/lib/ii-client');
-          await markBoundOnCanister(identity);
-          // fatLogger.info("handleInternetIdentity", "after markBoundOnCanister - success");
-        } catch (error) {
-          fatLogger.warn('markBoundOnCanister failed', 'fe', {
-            error: error instanceof Error ? error.message : String(error),
-          });
-          // Don't fail the auth flow if this optional step fails
-        }
-
-        // Redirect manually after successful authentication (fixes the URL construction error)
-        // fatLogger.info("DEBUG: About to redirect to:", safeCallbackUrl);
-        // fatLogger.info(
-        //   "DEBUG: Current window.location:",
-        //   typeof window !== "undefined" ? window.location.href : "server-side"
-        // );
-        router.push(safeCallbackUrl);
-      } else {
-        fatLogger.error('signIn failed', 'fe', { data: new Error(signInResult?.error || 'Unknown error') });
-        setError(`Authentication failed: ${signInResult?.error || 'Unknown error'}`);
-      }
-    } catch (e) {
-      fatLogger.error('II authentication error', 'fe', { data: e as Error });
-      fatLogger.error('Error stack', 'fe', {
-        data: new Error(e instanceof Error ? e.stack || 'No stack trace' : 'No stack trace'),
-      });
-      const msg = e instanceof Error ? e.message : String(e);
-      setError(`Internet Identity sign-in failed: ${msg}`);
-    } finally {
-      setIiBusy(false);
-    }
+    await signInWithII({
+      callbackUrl: safeCallbackUrl,
+      onError: errorMsg => setError(errorMsg),
+    });
   }
 
   function close() {
