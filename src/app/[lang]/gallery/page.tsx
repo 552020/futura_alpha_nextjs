@@ -65,6 +65,21 @@ export default function GalleryPage() {
     setShareDialogOpen(true);
   };
 
+  const handleGalleryDelete = async (gallery: GalleryWithItems) => {
+    if (!confirm(`Are you sure you want to delete "${gallery.title}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await galleryService.deleteGallery(gallery.id, USE_MOCK_DATA);
+      // Reload galleries to remove the deleted one
+      loadGalleries();
+    } catch (err) {
+      fatLogger.error('Error deleting gallery', 'fe', { data: err as Error });
+      setError('Failed to delete gallery');
+    }
+  };
+
   const handleShareComplete = () => {
     // Optionally reload galleries to update share counts
     loadGalleries();
@@ -128,6 +143,7 @@ export default function GalleryPage() {
           galleries={filteredGalleries} 
           onGalleryClick={handleGalleryClick}
           onGalleryShare={handleGalleryShare}
+          onGalleryDelete={handleGalleryDelete}
         />
       </div>
 
