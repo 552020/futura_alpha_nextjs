@@ -46,23 +46,23 @@ export async function POST() {
 
     // Find allUsers records for these users
     const allUsersToDelete = await db.query.allUsers.findMany({
-      where: (allUsers, { inArray }) => inArray(allUsers.userId, userIds),
+      where: (allUsers, { inArray: _inArray }) => _inArray(allUsers.userId, userIds),
     });
 
     const allUserIds = allUsersToDelete.map(au => au.id);
 
     // Find memories owned by these users
     const memoriesToDelete = await db.query.memories.findMany({
-      where: (memories, { inArray }) => inArray(memories.ownerId, allUserIds),
+      where: (memories, { inArray: _inArray }) => _inArray(memories.ownerId, allUserIds),
     });
 
     const memoryIds = memoriesToDelete.map(m => m.id);
 
     // Find assets for these memories
-    let assetsToDelete: typeof memoryAssets.$inferSelect[] = [];
+    let assetsToDelete: (typeof memoryAssets.$inferSelect)[] = [];
     if (memoryIds.length > 0) {
       assetsToDelete = await db.query.memoryAssets.findMany({
-        where: (memoryAssets, { inArray }) => inArray(memoryAssets.memoryId, memoryIds),
+        where: (memoryAssets, { inArray: _inArray }) => _inArray(memoryAssets.memoryId, memoryIds),
       });
     }
 

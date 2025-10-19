@@ -7,6 +7,7 @@ import { randomUUID } from 'crypto';
 import { eq, and } from 'drizzle-orm';
 import { fatLogger } from '@/lib/logger';
 import { detectMemoryType } from '@/utils/memory-type';
+import { createTemporaryUser } from '@/services/user';
 // Drizzle ORM imports are used in the where clause
 
 interface FileMetadata {
@@ -413,17 +414,23 @@ async function handleOnboardingComplete(request: Request) {
       return NextResponse.json({ error: 'Blob URL is required' }, { status: 400 });
     }
 
-    // Create temporary user ID for onboarding
-    const tempUserId = `temp-${randomUUID()}`;
-    const memoryId = randomUUID();
-    const allUserId = randomUUID();
+    // Create temporary user using service
+    const tempUserResult = await createTemporaryUser({
+      name: 'Temporary User',
+      email: 'temp@example.com',
+    });
 
-    // Create temporary user record
-    await db.insert(allUsers).values({
-      id: allUserId,
-      type: 'temporary',
-      temporaryUserId: tempUserId,
-      createdAt: new Date(),
+    if (!tempUserResult.success || !tempUserResult.data) {
+      console.log('❌ [DEBUG] Failed to create temporary user:', tempUserResult.error);
+      return NextResponse.json({ error: 'Failed to create temporary user' }, { status: 500 });
+    }
+
+    const { tempUserId, allUserId } = tempUserResult.data;
+    const memoryId = randomUUID();
+
+    console.log('🔍 [DEBUG] Created temporary user:', {
+      tempUserId,
+      allUserId,
     });
 
     // Determine memory type from metadata
