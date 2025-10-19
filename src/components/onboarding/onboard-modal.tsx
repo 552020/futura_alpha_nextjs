@@ -53,27 +53,81 @@ export function OnboardModal({ isOpen, onClose }: OnboardModalProps) {
 
       case 'user-info':
         try {
+          console.log('🔍 [DEBUG] Starting user-info step update');
+          console.log('📋 [DEBUG] userData:', JSON.stringify(userData, null, 2));
+          console.log('📋 [DEBUG] allUserId:', userData.allUserId);
+          console.log('📋 [DEBUG] name:', userData.name);
+          console.log('📋 [DEBUG] email:', userData.email);
+
           if (!userData.allUserId) {
-            throw new Error('User ID not found');
+            console.log('❌ [DEBUG] No allUserId found in userData');
+            console.log('📋 [DEBUG] userData structure:', JSON.stringify(userData, null, 2));
+
+            // Temporary fix: generate a temporary allUserId if none exists
+            const tempAllUserId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            console.log('🔄 [DEBUG] Generating temporary allUserId:', tempAllUserId);
+
+            // Update the context with the temporary ID
+            updateUserData({ allUserId: tempAllUserId });
+
+            // Use the temporary ID for the API call
+            const response = await fetch(`/api/users/${tempAllUserId}`, {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                name: userData.name,
+                email: userData.email,
+              }),
+            });
+
+            console.log('📋 [DEBUG] Response status:', response.status);
+            console.log('📋 [DEBUG] Response ok:', response.ok);
+
+            if (!response.ok) {
+              const errorText = await response.text();
+              console.log('❌ [DEBUG] Response error:', errorText);
+              throw new Error(`Failed to update user information: ${response.status} ${errorText}`);
+            }
+
+            const responseData = await response.json();
+            console.log('✅ [DEBUG] Response data:', JSON.stringify(responseData, null, 2));
+
+            setCurrentStep('share');
+            return;
           }
+
+          console.log('🔄 [DEBUG] Making PATCH request to:', `/api/users/${userData.allUserId}`);
+          const requestBody = {
+            name: userData.name,
+            email: userData.email,
+          };
+          console.log('📋 [DEBUG] Request body:', JSON.stringify(requestBody, null, 2));
 
           const response = await fetch(`/api/users/${userData.allUserId}`, {
             method: 'PATCH',
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-              name: userData.name,
-              email: userData.email,
-            }),
+            body: JSON.stringify(requestBody),
           });
 
+          console.log('📋 [DEBUG] Response status:', response.status);
+          console.log('📋 [DEBUG] Response ok:', response.ok);
+
           if (!response.ok) {
-            throw new Error('Failed to update user information');
+            const errorText = await response.text();
+            console.log('❌ [DEBUG] Response error:', errorText);
+            throw new Error(`Failed to update user information: ${response.status} ${errorText}`);
           }
+
+          const responseData = await response.json();
+          console.log('✅ [DEBUG] Response data:', JSON.stringify(responseData, null, 2));
 
           setCurrentStep('share');
         } catch (error) {
+          console.log('❌ [DEBUG] Error in user-info step:', error);
           fatLogger.error('Error updating user information:', 'fe', {
             data: error instanceof Error ? error : undefined,
           });
@@ -92,6 +146,15 @@ export function OnboardModal({ isOpen, onClose }: OnboardModalProps) {
           if (!lastUploadedFile?.memoryId) {
             throw new Error('Memory ID not found');
           }
+
+          // Debug logging
+          fatLogger.info('Creating recipient user with data:', 'fe', {
+            recipientName: userData.recipientName,
+            recipientEmail: userData.recipientEmail,
+            allUserId: userData.allUserId,
+            relationship: userData.relationship,
+            familyRelationship: userData.familyRelationship,
+          });
 
           // First create a temporary user for the recipient
           const createUserResponse = await fetch('/api/users', {
@@ -116,7 +179,12 @@ export function OnboardModal({ isOpen, onClose }: OnboardModalProps) {
           });
 
           if (!createUserResponse.ok) {
-            throw new Error('Failed to create recipient user');
+            const errorData = await createUserResponse.json();
+            fatLogger.error('Failed to create recipient user:', 'fe', {
+              status: createUserResponse.status,
+              error: errorData,
+            });
+            throw new Error(`Failed to create recipient user: ${errorData.error || 'Unknown error'}`);
           }
 
           const { allUser: recipientAllUser } = await createUserResponse.json();
@@ -208,7 +276,7 @@ export function OnboardModal({ isOpen, onClose }: OnboardModalProps) {
 
   return (
     <Dialog open={showModal} onOpenChange={open => !open && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[98vh] overflow-y-auto sm:max-h-[90vh]">
         <VisuallyHidden asChild>
           <DialogTitle>
             {currentStep === 'user-info' && 'Enter Your Information'}

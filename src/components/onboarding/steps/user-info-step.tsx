@@ -109,16 +109,16 @@ export function UserInfoStep({
         </div>
       )}
 
-      <div className="space-y-4 py-4">
+      <div className="space-y-2 sm:space-y-4 py-1 sm:py-4">
         {!withImage && (
-          <div className="pt-4">
-            <p className="text-5xl font-bold">How should we call you?</p>
+          <div className="pt-1 sm:pt-4">
+            <p className="text-2xl sm:text-5xl font-bold">How should we call you?</p>
             {userData.uploadedFileCount && userData.uploadedFileCount > 1 && (
-              <p className="text-sm text-muted-foreground mt-2">
+              <p className="text-sm text-muted-foreground mt-1">
                 Great! You&apos;ve uploaded {userData.uploadedFileCount} files.
               </p>
             )}
-            <p className="text-sm text-muted-foreground italic mt-3">
+            <p className="text-xs sm:text-sm text-muted-foreground italic mt-2">
               We need at least your name to let you retrieve your memory for the case you don&apos;t want to sign in.
             </p>
           </div>
