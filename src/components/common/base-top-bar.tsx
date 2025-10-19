@@ -119,9 +119,9 @@ export function BaseTopBar<T>({
   return (
     <div className={`mb-6 space-y-4 ${className}`}>
       {/* Top row: Action buttons and View toggle */}
-      <div className="flex justify-between items-center gap-4">
+      <div className="flex flex-wrap min-w-0 justify-between items-center gap-4">
         {/* Left side: Action buttons */}
-        <div className="flex gap-2">{leftActions}</div>
+        <div className="flex flex-wrap min-w-0 gap-2">{leftActions}</div>
 
         {/* Right side: View Mode Toggle or custom actions */}
         <div className="flex gap-2">

@@ -118,9 +118,3 @@ export async function handleS3UploadCompletion(req: NextRequest) {
   const url = await completeMultipartUpload(key, uploadId, parts);
   return { url };
 }
-
-// Get public URL for an S3 object
-export function getS3PublicUrl(key: string): string {
-  if (!key) return '';
-  return `https://${S3_BUCKET}.s3.${process.env.AWS_S3_REGION}.amazonaws.com/${key}`;
-}

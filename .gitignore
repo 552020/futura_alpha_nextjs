@@ -51,3 +51,14 @@ next-env.d.ts
 # export files
 scripts/blob/blob-files-export.json
 scripts/s3/s3-files-export.json
+
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+
+# debug artifacts
+e2e/debug/
