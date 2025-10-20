@@ -4,7 +4,7 @@ import { createShare, createPublicLink, generateShareableUrl } from '@/services/
 import { getAllUserRecord, getAllUserRecordById } from '@/services/user';
 import { getMemoryWithRelations } from '@/services/memory';
 import type { RelationshipType, FamilyRelationshipType, allUsers, memories } from '@/db';
-// import { sendInvitationEmail, sendSharedMemoryEmail } from "@/app/api/memories/utils/email";
+import { sendInvitationEmail, sendSharedMemoryEmail } from '@/app/api/memories/utils/email';
 // import crypto from 'crypto';
 
 // function _generateSecureCode(): string {
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       permissions,
       expiresAt,
       relationship: _relationshipInfo,
-      sendEmail: _sendEmail = false,
+      sendEmail: sendEmail = false,
       isInviteeNew: _isInviteeNew = false,
       isOnboarding = false,
       ownerAllUserId,
@@ -197,6 +197,77 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
         memoryId,
         targetUserId: finalTargetUserId,
       });
+
+      // Send email notification if requested
+      if (sendEmail && finalTargetUserId) {
+        try {
+          // Get memory details for email
+          const memoryResult = await getMemoryWithRelations(memoryId, authenticatedUserId);
+          if (memoryResult.success) {
+            const memory = memoryResult.data;
+
+            // Get recipient details
+            const recipientResult = await getAllUserRecordById(finalTargetUserId);
+            if (recipientResult.success) {
+              const recipient = recipientResult.data as typeof allUsers.$inferSelect;
+
+              // Get email from temporary user if it's a temporary user
+              let recipientEmail = 'recipient@example.com';
+              if (recipient.type === 'temporary' && recipient.temporaryUserId) {
+                // For temporary users, we need to get the email from the temporary user record
+                // For now, we'll use a placeholder - in production, you'd fetch from temporaryUsers table
+                recipientEmail = 'temporary-user@example.com';
+              } else if (recipient.type === 'user' && recipient.userId) {
+                // For regular users, we'd get email from users table
+                // For now, we'll use a placeholder
+                recipientEmail = 'user@example.com';
+              }
+
+              // Determine if this is a new user invitation
+              const isNewUser = _isInviteeNew || recipient.type === 'temporary';
+
+              if (isNewUser) {
+                // Send invitation email for new users
+                await sendInvitationEmail(
+                  recipientEmail,
+                  memory as any, // TODO: Fix type casting
+                  authenticatedUserId,
+                  { useHTML: true }
+                );
+
+                fatLogger.info('📧 Invitation email sent', 'be', {
+                  recipientEmail,
+                  memoryId,
+                  isNewUser: true,
+                });
+              } else {
+                // Send notification email for existing users
+                const shareUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/memories/${memoryId}`;
+                await sendSharedMemoryEmail(
+                  recipientEmail,
+                  memory as any, // TODO: Fix type casting
+                  authenticatedUserId,
+                  shareUrl,
+                  { useHTML: true }
+                );
+
+                fatLogger.info('📧 Shared memory email sent', 'be', {
+                  recipientEmail,
+                  memoryId,
+                  shareUrl,
+                });
+              }
+            }
+          }
+        } catch (emailError) {
+          // Log error but don't fail the share operation
+          fatLogger.error('📧 Email sending failed', 'be', {
+            error: emailError instanceof Error ? emailError.message : 'Unknown error',
+            memoryId,
+            targetUserId: finalTargetUserId,
+          });
+        }
+      }
 
       return NextResponse.json({
         success: true,

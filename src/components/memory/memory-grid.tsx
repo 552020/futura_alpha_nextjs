@@ -11,7 +11,7 @@ type FlexibleItem = Parameters<typeof ContentCard>[0]['item'];
 interface MemoryGridProps {
   memories: DashboardItem[] | (Memory & { status: 'private' | 'shared' | 'public'; sharedWithCount?: number })[];
   onDelete?: (id: string) => void;
-  onShare?: () => void;
+  onShare?: (item: Memory | DashboardItem) => void;
   onEdit?: (id: string) => void;
   onEditItem?: (item: Memory | DashboardItem) => void;
   onClick?: (memory: Memory | DashboardItem) => void;
@@ -62,7 +62,7 @@ export function MemoryGrid({
           item={memory}
           onClick={item => onClick?.(item as Memory | DashboardItem)}
           onDelete={handleDelete}
-          onShare={onShare || (() => {})}
+          onShare={onShare ? (item) => onShare(item as Memory | DashboardItem) : undefined}
           onEdit={
             onEditItem
               ? item => onEditItem(item as Memory | DashboardItem)

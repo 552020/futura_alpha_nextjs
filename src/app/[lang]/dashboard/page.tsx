@@ -43,6 +43,7 @@ import { DashboardTopBar } from '@/components/dashboard/dashboard-top-bar';
 import { sampleDashboardMemories } from '../../../../scripts/mock-data/create-dashboard-sample-data';
 import { useHostingPreferences, getRecommendedDashboardDataSource } from '@/hooks/use-hosting-preferences';
 import { MemoryQuickEditModal } from '@/components/memory/memory-quick-edit-modal';
+import { SharingModal } from '@/components/memory/sharing-modal';
 
 // Demo flag - set to true to use mock data for demo
 // 📝 Sample data generation script: scripts/mock-data/create-dashboard-sample-data.ts
@@ -61,6 +62,12 @@ export default function VaultPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedTitle, setSelectedTitle] = useState<string | undefined>(undefined);
   const [selectedDescription, setSelectedDescription] = useState<string | undefined>(undefined);
+  
+  // Sharing modal state
+  const [sharingOpen, setSharingOpen] = useState(false);
+  const [sharingResourceType, setSharingResourceType] = useState<'memory' | 'folder'>('memory');
+  const [sharingResourceId, setSharingResourceId] = useState<string>('');
+  const [sharingResourceTitle, setSharingResourceTitle] = useState<string>('');
   const params = useParams();
 
   // Get hosting preferences to determine recommended data source
@@ -198,7 +205,15 @@ export default function VaultPage() {
     deleteMemoryMutation.mutate(id);
   };
 
-  const handleShare = () => {
+  const handleShare = (item: Memory | DashboardItem) => {
+    // Set sharing modal data
+    setSharingResourceType(item.type === 'folder' ? 'folder' : 'memory');
+    setSharingResourceId(item.id);
+    setSharingResourceTitle(item.title || 'Untitled');
+    setSharingOpen(true);
+  };
+
+  const handleSharingSuccess = () => {
     // Invalidate and refetch dashboard data to show any new shares
     queryClient.invalidateQueries({ queryKey: ['memories', 'dashboard'] });
   };
@@ -413,6 +428,16 @@ export default function VaultPage() {
           isSaving={updateMemoryMutation.isPending}
         />
       )}
+
+      {/* Sharing Modal */}
+      <SharingModal
+        isOpen={sharingOpen}
+        onClose={() => setSharingOpen(false)}
+        resourceType={sharingResourceType}
+        resourceId={sharingResourceId}
+        resourceTitle={sharingResourceTitle}
+        onShareSuccess={handleSharingSuccess}
+      />
     </div>
   );
 }
