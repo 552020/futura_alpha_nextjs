@@ -2,6 +2,10 @@ import { ContentCard } from '@/components/common/content-card';
 import { BaseGrid } from '@/components/common/base-grid';
 import { Memory } from '@/types/memory';
 import { DashboardItem } from '@/services/memories';
+import { useDeleteMemory } from '@/hooks/use-memory-mutations';
+
+// Import FlexibleItem type from ContentCard
+type FlexibleItem = Parameters<typeof ContentCard>[0]['item'];
 
 interface MemoryGridProps {
   memories: DashboardItem[] | (Memory & { status: 'private' | 'shared' | 'public'; sharedWithCount?: number })[];
@@ -10,9 +14,27 @@ interface MemoryGridProps {
   onEdit?: (id: string) => void;
   onClick?: (memory: Memory | DashboardItem) => void;
   viewMode?: 'grid' | 'list';
+  useReactQuery?: boolean; // New prop to enable React Query mutations
 }
 
-export function MemoryGrid({ memories, onDelete, onShare, onEdit, onClick, viewMode = 'grid' }: MemoryGridProps) {
+export function MemoryGrid({ 
+  memories, 
+  onDelete, 
+  onShare, 
+  onEdit, 
+  onClick, 
+  viewMode = 'grid',
+  useReactQuery = false 
+}: MemoryGridProps) {
+  const deleteMemoryMutation = useDeleteMemory();
+
+  const handleDelete = (item: FlexibleItem) => {
+    if (useReactQuery) {
+      deleteMemoryMutation.mutate(item.id);
+    } else if (onDelete) {
+      onDelete(item.id);
+    }
+  };
   return (
     <BaseGrid
       items={memories}
@@ -23,7 +45,7 @@ export function MemoryGrid({ memories, onDelete, onShare, onEdit, onClick, viewM
           key={memory.id}
           item={memory}
           onClick={(item) => onClick?.(item as Memory | DashboardItem)}
-          onDelete={onDelete ? () => onDelete(memory.id) : undefined}
+          onDelete={handleDelete}
           onShare={onShare || (() => {})}
           onEdit={onEdit ? () => onEdit(memory.id) : undefined}
           viewMode={viewMode}

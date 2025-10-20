@@ -30,12 +30,12 @@ import RequireAuth from '@/components/auth/require-auth';
 import {
   fetchMemories,
   processDashboardItems,
-  deleteMemory,
   deleteAllMemories,
   type MemoryWithFolder,
   type DashboardItem,
   type FolderItem,
 } from '@/services/memories';
+import { useDeleteMemory } from '@/hooks/use-memory-mutations';
 import { ExtendedMemory } from '@/types/dashboard';
 // import { TawkChat } from '@/components/chat/tawk-chat';
 import { DashboardTopBar } from '@/components/dashboard/dashboard-top-bar';
@@ -101,7 +101,18 @@ export default function VaultPage() {
     if (USE_MOCK_DATA) {
       return processDashboardItems(sampleDashboardMemories as MemoryWithFolder[]);
     }
-    return (data?.pages ?? []).flatMap(p => processDashboardItems(p.memories ?? []));
+    
+    console.log('🔍 [DASHBOARD] React Query data structure:', data);
+    console.log('🔍 [DASHBOARD] Pages:', data?.pages);
+    
+    const processedItems = (data?.pages ?? []).flatMap(p => {
+      console.log('🔍 [DASHBOARD] Processing page:', p);
+      console.log('🔍 [DASHBOARD] Page memories:', p.memories);
+      return processDashboardItems(p.memories ?? []);
+    });
+    
+    console.log('🔍 [DASHBOARD] Final processed items:', processedItems);
+    return processedItems;
   }, [data]);
 
   // Dashboard items are already processed by processDashboardItems
@@ -136,22 +147,11 @@ export default function VaultPage() {
     setFilteredMemories(items);
   }, [items]);
 
-  const handleDelete = async (id: string) => {
-    try {
-      await deleteMemory(id);
-      // Invalidate and refetch dashboard data
-      queryClient.invalidateQueries({ queryKey: qk.memories.dashboard() });
-      toast({
-        title: 'Success',
-        description: 'Memory deleted successfully.',
-      });
-    } catch (_error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to delete memory. Please try again.',
-        variant: 'destructive',
-      });
-    }
+  // React Query mutation for memory deletion
+  const deleteMemoryMutation = useDeleteMemory();
+
+  const handleDelete = (id: string) => {
+    deleteMemoryMutation.mutate(id);
   };
 
   const handleShare = () => {
@@ -297,6 +297,7 @@ export default function VaultPage() {
             onShare={handleShare}
             onClick={handleMemoryClick}
             viewMode={viewMode}
+            useReactQuery={true}
           />
 
           {/* Load more button for React Query */}
