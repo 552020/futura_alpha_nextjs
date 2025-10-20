@@ -15,3 +15,4 @@ CREATE INDEX "resource_share_tokens_token_idx" ON "resource_share_tokens" USING 
 CREATE INDEX "resource_share_tokens_resource_idx" ON "resource_share_tokens" USING btree ("resource_type","resource_id");--> statement-breakpoint
 CREATE INDEX "resource_share_tokens_created_by_idx" ON "resource_share_tokens" USING btree ("created_by");--> statement-breakpoint
 CREATE INDEX "resource_share_tokens_active_expires_idx" ON "resource_share_tokens" USING btree ("is_active","expires_at");
+

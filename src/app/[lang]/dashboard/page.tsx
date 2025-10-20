@@ -50,7 +50,6 @@ import { SharingModal } from '@/components/memory/sharing-modal';
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_DASHBOARD === 'true';
 
 export default function VaultPage() {
-  console.log('🔄 [DASHBOARD] Component rendering');
 
   const { isAuthorized, isTemporaryUser, userId, isLoading } = useAuthGuard();
   const router = useRouter();
@@ -103,7 +102,6 @@ export default function VaultPage() {
   } = useInfiniteQuery({
     queryKey: qk.memories.dashboard(userId, params.lang as string, dataSource),
     queryFn: ({ pageParam = 1 }) => {
-      console.log('🔄 [DASHBOARD] useInfiniteQuery queryFn called with pageParam:', pageParam);
       return fetchMemories(pageParam as number, dataSource!);
     },
     enabled: dataSource !== null && Boolean(!USE_MOCK_DATA && isAuthorized && !isLoading && userId), // Only run when dataSource is determined AND user is authorized
@@ -114,48 +112,18 @@ export default function VaultPage() {
 
   // Log when React Query data changes
   useEffect(() => {
-    console.log('🔄 [DASHBOARD] React Query data changed:', !!data);
-    console.log('🔄 [DASHBOARD] Data pages:', data?.pages?.length || 0);
-    console.log('🔄 [DASHBOARD] Is loading:', isLoadingMemories);
-    const queryEnabled = dataSource !== null && Boolean(!USE_MOCK_DATA && isAuthorized && !isLoading && userId);
-    console.log('🔄 [DASHBOARD] Query enabled:', queryEnabled);
-    console.log('🔄 [DASHBOARD] Query enabled breakdown:');
-    console.log('  - dataSource !== null:', dataSource !== null);
-    console.log('  - !USE_MOCK_DATA:', !USE_MOCK_DATA);
-    console.log('  - isAuthorized:', isAuthorized);
-    console.log('  - !isLoading:', !isLoading);
-    console.log('  - userId:', !!userId);
-    console.log('🔄 [DASHBOARD] DataSource:', dataSource);
-    console.log('🔄 [DASHBOARD] IsAuthorized:', isAuthorized);
-    console.log('🔄 [DASHBOARD] UserId:', userId);
-    console.log('🔄 [DASHBOARD] USE_MOCK_DATA:', USE_MOCK_DATA);
-    console.log('🔄 [DASHBOARD] IsLoading:', isLoading);
+    // Query enabled logic is handled in the useInfiniteQuery enabled option
   }, [data, isLoadingMemories, dataSource, isAuthorized, isLoading, userId]);
 
   // Process items from React Query or mock data
   const items = useMemo(() => {
-    console.log('🔄 [DASHBOARD] useMemo triggered - data changed:', !!data);
-    console.log('🔄 [DASHBOARD] Data pages count:', data?.pages?.length || 0);
-
     if (USE_MOCK_DATA) {
-      console.log('🔄 [DASHBOARD] Using mock data');
       return processDashboardItems(sampleDashboardMemories as MemoryWithFolder[]);
     }
 
-    console.log('🔍 [DASHBOARD] React Query data structure:', data);
-    console.log('🔍 [DASHBOARD] Pages:', data?.pages);
-
     const processedItems = (data?.pages ?? []).flatMap(p => {
-      console.log('🔍 [DASHBOARD] Processing page:', p);
-      console.log('🔍 [DASHBOARD] Page memories:', p.memories);
       return processDashboardItems(p.memories ?? []);
     });
-
-    console.log('🔍 [DASHBOARD] Final processed items count:', processedItems.length);
-    console.log(
-      '🔍 [DASHBOARD] Final processed items:',
-      processedItems.map(item => ({ id: item.id, title: item.title }))
-    );
     return processedItems;
   }, [data]);
 
@@ -188,11 +156,6 @@ export default function VaultPage() {
 
   // Initialize filtered memories when items are loaded
   useEffect(() => {
-    console.log('🔄 [DASHBOARD] useEffect triggered - items changed:', items.length);
-    console.log(
-      '🔄 [DASHBOARD] Setting filteredMemories to:',
-      items.map(item => ({ id: item.id, title: item.title }))
-    );
     setFilteredMemories(items);
   }, [items]);
 

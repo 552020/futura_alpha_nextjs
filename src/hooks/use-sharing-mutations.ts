@@ -80,7 +80,7 @@ export function useShareResource() {
 
   return useMutation({
     mutationFn: shareResource,
-    onSuccess: (data, variables) => {
+    onSuccess: (_data, _variables) => {
       // Invalidate dashboard queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['memories', 'dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['folders', 'dashboard'] });

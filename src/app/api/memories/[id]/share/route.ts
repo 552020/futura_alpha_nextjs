@@ -3,7 +3,7 @@ import { auth } from '@/auth';
 import { createShare, createPublicLink, generateShareableUrl } from '@/services/sharing';
 import { getAllUserRecord, getAllUserRecordById, getUserEmailByAllUserId } from '@/services/user';
 import { getMemoryWithRelations } from '@/services/memory';
-import type { RelationshipType, FamilyRelationshipType, allUsers, memories } from '@/db';
+import type { RelationshipType, FamilyRelationshipType, allUsers, DBMemoryWithAssets } from '@/db';
 import { sendInvitationEmail, sendSharedMemoryEmail } from '@/app/api/memories/utils/email';
 // import crypto from 'crypto';
 
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       );
     }
 
-    const memory = memoryResult.data as typeof memories.$inferSelect;
+    const memory = memoryResult.data as DBMemoryWithAssets;
 
     fatLogger.info('✅ Memory found and owned by user:', 'be', {
       memoryId,
@@ -204,7 +204,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
           // Get memory details for email
           const memoryResult = await getMemoryWithRelations(memoryId, authenticatedUserId);
           if (memoryResult.success) {
-            const memory = memoryResult.data;
+            const memory = memoryResult.data as DBMemoryWithAssets;
 
             // Get recipient email using the new service function
             const emailResult = await getUserEmailByAllUserId(finalTargetUserId);
@@ -217,7 +217,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
               // Continue without email - don't fail the share operation
             } else {
               const recipientEmail = emailResult.data;
-              
+
               if (!recipientEmail) {
                 fatLogger.error('📧 No email address found for user', 'be', {
                   targetUserId: finalTargetUserId,
@@ -227,41 +227,33 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
               } else {
                 // Get recipient details to determine user type
                 const recipientResult = await getAllUserRecordById(finalTargetUserId);
-                const recipient = recipientResult.success ? recipientResult.data as typeof allUsers.$inferSelect : null;
+                const recipient = recipientResult.success
+                  ? (recipientResult.data as typeof allUsers.$inferSelect)
+                  : null;
 
                 // Determine if this is a new user invitation
                 const isNewUser = _isInviteeNew || (recipient && recipient.type === 'temporary');
 
-              if (isNewUser) {
-                // Send invitation email for new users
-                await sendInvitationEmail(
-                  recipientEmail,
-                  memory as any, // TODO: Fix type casting
-                  authenticatedUserId,
-                  { useHTML: true }
-                );
+                if (isNewUser) {
+                  // Send invitation email for new users
+                  await sendInvitationEmail(recipientEmail, memory, authenticatedUserId, { useHTML: true });
 
-                fatLogger.info('📧 Invitation email sent', 'be', {
-                  recipientEmail,
-                  memoryId,
-                  isNewUser: true,
-                });
-              } else {
-                // Send notification email for existing users
-                const shareUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/memories/${memoryId}`;
-                await sendSharedMemoryEmail(
-                  recipientEmail,
-                  memory as any, // TODO: Fix type casting
-                  authenticatedUserId,
-                  shareUrl,
-                  { useHTML: true }
-                );
+                  fatLogger.info('📧 Invitation email sent', 'be', {
+                    recipientEmail,
+                    memoryId,
+                    isNewUser: true,
+                  });
+                } else {
+                  // Send notification email for existing users
+                  const shareUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/memories/${memoryId}`;
+                  await sendSharedMemoryEmail(recipientEmail, memory, authenticatedUserId, shareUrl, { useHTML: true });
 
-                fatLogger.info('📧 Shared memory email sent', 'be', {
-                  recipientEmail,
-                  memoryId,
-                  shareUrl,
-                });
+                  fatLogger.info('📧 Shared memory email sent', 'be', {
+                    recipientEmail,
+                    memoryId,
+                    shareUrl,
+                  });
+                }
               }
             }
           }

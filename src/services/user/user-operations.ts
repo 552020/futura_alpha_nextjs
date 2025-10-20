@@ -552,14 +552,15 @@ export const getUserEmailByAllUserId = async (allUserId: string): Promise<UserOp
       if (!tempUserResult.success || !tempUserResult.data) {
         return { success: false, error: 'Temporary user not found' };
       }
-      return { success: true, data: tempUserResult.data.email };
+      const email = (tempUserResult.data as typeof temporaryUsers.$inferSelect).email;
+      return { success: true, data: email || '' };
     } else if (allUser.type === 'user' && allUser.userId) {
       // Get email from users table
       const userResult = await getUserRecord(allUser.userId);
       if (!userResult.success || !userResult.data) {
         return { success: false, error: 'User not found' };
       }
-      return { success: true, data: userResult.data.email };
+      return { success: true, data: (userResult.data as { email: string }).email };
     }
 
     return { success: false, error: 'Invalid user type' };
