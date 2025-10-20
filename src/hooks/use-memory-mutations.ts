@@ -131,7 +131,7 @@ export function useUpdateMemory() {
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Record<string, unknown>> }) => {
       const response = await fetch(`/api/memories/${id}`, {
-        method: 'PATCH',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates),
       });
@@ -145,11 +145,11 @@ export function useUpdateMemory() {
     onMutate: async ({ id, updates }) => {
       // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: qk.memories.detail(id) });
-      await queryClient.cancelQueries({ queryKey: qk.memories.dashboard() });
+      await queryClient.cancelQueries({ queryKey: ['memories', 'dashboard'] });
 
       // Snapshot previous values
       const previousMemory = queryClient.getQueryData(qk.memories.detail(id));
-      const previousDashboard = queryClient.getQueryData(qk.memories.dashboard());
+      const previousDashboard = queryClient.getQueryData(['memories', 'dashboard']);
 
       // Optimistically update memory detail
       queryClient.setQueryData(qk.memories.detail(id), (old: unknown) => ({
@@ -158,7 +158,7 @@ export function useUpdateMemory() {
       }));
 
       // Optimistically update dashboard cache
-      queryClient.setQueryData(qk.memories.dashboard(), (old: unknown) => {
+      queryClient.setQueryData(['memories', 'dashboard'], (old: unknown) => {
         if (!old) return old;
 
         const oldData = old as { pages?: Array<{ memories?: Array<{ id: string }> }> };
@@ -185,7 +185,7 @@ export function useUpdateMemory() {
         queryClient.setQueryData(qk.memories.detail(id), context.previousMemory);
       }
       if (context?.previousDashboard) {
-        queryClient.setQueryData(qk.memories.dashboard(), context.previousDashboard);
+        queryClient.setQueryData(['memories', 'dashboard'], context.previousDashboard);
       }
 
       toast({
@@ -203,7 +203,7 @@ export function useUpdateMemory() {
     onSettled: (data, error, { id }) => {
       // Always refetch after mutation
       queryClient.invalidateQueries({ queryKey: qk.memories.detail(id) });
-      queryClient.invalidateQueries({ queryKey: qk.memories.dashboard() });
+      queryClient.invalidateQueries({ queryKey: ['memories', 'dashboard'] });
     },
   });
 }

@@ -137,7 +137,7 @@ async function addStorageStatusToMemory(memory: typeof memories.$inferSelect) {
   });
 
   const finalLocations = Array.from(storageLocations);
-  
+
   if (finalLocations.length === 0) {
     fatLogger.warn(`⚠️ [STORAGE STATUS] Memory ${memory.id} - NO STORAGE LOCATIONS FOUND!`, 'be', {
       memoryId: memory.id,
@@ -248,25 +248,32 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     // Parse request body
     const body = await request.json();
-    const { title, description, takenAt, isPublic, parentFolderId } = body;
+    const { title, description, takenAt, isPublic, parentFolderId } = body as {
+      title?: string;
+      description?: string;
+      takenAt?: string;
+      isPublic?: boolean;
+      parentFolderId?: string | null;
+    };
 
-    // Update memory
-    const [updatedMemory] = await db
-      .update(memories)
-      .set({
-        title: title || existingMemory.title,
-        description: description !== undefined ? description : existingMemory.description,
-        fileCreatedAt: takenAt ? new Date(takenAt) : existingMemory.fileCreatedAt,
-        sharingStatus: isPublic !== undefined ? (isPublic ? 'public' : 'private') : existingMemory.sharingStatus,
-        parentFolderId: parentFolderId !== undefined ? parentFolderId : existingMemory.parentFolderId,
-        updatedAt: new Date(),
-      })
-      .where(eq(memories.id, memoryId))
-      .returning();
+    // Use service layer for update
+    const { updateMemoryRecord } = await import('@/services/memory/memory-operations');
+
+    const result = await updateMemoryRecord(memoryId, {
+      title: title ?? existingMemory.title ?? undefined,
+      description: description !== undefined ? description : (existingMemory.description ?? null),
+      fileCreatedAt: takenAt ? new Date(takenAt) : (existingMemory.fileCreatedAt ?? null),
+      sharingStatus: isPublic !== undefined ? (isPublic ? 'public' : 'private') : existingMemory.sharingStatus,
+      parentFolderId: parentFolderId !== undefined ? parentFolderId : (existingMemory.parentFolderId ?? null),
+    });
+
+    if (!result.success) {
+      return NextResponse.json({ error: result.error || 'Failed to update memory' }, { status: 500 });
+    }
 
     return NextResponse.json({
       success: true,
-      data: updatedMemory,
+      data: result.data,
     });
   } catch (error) {
     fatLogger.error('Error updating memory:', 'be', { data: error instanceof Error ? error : undefined });
@@ -299,7 +306,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     // Strip 'folder-' prefix if present (frontend adds this prefix)
     const cleanId = itemId.startsWith('folder-') ? itemId.replace('folder-', '') : itemId;
-    
+
     fatLogger.info(`🔍 [Individual Route] Clean ID: ${cleanId}`, 'be');
 
     // First, check if this is a folder by trying to find it in the folders table

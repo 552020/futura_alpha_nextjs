@@ -25,15 +25,18 @@ export interface CreateMemoryParams {
 export interface UpdateMemoryParams {
   title?: string;
   type?: MemoryType;
+  description?: string | null;
   parentFolderId?: string | null;
   tags?: string[];
   recipients?: string[];
   unlockDate?: Date | null;
+  fileCreatedAt?: Date | null;
   metadata?: {
     originalPath?: string;
     custom?: Record<string, unknown>;
   };
   storageDuration?: number | null;
+  sharingStatus?: 'private' | 'public' | 'unlisted' | 'password_protected';
 }
 
 export interface MemoryQueryParams {

@@ -9,16 +9,19 @@ This directory contains utility scripts for managing and querying user data in t
 Finds comprehensive user information by email address across all user tables.
 
 **Usage:**
+
 ```bash
 npx tsx scripts/db/users/lookup-user-by-email.ts <email>
 ```
 
 **Example:**
+
 ```bash
 npx tsx scripts/db/users/lookup-user-by-email.ts user@example.com
 ```
 
 **What it does:**
+
 - Searches for the user in the `users` table (permanent users)
 - Searches for the user in the `temporaryUsers` table (temporary users)
 - Finds the corresponding `allUsers` entry
@@ -29,6 +32,7 @@ npx tsx scripts/db/users/lookup-user-by-email.ts user@example.com
   - Account type (permanent vs temporary)
 
 **Output includes:**
+
 - User type (permanent/temporary/not found)
 - Complete user profile data
 - Account relationships and hierarchy
@@ -44,6 +48,7 @@ npx tsx scripts/db/users/lookup-user-by-email.ts user@example.com
 ## Environment Setup
 
 Make sure your `.env.local` file contains:
+
 ```
 DATABASE_URL_UNPOOLED=your_database_connection_string
 ```

@@ -35,12 +35,13 @@ import {
   type DashboardItem,
   type FolderItem,
 } from '@/services/memories';
-import { useDeleteMemory } from '@/hooks/use-memory-mutations';
+import { useDeleteMemory, useUpdateMemory } from '@/hooks/use-memory-mutations';
 import { ExtendedMemory } from '@/types/dashboard';
 // import { TawkChat } from '@/components/chat/tawk-chat';
 import { DashboardTopBar } from '@/components/dashboard/dashboard-top-bar';
 import { sampleDashboardMemories } from '../../../../scripts/mock-data/create-dashboard-sample-data';
 import { useHostingPreferences, getRecommendedDashboardDataSource } from '@/hooks/use-hosting-preferences';
+import { MemoryQuickEditModal } from '@/components/memory/memory-quick-edit-modal';
 
 // Demo flag - set to true to use mock data for demo
 // 📝 Sample data generation script: scripts/mock-data/create-dashboard-sample-data.ts
@@ -48,13 +49,17 @@ const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_DASHBOARD === 'true'
 
 export default function VaultPage() {
   console.log('🔄 [DASHBOARD] Component rendering');
-  
+
   const { isAuthorized, isTemporaryUser, userId, isLoading } = useAuthGuard();
   const router = useRouter();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filteredMemories, setFilteredMemories] = useState<DashboardItem[]>([]);
+  const [quickEditOpen, setQuickEditOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedTitle, setSelectedTitle] = useState<string | undefined>(undefined);
+  const [selectedDescription, setSelectedDescription] = useState<string | undefined>(undefined);
   const params = useParams();
 
   // Get hosting preferences to determine recommended data source
@@ -104,13 +109,26 @@ export default function VaultPage() {
     console.log('🔄 [DASHBOARD] React Query data changed:', !!data);
     console.log('🔄 [DASHBOARD] Data pages:', data?.pages?.length || 0);
     console.log('🔄 [DASHBOARD] Is loading:', isLoadingMemories);
-  }, [data, isLoadingMemories]);
+    const queryEnabled = dataSource !== null && Boolean(!USE_MOCK_DATA && isAuthorized && !isLoading && userId);
+    console.log('🔄 [DASHBOARD] Query enabled:', queryEnabled);
+    console.log('🔄 [DASHBOARD] Query enabled breakdown:');
+    console.log('  - dataSource !== null:', dataSource !== null);
+    console.log('  - !USE_MOCK_DATA:', !USE_MOCK_DATA);
+    console.log('  - isAuthorized:', isAuthorized);
+    console.log('  - !isLoading:', !isLoading);
+    console.log('  - userId:', !!userId);
+    console.log('🔄 [DASHBOARD] DataSource:', dataSource);
+    console.log('🔄 [DASHBOARD] IsAuthorized:', isAuthorized);
+    console.log('🔄 [DASHBOARD] UserId:', userId);
+    console.log('🔄 [DASHBOARD] USE_MOCK_DATA:', USE_MOCK_DATA);
+    console.log('🔄 [DASHBOARD] IsLoading:', isLoading);
+  }, [data, isLoadingMemories, dataSource, isAuthorized, isLoading, userId]);
 
   // Process items from React Query or mock data
   const items = useMemo(() => {
     console.log('🔄 [DASHBOARD] useMemo triggered - data changed:', !!data);
     console.log('🔄 [DASHBOARD] Data pages count:', data?.pages?.length || 0);
-    
+
     if (USE_MOCK_DATA) {
       console.log('🔄 [DASHBOARD] Using mock data');
       return processDashboardItems(sampleDashboardMemories as MemoryWithFolder[]);
@@ -126,7 +144,10 @@ export default function VaultPage() {
     });
 
     console.log('🔍 [DASHBOARD] Final processed items count:', processedItems.length);
-    console.log('🔍 [DASHBOARD] Final processed items:', processedItems.map(item => ({ id: item.id, title: item.title })));
+    console.log(
+      '🔍 [DASHBOARD] Final processed items:',
+      processedItems.map(item => ({ id: item.id, title: item.title }))
+    );
     return processedItems;
   }, [data]);
 
@@ -160,12 +181,16 @@ export default function VaultPage() {
   // Initialize filtered memories when items are loaded
   useEffect(() => {
     console.log('🔄 [DASHBOARD] useEffect triggered - items changed:', items.length);
-    console.log('🔄 [DASHBOARD] Setting filteredMemories to:', items.map(item => ({ id: item.id, title: item.title })));
+    console.log(
+      '🔄 [DASHBOARD] Setting filteredMemories to:',
+      items.map(item => ({ id: item.id, title: item.title }))
+    );
     setFilteredMemories(items);
   }, [items]);
 
   // React Query mutation for memory deletion
   const deleteMemoryMutation = useDeleteMemory();
+  const updateMemoryMutation = useUpdateMemory();
 
   const handleDelete = (id: string) => {
     deleteMemoryMutation.mutate(id);
@@ -174,6 +199,24 @@ export default function VaultPage() {
   const handleShare = () => {
     // Invalidate and refetch dashboard data to show any new shares
     queryClient.invalidateQueries({ queryKey: ['memories', 'dashboard'] });
+  };
+
+  const handleEdit = (id: string) => {
+    // Prefill from current list
+    const item = (filteredMemories || []).find(m => m.id === id);
+    setSelectedId(id);
+    setSelectedTitle(item?.title);
+    // DashboardItem may not always have description; leave undefined if absent
+    setSelectedDescription((item as { description?: string })?.description);
+    setQuickEditOpen(true);
+  };
+
+  const handleQuickEditSave = async ({ data }: { data: { title?: string; description?: string } }) => {
+    if (!selectedId) return;
+    await updateMemoryMutation.mutateAsync({
+      id: selectedId,
+      updates: { title: data.title, description: data.description },
+    });
   };
 
   const handleMemoryClick = (memory: Memory | DashboardItem) => {
@@ -312,6 +355,7 @@ export default function VaultPage() {
             memories={filteredMemories}
             onDelete={handleDelete}
             onShare={handleShare}
+            onEdit={handleEdit}
             onClick={handleMemoryClick}
             viewMode={viewMode}
             useReactQuery={true}
@@ -334,6 +378,22 @@ export default function VaultPage() {
 
       {/* Tawk.to Chat */}
       {/* <TawkChat /> */}
+
+      {/* Quick Edit Modal */}
+      {selectedId && (
+        <MemoryQuickEditModal
+          open={quickEditOpen}
+          onOpenChange={setQuickEditOpen}
+          resourceType="memory"
+          resourceId={selectedId}
+          initialTitle={selectedTitle}
+          initialDescription={selectedDescription}
+          onSave={async params => {
+            await handleQuickEditSave({ data: params.data });
+          }}
+          isSaving={updateMemoryMutation.isPending}
+        />
+      )}
     </div>
   );
 }
