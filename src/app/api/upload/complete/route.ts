@@ -365,7 +365,7 @@ async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserI
   try {
     console.log('🔗 [DEBUG] Creating storage edges for memory:', memoryId);
     const { createMemoryStorageEdges } = await import('@/lib/usecases/memory/create-memory-storage-edges');
-    
+
     const storageEdgeResult = await createMemoryStorageEdges({
       memoryId: memoryId,
       memoryType: memoryType,

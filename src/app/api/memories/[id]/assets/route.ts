@@ -330,7 +330,7 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
     // Clean up storage edges for deleted assets
     try {
       const { deleteStorageEdges } = await import('@/services/storage-edges/storage-edge-operations');
-      
+
       // Delete storage edges for the memory (since assets are being removed)
       const storageEdgeResult = await deleteStorageEdges({
         memoryId,
