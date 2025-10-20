@@ -50,7 +50,6 @@ import { SharingModal } from '@/components/memory/sharing-modal';
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_DASHBOARD === 'true';
 
 export default function VaultPage() {
-
   const { isAuthorized, isTemporaryUser, userId, isLoading } = useAuthGuard();
   const router = useRouter();
   const { toast } = useToast();
@@ -61,7 +60,7 @@ export default function VaultPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedTitle, setSelectedTitle] = useState<string | undefined>(undefined);
   const [selectedDescription, setSelectedDescription] = useState<string | undefined>(undefined);
-  
+
   // Sharing modal state
   const [sharingOpen, setSharingOpen] = useState(false);
   const [sharingResourceType, setSharingResourceType] = useState<'memory' | 'folder'>('memory');
