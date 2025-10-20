@@ -293,7 +293,6 @@ export async function createBulkShares(params: BulkShareParams): Promise<Operati
     );
 
     const successful = results.filter(r => r.status === 'fulfilled' && r.value.success);
-    const _failed = results.filter(r => r.status === 'rejected' || !r.value.success);
 
     return {
       success: true,

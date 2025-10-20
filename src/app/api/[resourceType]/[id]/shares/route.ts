@@ -94,12 +94,26 @@ export async function GET(request: NextRequest, context: { params: Promise<{ res
       );
     }
 
-    const shares = sharesResult.data || [];
+    const shares = sharesResult.data;
+
+    if (!shares) {
+      fatLogger.error('Shares data is undefined', 'be', {
+        resourceType,
+        resourceId,
+      });
+      return NextResponse.json(
+        {
+          error: 'Failed to get resource shares',
+          details: 'Shares data is undefined',
+        },
+        { status: 500 }
+      );
+    }
 
     fatLogger.info('✅ Resource shares retrieved successfully:', 'be', {
       resourceType,
       resourceId,
-      shareCount: shares.length,
+      shareCount: shares.totalShares,
     });
 
     return NextResponse.json({
@@ -108,7 +122,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ res
         resourceType,
         resourceId,
         shares,
-        totalCount: shares.length,
+        totalCount: shares.totalShares,
       },
     });
   } catch (error) {
