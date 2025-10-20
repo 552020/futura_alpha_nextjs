@@ -31,6 +31,13 @@ export interface ProcessSingleFileOptions {
 }
 
 export async function processSingleFile(options: ProcessSingleFileOptions): Promise<void> {
+  fatLogger.info('🚀 ENTERING: processSingleFile', 'be', {
+    timestamp: new Date().toISOString(),
+    fileName: options.file.name,
+    fileSize: options.file.size,
+    fileType: options.file.type,
+  });
+
   const {
     file,
     isOnboarding,
@@ -183,6 +190,11 @@ export async function processSingleFile(options: ProcessSingleFileOptions): Prom
     }
 
     onSuccess?.();
+
+    fatLogger.info('✅ EXITING: processSingleFile', 'be', {
+      timestamp: new Date().toISOString(),
+      fileName: file.name,
+    });
   } catch (error) {
     let title = 'Something went wrong';
     let description = 'Please try uploading again.';
@@ -200,5 +212,11 @@ export async function processSingleFile(options: ProcessSingleFileOptions): Prom
     showToast({ variant: 'destructive', title, description });
 
     onError?.(error as Error);
+
+    fatLogger.info('❌ EXITING: processSingleFile (with error)', 'be', {
+      timestamp: new Date().toISOString(),
+      fileName: file.name,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
   }
 }

@@ -6,6 +6,7 @@
 
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { generateS3Key } from '@/lib/s3-service';
 
 import { fatLogger } from '@/lib/logger';
 const s3Client = new S3Client({
@@ -26,7 +27,8 @@ interface PresignParams {
 }
 
 export async function generatePresignedUrl({ userId, fileName, fileType, fileSize }: PresignParams) {
-  const s3Key = `uploads/${userId}/${Date.now()}_${fileName}`;
+  // Use unified S3 key generation for consistent folder structure
+  const s3Key = generateS3Key(fileName, userId);
 
   const command = new PutObjectCommand({
     Bucket: BUCKET_NAME,

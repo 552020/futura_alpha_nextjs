@@ -80,6 +80,9 @@ declare module 'next-auth/jwt' {
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: DrizzleAdapter(db),
   session: { strategy: 'jwt' },
+  pages: {
+    signIn: '/en/signin', // Redirect default NextAuth signin page to our custom page
+  },
   providers: [
     GitHub({
       clientId: process.env.AUTH_GITHUB_ID!,

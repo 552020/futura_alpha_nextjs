@@ -66,8 +66,10 @@ export function ProfileHeader({ user }: ProfileHeaderProps) {
         <div className="flex-1 min-w-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{user.name || 'Anonymous User'}</h1>
+              <div className="flex flex-wrap items-center gap-3 mb-2 min-w-0">
+                <h1 className="text-3xl font-bold text-slate-900 dark:text-white truncate min-w-0">
+                  {user.name || 'Anonymous User'}
+                </h1>
                 {isPremium && (
                   <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white border-0">
                     <Crown className="h-3 w-3 mr-1" />

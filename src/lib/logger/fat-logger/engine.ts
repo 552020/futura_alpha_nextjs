@@ -1,25 +1,8 @@
 import { LogEntry, LoggerConfig, ServiceFlags } from './types';
+import { SERVICE_FLAGS } from './config';
 
-// Default service flags (matching the active fatLogger)
-const DEFAULT_SERVICE_FLAGS: ServiceFlags = {
-  ENABLE_LOGGING: process.env.NEXT_PUBLIC_ENABLE_LOGGING === 'true',
-  ENABLE_FRONTEND_LOGGING: true,
-  ENABLE_BACKEND_LOGGING: true,
-  ENABLE_UPLOAD_LOGGING: true,
-  ENABLE_DATABASE_LOGGING: true,
-  ENABLE_AUTH_LOGGING: true,
-  ENABLE_ASSET_LOGGING: true,
-  ENABLE_S3_LOGGING: true,
-  ENABLE_ICP_UPLOAD_LOGGING: true,
-  ENABLE_DASHBOARD_LOGGING: true,
-  ENABLE_MEMORY_PROCESSING_LOGGING: true,
-  ENABLE_RENDERING_LOGGING: true,
-  ENABLE_API_RESPONSE_LOGGING: true,
-  ENABLE_FOLDER_GROUPING_LOGGING: true,
-  ENABLE_MEMORY_GRID_LOGGING: true,
-  ENABLE_USE_EFFECT_LOGGING: true,
-  ENABLE_HOSTING_PREFERENCES: true,
-};
+// Use the config.ts as the single source of truth
+const DEFAULT_SERVICE_FLAGS: ServiceFlags = SERVICE_FLAGS;
 
 // Helper function to resolve three-state toggle to boolean
 function resolveToggleState(uiState: string | undefined, defaultValue: boolean): boolean {
@@ -30,8 +13,8 @@ function resolveToggleState(uiState: string | undefined, defaultValue: boolean):
 
 // Runtime configuration getter (from localStorage)
 function getLoggerConfig(): ServiceFlags {
-  if (typeof window === 'undefined') {
-    // Server-side: use defaults
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+    // Server-side or no localStorage: use config.ts values
     return DEFAULT_SERVICE_FLAGS;
   }
 
@@ -99,6 +82,10 @@ function getLoggerConfig(): ServiceFlags {
         ENABLE_HOSTING_PREFERENCES: resolveToggleState(
           parsed.ENABLE_HOSTING_PREFERENCES,
           DEFAULT_SERVICE_FLAGS.ENABLE_HOSTING_PREFERENCES
+        ),
+        ENABLE_WEBWORKER_LOGGING: resolveToggleState(
+          parsed.ENABLE_WEBWORKER_LOGGING,
+          DEFAULT_SERVICE_FLAGS.ENABLE_WEBWORKER_LOGGING
         ),
       };
     }
@@ -190,6 +177,8 @@ export class LogEngine {
         return serviceFlags.ENABLE_USE_EFFECT_LOGGING;
       case 'hosting-preferences':
         return serviceFlags.ENABLE_HOSTING_PREFERENCES;
+      case 'webworker':
+        return serviceFlags.ENABLE_WEBWORKER_LOGGING;
       default:
         return true; // Default to enabled if service not recognized
     }

@@ -24,7 +24,7 @@ import { useSession } from 'next-auth/react';
 import { getAuthStatus } from '@/lib/utils/auth-status';
 import { LinkedAccounts } from './linked-accounts';
 
-import { fatLogger } from '@/lib/logger';
+import { fatLogger } from '@/lib/logger/fat-logger';
 
 interface InternetIdentityManagementProps {
   className?: string;
@@ -52,7 +52,7 @@ export function InternetIdentityManagement({ className = '' }: InternetIdentityM
       const signinUrl = `/${locale}/sign-ii-only?callbackUrl=${encodeURIComponent(currentUrl)}`;
 
       // Debug logging for callback URL
-      console.log('Management Component Debug:', {
+      fatLogger.info('Management Component Debug:', 'be', {
         currentUrl,
         locale,
         signinUrl,
@@ -193,7 +193,7 @@ export function InternetIdentityManagement({ className = '' }: InternetIdentityM
         {/* Action Buttons */}
         <div className="pt-4 border-t">
           {!isAuthenticated ? (
-            <Button onClick={handleSignInII}>
+            <Button onClick={handleSignInII} data-testid="ii-connect">
               <User className="h-4 w-4 mr-2" />
               Connect Internet Identity
             </Button>

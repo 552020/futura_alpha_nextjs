@@ -48,9 +48,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 export async function PATCH(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   try {
-    console.log('🔍 [DEBUG] Starting PATCH /api/users/[id] request for ID:', id);
+    fatLogger.info('Starting PATCH /api/users/[id] request for ID:', 'be', { id });
     const body = await _request.json();
-    console.log('📋 [DEBUG] Request body:', JSON.stringify(body, null, 2));
+    fatLogger.info('Request body:', 'be', { body });
     const { name, email } = body;
 
     // Use service function to update user
@@ -61,14 +61,14 @@ export async function PATCH(_request: NextRequest, { params }: { params: Promise
     });
 
     if (!result.success || !result.data) {
-      console.log('❌ [DEBUG] Failed to update user:', result.error);
+      fatLogger.error('Failed to update user:', 'be', { error: result.error });
       return NextResponse.json({ error: result.error || 'Failed to update user' }, { status: 500 });
     }
 
-    console.log('✅ [DEBUG] User updated successfully');
+    fatLogger.info('User updated successfully', 'be');
     return NextResponse.json(result.data);
   } catch (error) {
-    console.log('❌ [DEBUG] Error updating user:', error);
+    fatLogger.error('Error updating user:', 'be', { error });
     fatLogger.error('Error updating user:', 'be', {
       error: error instanceof Error ? error : undefined,
       operation: 'update_user',

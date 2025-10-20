@@ -210,11 +210,12 @@ export async function generateBestAssetUrl(asset: {
   storageKey?: string;
   bucket?: string | null;
 }): Promise<string> {
-  fatLogger.info('generateBestAssetUrl called', 'be', {
+  fatLogger.info('🔗 generateBestAssetUrl called', 'be', {
     url: asset.url,
     assetLocation: asset.assetLocation,
     storageKey: asset.storageKey,
     bucket: asset.bucket,
+    timestamp: new Date().toISOString(),
   });
 
   // Clean up the storage key if it's a full URL
@@ -233,24 +234,48 @@ export async function generateBestAssetUrl(asset: {
 
   // For S3 assets, try to presign using storageKey
   if (asset.assetLocation === 's3') {
+    fatLogger.info('🔍 Processing S3 asset for presigned URL generation', 'be', {
+      assetLocation: asset.assetLocation,
+      storageKey: asset.storageKey,
+      bucket: asset.bucket,
+      url: asset.url,
+    });
+
     const storageKey = cleanStorageKey(asset.storageKey || asset.url);
 
     if (!storageKey) {
-      fatLogger.warn('No storage key available for S3 asset, using direct URL', 'be', {
+      fatLogger.warn('⚠️ No storage key available for S3 asset, using direct URL', 'be', {
         url: asset.url,
+        assetLocation: asset.assetLocation,
+        providedStorageKey: asset.storageKey,
       });
       return asset.url;
     }
 
     try {
-      fatLogger.info('Attempting to presign S3 URL for storageKey', 'be', { storageKey });
+      fatLogger.info('🚀 Attempting to presign S3 URL for storageKey', 'be', {
+        storageKey,
+        bucket: asset.bucket,
+        timestamp: new Date().toISOString(),
+      });
+
       const presignedUrl = await generatePresignedUrlFromStorageKey(storageKey, asset.bucket || undefined);
 
-      fatLogger.info('Successfully generated presigned URL', 'be');
+      fatLogger.info('✅ Successfully generated presigned URL for S3 asset', 'be', {
+        storageKey,
+        urlLength: presignedUrl.length,
+        urlPreview: presignedUrl.substring(0, 100) + '...',
+      });
       return presignedUrl;
     } catch (error) {
-      fatLogger.warn('Failed to presign S3 URL, using direct URL', 'be', {
-        error: error instanceof Error ? error.message : String(error),
+      const errorObj = error instanceof Error ? error : new Error(String(error));
+      fatLogger.error('❌ CRITICAL: Failed to presign S3 URL', 'be', {
+        storageKey,
+        bucket: asset.bucket,
+        error: errorObj.message,
+        errorStack: errorObj.stack,
+        errorName: errorObj.name,
+        timestamp: new Date().toISOString(),
       });
 
       // As a last resort, try to construct a direct URL
@@ -259,11 +284,21 @@ export async function generateBestAssetUrl(asset: {
           asset.bucket || process.env.NEXT_PUBLIC_AWS_S3_BUCKET || process.env.AWS_S3_BUCKET || 'futura0';
         const region = process.env.NEXT_PUBLIC_AWS_S3_REGION || 'eu-central-1';
         const directUrl = `https://${bucketName}.s3.${region}.amazonaws.com/${storageKey}`;
-        fatLogger.info('Falling back to direct S3 URL', 'be', { directUrl });
+
+        fatLogger.warn('🔄 Falling back to direct S3 URL construction', 'be', {
+          directUrl,
+          bucketName,
+          region,
+          storageKey,
+        });
         return directUrl;
       } catch (fallbackError) {
-        fatLogger.error('Failed to construct direct S3 URL, using original URL', 'be', {
-          error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
+        const fallbackErrorObj = fallbackError instanceof Error ? fallbackError : new Error(String(fallbackError));
+        fatLogger.error('💥 CRITICAL: Failed to construct direct S3 URL, using original URL', 'be', {
+          error: fallbackErrorObj.message,
+          errorStack: fallbackErrorObj.stack,
+          originalUrl: asset.url,
+          storageKey,
         });
         return asset.url;
       }

@@ -40,6 +40,12 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Test fatLogger
+  fatLogger.info('🧪 FATLOGGER TEST - This should appear if fatLogger is working', 'be', {
+    userId: session.user.id,
+    timestamp: new Date().toISOString(),
+  });
+
   try {
     // First get the allUserId for the authenticated user
     const allUserRecord = await db.query.allUsers.findFirst({
@@ -145,12 +151,14 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
           const shareCount = await db
             .select({ count: sql<number>`count(*)` })
             .from(resourceMembership)
-            .where(and(
-              eq(resourceMembership.resourceType, 'memory'),
-              eq(resourceMembership.resourceId, memory.id),
-              // Don't count the owner's own membership
-              ne(resourceMembership.allUserId, memory.ownerId)
-            ));
+            .where(
+              and(
+                eq(resourceMembership.resourceType, 'memory'),
+                eq(resourceMembership.resourceId, memory.id),
+                // Don't count the owner's own membership
+                ne(resourceMembership.allUserId, memory.ownerId)
+              )
+            );
           sharedWithCount = shareCount[0]?.count || 0;
         } catch (error) {
           // Handle potential issues gracefully
@@ -199,26 +207,58 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
           let thumbnailUrl = null;
 
           if (thumbOrFallback) {
+            fatLogger.info('🔍 Processing asset for thumbnail generation', 'be', {
+              memoryId: memory.id,
+              assetId: thumbOrFallback.id,
+              assetType: thumbOrFallback.assetType,
+              assetLocation: thumbOrFallback.assetLocation,
+              storageKey: thumbOrFallback.storageKey,
+              bucket: thumbOrFallback.bucket,
+              url: thumbOrFallback.url,
+            });
+
             try {
-              thumbnailUrl = await generateBestAssetUrl(thumbOrFallback);
-              fatLogger.info('Generated thumbnail URL', 'be', {
+              fatLogger.info('🚀 Starting generateBestAssetUrl for S3 asset', 'be', {
                 memoryId: memory.id,
-                thumbnailUrl,
+                assetLocation: thumbOrFallback.assetLocation,
+                isS3Asset: thumbOrFallback.assetLocation === 's3',
+              });
+
+              thumbnailUrl = await generateBestAssetUrl(thumbOrFallback);
+
+              fatLogger.info('✅ Successfully generated thumbnail URL', 'be', {
+                memoryId: memory.id,
+                thumbnailUrl: thumbnailUrl ? thumbnailUrl.substring(0, 100) + '...' : 'null',
+                urlLength: thumbnailUrl?.length || 0,
               });
             } catch (error) {
               const errorObj = error instanceof Error ? error : new Error(String(error));
-              fatLogger.warn('Failed to generate thumbnail URL', 'be', {
+              fatLogger.error('❌ CRITICAL: Failed to generate thumbnail URL for S3 asset', 'be', {
                 memoryId: memory.id,
-                error: errorObj,
+                assetId: thumbOrFallback.id,
+                assetLocation: thumbOrFallback.assetLocation,
+                storageKey: thumbOrFallback.storageKey,
+                bucket: thumbOrFallback.bucket,
+                error: errorObj.message,
+                errorStack: errorObj.stack,
+                errorName: errorObj.name,
               });
+
+              fatLogger.warn('🔄 Falling back to direct URL', 'be', {
+                memoryId: memory.id,
+                fallbackUrl: thumbOrFallback.url,
+              });
+
               thumbnailUrl = thumbOrFallback.url;
-              fatLogger.debug('Using fallback URL', 'be', {
-                memoryId: memory.id,
-                thumbnailUrl,
-              });
             }
           } else {
-            fatLogger.warn('No asset found for memory', 'be', { memoryId: memory.id });
+            fatLogger.warn('⚠️ No asset found for memory', 'be', {
+              memoryId: memory.id,
+              hasThumbAsset: !!thumbAsset,
+              hasDisplayAsset: !!displayAsset,
+              hasOriginalAsset: !!originalAsset,
+              hasPlaceholderAsset: !!placeholderAsset,
+            });
           }
 
           return {
@@ -272,19 +312,21 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
     });
   } catch (error) {
     const listError = error instanceof Error ? error : new Error(String(error));
-    console.error('Detailed error in memories API:', {
-      error: listError,
-      message: listError.message,
-      stack: listError.stack,
+    fatLogger.error('💥 CRITICAL ERROR in /api/memories GET handler', 'be', {
+      error: listError.message,
+      errorStack: listError.stack,
+      errorName: listError.name,
       userId: session?.user?.id,
+      timestamp: new Date().toISOString(),
+      userAgent: request.headers.get('user-agent'),
+      referer: request.headers.get('referer'),
     });
-    fatLogger.error('Error listing memories', 'be', {
-      error: listError,
-      userId: session?.user?.id,
-    });
-    return NextResponse.json({ 
-      error: 'Failed to list memories',
-      details: listError.message 
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Failed to list memories',
+        details: listError.message,
+      },
+      { status: 500 }
+    );
   }
 }

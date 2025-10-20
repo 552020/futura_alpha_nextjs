@@ -131,6 +131,10 @@ export function useFileUpload({ isOnboarding = false, mode = 'directory', onSucc
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    fatLogger.info('🚀 ENTERING: useFileUpload.handleFileUpload', 'fe', {
+      timestamp: new Date().toISOString(),
+    });
+
     const fileList = event.target.files;
 
     if (!fileList || fileList.length === 0) {
@@ -257,6 +261,10 @@ export function useFileUpload({ isOnboarding = false, mode = 'directory', onSucc
         setIsLoading(false);
       }
     }
+
+    fatLogger.info('✅ EXITING: useFileUpload.handleFileUpload', 'fe', {
+      timestamp: new Date().toISOString(),
+    });
   };
 
   return { isLoading, fileInputRef, handleFileUpload };
