@@ -8,7 +8,7 @@
 import { db } from '@/db/db';
 import { storageEdges } from '@/db/tables';
 import { type NewDBStorageEdge, type DBStorageEdge } from '@/db/types';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, isNull } from 'drizzle-orm';
 import { fatLogger } from '@/lib/logger';
 
 export interface CreateStorageEdgeParams {
@@ -83,18 +83,45 @@ export const createStorageEdge = async (params: CreateStorageEdgeParams): Promis
       updatedAt: new Date(),
     };
 
-    const [createdEdge] = await db
-      .insert(storageEdges)
-      .values(edgeData)
-      .onConflictDoUpdate({
-        target: [
-          storageEdges.memoryId,
-          storageEdges.memoryType,
-          storageEdges.artifact,
-          storageEdges.locationMetadata,
-          storageEdges.locationAsset,
-        ],
-        set: {
+    // First, try to find existing edge to avoid conflicts
+    fatLogger.info('Checking for existing storage edge', 'be', {
+      memoryId: params.memoryId,
+      memoryType: params.memoryType,
+      artifact: params.artifact,
+      locationMetadata: params.locationMetadata,
+      locationAsset: params.locationAsset,
+    });
+
+    const existingEdge = await db
+      .select()
+      .from(storageEdges)
+      .where(
+        and(
+          eq(storageEdges.memoryId, params.memoryId),
+          eq(storageEdges.memoryType, params.memoryType),
+          eq(storageEdges.artifact, params.artifact),
+          params.locationMetadata
+            ? eq(storageEdges.locationMetadata, params.locationMetadata)
+            : isNull(storageEdges.locationMetadata),
+          params.locationAsset
+            ? eq(storageEdges.locationAsset, params.locationAsset)
+            : isNull(storageEdges.locationAsset)
+        )
+      )
+      .limit(1);
+
+    let createdEdge: DBStorageEdge;
+
+    if (existingEdge.length > 0) {
+      // Update existing edge
+      fatLogger.info('Updating existing storage edge', 'be', {
+        memoryId: params.memoryId,
+        existingEdgeId: existingEdge[0].id,
+      });
+
+      const [updatedEdge] = await db
+        .update(storageEdges)
+        .set({
           present: params.present ?? false,
           locationUrl: params.location,
           contentHash: params.contentHash,
@@ -103,9 +130,23 @@ export const createStorageEdge = async (params: CreateStorageEdgeParams): Promis
           syncError: params.syncError,
           lastSyncedAt: params.syncState === 'idle' ? new Date() : undefined,
           updatedAt: new Date(),
-        },
-      })
-      .returning();
+        })
+        .where(eq(storageEdges.id, existingEdge[0].id))
+        .returning();
+
+      createdEdge = updatedEdge;
+    } else {
+      // Create new edge
+      fatLogger.info('Creating new storage edge', 'be', {
+        memoryId: params.memoryId,
+        memoryType: params.memoryType,
+        artifact: params.artifact,
+      });
+
+      const [newEdge] = await db.insert(storageEdges).values(edgeData).returning();
+
+      createdEdge = newEdge;
+    }
 
     if (!createdEdge) {
       fatLogger.error('Failed to create storage edge - no result returned', 'be', {
