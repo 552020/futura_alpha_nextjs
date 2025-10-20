@@ -5,6 +5,7 @@ import { randomUUID } from 'crypto';
 import { randomBytes } from 'crypto';
 import { fatLogger } from '@/lib/logger';
 import type { MemoryWithGalleries } from './types';
+import { getStorageStatusForMemory } from '@/services/storage-edges';
 
 export interface CreateMemoryParams {
   title: string;
@@ -25,15 +26,18 @@ export interface CreateMemoryParams {
 export interface UpdateMemoryParams {
   title?: string;
   type?: MemoryType;
+  description?: string | null;
   parentFolderId?: string | null;
   tags?: string[];
   recipients?: string[];
   unlockDate?: Date | null;
+  fileCreatedAt?: Date | null;
   metadata?: {
     originalPath?: string;
     custom?: Record<string, unknown>;
   };
   storageDuration?: number | null;
+  sharingStatus?: 'private' | 'public' | 'unlisted' | 'password_protected';
 }
 
 export interface MemoryQueryParams {
@@ -184,6 +188,77 @@ export const getMemoryRecord = async (memoryId: string, includeAssets = false): 
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
     };
+  }
+};
+
+/**
+ * Read a single memory record by ID and owner with optional relations
+ */
+export const getMemoryWithRelations = async (
+  memoryId: string,
+  ownerAllUserId: string,
+  relations?: { assets?: boolean; folder?: boolean }
+): Promise<MemoryOperationResult> => {
+  try {
+    const withRelations = relations
+      ? {
+          ...(relations.assets ? { assets: true } : {}),
+          ...(relations.folder ? { folder: true } : {}),
+        }
+      : undefined;
+
+    const memory = await db.query.memories.findFirst({
+      where: and(eq(memories.id, memoryId), eq(memories.ownerId, ownerAllUserId)),
+      with: withRelations as unknown as undefined, // drizzle expects undefined when empty
+    });
+
+    if (!memory) {
+      return { success: false, error: 'Memory not found' };
+    }
+
+    return { success: true, data: memory };
+  } catch (error) {
+    fatLogger.error('Failed to get memory with relations', 'be', {
+      error: error instanceof Error ? error : undefined,
+      operation: 'get_memory_with_relations',
+      memoryId,
+      ownerAllUserId,
+      relations,
+    });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+};
+
+/**
+ * Convenience: read a single memory (by owner) including assets
+ */
+export const getMemoryWithAssetsByOwner = async (
+  memoryId: string,
+  ownerAllUserId: string
+): Promise<MemoryOperationResult> => {
+  return getMemoryWithRelations(memoryId, ownerAllUserId, { assets: true });
+};
+
+/**
+ * Attach storage status to a memory record
+ */
+export const attachStorageStatus = async (
+  memory: typeof memories.$inferSelect
+): Promise<MemoryOperationResult<typeof memories.$inferSelect & { storageStatus: { storageLocations: string[] } }>> => {
+  try {
+    const status = await getStorageStatusForMemory(memory.id);
+    const storageStatus = status.success && status.data ? status.data : { storageLocations: [] };
+    return { success: true, data: { ...memory, storageStatus } };
+  } catch (error) {
+    fatLogger.error('Failed to attach storage status', 'be', {
+      error: error instanceof Error ? error : undefined,
+      operation: 'attach_storage_status',
+      memoryId: memory.id,
+    });
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 };
 

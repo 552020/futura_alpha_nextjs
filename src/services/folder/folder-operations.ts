@@ -1,7 +1,8 @@
 import { db } from '@/db/db';
 import { folders, resourceMembership } from '@/db';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, inArray } from 'drizzle-orm';
 import { fatLogger } from '@/lib/logger';
+import type { DBFolder } from '@/db/types';
 
 export interface FolderOperationResult<T = unknown> {
   success: boolean;
@@ -73,6 +74,34 @@ export const createFolderRecord = async (params: CreateFolderParams): Promise<Fo
 };
 
 /**
+ * Get a single folder record by ID for owner (with ownership check)
+ */
+export const getFolderByIdForOwner = async (folderId: string, ownerAllUserId: string): Promise<FolderOperationResult<DBFolder>> => {
+  try {
+    const folder = await db.query.folders.findFirst({
+      where: and(eq(folders.id, folderId), eq(folders.ownerId, ownerAllUserId)),
+    });
+
+    if (!folder) {
+      return { success: false, error: 'Folder not found or access denied' };
+    }
+
+    return { success: true, data: folder };
+  } catch (error) {
+    fatLogger.error('Failed to get folder by ID for owner', 'be', {
+      error: error instanceof Error ? error : undefined,
+      operation: 'get_folder_by_id_for_owner',
+      folderId,
+      ownerAllUserId,
+    });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+};
+
+/**
  * Get a single folder record by ID
  */
 export const getFolderRecord = async (folderId: string): Promise<FolderOperationResult> => {
@@ -91,6 +120,33 @@ export const getFolderRecord = async (folderId: string): Promise<FolderOperation
       error: error instanceof Error ? error : undefined,
       operation: 'get_folder',
       folderId,
+    });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+};
+
+/**
+ * Get folders by multiple IDs
+ */
+export const getFoldersByIds = async (folderIds: string[]): Promise<FolderOperationResult<DBFolder[]>> => {
+  try {
+    if (folderIds.length === 0) {
+      return { success: true, data: [] };
+    }
+
+    const folderRecords = await db.query.folders.findMany({
+      where: inArray(folders.id, folderIds),
+    });
+
+    return { success: true, data: folderRecords };
+  } catch (error) {
+    fatLogger.error('Failed to get folders by IDs', 'be', {
+      error: error instanceof Error ? error : undefined,
+      operation: 'get_folders_by_ids',
+      folderIds,
     });
     return {
       success: false,
@@ -164,7 +220,7 @@ export const getSharedFolders = async (allUserId: string): Promise<FolderOperati
 export const updateFolderRecord = async (
   folderId: string,
   params: UpdateFolderParams
-): Promise<FolderOperationResult> => {
+): Promise<FolderOperationResult<DBFolder>> => {
   try {
     const [updatedFolder] = await db
       .update(folders)

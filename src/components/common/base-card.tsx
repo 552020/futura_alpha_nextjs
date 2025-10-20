@@ -10,6 +10,7 @@ interface BaseCardProps<T> {
   onEdit?: (item: T) => void;
   onShare?: (item: T) => void;
   onDelete?: (item: T) => void;
+  isDeleting?: boolean;
 
   // Content renderers
   renderPreview: (item: T) => React.ReactNode;
@@ -22,12 +23,15 @@ interface BaseCardProps<T> {
   className?: string;
 }
 
+import { Loader2 } from 'lucide-react';
+
 export function BaseCard<T>({
   item,
   onClick,
   onEdit,
   onShare,
   onDelete,
+  isDeleting,
   renderPreview,
   renderTitle,
   renderDescription,
@@ -99,7 +103,7 @@ export function BaseCard<T>({
                 <Share2 className="h-4 w-4" />
               </Button>
             )}
-            {onDelete && (
+            {onDelete && !isDeleting && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -110,6 +114,11 @@ export function BaseCard<T>({
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
+            )}
+            {onDelete && isDeleting && (
+              <div className="h-9 w-9 flex items-center justify-center">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </div>
             )}
           </div>
         </div>

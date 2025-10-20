@@ -387,10 +387,16 @@ async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserI
     });
 
     if (!storageEdgeResult.success) {
-      fatLogger.error('Failed to create storage edges:', 'be', { error: storageEdgeResult.error });
+      fatLogger.warn('Failed to create storage edges', 'be', {
+        error: storageEdgeResult.error,
+        memoryId,
+        memoryType,
+      });
       // Don't fail the entire operation if storage edges fail
     } else {
       fatLogger.info('Storage edges created successfully:', 'be', {
+        memoryId,
+        memoryType,
         metadataEdge: Array.isArray(storageEdgeResult.metadataEdge)
           ? storageEdgeResult.metadataEdge[0]?.id
           : storageEdgeResult.metadataEdge?.id,
@@ -400,7 +406,11 @@ async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserI
       });
     }
   } catch (error) {
-    fatLogger.error('Error creating storage edges:', 'be', { error });
+    fatLogger.error('Error creating storage edges:', 'be', {
+      error,
+      memoryId,
+      memoryType,
+    });
     // Don't fail the entire operation if storage edges fail
   }
   return NextResponse.json({

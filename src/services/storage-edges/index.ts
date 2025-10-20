@@ -16,3 +16,5 @@ export {
   type StorageEdgeOperationResult,
   type StorageEdgeQueryParams,
 } from './storage-edge-operations';
+
+export { getStorageStatusForMemory } from './storage-status';
