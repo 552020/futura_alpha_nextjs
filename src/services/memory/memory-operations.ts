@@ -449,11 +449,30 @@ export const createMemoryWithAssets = async (params: {
     // Create storage edges for the memory
     if (createdMemory && params.assets && params.assets.length > 0) {
       try {
+        fatLogger.info('🔗 Starting storage edge creation for memory', 'be', {
+          operation: 'create_memory_with_assets',
+          memoryId: createdMemory.id,
+          memoryType: params.type,
+          assetsCount: params.assets.length,
+          assets: params.assets.map(a => ({ type: a.assetType, url: a.url, size: a.bytes })),
+        });
+
         // Import storage edge creation function
         const { createMemoryStorageEdges } = await import('@/lib/usecases/memory/create-memory-storage-edges');
         
         // Get the first asset (original) for storage edge creation
         const originalAsset = params.assets.find(asset => asset.assetType === 'original') || params.assets[0];
+        
+        fatLogger.info('🔗 Creating storage edges with asset data', 'be', {
+          operation: 'create_memory_with_assets',
+          memoryId: createdMemory.id,
+          originalAsset: {
+            type: originalAsset.assetType,
+            url: originalAsset.url,
+            size: originalAsset.bytes,
+            sha256: originalAsset.sha256,
+          },
+        });
         
         const storageEdgeResult = await createMemoryStorageEdges({
           memoryId: createdMemory.id,
@@ -464,28 +483,46 @@ export const createMemoryWithAssets = async (params: {
         });
 
         if (!storageEdgeResult.success) {
-          fatLogger.warn('Failed to create storage edges for memory', 'be', {
+          fatLogger.error('❌ Failed to create storage edges for memory', 'be', {
             operation: 'create_memory_with_assets',
             memoryId: createdMemory.id,
             error: storageEdgeResult.error,
+            originalAsset: {
+              type: originalAsset.assetType,
+              url: originalAsset.url,
+              size: originalAsset.bytes,
+            },
           });
           // Don't fail the entire operation if storage edges fail
         } else {
-          fatLogger.info('Successfully created storage edges for memory', 'be', {
+          fatLogger.info('✅ Successfully created storage edges for memory', 'be', {
             operation: 'create_memory_with_assets',
             memoryId: createdMemory.id,
             metadataEdge: storageEdgeResult.metadataEdge?.id,
             assetEdge: storageEdgeResult.assetEdge?.id,
+            originalAsset: {
+              type: originalAsset.assetType,
+              url: originalAsset.url,
+              size: originalAsset.bytes,
+            },
           });
         }
       } catch (error) {
-        fatLogger.warn('Error creating storage edges for memory', 'be', {
+        fatLogger.error('❌ Error creating storage edges for memory', 'be', {
           operation: 'create_memory_with_assets',
           memoryId: createdMemory.id,
           error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
         });
         // Don't fail the entire operation if storage edges fail
       }
+    } else {
+      fatLogger.warn('⚠️ Skipping storage edge creation - no assets provided', 'be', {
+        operation: 'create_memory_with_assets',
+        memoryId: createdMemory?.id,
+        hasAssets: !!(params.assets && params.assets.length > 0),
+        assetsCount: params.assets?.length || 0,
+      });
     }
 
     fatLogger.info('Created memory with assets', 'be', {

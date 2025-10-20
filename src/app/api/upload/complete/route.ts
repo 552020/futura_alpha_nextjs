@@ -360,6 +360,34 @@ async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserI
   }
 
   console.log('🎉 [DEBUG] Both memory and asset records created successfully');
+
+  // Create storage edges for the memory
+  try {
+    console.log('🔗 [DEBUG] Creating storage edges for memory:', memoryId);
+    const { createMemoryStorageEdges } = await import('@/lib/usecases/memory/create-memory-storage-edges');
+    
+    const storageEdgeResult = await createMemoryStorageEdges({
+      memoryId: memoryId,
+      memoryType: memoryType,
+      url: fileUrl,
+      size: size,
+      contentHash: null, // Legacy format doesn't provide content hash
+    });
+
+    if (!storageEdgeResult.success) {
+      console.log('❌ [DEBUG] Failed to create storage edges:', storageEdgeResult.error);
+      // Don't fail the entire operation if storage edges fail
+    } else {
+      console.log('✅ [DEBUG] Storage edges created successfully:', {
+        metadataEdge: storageEdgeResult.metadataEdge?.id,
+        assetEdge: storageEdgeResult.assetEdge?.id,
+      });
+    }
+  } catch (error) {
+    console.log('❌ [DEBUG] Error creating storage edges:', error);
+    // Don't fail the entire operation if storage edges fail
+  }
+
   return NextResponse.json({
     success: true,
     data: {
