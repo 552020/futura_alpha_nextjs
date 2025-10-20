@@ -1,16 +1,16 @@
-import { Vault, Grid, Newspaper, Share2, User, Users, LucideIcon } from 'lucide-react';
+import { Vault, Grid, Newspaper, Share2, User, Users, Bot, LucideIcon } from 'lucide-react';
 import { Dictionary } from '@/utils/dictionaries';
 
 export type NavItem = {
   href: string;
   icon: LucideIcon; // Lucide icon component
   label: string;
-  translationKey: 'dashboard' | 'gallery' | 'feed' | 'shared' | 'contacts' | 'profile' | 'icp';
+  translationKey: 'dashboard' | 'gallery' | 'feed' | 'shared' | 'contacts' | 'profile' | 'icp' | 'transcendance-ai';
 };
 
 // Helper function to get translated label
 export function getTranslatedLabel(item: NavItem, dict: Dictionary): string {
-  return dict.navigation?.[item.translationKey] || item.label;
+  return (dict.navigation as Record<string, string>)?.[item.translationKey] || item.label;
 }
 
 // Group navigation items for better organization
@@ -19,6 +19,7 @@ export const mainNavItems: NavItem[] = [
   { href: '/gallery', icon: Grid, label: 'Galleries', translationKey: 'gallery' },
   { href: '/feed', icon: Newspaper, label: 'Feed', translationKey: 'feed' },
   { href: '/shared', icon: Share2, label: 'Shared', translationKey: 'shared' },
+  { href: '/transcendance-ai', icon: Bot, label: 'Transcendance AI', translationKey: 'transcendance-ai' },
 ];
 
 export const secondaryNavItems: NavItem[] = [
