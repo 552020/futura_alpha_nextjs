@@ -22,6 +22,7 @@
   },
   "navigation": {
     "dashboard": "Dashboard",
+    "chat": "KI-Chat",
     "gallery": "Galerien",
     "feed": "Feed",
     "shared": "Geteilt",

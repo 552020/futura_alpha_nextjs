@@ -21,7 +21,9 @@
     "feed": "Fil d'actualité"
   },
   "navigation": {
-    "vault": "Coffre-fort",
+    "dashboard": "Tableau de bord",
+    "chat": "Chat IA",
+    "gallery": "Galeries",
     "feed": "Fil d'actualité",
     "shared": "Partagé",
     "contacts": "Contacts",

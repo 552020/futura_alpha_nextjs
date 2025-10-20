@@ -21,7 +21,9 @@
     "feed": "Feed"
   },
   "navigation": {
-    "vault": "Bóveda",
+    "dashboard": "Panel",
+    "chat": "Chat IA",
+    "gallery": "Galerías",
     "feed": "Feed",
     "shared": "Compartido",
     "contacts": "Contactos",

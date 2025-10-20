@@ -46,6 +46,7 @@ export type BaseDictionary = {
   };
   navigation?: {
     dashboard?: string;
+    chat?: string;
     gallery?: string;
     feed?: string;
     shared?: string;
@@ -204,18 +205,18 @@ export type Dictionary = BaseDictionary &
       };
     };
   } & {
-    [K in
-      | 'metadata'
-      | 'hero'
-      | 'header'
-      | 'nav'
-      | 'footer'
-      | 'onboarding'
-      | 'valueJourney'
-      | 'about'
-      | 'faq'
-      | 'variations']?: Record<string, unknown>;
-  };
+  [K in
+  | 'metadata'
+  | 'hero'
+  | 'header'
+  | 'nav'
+  | 'footer'
+  | 'onboarding'
+  | 'valueJourney'
+  | 'about'
+  | 'faq'
+  | 'variations']?: Record<string, unknown>;
+};
 
 const dictionaries: Record<string, () => Promise<BaseDictionary>> = {
   en: () => import('../app/[lang]/dictionaries/base/en.json').then(module => module.default),
