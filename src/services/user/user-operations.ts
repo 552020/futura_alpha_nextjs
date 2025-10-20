@@ -1,5 +1,5 @@
 import { db } from '@/db/db';
-import { users, allUsers } from '@/db/tables';
+import { users, allUsers, temporaryUsers } from '@/db/tables';
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import { hash } from 'bcrypt';
@@ -498,6 +498,76 @@ export const softDeleteAccount = async (userId: string): Promise<UserOperationRe
       error: error instanceof Error ? error : undefined,
       operation: 'soft_delete_account',
       userId,
+    });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+};
+
+/**
+ * Get temporary user record by ID
+ */
+export const getTemporaryUserRecord = async (temporaryUserId: string): Promise<UserOperationResult> => {
+  try {
+    const temporaryUser = await db.query.temporaryUsers.findFirst({
+      where: eq(temporaryUsers.id, temporaryUserId),
+    });
+
+    if (!temporaryUser) {
+      return { success: false, error: 'Temporary user not found' };
+    }
+
+    return { success: true, data: temporaryUser };
+  } catch (error) {
+    fatLogger.error('Failed to get temporary user', 'be', {
+      error: error instanceof Error ? error : undefined,
+      operation: 'get_temporary_user',
+      temporaryUserId,
+    });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+};
+
+/**
+ * Get user email by allUserId (works for both regular and temporary users)
+ */
+export const getUserEmailByAllUserId = async (allUserId: string): Promise<UserOperationResult<string>> => {
+  try {
+    // First get the allUsers record to determine type
+    const allUserResult = await getAllUserRecordById(allUserId);
+    if (!allUserResult.success || !allUserResult.data) {
+      return { success: false, error: 'User not found' };
+    }
+
+    const allUser = allUserResult.data as typeof allUsers.$inferSelect;
+
+    if (allUser.type === 'temporary' && allUser.temporaryUserId) {
+      // Get email from temporaryUsers table
+      const tempUserResult = await getTemporaryUserRecord(allUser.temporaryUserId);
+      if (!tempUserResult.success || !tempUserResult.data) {
+        return { success: false, error: 'Temporary user not found' };
+      }
+      return { success: true, data: tempUserResult.data.email };
+    } else if (allUser.type === 'user' && allUser.userId) {
+      // Get email from users table
+      const userResult = await getUserRecord(allUser.userId);
+      if (!userResult.success || !userResult.data) {
+        return { success: false, error: 'User not found' };
+      }
+      return { success: true, data: userResult.data.email };
+    }
+
+    return { success: false, error: 'Invalid user type' };
+  } catch (error) {
+    fatLogger.error('Failed to get user email', 'be', {
+      error: error instanceof Error ? error : undefined,
+      operation: 'get_user_email',
+      allUserId,
     });
     return {
       success: false,

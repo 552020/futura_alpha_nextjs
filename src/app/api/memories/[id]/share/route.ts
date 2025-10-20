@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { createShare, createPublicLink, generateShareableUrl } from '@/services/sharing';
-import { getAllUserRecord, getAllUserRecordById } from '@/services/user';
+import { getAllUserRecord, getAllUserRecordById, getUserEmailByAllUserId } from '@/services/user';
 import { getMemoryWithRelations } from '@/services/memory';
 import type { RelationshipType, FamilyRelationshipType, allUsers, memories } from '@/db';
 import { sendInvitationEmail, sendSharedMemoryEmail } from '@/app/api/memories/utils/email';
@@ -206,25 +206,31 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
           if (memoryResult.success) {
             const memory = memoryResult.data;
 
-            // Get recipient details
-            const recipientResult = await getAllUserRecordById(finalTargetUserId);
-            if (recipientResult.success) {
-              const recipient = recipientResult.data as typeof allUsers.$inferSelect;
+            // Get recipient email using the new service function
+            const emailResult = await getUserEmailByAllUserId(finalTargetUserId);
+            if (!emailResult.success) {
+              fatLogger.error('📧 Failed to get recipient email', 'be', {
+                error: emailResult.error,
+                targetUserId: finalTargetUserId,
+                memoryId,
+              });
+              // Continue without email - don't fail the share operation
+            } else {
+              const recipientEmail = emailResult.data;
+              
+              if (!recipientEmail) {
+                fatLogger.error('📧 No email address found for user', 'be', {
+                  targetUserId: finalTargetUserId,
+                  memoryId,
+                });
+                // Continue without email - don't fail the share operation
+              } else {
+                // Get recipient details to determine user type
+                const recipientResult = await getAllUserRecordById(finalTargetUserId);
+                const recipient = recipientResult.success ? recipientResult.data as typeof allUsers.$inferSelect : null;
 
-              // Get email from temporary user if it's a temporary user
-              let recipientEmail = 'recipient@example.com';
-              if (recipient.type === 'temporary' && recipient.temporaryUserId) {
-                // For temporary users, we need to get the email from the temporary user record
-                // For now, we'll use a placeholder - in production, you'd fetch from temporaryUsers table
-                recipientEmail = 'temporary-user@example.com';
-              } else if (recipient.type === 'user' && recipient.userId) {
-                // For regular users, we'd get email from users table
-                // For now, we'll use a placeholder
-                recipientEmail = 'user@example.com';
-              }
-
-              // Determine if this is a new user invitation
-              const isNewUser = _isInviteeNew || recipient.type === 'temporary';
+                // Determine if this is a new user invitation
+                const isNewUser = _isInviteeNew || (recipient && recipient.type === 'temporary');
 
               if (isNewUser) {
                 // Send invitation email for new users

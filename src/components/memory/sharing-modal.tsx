@@ -19,8 +19,8 @@ import { cn } from '@/lib/utils';
 interface User {
   id: string;
   name: string;
-  email: string;
   avatar?: string;
+  // Note: Email is NOT exposed for privacy - only used internally
 }
 
 interface EmailInvite {
