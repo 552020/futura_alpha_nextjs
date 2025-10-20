@@ -2,17 +2,18 @@
 
 import { useState, Suspense, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { signIn, useSession } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, X } from 'lucide-react';
+import { useInternetIdentitySignIn } from '@/hooks/use-internet-identity-signin';
 import { fatLogger } from '@/lib/logger/fat-logger';
 
 function SignIIOnlyContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session, update } = useSession();
-  const [iiBusy, setIiBusy] = useState(false);
+  const { signInWithII, linkIIToSession, isBusy: iiBusy } = useInternetIdentitySignIn();
   const [error, setError] = useState<string | null>(null);
 
   // Get callback URL from query params, default to dashboard
@@ -43,80 +44,35 @@ function SignIIOnlyContent() {
   async function handleInternetIdentity() {
     if (iiBusy) return;
     setError(null);
-    setIiBusy(true);
-    try {
-      // 1) Ensure II identity with AuthClient.login
-      const { loginWithII } = await import('@/ic/ii');
-      const { identity } = await loginWithII();
 
-      // 1.5) Start non-blocking capsule auto-creation
-      const { ensureSelfCapsuleWithIdentity } = await import('@/services/capsule');
-      ensureSelfCapsuleWithIdentity(identity).catch(error => {
-        console.error('Capsule auto-creation failed:', error);
-        // Could show a toast: "Auto-creation failed, please create manually"
+    // If user already logged in, link II; else do sign-in
+    const hasActiveSession = !!session?.user?.id;
+
+    if (hasActiveSession) {
+      // Link II to existing session
+      const result = await linkIIToSession({
+        callbackUrl: safeCallbackUrl,
+        onSuccess: async () => {
+          // Update NextAuth session to include the new principal
+          const linkedIcPrincipals = [result.principal].filter(Boolean) as string[];
+          await update({
+            activeIcPrincipal: result.principal,
+            linkedIcPrincipals,
+          });
+        },
+        onError: errorMsg => setError(errorMsg),
       });
 
-      // 2) Fetch challenge and register (create proof/nonce)
-      const { fetchChallenge, registerWithNonce } = await import('@/lib/ii-client');
-      const challenge = await fetchChallenge(safeCallbackUrl);
-      await registerWithNonce(challenge.nonce, identity);
-
-      // 3) If user already logged in, link II via API route; else do signIn('ii')
-      const hasActiveSession = !!session?.user?.id;
-      if (hasActiveSession) {
-        // Link: verify nonce server-side and upsert account
-        const res = await fetch('/api/auth/link-ii', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ nonce: challenge.nonce }),
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-
-          // Handle Principal conflict specifically
-          if (data.code === 'PRINCIPAL_CONFLICT') {
-            throw new Error(
-              'This Internet Identity is already linked to another account. Each II Principal can only be linked to one account for security reasons.'
-            );
-          }
-
-          throw new Error(data.error || data.message || 'Failed to link Internet Identity');
-        }
-
-        // Get the principal and linked principals from the response
-        const data = await res.json();
-        const principal = data.principal;
-        const linkedIcPrincipals = data.linkedIcPrincipals || [];
-
-        // 4) Update NextAuth session to include activeIcPrincipal and linkedIcPrincipals
-        await update({
-          activeIcPrincipal: principal,
-          linkedIcPrincipals,
-        });
-        // 5) Continue flow
-        fatLogger.info('Redirecting to callback URL:', 'be', {
-          callbackUrl: safeCallbackUrl,
-        });
-        router.push(safeCallbackUrl);
+      // If linking failed, error is already set
+      if (!result.success) {
         return;
       }
-
-      // Fallback: standalone II sign-in when no session exists
-      fatLogger.info('Using NextAuth signIn with callback URL:', 'be', {
+    } else {
+      // Standalone II sign-in when no session exists
+      await signInWithII({
         callbackUrl: safeCallbackUrl,
+        onError: errorMsg => setError(errorMsg),
       });
-      await signIn('ii', {
-        principal: '', // authorize() will validate via /api/ii/verify-nonce
-        nonceId: challenge.nonceId,
-        nonce: challenge.nonce,
-        redirect: true,
-        callbackUrl: safeCallbackUrl,
-      });
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      setError(`Internet Identity linking failed: ${msg}`);
-    } finally {
-      setIiBusy(false);
     }
   }
 
