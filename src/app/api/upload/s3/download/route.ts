@@ -12,15 +12,29 @@ const s3Client = new S3Client({
 });
 
 export async function POST(request: Request) {
-  fatLogger.info('🔑 Received request to generate presigned URL', 'be');
+  fatLogger.info('🔑 Received request to generate presigned URL', 'be', {
+    timestamp: new Date().toISOString(),
+    userAgent: request.headers.get('user-agent'),
+    referer: request.headers.get('referer'),
+  });
+
+  let key: string | undefined;
   try {
     const body = await request.json();
-    fatLogger.info('📦 Request body:', 'be', body);
+    fatLogger.info('📦 Request body received', 'be', {
+      hasKey: !!body.key,
+      keyLength: body.key?.length || 0,
+      keyPreview: body.key ? body.key.substring(0, 50) + '...' : 'null',
+      timestamp: new Date().toISOString(),
+    });
 
-    const { key } = body;
+    key = body.key;
 
     if (!key) {
-      fatLogger.error('❌ Key is required', 'be');
+      fatLogger.error('❌ Key is required in request body', 'be', {
+        body,
+        timestamp: new Date().toISOString(),
+      });
       return NextResponse.json({ error: 'Key is required' }, { status: 400 });
     }
 
@@ -39,14 +53,42 @@ export async function POST(request: Request) {
       Key: key,
     });
 
-    fatLogger.info('🔑 Command created, generating presigned URL...', 'be');
+    fatLogger.info('🔑 Command created, generating presigned URL...', 'be', {
+      bucket,
+      key,
+      region: process.env.AWS_S3_REGION || 'eu-central-1',
+      timestamp: new Date().toISOString(),
+    });
+
     // Generate a presigned URL that's valid for 1 hour
     const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
-    fatLogger.info('✅ Generated presigned URL:', 'be', { url });
+
+    fatLogger.info('✅ Successfully generated presigned URL', 'be', {
+      urlLength: url.length,
+      urlPreview: url.substring(0, 100) + '...',
+      bucket,
+      key,
+      timestamp: new Date().toISOString(),
+    });
 
     return NextResponse.json({ url });
   } catch (error) {
-    fatLogger.error('Error generating presigned URL:', 'be', { data: error instanceof Error ? error : undefined });
-    return NextResponse.json({ error: 'Failed to generate presigned URL' }, { status: 500 });
+    const errorObj = error instanceof Error ? error : new Error(String(error));
+    fatLogger.error('💥 CRITICAL: Error generating presigned URL', 'be', {
+      error: errorObj.message,
+      errorStack: errorObj.stack,
+      errorName: errorObj.name,
+      bucket: process.env.AWS_S3_BUCKET,
+      key,
+      region: process.env.AWS_S3_REGION || 'eu-central-1',
+      timestamp: new Date().toISOString(),
+    });
+    return NextResponse.json(
+      {
+        error: 'Failed to generate presigned URL',
+        details: process.env.NODE_ENV === 'development' ? errorObj.message : undefined,
+      },
+      { status: 500 }
+    );
   }
 }

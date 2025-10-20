@@ -196,7 +196,7 @@ export function CreateGalleryModal({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Create Gallery from Folder</DialogTitle>
           <DialogDescription>
@@ -206,7 +206,7 @@ export function CreateGalleryModal({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 overflow-y-auto flex-1 pr-2">
             {/* Error Alert */}
             {error && (
               <Alert variant="destructive">
