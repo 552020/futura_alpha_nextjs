@@ -319,7 +319,7 @@ export async function getResourcePublicLinks(
   try {
     const links = await db.query.resourceShareTokens.findMany({
       where: and(
-        eq(resourceShareTokens.resourceType, resourceType as any),
+        eq(resourceShareTokens.resourceType, resourceType as 'memory' | 'folder' | 'gallery'),
         eq(resourceShareTokens.resourceId, resourceId)
       ),
       orderBy: (resourceShareTokens, { desc }) => [desc(resourceShareTokens.createdAt)],

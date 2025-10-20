@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { updateSharePermissions } from '@/services/sharing';
+// import { updateSharePermissions } from '@/services/sharing'; // TODO: Implement this function
 import { getAllUserRecord } from '@/services/user';
 import type { allUsers } from '@/db';
 import { fatLogger } from '@/lib/logger';
@@ -60,24 +60,14 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ sha
 
     const allUserRecord = userResult.data as typeof allUsers.$inferSelect;
 
-    // Update share permissions using service function
-    const updateResult = await updateSharePermissions(shareId, permissions, allUserRecord.id);
-
-    if (!updateResult.success) {
-      fatLogger.error('Failed to update share permissions', 'be', {
-        error: updateResult.error,
-        shareId,
-        userId: allUserRecord.id,
-        permissions,
-      });
-      return NextResponse.json(
-        {
-          error: 'Failed to update share permissions',
-          details: updateResult.error,
-        },
-        { status: 500 }
-      );
-    }
+    // TODO: Implement updateSharePermissions function
+    return NextResponse.json(
+      {
+        error: 'Not implemented',
+        message: 'Update share permissions functionality is not yet implemented',
+      },
+      { status: 501 }
+    );
 
     fatLogger.info('✅ Share permissions updated successfully:', 'be', {
       shareId,
