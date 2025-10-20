@@ -13,6 +13,7 @@ interface MemoryGridProps {
   onDelete?: (id: string) => void;
   onShare?: () => void;
   onEdit?: (id: string) => void;
+  onEditItem?: (item: Memory | DashboardItem) => void;
   onClick?: (memory: Memory | DashboardItem) => void;
   viewMode?: 'grid' | 'list';
   useReactQuery?: boolean; // New prop to enable React Query mutations
@@ -23,6 +24,7 @@ export function MemoryGrid({
   onDelete,
   onShare,
   onEdit,
+  onEditItem,
   onClick,
   viewMode = 'grid',
   useReactQuery = false,
@@ -48,7 +50,7 @@ export function MemoryGrid({
       onDelete(item.id);
     }
   };
-  const isDeleting = (id: string) => deletingIdsRef.current.has(id) || deleteMemoryMutation.isPending;
+  const isDeleting = (id: string) => deletingIdsRef.current.has(id);
   return (
     <BaseGrid
       items={memories}
@@ -61,7 +63,13 @@ export function MemoryGrid({
           onClick={item => onClick?.(item as Memory | DashboardItem)}
           onDelete={handleDelete}
           onShare={onShare || (() => {})}
-          onEdit={onEdit ? () => onEdit(memory.id) : undefined}
+          onEdit={
+            onEditItem
+              ? item => onEditItem(item as Memory | DashboardItem)
+              : onEdit
+                ? () => onEdit(memory.id)
+                : undefined
+          }
           viewMode={viewMode}
           contentType="memory"
           isDeleting={isDeleting(memory.id)}

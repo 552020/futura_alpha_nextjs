@@ -256,13 +256,27 @@ function getMemoryLabel(memory: MemoryItem) {
  * - Fallback: "Untitled"
  */
 function renderTitle(item: FlexibleItem) {
+  // Base title
+  let titleText = 'Untitled';
   if ('title' in item) {
-    return shortenTitle(item.title);
+    titleText = shortenTitle(item.title);
+  } else if ('memory' in item && item.memory.title) {
+    titleText = item.memory.title;
   }
-  if ('memory' in item && item.memory.title) {
-    return item.memory.title;
+
+  // For folders, append a small badge with itemCount
+  if ('type' in item && item.type === 'folder' && 'itemCount' in item) {
+    return (
+      <div className="flex items-center gap-2">
+        <span>{titleText}</span>
+        <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[10px] leading-none text-muted-foreground">
+          {String((item as { itemCount?: number }).itemCount ?? 0)}
+        </span>
+      </div>
+    );
   }
-  return 'Untitled';
+
+  return titleText;
 }
 
 /**

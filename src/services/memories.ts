@@ -714,12 +714,12 @@ const deleteAllMemoriesFromICP = async (_options?: {
     try {
       // Use the working getCapsuleInfo service instead of direct backend call
       const { getCapsuleInfo } = await import('@/services/capsule');
-      
+
       const capsuleInfo = await getCapsuleInfo(
         () => Promise.resolve(backend),
         () => {} // No-op clear function
       );
-      
+
       if (capsuleInfo) {
         capsuleId = capsuleInfo.capsule_id;
         console.log('🔍 [Delete All Dev] Found existing capsule:', capsuleId);
@@ -826,11 +826,12 @@ export const processDashboardItems = (memories: MemoryWithFolder[]): DashboardIt
       }
     });
 
+    const folderName = folderMemories[0]?.folder?.name || 'Unknown Folder';
     return {
       id: `folder-${folderId}`,
       type: 'folder' as const,
-      title: folderMemories[0]?.folder?.name || 'Unknown Folder',
-      description: `${folderMemories.length} items`,
+      title: folderName,
+      description: '',
       itemCount: folderMemories.length,
       memories: folderMemories,
       folderId: folderId, // Store actual folder ID

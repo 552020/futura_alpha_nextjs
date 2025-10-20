@@ -36,6 +36,7 @@ import {
   type FolderItem,
 } from '@/services/memories';
 import { useDeleteMemory, useUpdateMemory } from '@/hooks/use-memory-mutations';
+import { useUpdateFolder } from '@/hooks/use-folder-mutations';
 import { ExtendedMemory } from '@/types/dashboard';
 // import { TawkChat } from '@/components/chat/tawk-chat';
 import { DashboardTopBar } from '@/components/dashboard/dashboard-top-bar';
@@ -191,6 +192,7 @@ export default function VaultPage() {
   // React Query mutation for memory deletion
   const deleteMemoryMutation = useDeleteMemory();
   const updateMemoryMutation = useUpdateMemory();
+  const updateFolderMutation = useUpdateFolder();
 
   const handleDelete = (id: string) => {
     deleteMemoryMutation.mutate(id);
@@ -211,12 +213,28 @@ export default function VaultPage() {
     setQuickEditOpen(true);
   };
 
+  const handleEditItem = (item: Memory | DashboardItem) => {
+    setSelectedId(item.id);
+    setSelectedTitle((item as { title?: string })?.title);
+    setSelectedDescription((item as { description?: string })?.description);
+    setQuickEditOpen(true);
+  };
+
   const handleQuickEditSave = async ({ data }: { data: { title?: string; description?: string } }) => {
     if (!selectedId) return;
-    await updateMemoryMutation.mutateAsync({
-      id: selectedId,
-      updates: { title: data.title, description: data.description },
-    });
+    const selected = (filteredMemories || []).find(m => m.id === selectedId);
+    console.log('📝 [DASHBOARD] QuickEdit save', { selectedId, type: selected?.type, data });
+    if (selected?.type === 'folder') {
+      const cleanId = selectedId.startsWith('folder-') ? selectedId.replace('folder-', '') : selectedId;
+      console.log('📝 [DASHBOARD] Updating folder', { cleanId });
+      await updateFolderMutation.mutateAsync({ id: cleanId, updates: { title: data.title } });
+    } else {
+      console.log('📝 [DASHBOARD] Updating memory', { id: selectedId });
+      await updateMemoryMutation.mutateAsync({
+        id: selectedId,
+        updates: { title: data.title, description: data.description },
+      });
+    }
   };
 
   const handleMemoryClick = (memory: Memory | DashboardItem) => {
@@ -356,6 +374,7 @@ export default function VaultPage() {
             onDelete={handleDelete}
             onShare={handleShare}
             onEdit={handleEdit}
+            onEditItem={handleEditItem}
             onClick={handleMemoryClick}
             viewMode={viewMode}
             useReactQuery={true}
