@@ -61,10 +61,7 @@ async function testStorageEdgesFix(email: string) {
 
     // Get recent memories (last 5)
     const recentMemories = await db.query.memories.findMany({
-      where: and(
-        eq(memories.ownerId, allUser.id),
-        isNull(memories.deletedAt)
-      ),
+      where: and(eq(memories.ownerId, allUser.id), isNull(memories.deletedAt)),
       orderBy: [desc(memories.createdAt)],
       limit: 5,
     });

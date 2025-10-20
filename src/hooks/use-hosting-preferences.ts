@@ -123,9 +123,15 @@ export function createHostingPreferencesFromStacks(
   if (web2Enabled) databaseHosting.push('neon');
   if (web3Enabled) databaseHosting.push('icp');
 
+  // Create blob hosting array
+  const blobHosting: BlobHosting[] = [];
+  if (web2Enabled) blobHosting.push('s3');
+  if (web3Enabled) blobHosting.push('icp');
+
   return {
     backendHosting,
     databaseHosting,
+    blobHosting,
   };
 }
 
