@@ -124,11 +124,13 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
       }
     }
 
-    // Upsert assets (insert or update if exists)
+    // Upsert assets using service layer
     const upsertedAssets = [];
 
     for (const asset of assets) {
-      const assetData = {
+      const { upsertAssetRecord } = await import('@/services/memory/asset-operations');
+
+      const assetResult = await upsertAssetRecord({
         memoryId,
         assetType: asset.assetType as 'original' | 'display' | 'thumb' | 'placeholder' | 'poster' | 'waveform',
         variant: asset.variant || null,
@@ -142,37 +144,24 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
         sha256: asset.sha256 || null,
         processingStatus: asset.processingStatus || 'completed',
         processingError: asset.processingError || null,
-      };
+      });
 
-      // Use upsert logic (insert or update on conflict)
-      const [upsertedAsset] = await db
-        .insert(memoryAssets)
-        .values(assetData)
-        .onConflictDoUpdate({
-          target: [memoryAssets.memoryId, memoryAssets.assetType, memoryAssets.variant],
-          set: {
-            url: assetData.url,
-            assetLocation: assetData.assetLocation,
-            storageKey: assetData.storageKey,
-            bytes: assetData.bytes,
-            width: assetData.width,
-            height: assetData.height,
-            mimeType: assetData.mimeType,
-            sha256: assetData.sha256,
-            processingStatus: assetData.processingStatus,
-            processingError: assetData.processingError,
-            updatedAt: new Date(),
-          },
-        })
-        .returning();
-
-      upsertedAssets.push(upsertedAsset);
+      if (assetResult.success && assetResult.data) {
+        upsertedAssets.push(assetResult.data);
+      } else {
+        fatLogger.warn('Failed to upsert asset', 'be', {
+          operation: 'add_asset_to_memory',
+          memoryId,
+          assetType: asset.assetType,
+          error: assetResult.error,
+        });
+      }
     }
 
     // Create storage edges for the new assets
     try {
       const { createMemoryStorageEdges } = await import('@/lib/usecases/memory/create-memory-storage-edges');
-      
+
       for (const asset of assets) {
         const storageEdgeResult = await createMemoryStorageEdges({
           memoryId,
@@ -334,7 +323,9 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
 
     // Filter by asset types if specified
     const filteredDeletedAssets =
-      assetTypes.length > 0 ? deletedAssets.filter((asset: DBMemoryAsset) => assetTypes.includes(asset.assetType)) : deletedAssets;
+      assetTypes.length > 0
+        ? deletedAssets.filter((asset: DBMemoryAsset) => assetTypes.includes(asset.assetType))
+        : deletedAssets;
 
     return NextResponse.json({
       success: true,
