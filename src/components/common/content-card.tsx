@@ -14,6 +14,7 @@ import {
   Eye,
   EyeOff,
   Image as ImageLucide,
+  Loader2,
   Globe,
   Lock,
 } from 'lucide-react';
@@ -74,6 +75,7 @@ interface ContentCardProps {
   onEdit?: (item: FlexibleItem) => void;
   onShare?: (item: FlexibleItem) => void;
   onDelete?: (item: FlexibleItem) => void;
+  isDeleting?: boolean;
 
   // Selection mode props (for gallery photos)
   selectionMode?: boolean;
@@ -348,6 +350,7 @@ export function ContentCard({
   onEdit,
   onShare,
   onDelete,
+  isDeleting,
   selectionMode = false,
   isSelected = false,
   onSelectionToggle,
@@ -409,7 +412,7 @@ export function ContentCard({
                   onDelete(item);
                 }}
               >
-                <Trash2 className="h-4 w-4" />
+                {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
               </button>
             )}
           </div>
@@ -571,12 +574,18 @@ export function ContentCard({
         renderStorageBadge={() => (
           <div className="flex items-center gap-2 flex-wrap">
             {!gallery.isOwner ? (
-              <Badge variant="outline" className="text-xs border-blue-300 text-blue-700 bg-blue-50 dark:border-blue-700 dark:text-blue-300 dark:bg-blue-950">
+              <Badge
+                variant="outline"
+                className="text-xs border-blue-300 text-blue-700 bg-blue-50 dark:border-blue-700 dark:text-blue-300 dark:bg-blue-950"
+              >
                 <Share2 className="h-3 w-3 mr-1" />
                 Shared with you
               </Badge>
             ) : gallery.sharedCount > 0 ? (
-              <Badge variant="outline" className="text-xs border-green-300 text-green-700 bg-green-50 dark:border-green-700 dark:text-green-300 dark:bg-green-950">
+              <Badge
+                variant="outline"
+                className="text-xs border-green-300 text-green-700 bg-green-50 dark:border-green-700 dark:text-green-300 dark:bg-green-950"
+              >
                 <Share2 className="h-3 w-3 mr-1" />
                 Shared
               </Badge>
@@ -599,12 +608,18 @@ export function ContentCard({
         renderLeftStatus={() => (
           <div className="flex items-center gap-2">
             {!gallery.isOwner ? (
-              <Badge variant="outline" className="text-xs border-blue-300 text-blue-700 bg-blue-50 dark:border-blue-700 dark:text-blue-300 dark:bg-blue-950">
+              <Badge
+                variant="outline"
+                className="text-xs border-blue-300 text-blue-700 bg-blue-50 dark:border-blue-700 dark:text-blue-300 dark:bg-blue-950"
+              >
                 <Share2 className="h-3 w-3 mr-1" />
                 Shared with you
               </Badge>
             ) : gallery.sharedCount > 0 ? (
-              <Badge variant="outline" className="text-xs border-green-300 text-green-700 bg-green-50 dark:border-green-700 dark:text-green-300 dark:bg-green-950">
+              <Badge
+                variant="outline"
+                className="text-xs border-green-300 text-green-700 bg-green-50 dark:border-green-700 dark:text-green-300 dark:bg-green-950"
+              >
                 <Share2 className="h-3 w-3 mr-1" />
                 Shared
               </Badge>
@@ -636,6 +651,7 @@ export function ContentCard({
       onEdit={onEdit}
       onShare={onShare}
       onDelete={onDelete}
+      isDeleting={isDeleting}
       renderPreview={renderPreview}
       renderTitle={renderTitle}
       renderDescription={renderDescription}
