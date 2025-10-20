@@ -11,8 +11,26 @@ export async function GET(request: NextRequest, context: { params: Promise<{ tok
   try {
     fatLogger.info('🔗 Validate public token request:', 'be', { token: token.substring(0, 8) + '...' });
 
-    // Validate the public token using service function
-    const validation = await validatePublicToken(token);
+    // Check if user is authenticated
+    let userId: string | undefined;
+    try {
+      const session = await auth();
+      if (session?.user?.id) {
+        const userResult = await getAllUserRecord(session.user.id);
+        if (userResult.success) {
+          const allUserRecord = userResult.data as typeof allUsers.$inferSelect;
+          userId = allUserRecord.id;
+        }
+      }
+    } catch (authError) {
+      // User might not be authenticated, that's okay for public links
+      fatLogger.info('ℹ️ No authenticated user for token validation:', 'be', {
+        token: token.substring(0, 8) + '...',
+      });
+    }
+
+    // Validate the public token using service function with user context
+    const validation = await validatePublicToken(token, userId);
 
     if (!validation.success || !validation.data?.isValid) {
       fatLogger.warn('❌ Invalid or expired token:', 'be', {
@@ -79,6 +97,12 @@ export async function GET(request: NextRequest, context: { params: Promise<{ tok
         resourceId: validation.data.record?.resourceId,
         accessGranted,
         permissions: userPermissions,
+        accessControl: {
+          requiresAuth: validation.data.requiresAuth,
+          userAllowed: validation.data.userAllowed,
+          roleAllowed: validation.data.roleAllowed,
+          accessGranted: validation.data.accessGranted,
+        },
         shareInfo: {
           tokenId: validation.data.record?.id,
           expiresAt: validation.data.record?.expiresAt,

@@ -38,6 +38,12 @@ export interface CreatePublicLinkParams {
   createdBy: string;
   expiresAt?: Date;
   isActive?: boolean;
+
+  // Enhanced access control
+  allowedUsers?: string[]; // Array of user IDs
+  allowedRoles?: string[]; // Array of roles
+  requireAuth?: boolean; // Must be logged in
+  accessRestrictions?: Record<string, unknown>; // Custom restrictions
 }
 
 export interface PublicLinkAccess {
@@ -45,6 +51,12 @@ export interface PublicLinkAccess {
   isExpired: boolean;
   record?: PublicLinkRecord;
   error?: string;
+
+  // Enhanced access control results
+  requiresAuth?: boolean;
+  userAllowed?: boolean;
+  roleAllowed?: boolean;
+  accessGranted?: boolean;
 }
 
 // Share management

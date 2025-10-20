@@ -9,6 +9,12 @@ import { fatLogger } from '@/lib/logger';
 type CreatePublicLinkRequest = {
   expiresAt?: string; // ISO string
   isActive?: boolean;
+
+  // Enhanced access control
+  allowedUsers?: string[]; // Array of user IDs
+  allowedRoles?: string[]; // Array of roles
+  requireAuth?: boolean; // Must be logged in
+  accessRestrictions?: Record<string, unknown>; // Custom restrictions
 };
 
 export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
@@ -18,7 +24,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     const body = (await request.json()) as CreatePublicLinkRequest;
     fatLogger.info('📨 Create public link request:', 'be', { memoryId, body });
 
-    const { expiresAt, isActive = true } = body;
+    const { expiresAt, isActive = true, allowedUsers, allowedRoles, requireAuth = false, accessRestrictions } = body;
 
     // Authentication
     const session = await auth();
@@ -78,6 +84,10 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       createdBy: allUserRecord.id,
       expiresAt: expiresAt ? new Date(expiresAt) : undefined,
       isActive,
+      allowedUsers,
+      allowedRoles,
+      requireAuth,
+      accessRestrictions,
     });
 
     if (!publicLinkResult.success) {

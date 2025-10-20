@@ -1367,6 +1367,12 @@ export const resourceShareTokens = pgTable(
     expiresAt: timestamp('expires_at', { mode: 'date' }),
     isActive: boolean('is_active').default(true).notNull(),
     createdAt: timestamp('created_at').notNull().defaultNow(),
+    
+    // Enhanced access control fields
+    allowedUsers: jsonb('allowed_users'),           // Array of user IDs
+    allowedRoles: jsonb('allowed_roles'),            // Array of roles
+    requireAuth: boolean('require_auth').default(false).notNull(), // Must be logged in
+    accessRestrictions: jsonb('access_restrictions'), // Custom restrictions
   },
   table => [
     // Performance indexes

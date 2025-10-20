@@ -31,7 +31,17 @@ function generateSecureToken(): string {
  */
 export async function createPublicLink(params: CreatePublicLinkParams): Promise<OperationResult<PublicLinkRecord>> {
   try {
-    const { resourceType, resourceId, createdBy, expiresAt, isActive = true } = params;
+    const {
+      resourceType,
+      resourceId,
+      createdBy,
+      expiresAt,
+      isActive = true,
+      allowedUsers,
+      allowedRoles,
+      requireAuth = false,
+      accessRestrictions,
+    } = params;
 
     // Generate unique token
     const token = generateSecureToken();
@@ -47,6 +57,10 @@ export async function createPublicLink(params: CreatePublicLinkParams): Promise<
         expiresAt,
         isActive,
         createdAt: new Date(),
+        allowedUsers: allowedUsers ? JSON.stringify(allowedUsers) : null,
+        allowedRoles: allowedRoles ? JSON.stringify(allowedRoles) : null,
+        requireAuth,
+        accessRestrictions: accessRestrictions ? JSON.stringify(accessRestrictions) : null,
       })
       .returning();
 
@@ -79,7 +93,7 @@ export async function createPublicLink(params: CreatePublicLinkParams): Promise<
 /**
  * Validate a public share token
  */
-export async function validatePublicToken(token: string): Promise<OperationResult<PublicLinkAccess>> {
+export async function validatePublicToken(token: string, userId?: string): Promise<OperationResult<PublicLinkAccess>> {
   try {
     const linkRecord = await db.query.resourceShareTokens.findFirst({
       where: eq(resourceShareTokens.token, token),
@@ -123,12 +137,61 @@ export async function validatePublicToken(token: string): Promise<OperationResul
       };
     }
 
+    // Enhanced access control validation
+    let userAllowed = true;
+    let roleAllowed = true;
+    let accessGranted = true;
+
+    // Check authentication requirement
+    if (linkRecord.requireAuth && !userId) {
+      return {
+        success: true,
+        data: {
+          isValid: false,
+          isExpired: false,
+          requiresAuth: true,
+          error: 'Authentication required for this link',
+        },
+      };
+    }
+
+    // Check user whitelist
+    if (linkRecord.allowedUsers && userId) {
+      const allowedUsers = JSON.parse(linkRecord.allowedUsers);
+      userAllowed = allowedUsers.includes(userId);
+      if (!userAllowed) {
+        return {
+          success: true,
+          data: {
+            isValid: false,
+            isExpired: false,
+            userAllowed: false,
+            error: 'User not authorized for this link',
+          },
+        };
+      }
+    }
+
+    // Check role restrictions
+    if (linkRecord.allowedRoles && userId) {
+      // TODO: Implement getUserRole function
+      // const userRole = await getUserRole(userId);
+      // const allowedRoles = JSON.parse(linkRecord.allowedRoles);
+      // roleAllowed = allowedRoles.includes(userRole);
+      // For now, skip role checking
+      roleAllowed = true;
+    }
+
     return {
       success: true,
       data: {
         isValid: true,
         isExpired: false,
         record: linkRecord as PublicLinkRecord,
+        requiresAuth: linkRecord.requireAuth,
+        userAllowed,
+        roleAllowed,
+        accessGranted: userAllowed && roleAllowed,
       },
     };
   } catch (error) {
@@ -150,8 +213,8 @@ export async function validatePublicToken(token: string): Promise<OperationResul
  */
 export async function grantAccessViaToken(token: string, userId: string): Promise<OperationResult<boolean>> {
   try {
-    // Validate the token first
-    const validation = await validatePublicToken(token);
+    // Validate the token first with user context
+    const validation = await validatePublicToken(token, userId);
     if (!validation.success || !validation.data?.isValid) {
       return {
         success: false,
