@@ -52,6 +52,7 @@ export type BaseDictionary = {
     contacts?: string;
     profile?: string;
     icp?: string;
+    'transcendance-ai'?: string;
   };
   footer?: {
     tagline?: string;
@@ -204,18 +205,18 @@ export type Dictionary = BaseDictionary &
       };
     };
   } & {
-    [K in
-      | 'metadata'
-      | 'hero'
-      | 'header'
-      | 'nav'
-      | 'footer'
-      | 'onboarding'
-      | 'valueJourney'
-      | 'about'
-      | 'faq'
-      | 'variations']?: Record<string, unknown>;
-  };
+  [K in
+  | 'metadata'
+  | 'hero'
+  | 'header'
+  | 'nav'
+  | 'footer'
+  | 'onboarding'
+  | 'valueJourney'
+  | 'about'
+  | 'faq'
+  | 'variations']?: Record<string, unknown>;
+};
 
 const dictionaries: Record<string, () => Promise<BaseDictionary>> = {
   en: () => import('../app/[lang]/dictionaries/base/en.json').then(module => module.default),
