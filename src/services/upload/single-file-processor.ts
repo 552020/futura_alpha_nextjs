@@ -110,22 +110,42 @@ export async function processSingleFile(options: ProcessSingleFileOptions): Prom
         userId: uploadResult.userId,
       };
     } else if (userBlobHostingPreferences.includes('vercel_blob')) {
-      const { uploadToVercelBlob } = await import('./vercel-blob-upload');
-      const results = await uploadToVercelBlob([file], isOnboarding, existingUserId, mode);
-      const vercelResult = results[0]; // Get first (and only) result
-      data = {
-        data: vercelResult.data,
-        results: vercelResult.results.map(result => ({
-          memoryId: result.memoryId,
-          size: Number(result.size),
-          checksum_sha256: result.checksumSha256
-            ? Array.from(result.checksumSha256)
-                .map(b => b.toString(16).padStart(2, '0'))
-                .join('')
-            : null,
-        })),
-        userId: vercelResult.userId,
-      };
+      console.log('🔍 [DEBUG] processSingleFile: Using Vercel Blob upload');
+      try {
+        console.log('🔍 [DEBUG] processSingleFile: Importing uploadToVercelBlob...');
+        const { uploadToVercelBlob } = await import('./vercel-blob-upload');
+        console.log('🔍 [DEBUG] processSingleFile: Calling uploadToVercelBlob...');
+        const results = await uploadToVercelBlob([file], isOnboarding, existingUserId, mode);
+        console.log(
+          '🔍 [DEBUG] processSingleFile: Vercel Blob results:',
+          JSON.stringify(results, (key, value) => (typeof value === 'bigint' ? value.toString() : value), 2)
+        );
+        const vercelResult = results[0]; // Get first (and only) result
+        console.log(
+          '🔍 [DEBUG] processSingleFile: Vercel result data:',
+          JSON.stringify(vercelResult.data, (key, value) => (typeof value === 'bigint' ? value.toString() : value), 2)
+        );
+        data = {
+          data: vercelResult.data,
+          results: vercelResult.results.map(result => ({
+            memoryId: result.memoryId,
+            size: Number(result.size),
+            checksum_sha256: result.checksumSha256
+              ? Array.from(result.checksumSha256)
+                  .map(b => b.toString(16).padStart(2, '0'))
+                  .join('')
+              : null,
+          })),
+          userId: vercelResult.userId,
+        };
+        console.log(
+          '🔍 [DEBUG] processSingleFile: Final data structure:',
+          JSON.stringify(data, (key, value) => (typeof value === 'bigint' ? value.toString() : value), 2)
+        );
+      } catch (error) {
+        console.log('❌ [DEBUG] processSingleFile: Vercel Blob upload failed:', error);
+        throw error;
+      }
     } else if (userBlobHostingPreferences.includes('s3')) {
       // S3 with parallel processing (Lane A + Lane B)
       const uploadResult = await uploadToS3WithProcessing(file, onProgress);
@@ -163,7 +183,10 @@ export async function processSingleFile(options: ProcessSingleFileOptions): Prom
     // Set userId for all upload services (normalize response)
     data.userId = existingUserId || '';
     if (isOnboarding && data && updateOnboardingContext) {
-      updateOnboardingContext({ data: { ownerId: data.userId ?? '', id: data.data?.id ?? '' } }, [file]);
+      // For onboarding, use the ownerId from the upload response (which contains the allUserId)
+      const ownerId = (data.data as { ownerId?: string })?.ownerId || data.userId || '';
+      console.log('🔍 [DEBUG] processSingleFile: Calling updateOnboardingContext with ownerId:', ownerId);
+      updateOnboardingContext({ data: { ownerId, id: data.data?.id ?? '' } }, [file]);
     }
 
     onSuccess?.();

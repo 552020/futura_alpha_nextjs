@@ -3,7 +3,7 @@ import { auth } from '@/auth';
 import { createPublicLink, generateShareableUrl } from '@/services/sharing';
 import { getAllUserRecord } from '@/services/user';
 import { getFolderByIdForOwner } from '@/services/folder';
-import type { allUsers } from '@/db';
+import type { allUsers, DBFolder } from '@/db';
 import { fatLogger } from '@/lib/logger';
 
 type CreateFolderPublicLinkRequest = {
@@ -46,15 +46,17 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     const allUserRecord = userResult.data as typeof allUsers.$inferSelect;
 
     // Find the folder and check ownership using service function
-    const folder = await getFolderByIdForOwner(folderId, allUserRecord.id);
+    const folderResult = await getFolderByIdForOwner(folderId, allUserRecord.id);
 
-    if (!folder) {
+    if (!folderResult.success || !folderResult.data) {
       fatLogger.error('Folder not found or not owned by user', 'be', {
         folderId,
         ownerId: allUserRecord.id,
       });
       return NextResponse.json({ error: 'Folder not found or access denied' }, { status: 404 });
     }
+
+    const folder = folderResult.data as DBFolder;
 
     fatLogger.info('✅ Folder found and owned by user:', 'be', {
       folderId,

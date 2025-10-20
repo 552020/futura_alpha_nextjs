@@ -1,0 +1,20 @@
+{
+  "name": "vercel-blob-scripts",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "description": "Vercel Blob testing and management scripts",
+  "scripts": {
+    "test": "node test-blob.js",
+    "test-images": "node test-image-upload.js",
+    "test-processing": "node test-image-processing.js",
+    "test-real-processing": "node test-real-image-processing.js",
+    "test-onboarding": "node test-onboarding-flow.js",
+    "list": "node list-files.js",
+    "list-futura": "node list-futura-files.js"
+  },
+  "dependencies": {
+    "@vercel/blob": "^0.27.3",
+    "dotenv": "^16.0.0",
+    "sharp": "^0.33.0"
+  }
+}

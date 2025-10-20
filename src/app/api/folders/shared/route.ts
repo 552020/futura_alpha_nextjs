@@ -82,7 +82,14 @@ export async function GET(request: NextRequest) {
     const folderIds = sharedFolders.map(membership => membership.resourceId);
 
     // Get folder details using service function
-    const folders = await getFoldersByIds(folderIds);
+    const foldersResult = await getFoldersByIds(folderIds);
+
+    if (!foldersResult.success || !foldersResult.data) {
+      fatLogger.error('Failed to get folder details', 'be', { error: foldersResult.error });
+      return NextResponse.json({ error: 'Failed to get folder details' }, { status: 500 });
+    }
+
+    const folders = foldersResult.data;
 
     // Create a map for quick lookup
     const folderMap = new Map(folders.map(folder => [folder.id, folder]));

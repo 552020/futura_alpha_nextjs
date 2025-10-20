@@ -52,15 +52,17 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     const allUserRecord = userResult.data as typeof allUsers.$inferSelect;
 
     // Find the folder and check ownership using service function
-    const folder = await getFolderByIdForOwner(folderId, allUserRecord.id);
+    const folderResult = await getFolderByIdForOwner(folderId, allUserRecord.id);
 
-    if (!folder) {
+    if (!folderResult.success || !folderResult.data) {
       fatLogger.error('Folder not found or not owned by user', 'be', {
         folderId,
         ownerId: allUserRecord.id,
       });
       return NextResponse.json({ error: 'Folder not found or access denied' }, { status: 404 });
     }
+
+    const folder = folderResult.data;
 
     fatLogger.info('✅ Folder found and owned by user:', 'be', {
       folderId,

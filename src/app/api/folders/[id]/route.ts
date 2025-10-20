@@ -33,11 +33,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: 'Folder not found' }, { status: 404 });
   }
 
-  const updated = await updateFolderRecord(id, allUserRecord.id, { title, name });
-  if (!updated) {
-    fatLogger.error('[Folders API] Failed to update folder', 'be', { id, ownerId: allUserRecord.id });
+  const updateResult = await updateFolderRecord(id, { title, name });
+  if (!updateResult.success || !updateResult.data) {
+    fatLogger.error('[Folders API] Failed to update folder', 'be', { id, ownerId: allUserRecord.id, error: updateResult.error });
     return NextResponse.json({ error: 'Failed to update folder' }, { status: 500 });
   }
-  fatLogger.info('[Folders API] Folder updated', 'be', { id, updated: { title: updated.title, name: updated.name } });
-  return NextResponse.json({ success: true, data: updated });
+  fatLogger.info('[Folders API] Folder updated', 'be', { id, updated: { title: updateResult.data.title, name: updateResult.data.name } });
+  return NextResponse.json({ success: true, data: updateResult.data });
 }
