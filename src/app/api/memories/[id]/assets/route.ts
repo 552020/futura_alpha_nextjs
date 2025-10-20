@@ -124,11 +124,13 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
       }
     }
 
-    // Upsert assets (insert or update if exists)
+    // Upsert assets using service layer
     const upsertedAssets = [];
 
     for (const asset of assets) {
-      const assetData = {
+      const { upsertAssetRecord } = await import('@/services/memory/asset-operations');
+
+      const assetResult = await upsertAssetRecord({
         memoryId,
         assetType: asset.assetType as 'original' | 'display' | 'thumb' | 'placeholder' | 'poster' | 'waveform',
         variant: asset.variant || null,
@@ -142,31 +144,62 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
         sha256: asset.sha256 || null,
         processingStatus: asset.processingStatus || 'completed',
         processingError: asset.processingError || null,
-      };
+      });
 
-      // Use upsert logic (insert or update on conflict)
-      const [upsertedAsset] = await db
-        .insert(memoryAssets)
-        .values(assetData)
-        .onConflictDoUpdate({
-          target: [memoryAssets.memoryId, memoryAssets.assetType, memoryAssets.variant],
-          set: {
-            url: assetData.url,
-            assetLocation: assetData.assetLocation,
-            storageKey: assetData.storageKey,
-            bytes: assetData.bytes,
-            width: assetData.width,
-            height: assetData.height,
-            mimeType: assetData.mimeType,
-            sha256: assetData.sha256,
-            processingStatus: assetData.processingStatus,
-            processingError: assetData.processingError,
-            updatedAt: new Date(),
-          },
-        })
-        .returning();
+      if (assetResult.success && assetResult.data) {
+        upsertedAssets.push(assetResult.data);
+      } else {
+        fatLogger.warn('Failed to upsert asset', 'be', {
+          operation: 'add_asset_to_memory',
+          memoryId,
+          assetType: asset.assetType,
+          error: assetResult.error,
+        });
+      }
+    }
 
-      upsertedAssets.push(upsertedAsset);
+    // Create storage edges for the new assets
+    try {
+      const { createMemoryStorageEdges } = await import('@/lib/usecases/memory/create-memory-storage-edges');
+
+      for (const asset of assets) {
+        const storageEdgeResult = await createMemoryStorageEdges({
+          memoryId,
+          memoryType: memory.type as 'image' | 'video' | 'note' | 'document' | 'audio',
+          url: asset.url,
+          size: asset.bytes,
+          contentHash: asset.sha256,
+        });
+
+        if (!storageEdgeResult.success) {
+          fatLogger.warn('Failed to create storage edges for added asset', 'be', {
+            operation: 'add_asset_to_memory',
+            memoryId,
+            assetType: asset.assetType,
+            error: storageEdgeResult.error,
+          });
+          // Don't fail the entire operation if storage edges fail
+        } else {
+          fatLogger.info('Successfully created storage edges for added asset', 'be', {
+            operation: 'add_asset_to_memory',
+            memoryId,
+            assetType: asset.assetType,
+            metadataEdge: Array.isArray(storageEdgeResult.metadataEdge)
+              ? storageEdgeResult.metadataEdge[0]?.id
+              : storageEdgeResult.metadataEdge?.id,
+            assetEdge: Array.isArray(storageEdgeResult.assetEdge)
+              ? storageEdgeResult.assetEdge[0]?.id
+              : storageEdgeResult.assetEdge?.id,
+          });
+        }
+      }
+    } catch (error) {
+      fatLogger.warn('Error creating storage edges for added assets', 'be', {
+        operation: 'add_asset_to_memory',
+        memoryId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      // Don't fail the entire operation if storage edges fail
     }
 
     return NextResponse.json({
@@ -271,6 +304,15 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
+    // Verify memory exists
+    const memory = await db.query.memories.findFirst({
+      where: eq(memories.id, memoryId),
+    });
+
+    if (!memory) {
+      return NextResponse.json({ error: 'Memory not found' }, { status: 404 });
+    }
+
     // Parse request body to get asset types to delete
     let assetTypes: string[] = [];
     try {
@@ -294,7 +336,46 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
 
     // Filter by asset types if specified
     const filteredDeletedAssets =
-      assetTypes.length > 0 ? deletedAssets.filter((asset: DBMemoryAsset) => assetTypes.includes(asset.assetType)) : deletedAssets;
+      assetTypes.length > 0
+        ? deletedAssets.filter((asset: DBMemoryAsset) => assetTypes.includes(asset.assetType))
+        : deletedAssets;
+
+    // Clean up storage edges for deleted assets
+    try {
+      const { deleteStorageEdges } = await import('@/services/storage-edges/storage-edge-operations');
+
+      // Delete storage edges for the memory (since assets are being removed)
+      const storageEdgeResult = await deleteStorageEdges({
+        memoryId,
+        memoryType: memory.type as 'image' | 'video' | 'note' | 'document' | 'audio',
+      });
+
+      if (!storageEdgeResult.success) {
+        fatLogger.warn('Failed to delete storage edges for deleted assets', 'be', {
+          operation: 'delete_assets_from_memory',
+          memoryId,
+          error: storageEdgeResult.error,
+        });
+        // Don't fail the entire operation if storage edge deletion fails
+      } else {
+        fatLogger.info('Successfully deleted storage edges for deleted assets', 'be', {
+          operation: 'delete_assets_from_memory',
+          memoryId,
+          deletedEdgesCount: Array.isArray(storageEdgeResult.data)
+            ? storageEdgeResult.data.length
+            : storageEdgeResult.data
+              ? 1
+              : 0,
+        });
+      }
+    } catch (error) {
+      fatLogger.warn('Error deleting storage edges for deleted assets', 'be', {
+        operation: 'delete_assets_from_memory',
+        memoryId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      // Don't fail the entire operation if storage edge deletion fails
+    }
 
     return NextResponse.json({
       success: true,

@@ -18,8 +18,8 @@ export interface CreateMemoryStorageEdgesParams {
 
 export interface CreateMemoryStorageEdgesResult {
   success: boolean;
-  metadataEdge?: unknown;
-  assetEdge?: unknown;
+  metadataEdge?: { id: string } | { id: string }[];
+  assetEdge?: { id: string } | { id: string }[];
   error?: string;
 }
 
