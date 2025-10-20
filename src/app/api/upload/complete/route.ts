@@ -375,6 +375,7 @@ async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserI
 
   // Create storage edges for the memory
   try {
+    fatLogger.info('Creating storage edges for memory:', 'be', { memoryId });
     const { createMemoryStorageEdges } = await import('@/lib/usecases/memory/create-memory-storage-edges');
 
     const storageEdgeResult = await createMemoryStorageEdges({
@@ -393,7 +394,7 @@ async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserI
       });
       // Don't fail the entire operation if storage edges fail
     } else {
-      fatLogger.info('Storage edges created successfully', 'be', {
+      fatLogger.info('Storage edges created successfully:', 'be', {
         memoryId,
         memoryType,
         metadataEdge: Array.isArray(storageEdgeResult.metadataEdge)
@@ -405,7 +406,7 @@ async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserI
       });
     }
   } catch (error) {
-    fatLogger.error('Error creating storage edges', 'be', {
+    fatLogger.error('Error creating storage edges:', 'be', {
       error,
       memoryId,
       memoryType,
