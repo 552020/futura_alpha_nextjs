@@ -155,7 +155,9 @@ export function SharingModal({
     });
 
     if (!createUserResponse.ok) {
-      throw new Error('Failed to create temporary user for email invitation');
+      const errorData = await createUserResponse.json().catch(() => ({}));
+      console.error('Failed to create temporary user:', errorData);
+      throw new Error(`Failed to create temporary user for email invitation: ${errorData.error || 'Unknown error'}`);
     }
 
     const { allUser: recipientAllUser } = await createUserResponse.json();

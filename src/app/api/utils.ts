@@ -1,5 +1,6 @@
 import { db } from '@/db/db';
 import { allUsers, temporaryUsers } from '@/db';
+import crypto from 'node:crypto';
 
 /**
  * Creates a base temporary user and corresponding allUsers entry.
