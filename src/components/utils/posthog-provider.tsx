@@ -1,18 +1,18 @@
-"use client";
+'use client';
 
-import posthog from "posthog-js";
-import { PostHogProvider as PHProvider, usePostHog } from "posthog-js/react";
-import { Suspense, useEffect } from "react";
-import { usePathname } from "next/navigation";
+import posthog from 'posthog-js';
+import { PostHogProvider as PHProvider, usePostHog } from 'posthog-js/react';
+import { Suspense, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
   const apiHost = process.env.NEXT_PUBLIC_POSTHOG_INGEST;
 
   useEffect(() => {
     if (!posthog.isFeatureEnabled) {
-      // console.log("Initializing PostHog with:");
-      // console.log("  Key:", process.env.NEXT_PUBLIC_POSTHOG_KEY);
-      // console.log("  Host:", apiHost);
+      // icpLogger.info("Initializing PostHog with:");
+      // icpLogger.info("  Key:", process.env.NEXT_PUBLIC_POSTHOG_KEY);
+      // icpLogger.info("  Host:", apiHost);
 
       posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
         api_host: apiHost,
@@ -21,7 +21,7 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
         disable_session_recording: true, // Disable session recording for privacy
         opt_out_capturing_by_default: false,
         loaded: () => {
-          // console.log("✅ Final PostHog config after init");
+          // icpLogger.info("✅ Final PostHog config after init");
         },
       });
     }
@@ -42,8 +42,8 @@ function PostHogPageView() {
   useEffect(() => {
     if (posthog && pathname) {
       const url = window.origin + pathname;
-      // console.log("📡 Capturing pageview:", url);
-      posthog.capture("$pageview", {
+      // icpLogger.info("📡 Capturing pageview:", url);
+      posthog.capture('$pageview', {
         $current_url: url,
         $pathname: pathname,
       });

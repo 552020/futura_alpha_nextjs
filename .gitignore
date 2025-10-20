@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+**/node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -12,6 +13,9 @@
 
 # testing
 /coverage
+/test-results
+/playwright-report
+/e2e/debug
 
 # next.js
 /.next/
@@ -39,3 +43,22 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# mock data - ignore all contents but keep directory structure
+/public/mock/**/*
+!/public/mock/.gitkeep
+
+# export files
+scripts/blob/blob-files-export.json
+scripts/s3/s3-files-export.json
+
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+
+# debug artifacts
+e2e/debug/

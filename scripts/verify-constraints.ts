@@ -6,6 +6,11 @@
  * This script checks that required database constraints are present.
  * It's designed to be run in CI/CD pipelines to ensure database integrity.
  *
+ * IMPORTANT: These constraints are defined in our schema.ts file, but Drizzle
+ * cannot automatically verify them because it doesn't have built-in constraint
+ * verification capabilities. This script manually verifies that the constraints
+ * defined in our schema are actually present in the database.
+ *
  * Usage:
  *   npx tsx scripts/verify-constraints.ts
  *
@@ -14,13 +19,13 @@
  *   1 - One or more constraints missing
  */
 
-import { drizzle } from "drizzle-orm/neon-http";
-import { neon } from "@neondatabase/serverless";
-import { sql } from "drizzle-orm";
-import { config } from "dotenv";
+import { drizzle } from 'drizzle-orm/neon-http';
+import { neon } from '@neondatabase/serverless';
+import { sql } from 'drizzle-orm';
+import { config } from 'dotenv';
 
 // Load environment variables
-config({ path: ".env.local" });
+config({ path: '.env.local' });
 
 interface ConstraintCheck {
   name: string;
@@ -30,9 +35,15 @@ interface ConstraintCheck {
 
 const REQUIRED_CONSTRAINTS: ConstraintCheck[] = [
   {
-    name: "check_storage_backends",
-    table: "user",
-    description: "Ensures at least one storage backend is enabled for each user",
+    name: 'memory_assets_bytes_positive',
+    table: 'memory_assets',
+    description: 'Ensures memory asset bytes are positive (> 0) - defined in schema.ts but Drizzle cannot verify',
+  },
+  {
+    name: 'memory_assets_dimensions_positive',
+    table: 'memory_assets',
+    description:
+      'Ensures memory asset dimensions are positive when not null - defined in schema.ts but Drizzle cannot verify',
   },
 ];
 
@@ -40,8 +51,8 @@ async function verifyConstraints() {
   const sqlClient = neon(process.env.DATABASE_URL_UNPOOLED!);
   const db = drizzle(sqlClient);
 
-  console.log("🔍 Verifying database constraints...");
-  console.log("=====================================");
+  console.log('🔍 Verifying database constraints...');
+  console.log('=====================================');
 
   let allConstraintsPresent = true;
 
@@ -69,15 +80,15 @@ async function verifyConstraints() {
     }
   }
 
-  console.log("\n" + "=".repeat(40));
+  console.log('\n' + '='.repeat(40));
 
   if (allConstraintsPresent) {
-    console.log("✅ All required constraints are present!");
-    console.log("Database integrity verified.");
+    console.log('✅ All required constraints are present!');
+    console.log('Database integrity verified.');
     return 0;
   } else {
-    console.log("❌ One or more required constraints are missing!");
-    console.log("Run the appropriate migration scripts to add missing constraints.");
+    console.log('❌ One or more required constraints are missing!');
+    console.log('Run the appropriate migration scripts to add missing constraints.');
     return 1;
   }
 }
@@ -85,16 +96,13 @@ async function verifyConstraints() {
 // Run the verification
 if (require.main === module) {
   verifyConstraints()
-    .then((exitCode) => {
+    .then(exitCode => {
       process.exit(exitCode);
     })
-    .catch((error) => {
-      console.error("❌ Constraint verification failed:", error);
+    .catch(error => {
+      console.error('❌ Constraint verification failed:', error);
       process.exit(1);
     });
 }
 
 export { verifyConstraints, REQUIRED_CONSTRAINTS };
-
-
-

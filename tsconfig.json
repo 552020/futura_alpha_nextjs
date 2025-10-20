@@ -7,6 +7,7 @@
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
+    "noUnusedLocals": true,
     "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",
@@ -21,7 +22,11 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@/auth": ["./auth.ts"]
+      "@/auth": ["./auth.ts"],
+      "@/types/*": ["./src/types/*"],
+      "@/lib/*": ["./src/lib/*"],
+      "@/db/*": ["./src/db/*"],
+      "@/services/*": ["./src/services/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

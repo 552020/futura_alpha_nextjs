@@ -5,9 +5,10 @@
  * Can be used in API routes, middleware, and server components.
  */
 
-import { auth } from "@/auth";
-import { requiresIIReAuth, checkIICoAuthTTL } from "./ii-coauth-ttl";
+import { auth } from '@/auth';
+import { requiresIIReAuth, checkIICoAuthTTL } from './ii-coauth-ttl';
 
+import { fatLogger } from '@/lib/logger';
 // Extended session user interface for II co-auth
 interface ExtendedSessionUser {
   linkedIcPrincipal?: string;
@@ -29,7 +30,7 @@ interface IICoAuthError extends Error {
 export type IICoAuthVerificationResult = {
   isValid: boolean;
   requiresReAuth: boolean;
-  status: "valid" | "expired" | "inactive" | "error";
+  status: 'valid' | 'expired' | 'inactive' | 'error';
   message: string;
   principal?: string;
   assertedAt?: number;
@@ -50,8 +51,8 @@ export async function verifyIICoAuth(): Promise<IICoAuthVerificationResult> {
       return {
         isValid: false,
         requiresReAuth: false,
-        status: "inactive",
-        message: "No active session found",
+        status: 'inactive',
+        message: 'No active session found',
       };
     }
 
@@ -63,38 +64,38 @@ export async function verifyIICoAuth(): Promise<IICoAuthVerificationResult> {
       return {
         isValid: false,
         requiresReAuth: false,
-        status: "inactive",
-        message: "II co-auth not active",
+        status: 'inactive',
+        message: 'II co-auth not active',
       };
     }
 
     // Check TTL status
     const ttlStatus = checkIICoAuthTTL(icpPrincipalAssertedAt);
-    const isValid = ttlStatus.status === "active" || ttlStatus.status === "grace";
+    const isValid = ttlStatus.status === 'active' || ttlStatus.status === 'grace';
     const requiresReAuth = requiresIIReAuth(icpPrincipalAssertedAt);
 
     return {
       isValid,
       requiresReAuth,
-      status: isValid ? "valid" : "expired",
+      status: isValid ? 'valid' : 'expired',
       message:
-        ttlStatus.status === "active"
-          ? "II co-auth active and valid"
-          : ttlStatus.status === "grace"
-          ? "II co-auth in grace period"
-          : "II co-auth expired",
+        ttlStatus.status === 'active'
+          ? 'II co-auth active and valid'
+          : ttlStatus.status === 'grace'
+            ? 'II co-auth in grace period'
+            : 'II co-auth expired',
       principal: icpPrincipal,
       assertedAt: icpPrincipalAssertedAt,
       ttlStatus,
     };
   } catch (error) {
-    console.error("II co-auth verification failed:", error);
+    fatLogger.error('II co-auth verification failed:', 'fe', { data: error instanceof Error ? error : undefined });
     return {
       isValid: false,
       requiresReAuth: false,
-      status: "error",
-      message: "Failed to verify II co-auth status",
-      error: error instanceof Error ? error.message : "Unknown error",
+      status: 'error',
+      message: 'Failed to verify II co-auth status',
+      error: error instanceof Error ? error.message : 'Unknown error',
     };
   }
 }
@@ -109,7 +110,7 @@ export async function guardIICoAuth(): Promise<void> {
   if (!result.isValid) {
     const error = new Error(result.message) as IICoAuthError;
     error.status = 403;
-    error.code = "II_COAUTH_REQUIRED";
+    error.code = 'II_COAUTH_REQUIRED';
     error.requiresReAuth = result.requiresReAuth;
     throw error;
   }
@@ -127,7 +128,9 @@ export async function hasLinkedIIAccount(): Promise<boolean> {
     const linkedIcPrincipal = (session.user as ExtendedSessionUser).linkedIcPrincipal;
     return !!linkedIcPrincipal;
   } catch (error) {
-    console.error("Failed to check linked II account:", error);
+    fatLogger.error('Failed to check linked II account:', 'fe', {
+      data: error instanceof Error ? error : undefined,
+    });
     return false;
   }
 }
@@ -153,7 +156,7 @@ export async function getIIAccountInfo(): Promise<{
       loginProvider: (session.user as ExtendedSessionUser).loginProvider,
     };
   } catch (error) {
-    console.error("Failed to get II account info:", error);
+    fatLogger.error('Failed to get II account info:', 'fe', { data: error instanceof Error ? error : undefined });
     return null;
   }
 }
@@ -169,17 +172,17 @@ export function withIICoAuth<T extends unknown[]>(handler: (req: Request, ...arg
       await guardIICoAuth();
       return handler(req, ...args);
     } catch (error) {
-      if (error instanceof Error && (error as IICoAuthError).code === "II_COAUTH_REQUIRED") {
+      if (error instanceof Error && (error as IICoAuthError).code === 'II_COAUTH_REQUIRED') {
         return new Response(
           JSON.stringify({
-            error: "II co-auth required",
+            error: 'II co-auth required',
             message: error.message,
             requiresReAuth: (error as IICoAuthError).requiresReAuth,
-            code: "II_COAUTH_REQUIRED",
+            code: 'II_COAUTH_REQUIRED',
           }),
           {
             status: 403,
-            headers: { "Content-Type": "application/json" },
+            headers: { 'Content-Type': 'application/json' },
           }
         );
       }

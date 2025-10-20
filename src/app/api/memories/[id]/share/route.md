@@ -27,28 +27,24 @@
 ### Email Sending Checks 🔍
 
 - [ ] Email Service Configuration
-
   - [ ] Verify email service is properly configured
   - [ ] Add error handling for email service failures
   - [ ] Add retry mechanism for failed emails
   - [ ] Add logging for email sending attempts
 
 - [ ] Email Content Validation
-
   - [ ] Validate email addresses format
   - [ ] Check for empty or malformed email content
   - [ ] Validate email templates exist and are properly formatted
   - [ ] Add fallback templates for when primary templates fail
 
 - [ ] Rate Limiting & Quotas
-
   - [ ] Implement per-user email sending limits
   - [ ] Add daily/weekly email quotas
   - [ ] Add cooldown period between emails to same recipient
   - [ ] Track email sending history
 
 - [ ] Email Preferences
-
   - [ ] Check if user has opted out of emails
   - [ ] Respect user's email preferences
   - [ ] Add unsubscribe links to emails

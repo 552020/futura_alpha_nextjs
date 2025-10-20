@@ -1,65 +1,51 @@
-import { cn } from "@/lib/utils";
+interface BaseItem {
+  id: string;
+}
 
-interface BaseGridProps<T> {
+interface BaseGridProps<T extends BaseItem> {
   items: T[];
   renderItem: (item: T, index: number) => React.ReactNode;
   emptyState?: React.ReactNode;
-  viewMode?: "grid" | "list";
-  gridCols?: {
-    sm?: number; // 640px+
-    md?: number; // 768px+
-    lg?: number; // 1024px+
-    xl?: number; // 1280px+
-  };
-  gap?: "sm" | "md" | "lg"; // gap-4, gap-6, gap-8
   className?: string;
+  gap?: 'sm' | 'md' | 'lg';
+  gridCols?: {
+    sm?: number;
+    md?: number;
+    lg?: number;
+    xl?: number;
+  };
+  selectionMode?: boolean;
+  selectedItems?: Set<string>;
+  ratings?: Record<string, number>;
+  hiddenItems?: Set<string>;
+  onSelectionToggle?: (itemId: string, checked: boolean) => void;
+  onRate?: (itemId: string, rating: number) => void;
+  onHide?: (itemId: string) => void;
+  onUnhide?: (itemId: string) => void;
 }
 
-// Default responsive grid configuration
-const defaultGridCols = {
-  sm: 1, // 640px+ : 1 column
-  md: 2, // 768px+ : 2 columns
-  lg: 3, // 1024px+ : 3 columns
-  xl: 4, // 1280px+ : 4 columns
+const gapClasses = {
+  sm: 'gap-2',
+  md: 'gap-4',
+  lg: 'gap-6',
 };
 
-const defaultGap = "md"; // gap-6 (24px)
-
-export function BaseGrid<T>({
+export function BaseGrid<T extends BaseItem>({
   items,
   renderItem,
   emptyState,
-  viewMode = "grid",
-  gridCols = defaultGridCols,
-  gap = defaultGap,
-  className,
+  className = '',
+  gap = 'md',
+  gridCols = { sm: 1, md: 2, lg: 3, xl: 4 },
 }: BaseGridProps<T>) {
-  // Handle empty state
-  if (items.length === 0) {
-    return emptyState || null;
+  if (items.length === 0 && emptyState) {
+    return <>{emptyState}</>;
   }
 
-  // Handle list view mode
-  if (viewMode === "list") {
-    return (
-      <div className={cn("space-y-4", className)}>
-        {items.map((item, index) => (
-          <div key={index}>{renderItem(item, index)}</div>
-        ))}
-      </div>
-    );
-  }
-
-  // Build responsive grid classes
-  const gapClasses = {
-    sm: "gap-4", // 16px
-    md: "gap-6", // 24px
-    lg: "gap-8", // 32px
-  };
-
+  // Build grid classes
   const gridClasses = [
-    "grid",
-    "grid-cols-1", // Always start with 1 column
+    'grid',
+    'grid-cols-1', // Always start with 1 column
     gapClasses[gap],
     // Add responsive breakpoints only if specified
     gridCols.sm && `sm:grid-cols-${gridCols.sm}`,
@@ -68,12 +54,12 @@ export function BaseGrid<T>({
     gridCols.xl && `xl:grid-cols-${gridCols.xl}`,
   ]
     .filter(Boolean) // Remove undefined values
-    .join(" ");
+    .join(' ');
 
   return (
-    <div className={cn(gridClasses, className)}>
+    <div className={`${gridClasses} ${className}`.trim()}>
       {items.map((item, index) => (
-        <div key={index}>{renderItem(item, index)}</div>
+        <div key={item.id}>{renderItem(item, index)}</div>
       ))}
     </div>
   );

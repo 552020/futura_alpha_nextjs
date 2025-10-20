@@ -1,8 +1,8 @@
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { HardDrive, Database, Cloud } from "lucide-react";
-import { useBatchMemoryStorageStatus, getGalleryStorageSummary } from "@/hooks/use-memory-storage-status";
-import type { GalleryWithItems } from "@/types/gallery";
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { HardDrive, Database, Cloud } from 'lucide-react';
+import { useBatchMemoryStorageStatus, getGalleryStorageSummary } from '@/hooks/use-memory-storage-status';
+import type { GalleryWithItems } from '@/types/gallery';
 
 interface GalleryStorageSummaryProps {
   gallery: GalleryWithItems;
@@ -10,20 +10,20 @@ interface GalleryStorageSummaryProps {
   className?: string;
 }
 
-export function GalleryStorageSummary({ gallery, onStoreForever, className = "" }: GalleryStorageSummaryProps) {
+export function GalleryStorageSummary({ gallery, onStoreForever, className = '' }: GalleryStorageSummaryProps) {
   const memories =
     gallery.items
-      ?.map((item) => ({
+      ?.map(item => ({
         id: item.memory?.id,
         type: item.memory?.type,
       }))
-      .filter((memory) => memory.id && memory.type) || [];
+      .filter(memory => memory.id && memory.type) || [];
 
   const { statusMap, isLoading } = useBatchMemoryStorageStatus(memories);
   const summary = getGalleryStorageSummary(statusMap, memories);
 
   // Don't show if all memories are Web2-only and not loading
-  if (!isLoading && summary.overallStatus === "web2_only" && summary.total > 0) {
+  if (!isLoading && !summary.hasAnyIcp && summary.total > 0) {
     return null;
   }
 
@@ -43,7 +43,7 @@ export function GalleryStorageSummary({ gallery, onStoreForever, className = "" 
                 <Database className="h-4 w-4 text-muted-foreground" />
                 <span className="font-medium text-sm">Storage Status</span>
               </div>
-              {summary.overallStatus === "partially_stored" && onStoreForever && (
+              {summary.hasAnyIcp && !summary.isFullyOnIcp && onStoreForever && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -55,45 +55,45 @@ export function GalleryStorageSummary({ gallery, onStoreForever, className = "" 
                 </Button>
               )}
             </div>
-            <div className="text-xs text-muted-foreground">{summary.icpCompletePercentage}% on ICP</div>
+            <div className="text-xs text-muted-foreground">{summary.icpPercentage}% on ICP</div>
           </div>
 
           {/* Progress Bar */}
           {summary.hasAnyIcp && (
             <div className="space-y-2">
-              <Progress value={summary.icpCompletePercentage} className="h-2" />
+              <Progress value={summary.icpPercentage} className="h-2" />
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>
-                  {summary.icpComplete} of {summary.total} memories stored permanently
+                  {summary.hasIcp} of {summary.total} memories stored on ICP
                 </span>
-                {summary.icpPartial > 0 && <span>{summary.icpPartial} partially stored</span>}
+                {summary.hasNeon > 0 && <span>{summary.hasNeon} on Neon</span>}
               </div>
             </div>
           )}
 
           {/* Storage Breakdown */}
           <div className="flex items-center gap-6 text-xs">
-            {summary.icpComplete > 0 && (
+            {summary.hasIcp > 0 && (
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full bg-green-500"></div>
                 <Cloud className="h-3 w-3 text-green-600" />
-                <span className="text-green-700 dark:text-green-300">{summary.icpComplete} on ICP</span>
+                <span className="text-green-700 dark:text-green-300">{summary.hasIcp} on ICP</span>
               </div>
             )}
 
-            {summary.icpPartial > 0 && (
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                <Cloud className="h-3 w-3 text-orange-600" />
-                <span className="text-orange-700 dark:text-orange-300">{summary.icpPartial} partial</span>
-              </div>
-            )}
-
-            {summary.web2Only > 0 && (
+            {summary.hasNeon > 0 && (
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full bg-gray-500"></div>
                 <Database className="h-3 w-3 text-gray-600" />
-                <span className="text-gray-700 dark:text-gray-300">{summary.web2Only} on Neon</span>
+                <span className="text-gray-700 dark:text-gray-300">{summary.hasNeon} on Neon</span>
+              </div>
+            )}
+
+            {summary.hasOther > 0 && (
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                <Cloud className="h-3 w-3 text-purple-600" />
+                <span className="text-purple-700 dark:text-purple-300">{summary.hasOther} other</span>
               </div>
             )}
 

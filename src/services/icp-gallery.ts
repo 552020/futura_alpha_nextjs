@@ -1,46 +1,24 @@
-"use client";
+'use client';
 
-import { backendActor } from "@/ic/backend";
-import { Identity } from "@dfinity/agent";
-import { Principal } from "@dfinity/principal";
+import { backendActor } from '@/ic/backend';
+import { Identity } from '@dfinity/agent';
+import { Principal } from '@dfinity/principal';
+import type {
+  GalleryItem,
+  Gallery,
+  GalleryData,
+  GalleryMemoryEntry,
+  MemoryType,
+  Memory,
+  Error,
+  BlobHosting,
+} from '@/ic/declarations/backend/backend.did.d';
+
+import { fatLogger } from '@/lib/logger';
 
 // ============================================================================
-// TYPES - Will be updated when declarations are regenerated
+// FRONTEND-SPECIFIC TYPES (not available in backend declarations)
 // ============================================================================
-
-// Gallery types - matching backend declarations
-export interface GalleryMemoryEntry {
-  memory_id: string;
-  position: number;
-  gallery_caption: [] | [string]; // opt text in backend
-  is_featured: boolean;
-  gallery_metadata: string;
-}
-
-export interface Gallery {
-  id: string;
-  owner_principal: Principal;
-  title: string;
-  description: [] | [string]; // opt text in backend
-  is_public: boolean;
-  created_at: bigint;
-  updated_at: bigint;
-  storage_location: GalleryStorageLocation;
-  memory_entries: GalleryMemoryEntry[];
-  bound_to_neon: boolean;
-}
-
-export type GalleryStorageLocation =
-  | { Web2Only: null }
-  | { ICPOnly: null }
-  | { Both: null }
-  | { Migrating: null }
-  | { Failed: null };
-
-export interface GalleryData {
-  gallery: Gallery;
-  owner_principal: Principal;
-}
 
 export interface GalleryUpdateData {
   title?: string;
@@ -49,58 +27,7 @@ export interface GalleryUpdateData {
   memory_entries?: GalleryMemoryEntry[];
 }
 
-// Memory types
-export interface MemoryInfo {
-  name: string;
-  memory_type: MemoryType;
-  content_type: string;
-  created_at: bigint;
-  updated_at: bigint;
-  uploaded_at: bigint;
-  date_of_memory?: bigint;
-}
-
-export type MemoryType = { Note: null } | { Image: null } | { Document: null } | { Audio: null } | { Video: null };
-
-export interface MemoryMetadataBase {
-  date_of_memory?: string;
-  size: bigint;
-  people_in_memory?: string[];
-  mime_type: string;
-  original_name: string;
-  uploaded_at: string;
-  format?: string;
-}
-
-export interface ImageMetadata {
-  base: MemoryMetadataBase;
-  dimensions?: [number, number];
-}
-
-export type MemoryMetadata =
-  | { Note: { base: MemoryMetadataBase; tags?: string[] } }
-  | { Image: ImageMetadata }
-  | { Document: { base: MemoryMetadataBase } }
-  | {
-      Audio: {
-        base: MemoryMetadataBase;
-        duration?: number;
-        channels?: number;
-        sample_rate?: number;
-        bitrate?: number;
-        format?: string;
-      };
-    }
-  | { Video: { base: MemoryMetadataBase; width?: number; height?: number; duration?: number; thumbnail?: string } };
-
-export type MemoryAccess =
-  | { Private: null }
-  | { Public: null }
-  | { Custom: { groups: string[]; individuals: string[] } }
-  | { Scheduled: { access: MemoryAccess; accessible_after: bigint } }
-  | { EventTriggered: { access: MemoryAccess; trigger_event: string } };
-
-// Sync types for gallery memory synchronization
+// Sync types for gallery memory synchronization (frontend-specific)
 export interface MemorySyncRequest {
   memory_id: string;
   memory_type: MemoryType;
@@ -141,42 +68,13 @@ export interface BatchMemorySyncResponse {
   error?: Error;
 }
 
-export type Error =
-  | { Internal: string }
-  | { NotFound: null }
-  | { Unauthorized: null }
-  | { InvalidArgument: string }
-  | { ResourceExhausted: null }
-  | { Conflict: string };
-
-export interface BlobRef {
-  kind: MemoryBlobKind;
-  locator: string;
-  hash: [] | [Uint8Array]; // opt blob in backend
-}
-
-export type MemoryBlobKind = { ICPCapsule: null } | { MemoryBlobKindExternal: null };
-
-export interface MemoryData {
-  blob_ref: BlobRef;
-  data: [] | [Uint8Array]; // opt blob in backend
-}
-
-export interface Memory {
-  id: string;
-  info: MemoryInfo;
-  metadata: MemoryMetadata;
-  access: MemoryAccess;
-  data: MemoryData;
-}
-
 // Response types
 export interface StoreGalleryResponse {
   success: boolean;
   gallery_id?: string;
   icp_gallery_id?: string;
   message: string;
-  storage_location: GalleryStorageLocation;
+  storage_location: BlobHosting;
 }
 
 export interface UpdateGalleryResponse {
@@ -228,20 +126,20 @@ export class ICPGalleryService {
       const result = await actor.galleries_create(galleryData);
 
       // Handle Candid result union type
-      if ("Err" in result) {
+      if ('Err' in result) {
         const error = result.Err;
         const errorMessage =
-          "Internal" in error
+          'Internal' in error
             ? error.Internal
-            : "InvalidArgument" in error
-            ? error.InvalidArgument
-            : "Conflict" in error
-            ? error.Conflict
-            : "Unknown error";
+            : 'InvalidArgument' in error
+              ? error.InvalidArgument
+              : 'Conflict' in error
+                ? error.Conflict
+                : 'Unknown error';
         return {
           success: false,
           message: `Failed to create gallery: ${errorMessage}`,
-          storage_location: { Failed: null },
+          storage_location: { S3: null }, // Default to S3 on error
         };
       }
 
@@ -250,15 +148,15 @@ export class ICPGalleryService {
         success: true,
         gallery_id: gallery.id,
         icp_gallery_id: gallery.id,
-        message: "Gallery created successfully",
-        storage_location: gallery.storage_location,
+        message: 'Gallery created successfully',
+        storage_location: gallery.metadata.storage_location[0] || { S3: null },
       };
     } catch (error) {
-      console.error("Error storing gallery forever:", error);
+      fatLogger.error('Error storing gallery forever:', 'be', { data: error instanceof Error ? error : undefined });
       return {
         success: false,
-        message: `Failed to store gallery: ${error instanceof Error ? error.message : "Unknown error"}`,
-        storage_location: { Failed: null },
+        message: `Failed to store gallery: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        storage_location: { S3: null }, // Default to S3 on error
       };
     }
   }
@@ -274,18 +172,17 @@ export class ICPGalleryService {
       // const galleries = await actor.get_my_galleries();
 
       // Placeholder implementation until backend is ready
-      // console.log("Get my galleries - placeholder");
+      // fatLogger.info("Get my galleries - placeholder");
       return [];
     } catch (error) {
-      console.error("Error getting user galleries:", error);
-      throw new Error(`Failed to get galleries: ${error instanceof Error ? error.message : "Unknown error"}`);
+      fatLogger.error('Error getting user galleries:', 'be', { data: error instanceof Error ? error : undefined });
+      throw new Error(`Failed to get galleries: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
   /**
    * Get a specific gallery by ID
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async getGalleryById(_galleryId: string): Promise<Gallery | null> {
     try {
       // const actor = await backendActor(this.identity);
@@ -294,19 +191,18 @@ export class ICPGalleryService {
       // const gallery = await actor.get_gallery_by_id(galleryId);
 
       // Placeholder implementation
-      // console.log("Get gallery by ID:", galleryId);
+      // fatLogger.info("Get gallery by ID:", galleryId);
 
       return null;
     } catch (error) {
-      console.error("Error getting gallery:", error);
-      throw new Error(`Failed to get gallery: ${error instanceof Error ? error.message : "Unknown error"}`);
+      fatLogger.error('Error getting gallery:', 'be', { data: error instanceof Error ? error : undefined });
+      throw new Error(`Failed to get gallery: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
   /**
    * Update a gallery in the ICP canister
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async updateGallery(_galleryId: string, _updateData: GalleryUpdateData): Promise<UpdateGalleryResponse> {
     try {
       // const actor = await backendActor(this.identity);
@@ -315,17 +211,17 @@ export class ICPGalleryService {
       // const result = await actor.update_gallery(galleryId, updateData);
 
       // Placeholder implementation
-      // console.log("Update gallery:", galleryId, updateData);
+      // fatLogger.info("Update gallery:", galleryId, updateData);
 
       return {
         success: true,
-        message: "Gallery updated successfully",
+        message: 'Gallery updated successfully',
       };
     } catch (error) {
-      console.error("Error updating gallery:", error);
+      fatLogger.error('Error updating gallery:', 'be', { data: error instanceof Error ? error : undefined });
       return {
         success: false,
-        message: `Failed to update gallery: ${error instanceof Error ? error.message : "Unknown error"}`,
+        message: `Failed to update gallery: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
     }
   }
@@ -333,7 +229,6 @@ export class ICPGalleryService {
   /**
    * Delete a gallery from the ICP canister
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async deleteGallery(_galleryId: string): Promise<DeleteGalleryResponse> {
     try {
       // const actor = await backendActor(this.identity);
@@ -342,17 +237,17 @@ export class ICPGalleryService {
       // const result = await actor.delete_gallery(galleryId);
 
       // Placeholder implementation
-      // console.log("Delete gallery:", galleryId);
+      // fatLogger.info("Delete gallery:", galleryId);
 
       return {
         success: true,
-        message: "Gallery deleted successfully",
+        message: 'Gallery deleted successfully',
       };
     } catch (error) {
-      console.error("Error deleting gallery:", error);
+      fatLogger.error('Error deleting gallery:', 'be', { data: error instanceof Error ? error : undefined });
       return {
         success: false,
-        message: `Failed to delete gallery: ${error instanceof Error ? error.message : "Unknown error"}`,
+        message: `Failed to delete gallery: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
     }
   }
@@ -364,8 +259,7 @@ export class ICPGalleryService {
   /**
    * Create a new memory
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async createMemory(_memoryData: MemoryData): Promise<MemoryOperationResponse> {
+  async createMemory(_memoryData: Record<string, unknown>): Promise<MemoryOperationResponse> {
     try {
       // const actor = await backendActor(this.identity);
 
@@ -373,18 +267,18 @@ export class ICPGalleryService {
       // const result = await actor.memories_create(capsuleId, memoryData);
 
       // Placeholder implementation
-      // console.log("Add memory to capsule:", memoryData);
+      // fatLogger.info("Add memory to capsule:", memoryData);
 
       return {
         success: true,
         memory_id: `memory_${Date.now()}`,
-        message: "Memory added successfully to capsule",
+        message: 'Memory added successfully to capsule',
       };
     } catch (error) {
-      console.error("Error adding memory to capsule:", error);
+      fatLogger.error('Error adding memory to capsule:', 'be', { data: error instanceof Error ? error : undefined });
       return {
         success: false,
-        message: `Failed to add memory: ${error instanceof Error ? error.message : "Unknown error"}`,
+        message: `Failed to add memory: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
     }
   }
@@ -392,7 +286,6 @@ export class ICPGalleryService {
   /**
    * Get a memory by ID
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async getMemory(_memoryId: string): Promise<Memory | null> {
     try {
       // const actor = await backendActor(this.identity);
@@ -401,19 +294,18 @@ export class ICPGalleryService {
       // const memory = await actor.memories_read(memoryId);
 
       // Placeholder implementation
-      // console.log("Get memory from capsule:", memoryId);
+      // fatLogger.info("Get memory from capsule:", memoryId);
 
       return null;
     } catch (error) {
-      console.error("Error getting memory:", error);
-      throw new Error(`Failed to get memory: ${error instanceof Error ? error.message : "Unknown error"}`);
+      fatLogger.error('Error getting memory:', 'be', { data: error instanceof Error ? error : undefined });
+      throw new Error(`Failed to get memory: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
   /**
    * Update a memory by ID
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async updateMemory(_memoryId: string, _updates: Record<string, unknown>): Promise<MemoryOperationResponse> {
     try {
       // const actor = await backendActor(this.identity);
@@ -422,17 +314,17 @@ export class ICPGalleryService {
       // const result = await actor.memories_update(memoryId, updates);
 
       // Placeholder implementation
-      // console.log("Update memory in capsule:", memoryId, updates);
+      // fatLogger.info("Update memory in capsule:", memoryId, updates);
 
       return {
         success: true,
-        message: "Memory updated successfully",
+        message: 'Memory updated successfully',
       };
     } catch (error) {
-      console.error("Error updating memory:", error);
+      fatLogger.error('Error updating memory:', 'be', { data: error instanceof Error ? error : undefined });
       return {
         success: false,
-        message: `Failed to update memory: ${error instanceof Error ? error.message : "Unknown error"}`,
+        message: `Failed to update memory: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
     }
   }
@@ -440,7 +332,6 @@ export class ICPGalleryService {
   /**
    * Delete a memory by ID
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async deleteMemory(_memoryId: string): Promise<MemoryOperationResponse> {
     try {
       // const actor = await backendActor(this.identity);
@@ -449,17 +340,17 @@ export class ICPGalleryService {
       // const result = await actor.memories_delete(memoryId);
 
       // Placeholder implementation
-      // console.log("Delete memory from capsule:", memoryId);
+      // fatLogger.info("Delete memory from capsule:", memoryId);
 
       return {
         success: true,
-        message: "Memory deleted successfully",
+        message: 'Memory deleted successfully',
       };
     } catch (error) {
-      console.error("Error deleting memory:", error);
+      fatLogger.error('Error deleting memory:', 'be', { data: error instanceof Error ? error : undefined });
       return {
         success: false,
-        message: `Failed to delete memory: ${error instanceof Error ? error.message : "Unknown error"}`,
+        message: `Failed to delete memory: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
     }
   }
@@ -467,8 +358,7 @@ export class ICPGalleryService {
   /**
    * List all memories in a specific capsule
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async listMemories(capsuleId: string): Promise<MemoryListResponse> {
+  async listMemories(_capsuleId: string): Promise<MemoryListResponse> {
     // TODO: Implement when backend is ready
     // Currently placeholder - capsuleId will be used when implemented
     try {
@@ -478,19 +368,19 @@ export class ICPGalleryService {
       // const result = await actor.memories_list(capsuleId);
 
       // Placeholder implementation
-      // console.log("List memories for capsule:", capsuleId);
+      // fatLogger.info("List memories for capsule:", capsuleId);
 
       return {
         success: true,
         memories: [],
-        message: "Memories retrieved successfully",
+        message: 'Memories retrieved successfully',
       };
     } catch (error) {
-      console.error("Error listing memories:", error);
+      fatLogger.error('Error listing memories:', 'be', { data: error instanceof Error ? error : undefined });
       return {
         success: false,
         memories: [],
-        message: `Failed to list memories: ${error instanceof Error ? error.message : "Unknown error"}`,
+        message: `Failed to list memories: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
     }
   }
@@ -507,25 +397,33 @@ export class ICPGalleryService {
     web2Items: Record<string, unknown>[],
     ownerPrincipal: Principal
   ): GalleryData {
-    const memoryEntries: GalleryMemoryEntry[] = web2Items.map((item, index) => ({
+    const items: GalleryItem[] = web2Items.map((item, index) => ({
       memory_id: (item.memory_id as string) || `memory_${index}`,
       position: (item.position as number) || index,
-      gallery_caption: item.caption ? [item.caption as string] : [],
-      is_featured: (item.is_featured as boolean) || false,
-      gallery_metadata: JSON.stringify(item.metadata || {}),
+      caption: item.caption ? [item.caption as string] : [],
+      memory_type: { Image: null }, // Default to Image type
+      metadata: [], // Empty metadata array
     }));
 
     const gallery: Gallery = {
-      id: String(web2Gallery.id || "unknown"),
-      owner_principal: ownerPrincipal,
-      title: String(web2Gallery.title || "Untitled Gallery"),
-      description: web2Gallery.description ? [String(web2Gallery.description)] : [],
-      is_public: Boolean(web2Gallery.is_public),
-      created_at: BigInt((web2Gallery.created_at as number) || Date.now()),
+      id: String(web2Gallery.id || 'unknown'),
       updated_at: BigInt((web2Gallery.updated_at as number) || Date.now()),
-      storage_location: { Web2Only: null },
-      memory_entries: memoryEntries,
-      bound_to_neon: false, // Default to false for Web2 galleries
+      capsule_id: 'default-capsule', // TODO: Get actual capsule ID
+      metadata: {
+        total_memories: web2Items.length,
+        title: [String(web2Gallery.title || 'Untitled Gallery')],
+        sharing_status: Boolean(web2Gallery.is_public) ? { Public: null } : { Private: null },
+        storage_location: [{ S3: null }], // Default to S3
+        name: String(web2Gallery.title || 'Untitled Gallery')
+          .toLowerCase()
+          .replace(/\s+/g, '-'),
+        description: web2Gallery.description ? [String(web2Gallery.description)] : [],
+        shared_count: 0,
+      },
+      cover_memory_id: web2Items.length > 0 ? [web2Items[0].memory_id as string] : [],
+      created_at: BigInt((web2Gallery.created_at as number) || Date.now()),
+      items,
+      access_entries: [], // Empty access entries for now
     };
 
     return {
@@ -545,11 +443,11 @@ export class ICPGalleryService {
       // const userInfo = await actor.get_user();
 
       // Placeholder implementation
-      // console.log("Check capsule status");
+      // fatLogger.info("Check capsule status");
 
       return true; // Assume user has capsule for now
     } catch (error) {
-      console.error("Error checking capsule status:", error);
+      fatLogger.error('Error checking capsule status:', 'be', { data: error instanceof Error ? error : undefined });
       return false;
     }
   }

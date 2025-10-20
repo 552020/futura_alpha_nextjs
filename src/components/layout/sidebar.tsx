@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { usePathname, useParams } from "next/navigation";
-import { cn } from "@/lib/utils";
-import { useInterface } from "@/contexts/interface-context";
-import UserButtonClient from "@/components/auth/user-button-client";
-import { mainNavItems, secondaryNavItems, getTranslatedLabel } from "@/utils/navigation";
-import { Dictionary } from "@/utils/dictionaries";
-import { Separator } from "@/components/ui/separator";
-import { Settings, Infinity } from "lucide-react";
+import Link from 'next/link';
+import { usePathname, useParams } from 'next/navigation';
+import { cn } from '@/lib/utils';
+import { useInterface } from '@/contexts/interface-context';
+import UserButtonClient from '@/components/auth/user-button-client';
+import { mainNavItems, secondaryNavItems, getTranslatedLabel } from '@/utils/navigation';
+import { Dictionary } from '@/utils/dictionaries';
+import { Separator } from '@/components/ui/separator';
+import { Settings, Infinity } from 'lucide-react';
 
 interface SidebarProps {
   dict: Dictionary;
@@ -18,18 +18,18 @@ export default function Sidebar({ dict }: SidebarProps) {
   const pathname = usePathname();
   const { mode } = useInterface();
   const params = useParams();
-  const lang = (params.lang as string) || "en";
+  const lang = (params.lang as string) || 'en';
 
   // Helper function to construct full URLs with language
   const getFullHref = (baseHref: string) => `/${lang}${baseHref}`;
 
   // Don't render sidebar in marketing mode or gallery preview pages
-  if (mode === "marketing") {
+  if (mode === 'marketing') {
     return null;
   }
 
   // Hide sidebar on gallery preview pages
-  const isGalleryPreview = pathname.includes("/gallery/") && pathname.includes("/preview");
+  const isGalleryPreview = pathname.includes('/gallery/') && pathname.includes('/preview');
 
   if (isGalleryPreview) {
     return null;
@@ -45,7 +45,7 @@ export default function Sidebar({ dict }: SidebarProps) {
       <nav className="flex-1 overflow-y-auto py-4">
         {/* Main navigation items */}
         <div className="space-y-1">
-          {mainNavItems.map((item) => {
+          {mainNavItems.map(item => {
             const fullHref = getFullHref(item.href);
             const isActive = pathname === fullHref || pathname.startsWith(`${fullHref}/`);
             return (
@@ -54,17 +54,17 @@ export default function Sidebar({ dict }: SidebarProps) {
                 href={fullHref}
                 aria-label={getTranslatedLabel(item, dict)}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-3 text-sm relative transition-colors",
+                  'flex items-center gap-3 px-4 py-3 text-sm relative transition-colors',
                   isActive
-                    ? "text-primary bg-primary/10 hover:bg-primary/20"
-                    : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                    ? 'text-primary bg-primary/10 hover:bg-primary/20'
+                    : 'text-gray-500 hover:text-gray-900 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
                 )}
               >
                 {/* Active indicator bar */}
                 <div
                   className={cn(
-                    "absolute left-0 top-0 bottom-0 w-1 rounded-r-full transition-colors",
-                    isActive ? "bg-primary" : "bg-transparent"
+                    'absolute left-0 top-0 bottom-0 w-1 rounded-r-full transition-colors',
+                    isActive ? 'bg-primary' : 'bg-transparent'
                   )}
                 />
                 <item.icon className="h-5 w-5" />
@@ -90,17 +90,17 @@ export default function Sidebar({ dict }: SidebarProps) {
                   href={fullHref}
                   aria-label={getTranslatedLabel(item, dict)}
                   className={cn(
-                    "flex items-center gap-3 px-4 py-3 text-sm relative transition-colors",
+                    'flex items-center gap-3 px-4 py-3 text-sm relative transition-colors',
                     isActive
-                      ? "text-primary bg-primary/10 hover:bg-primary/20"
-                      : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                      ? 'text-primary bg-primary/10 hover:bg-primary/20'
+                      : 'text-gray-500 hover:text-gray-900 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
                   )}
                 >
                   {/* Active indicator bar */}
                   <div
                     className={cn(
-                      "absolute left-0 top-0 bottom-0 w-1 rounded-r-full transition-colors",
-                      isActive ? "bg-primary" : "bg-transparent"
+                      'absolute left-0 top-0 bottom-0 w-1 rounded-r-full transition-colors',
+                      isActive ? 'bg-primary' : 'bg-transparent'
                     )}
                   />
                   <item.icon className="h-5 w-5" />
@@ -123,17 +123,17 @@ export default function Sidebar({ dict }: SidebarProps) {
             href={`/${lang}/user/settings`}
             aria-label="Settings"
             className={cn(
-              "flex items-center gap-3 px-4 py-3 text-sm relative transition-colors",
+              'flex items-center gap-3 px-4 py-3 text-sm relative transition-colors',
               pathname === `/${lang}/user/settings`
-                ? "text-primary bg-primary/10 hover:bg-primary/20"
-                : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                ? 'text-primary bg-primary/10 hover:bg-primary/20'
+                : 'text-gray-500 hover:text-gray-900 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
             )}
           >
             {/* Active indicator bar */}
             <div
               className={cn(
-                "absolute left-0 top-0 bottom-0 w-1 rounded-r-full transition-colors",
-                pathname === `/${lang}/user/settings` ? "bg-primary" : "bg-transparent"
+                'absolute left-0 top-0 bottom-0 w-1 rounded-r-full transition-colors',
+                pathname === `/${lang}/user/settings` ? 'bg-primary' : 'bg-transparent'
               )}
             />
             <Settings className="h-5 w-5" />
@@ -152,17 +152,17 @@ export default function Sidebar({ dict }: SidebarProps) {
             href={`/${lang}/user/icp`}
             aria-label="ICP"
             className={cn(
-              "flex items-center gap-3 px-4 py-3 text-sm relative transition-colors",
+              'flex items-center gap-3 px-4 py-3 text-sm relative transition-colors',
               pathname === `/${lang}/user/icp`
-                ? "text-primary bg-primary/10 hover:bg-primary/20"
-                : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                ? 'text-primary bg-primary/10 hover:bg-primary/20'
+                : 'text-gray-500 hover:text-gray-900 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
             )}
           >
             {/* Active indicator bar */}
             <div
               className={cn(
-                "absolute left-0 top-0 bottom-0 w-1 rounded-r-full transition-colors",
-                pathname === `/${lang}/user/icp` ? "bg-primary" : "bg-transparent"
+                'absolute left-0 top-0 bottom-0 w-1 rounded-r-full transition-colors',
+                pathname === `/${lang}/user/icp` ? 'bg-primary' : 'bg-transparent'
               )}
             />
             <Infinity className="h-5 w-5" />

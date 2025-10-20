@@ -1,20 +1,22 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useSession } from "next-auth/react";
-import { useParams } from "next/navigation";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { CheckCircle, AlertCircle, Loader2, Shield, Database, CheckSquare, XCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
-import type { GalleryWithItems } from "@/types/gallery";
-import { ICPGalleryService } from "@/services/icp-gallery";
-import { getAuthClient } from "@/ic/ii";
-import { useIICoAuth } from "@/hooks/use-ii-coauth";
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useSession } from 'next-auth/react';
+import { useParams } from 'next/navigation';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { CheckCircle, AlertCircle, Loader2, Shield, Database, CheckSquare, XCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import type { GalleryWithItems } from '@/types/gallery';
+import { ICPGalleryService } from '@/services/icp-gallery';
+import { getAuthClient } from '@/ic/ii';
+import { useIILinks } from '@/hooks/use-ii-links';
+import { getAuthStatus } from '@/lib/utils/auth-status';
 
+import { fatLogger } from '@/lib/logger';
 interface ForeverStorageProgressModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -23,7 +25,7 @@ interface ForeverStorageProgressModalProps {
   onError: (error: Error) => void;
 }
 
-type StorageStep = "idle" | "auth" | "prepare" | "store" | "verify" | "success" | "error";
+type StorageStep = 'idle' | 'auth' | 'prepare' | 'store' | 'verify' | 'success' | 'error';
 
 interface StepConfig {
   title: string;
@@ -33,38 +35,38 @@ interface StepConfig {
 
 const STEPS: Record<StorageStep, StepConfig> = {
   idle: {
-    title: "Ready to Store",
-    description: "Preparing to store your gallery on the Internet Computer",
+    title: 'Ready to Store',
+    description: 'Preparing to store your gallery on the Internet Computer',
     icon: Shield,
   },
   auth: {
-    title: "Authenticating",
-    description: "Setting up your Internet Identity for secure storage",
+    title: 'Authenticating',
+    description: 'Setting up your Internet Identity for secure storage',
     icon: Shield,
   },
   prepare: {
-    title: "Preparing Data",
-    description: "Converting your gallery for Internet Computer storage",
+    title: 'Preparing Data',
+    description: 'Converting your gallery for Internet Computer storage',
     icon: Database,
   },
   store: {
-    title: "Storing Forever",
-    description: "Securely storing your gallery on the blockchain",
+    title: 'Storing Forever',
+    description: 'Securely storing your gallery on the blockchain',
     icon: Database,
   },
   verify: {
-    title: "Verifying Storage",
-    description: "Confirming your gallery is safely stored",
+    title: 'Verifying Storage',
+    description: 'Confirming your gallery is safely stored',
     icon: CheckSquare,
   },
   success: {
-    title: "Success!",
-    description: "Your gallery has been stored forever on the Internet Computer",
+    title: 'Success!',
+    description: 'Your gallery has been stored forever on the Internet Computer',
     icon: CheckCircle,
   },
   error: {
-    title: "Storage Failed",
-    description: "There was an error storing your gallery",
+    title: 'Storage Failed',
+    description: 'There was an error storing your gallery',
     icon: XCircle,
   },
 };
@@ -78,58 +80,58 @@ export function ForeverStorageProgressModal({
 }: ForeverStorageProgressModalProps) {
   const { data: session } = useSession();
   const params = useParams<{ lang: string }>();
-  const [currentStep, setCurrentStep] = useState<StorageStep>("idle");
+  const [currentStep, setCurrentStep] = useState<StorageStep>('idle');
   const [progress, setProgress] = useState(0);
-  const [message, setMessage] = useState("");
-  const [details, setDetails] = useState("");
+  const [message, setMessage] = useState('');
+  const [details, setDetails] = useState('');
   const [error, setError] = useState<string | null>(null);
   const authResumedRef = useRef(false);
 
-  // Use the new co-auth system
-  const { hasLinkedII, isCoAuthActive, linkedIcPrincipal, statusMessage, statusClass, remainingMinutes } =
-    useIICoAuth();
+  // Use the new links system
+  const { hasLinkedII, linkedIcPrincipals } = useIILinks();
+  const authStatus = getAuthStatus(session);
 
   const handleStartStorage = useCallback(async () => {
     try {
       // Step 1: Check authentication
-      setCurrentStep("auth");
+      setCurrentStep('auth');
       setProgress(10);
-      setMessage("Checking your Internet Identity...");
+      setMessage('Checking your Internet Identity...');
 
       // Check if user has II access (either linked II account or direct II sign-in)
       const hasIIAccess = hasLinkedII || Boolean((session?.user as { icpPrincipal?: string })?.icpPrincipal);
 
       if (!hasIIAccess) {
-        setMessage("You need to sign in with Internet Identity to store galleries forever");
-        setDetails("This ensures you own your data and can access it securely");
-        setError("II Authentication Required");
+        setMessage('You need to sign in with Internet Identity to store galleries forever');
+        setDetails('This ensures you own your data and can access it securely');
+        setError('II Authentication Required');
         return;
       }
 
-      // For Google users with linked II, check if co-auth is active
+      // For Google users with linked II, check if they have linked principals
       // For II-first users, they already have active II session
-      const isIIFirstUser = session?.user?.loginProvider === "internet-identity";
-      if (!isIIFirstUser && !isCoAuthActive) {
-        setMessage("Your Internet Identity needs to be activated for this session");
-        setDetails("Click 'Activate II' to enable ICP operations");
-        setError("II Co-Auth Required");
+      const isIIFirstUser = authStatus.isSignedInWithII;
+      if (!isIIFirstUser && !hasLinkedII) {
+        setMessage('You need to link an Internet Identity to your account');
+        setDetails('Go to your account settings to link an Internet Identity');
+        setError('II Link Required');
         return;
       }
 
       // Step 2: Prepare data
-      setCurrentStep("prepare");
+      setCurrentStep('prepare');
       setProgress(30);
-      setMessage("Preparing gallery data for storage...");
+      setMessage('Preparing gallery data for storage...');
       setDetails(`Processing ${gallery.items?.length || 0} memories`);
 
       // Simulate data preparation
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Step 3: Store on ICP
-      setCurrentStep("store");
+      setCurrentStep('store');
       setProgress(60);
-      setMessage("Storing gallery on Internet Computer...");
-      setDetails("This may take a few moments");
+      setMessage('Storing gallery on Internet Computer...');
+      setDetails('This may take a few moments');
 
       // Get authenticated identity and create ICP service
       const authClient = await getAuthClient();
@@ -145,13 +147,13 @@ export function ForeverStorageProgressModal({
       const result = await icpService.storeGalleryForever(galleryData);
 
       // Step 4: Verify storage
-      setCurrentStep("verify");
+      setCurrentStep('verify');
       setProgress(90);
-      setMessage("Verifying storage...");
-      setDetails("Confirming your gallery is safely stored");
+      setMessage('Verifying storage...');
+      setDetails('Confirming your gallery is safely stored');
 
       // Simulate verification
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       // Check if storage was successful
       if (!result.success) {
@@ -159,10 +161,10 @@ export function ForeverStorageProgressModal({
       }
 
       // Success
-      setCurrentStep("success");
+      setCurrentStep('success');
       setProgress(100);
       setMessage(`Gallery "${gallery.title}" stored forever! 🎉`);
-      setDetails("Your gallery is now permanently stored on the Internet Computer");
+      setDetails('Your gallery is now permanently stored on the Internet Computer');
 
       onSuccess({
         success: result.success,
@@ -171,22 +173,22 @@ export function ForeverStorageProgressModal({
         timestamp: new Date().toISOString(),
       });
     } catch (err) {
-      setCurrentStep("error");
+      setCurrentStep('error');
       setProgress(0);
-      setMessage("Storage failed");
-      setDetails(err instanceof Error ? err.message : "An unexpected error occurred");
-      setError(err instanceof Error ? err.message : "Unknown error");
-      onError(err instanceof Error ? err : new Error("Unknown error"));
+      setMessage('Storage failed');
+      setDetails(err instanceof Error ? err.message : 'An unexpected error occurred');
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      onError(err instanceof Error ? err : new Error('Unknown error'));
     }
-  }, [hasLinkedII, isCoAuthActive, session?.user, gallery, onSuccess, onError]);
+  }, [hasLinkedII, session?.user, gallery, onSuccess, onError, authStatus.isSignedInWithII]);
 
   // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
-      setCurrentStep("idle");
+      setCurrentStep('idle');
       setProgress(0);
-      setMessage("");
-      setDetails("");
+      setMessage('');
+      setDetails('');
       setError(null);
       authResumedRef.current = false;
     }
@@ -194,16 +196,16 @@ export function ForeverStorageProgressModal({
 
   // Auto-start the process when modal opens
   useEffect(() => {
-    if (isOpen && currentStep === "idle") {
+    if (isOpen && currentStep === 'idle') {
       handleStartStorage();
     }
   }, [isOpen, currentStep, handleStartStorage]);
 
   const handleRetry = () => {
-    setCurrentStep("idle");
+    setCurrentStep('idle');
     setProgress(0);
-    setMessage("");
-    setDetails("");
+    setMessage('');
+    setDetails('');
     setError(null);
     handleStartStorage();
   };
@@ -211,36 +213,38 @@ export function ForeverStorageProgressModal({
   const handleSignInWithII = async () => {
     try {
       // Redirect to the II-only signin page
-      const lang = params.lang || "en";
+      const lang = params.lang || 'en';
       // Ensure we carry a flag to resume the modal on return
       const currentUrl = new URL(window.location.href);
-      currentUrl.searchParams.set("storeForever", "1");
+      currentUrl.searchParams.set('storeForever', '1');
       const signinUrl = `/${lang}/sign-ii-only?callbackUrl=${encodeURIComponent(currentUrl.toString())}`;
-      // console.log("Redirecting to II-only signin page:", signinUrl);
+      // fatLogger.info("Redirecting to II-only signin page:", signinUrl);
       window.location.href = signinUrl;
     } catch (error) {
-      console.error("Failed to redirect to II signin page:", error);
-      setError("Failed to redirect to sign in page");
+      fatLogger.error('Failed to redirect to II signin page:', 'fe', {
+        data: error instanceof Error ? error : undefined,
+      });
+      setError('Failed to redirect to sign in page');
     }
   };
 
   // If user returns with II linked while modal is at auth, auto-resume
   useEffect(() => {
     const hasIIAccess = hasLinkedII || Boolean((session?.user as { icpPrincipal?: string })?.icpPrincipal);
-    const isIIFirstUser = session?.user?.loginProvider === "internet-identity";
-    const canProceed = hasIIAccess && (isIIFirstUser || isCoAuthActive);
+    const isIIFirstUser = authStatus.isSignedInWithII;
+    const canProceed = hasIIAccess && (isIIFirstUser || hasLinkedII);
 
-    if (isOpen && currentStep === "auth" && canProceed && !authResumedRef.current) {
+    if (isOpen && currentStep === 'auth' && canProceed && !authResumedRef.current) {
       authResumedRef.current = true;
       // Continue the flow from the beginning; it will pass auth now
       handleStartStorage();
     }
-  }, [isOpen, currentStep, hasLinkedII, isCoAuthActive, session?.user, handleStartStorage]);
+  }, [isOpen, currentStep, hasLinkedII, session?.user, handleStartStorage, authStatus.isSignedInWithII]);
 
   const handleClose = () => {
-    if (currentStep === "success") {
+    if (currentStep === 'success') {
       onClose();
-    } else if (currentStep === "error") {
+    } else if (currentStep === 'error') {
       onClose();
     } else {
       // Ask for confirmation if in progress
@@ -255,10 +259,10 @@ export function ForeverStorageProgressModal({
     return (
       <Icon
         className={cn(
-          "h-6 w-6",
-          currentStep === step && "text-primary",
-          currentStep === "error" && step === "error" && "text-destructive",
-          currentStep === "success" && step === "success" && "text-green-600"
+          'h-6 w-6',
+          currentStep === step && 'text-primary',
+          currentStep === 'error' && step === 'error' && 'text-destructive',
+          currentStep === 'success' && step === 'success' && 'text-green-600'
         )}
       />
     );
@@ -266,32 +270,32 @@ export function ForeverStorageProgressModal({
 
   const getPrimaryButton = () => {
     switch (currentStep) {
-      case "idle":
+      case 'idle':
         return {
-          text: "Start Storage",
+          text: 'Start Storage',
           action: handleStartStorage,
           disabled: false,
         };
-      case "auth":
+      case 'auth':
         const hasIIAccess = hasLinkedII || Boolean((session?.user as { icpPrincipal?: string })?.icpPrincipal);
-        const isIIFirstUser = session?.user?.loginProvider === "internet-identity";
+        const isIIFirstUser = authStatus.isSignedInWithII;
 
         if (!hasIIAccess) {
           return {
-            text: "Sign in with Internet Identity",
+            text: 'Sign in with Internet Identity',
             action: handleSignInWithII,
             disabled: false,
           };
         }
 
-        if (!isIIFirstUser && !isCoAuthActive) {
+        if (!isIIFirstUser && !hasLinkedII) {
           return {
-            text: "Activate II Co-Auth",
+            text: 'Link Internet Identity',
             action: () => {
-              // Redirect to II activation
-              const lang = params.lang || "en";
+              // Redirect to II linking
+              const lang = params.lang || 'en';
               const currentUrl = new URL(window.location.href);
-              currentUrl.searchParams.set("storeForever", "1");
+              currentUrl.searchParams.set('storeForever', '1');
               const signinUrl = `/${lang}/sign-ii-only?callbackUrl=${encodeURIComponent(currentUrl.toString())}`;
               window.location.href = signinUrl;
             },
@@ -300,25 +304,25 @@ export function ForeverStorageProgressModal({
         }
 
         return {
-          text: "Continue",
+          text: 'Continue',
           action: () => {},
           disabled: true,
         };
-      case "error":
+      case 'error':
         return {
-          text: "Try Again",
+          text: 'Try Again',
           action: handleRetry,
           disabled: false,
         };
-      case "success":
+      case 'success':
         return {
-          text: "Close",
+          text: 'Close',
           action: onClose,
           disabled: false,
         };
       default:
         return {
-          text: "Processing...",
+          text: 'Processing...',
           action: () => {},
           disabled: true,
         };
@@ -329,12 +333,12 @@ export function ForeverStorageProgressModal({
 
   const getAuthIcon = () => {
     const hasIIAccess = hasLinkedII || Boolean((session?.user as { icpPrincipal?: string })?.icpPrincipal);
-    const isIIFirstUser = session?.user?.loginProvider === "internet-identity";
+    const isIIFirstUser = authStatus.isSignedInWithII;
 
     if (!hasIIAccess) {
       return <AlertCircle className="h-4 w-4 text-yellow-500" />;
     }
-    if (!isIIFirstUser && !isCoAuthActive) {
+    if (!isIIFirstUser && !hasLinkedII) {
       return <AlertCircle className="h-4 w-4 text-orange-500" />;
     }
     return <CheckCircle className="h-4 w-4 text-green-600" />;
@@ -364,10 +368,10 @@ export function ForeverStorageProgressModal({
           {/* Current Step */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              {currentStep === "auth" && getAuthIcon()}
-              {currentStep === "error" && <XCircle className="h-4 w-4 text-destructive" />}
-              {currentStep === "success" && <CheckCircle className="h-4 w-4 text-green-600" />}
-              {currentStep !== "auth" && currentStep !== "error" && currentStep !== "success" && (
+              {currentStep === 'auth' && getAuthIcon()}
+              {currentStep === 'error' && <XCircle className="h-4 w-4 text-destructive" />}
+              {currentStep === 'success' && <CheckCircle className="h-4 w-4 text-green-600" />}
+              {currentStep !== 'auth' && currentStep !== 'error' && currentStep !== 'success' && (
                 <Loader2 className="h-4 w-4 animate-spin text-primary" />
               )}
               <span className="font-medium">{STEPS[currentStep].title}</span>
@@ -386,7 +390,7 @@ export function ForeverStorageProgressModal({
           {details && <p className="text-xs text-muted-foreground">{details}</p>}
 
           {/* Error Details */}
-          {error && currentStep === "error" && (
+          {error && currentStep === 'error' && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
@@ -394,18 +398,20 @@ export function ForeverStorageProgressModal({
           )}
 
           {/* II Status */}
-          {currentStep === "auth" && (
+          {currentStep === 'auth' && (
             <div className="space-y-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Internet Identity Status</span>
-                <Badge variant={hasLinkedII ? "default" : "secondary"}>{hasLinkedII ? "Linked" : "Not Linked"}</Badge>
+                <Badge variant={hasLinkedII ? 'default' : 'secondary'}>{hasLinkedII ? 'Linked' : 'Not Linked'}</Badge>
               </div>
 
               {hasLinkedII && (
                 <>
-                  <div className="text-xs text-muted-foreground">Principal: {linkedIcPrincipal}</div>
+                  <div className="text-xs text-muted-foreground">
+                    Principals: {linkedIcPrincipals.length > 0 ? linkedIcPrincipals.join(', ') : 'None'}
+                  </div>
 
-                  {session?.user?.loginProvider === "internet-identity" ? (
+                  {authStatus.isSignedInWithII ? (
                     <div className="flex items-center gap-2">
                       <Badge
                         variant="default"
@@ -418,19 +424,15 @@ export function ForeverStorageProgressModal({
                   ) : (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">Co-Auth Status:</span>
-                        <Badge variant={isCoAuthActive ? "default" : "secondary"} className={statusClass}>
-                          {statusMessage}
+                        <span className="text-xs text-muted-foreground">II Status:</span>
+                        <Badge variant={hasLinkedII ? 'default' : 'secondary'}>
+                          {hasLinkedII ? 'Linked' : 'Not Linked'}
                         </Badge>
                       </div>
 
-                      {isCoAuthActive && remainingMinutes > 0 && (
-                        <div className="text-xs text-muted-foreground">⏰ Session expires in {remainingMinutes}m</div>
-                      )}
-
-                      {!isCoAuthActive && (
+                      {!hasLinkedII && (
                         <div className="text-xs text-muted-foreground">
-                          Click &ldquo;Activate II Co-Auth&rdquo; to enable ICP operations
+                          Link an Internet Identity to enable ICP operations
                         </div>
                       )}
                     </div>
@@ -441,7 +443,7 @@ export function ForeverStorageProgressModal({
           )}
 
           {/* Success Details */}
-          {currentStep === "success" && (
+          {currentStep === 'success' && (
             <div className="rounded-lg bg-green-50 p-3">
               <div className="flex items-center gap-2 text-green-800">
                 <CheckCircle className="h-4 w-4" />
@@ -461,7 +463,7 @@ export function ForeverStorageProgressModal({
             {primaryButton.text}
           </Button>
 
-          {currentStep !== "success" && currentStep !== "error" && (
+          {currentStep !== 'success' && currentStep !== 'error' && (
             <Button variant="outline" onClick={handleClose}>
               Cancel
             </Button>

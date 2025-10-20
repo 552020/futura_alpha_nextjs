@@ -1,12 +1,13 @@
-"use client";
+'use client';
 
-import "@/app/[lang]/globals.css";
-import { useEffect } from "react";
+import '@/app/[lang]/globals.css';
+import { useEffect } from 'react';
 
+import { fatLogger } from '@/lib/logger';
 export default function TailwindTestLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
-    console.log("TailwindTestLayout mounted");
-    console.log("Current styles loaded:", document.styleSheets);
+    fatLogger.info('TailwindTestLayout mounted', 'fe');
+    fatLogger.info('Current styles loaded:', 'fe', { styleSheets: document.styleSheets });
   }, []);
 
   return <div className="min-h-screen bg-gray-100">{children}</div>;

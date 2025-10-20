@@ -11,59 +11,59 @@
  *   npm run db:migrate:full
  */
 
-import { drizzle } from "drizzle-orm/neon-http";
-import { neon } from "@neondatabase/serverless";
-import { sql } from "drizzle-orm";
-import { config } from "dotenv";
-import { readFileSync } from "fs";
-import { join } from "path";
-import { glob } from "glob";
+import { drizzle } from 'drizzle-orm/neon-http';
+import { neon } from '@neondatabase/serverless';
+import { sql } from 'drizzle-orm';
+import { config } from 'dotenv';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+import { glob } from 'glob';
 
 // Load environment variables
-config({ path: ".env.local" });
+config({ path: '.env.local' });
 
-interface MigrationStep {
-  name: string;
-  description: string;
-  execute: () => Promise<void>;
-}
+// interface _MigrationStep {
+//   name: string;
+//   description: string;
+//   execute: () => Promise<void>;
+// }
 
 async function runDrizzleMigrations(): Promise<void> {
-  console.log("🔄 Running Drizzle migrations...");
+  console.log('🔄 Running Drizzle migrations...');
 
   // This would typically run: npm run db:migrate
   // For now, we'll simulate the process
-  console.log("   - Applying schema changes from Drizzle");
-  console.log("   - Adding/updating tables and columns");
-  console.log("✅ Drizzle migrations completed");
+  console.log('   - Applying schema changes from Drizzle');
+  console.log('   - Adding/updating tables and columns');
+  console.log('✅ Drizzle migrations completed');
 }
 
 async function applyCustomConstraints(): Promise<void> {
-  console.log("🔧 Applying custom constraints...");
+  console.log('🔧 Applying custom constraints...');
 
   const sqlClient = neon(process.env.DATABASE_URL_UNPOOLED!);
   const db = drizzle(sqlClient);
 
   // Find all custom constraint migration files
-  const migrationFiles = await glob("src/db/migrations/*_constraint.sql");
+  const migrationFiles = await glob('src/db/migrations/*_constraint.sql');
 
   for (const file of migrationFiles) {
     try {
       console.log(`   - Processing: ${file}`);
 
       const migrationPath = join(process.cwd(), file);
-      const migrationSQL = readFileSync(migrationPath, "utf8");
+      const migrationSQL = readFileSync(migrationPath, 'utf8');
 
       // Execute the migration
       await db.execute(sql.raw(migrationSQL));
 
       console.log(`   ✅ Applied: ${file}`);
     } catch (error: any) {
-      const errorMessage = error.message || "";
-      const causeMessage = error.cause?.message || "";
+      const errorMessage = error.message || '';
+      const causeMessage = error.cause?.message || '';
       const fullMessage = `${errorMessage} ${causeMessage}`;
 
-      if (fullMessage.includes("already exists") || fullMessage.includes("duplicate key")) {
+      if (fullMessage.includes('already exists') || fullMessage.includes('duplicate key')) {
         console.log(`   ℹ️  Already applied: ${file}`);
       } else {
         console.error(`   ❌ Failed to apply: ${file}`);
@@ -73,11 +73,11 @@ async function applyCustomConstraints(): Promise<void> {
     }
   }
 
-  console.log("✅ Custom constraints applied");
+  console.log('✅ Custom constraints applied');
 }
 
 async function verifyDatabaseIntegrity(): Promise<void> {
-  console.log("🔍 Verifying database integrity...");
+  console.log('🔍 Verifying database integrity...');
 
   const sqlClient = neon(process.env.DATABASE_URL_UNPOOLED!);
   const db = drizzle(sqlClient);
@@ -85,9 +85,15 @@ async function verifyDatabaseIntegrity(): Promise<void> {
   // Check that all required constraints exist
   const requiredConstraints = [
     {
-      name: "check_storage_backends",
-      table: "user",
-      description: "Ensures at least one storage backend is enabled for each user",
+      name: 'memory_assets_bytes_positive',
+      table: 'memory_assets',
+      description: 'Ensures memory asset bytes are positive (> 0) - defined in schema.ts but Drizzle cannot verify',
+    },
+    {
+      name: 'memory_assets_dimensions_positive',
+      table: 'memory_assets',
+      description:
+        'Ensures memory asset dimensions are positive when not null - defined in schema.ts but Drizzle cannot verify',
     },
   ];
 
@@ -113,12 +119,12 @@ async function verifyDatabaseIntegrity(): Promise<void> {
     }
   }
 
-  console.log("✅ Database integrity verified");
+  console.log('✅ Database integrity verified');
 }
 
 async function runFullMigration(): Promise<void> {
-  console.log("🚀 Starting Full Database Migration");
-  console.log("====================================");
+  console.log('🚀 Starting Full Database Migration');
+  console.log('====================================');
 
   try {
     // Step 1: Run Drizzle migrations
@@ -130,11 +136,11 @@ async function runFullMigration(): Promise<void> {
     // Step 3: Verify database integrity
     await verifyDatabaseIntegrity();
 
-    console.log("\n✨ Migration completed successfully!");
-    console.log("Database is now in sync with Drizzle schema and all constraints are applied.");
+    console.log('\n✨ Migration completed successfully!');
+    console.log('Database is now in sync with Drizzle schema and all constraints are applied.');
   } catch (error: any) {
-    console.error("\n❌ Migration failed:", error.message);
-    console.error("Please check the error above and fix any issues before retrying.");
+    console.error('\n❌ Migration failed:', error.message);
+    console.error('Please check the error above and fix any issues before retrying.');
     process.exit(1);
   }
 }
@@ -145,6 +151,3 @@ if (require.main === module) {
 }
 
 export { runFullMigration, runDrizzleMigrations, applyCustomConstraints, verifyDatabaseIntegrity };
-
-
-

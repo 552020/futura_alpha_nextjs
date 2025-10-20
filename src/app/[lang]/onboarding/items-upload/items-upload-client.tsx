@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useInterface } from "@/contexts/interface-context";
-import { useRouter } from "next/navigation";
-import { OnboardModal } from "@/components/onboarding/onboard-modal";
+import { useState } from 'react';
+import { useInterface } from '@/contexts/interface-context';
+import { useRouter } from 'next/navigation';
+import { OnboardModal } from '@/components/onboarding/onboard-modal';
 // import { ItemUploadButton } from "@/components/memory/item-upload-button";
-import { ItemUploadButton } from "@/components/memory/item-upload-button";
-import { Dictionary } from "@/utils/dictionaries";
+import { ItemUploadButton } from '@/components/memory/item-upload-button';
+import { Dictionary } from '@/utils/dictionaries';
 
 // Hardcoded constants for this component
-const COMPONENT_PATH = "items-upload";
-const VARIATION = "wedding-memory";
+const COMPONENT_PATH = 'items-upload';
+const VARIATION = 'wedding-memory';
 const DOUBLE_BUTTON = true; // Set to false for original design, true for toggle buttons
 const WITH_SUBTITLE = false; // Set to false for wedding vertical
 
@@ -23,7 +23,7 @@ export default function ItemsUploadClient({ lang, dict }: ItemsUploadClientProps
   const router = useRouter();
   const { setMode } = useInterface();
   const [showOnboardModal, setShowOnboardModal] = useState(false);
-  const [uploadMode, setUploadMode] = useState<"folder" | "files">("folder"); // eslint-disable-line @typescript-eslint/no-unused-vars
+  const [_uploadMode, _setUploadMode] = useState<'folder' | 'files'>('folder');
 
   const handleUploadSuccess = () => {
     setShowOnboardModal(true);
@@ -35,7 +35,7 @@ export default function ItemsUploadClient({ lang, dict }: ItemsUploadClientProps
 
   const handleOnboardingComplete = () => {
     setShowOnboardModal(false);
-    setMode("app");
+    setMode('app');
     router.push(`/${lang}/onboarding/profile`);
   };
 
@@ -56,15 +56,20 @@ export default function ItemsUploadClient({ lang, dict }: ItemsUploadClientProps
       {/* Component buttons - only shown when DOUBLE_BUTTON is true */}
       {DOUBLE_BUTTON && (
         <div className="flex justify-center gap-4 mb-8">
-          <ItemUploadButton isOnboarding variant="album-button" mode="folder" onSuccess={handleUploadSuccess} />
-          <ItemUploadButton isOnboarding variant="one-shot-button" mode="files" onSuccess={handleUploadSuccess} />
+          <ItemUploadButton isOnboarding variant="album-button" mode="directory" onSuccess={handleUploadSuccess} />
+          <ItemUploadButton
+            isOnboarding
+            variant="one-shot-button"
+            mode="multiple-files"
+            onSuccess={handleUploadSuccess}
+          />
         </div>
       )}
 
       {/* Upload button container - only shown when DOUBLE_BUTTON is false */}
       {!DOUBLE_BUTTON && (
         <div className="flex justify-center">
-          <ItemUploadButton isOnboarding variant="large-icon" mode="folder" onSuccess={handleUploadSuccess} />
+          <ItemUploadButton isOnboarding variant="large-icon" mode="directory" onSuccess={handleUploadSuccess} />
         </div>
       )}
 

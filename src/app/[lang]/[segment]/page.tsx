@@ -1,13 +1,13 @@
 // app/[lang]/[segment]/page.tsx
-import Hero from "@/components/marketing/hero";
-import ValueJourney from "@/components/marketing/value-journey";
-import { getDictionary } from "@/utils/dictionaries";
-import { notFound } from "next/navigation";
+import Hero from '@/components/marketing/hero';
+import ValueJourney from '@/components/marketing/value-journey';
+import { getDictionary } from '@/utils/dictionaries';
+import { notFound } from 'next/navigation';
 // Remove the import for the server action
 // import { setSegmentCookie } from "./actions";
 
 // Define valid segments
-const validSegments = ["family", "wedding", "creative", "black-mirror"];
+const validSegments = ['family', 'wedding', 'creative', 'black-mirror'];
 
 // Define the correct type for the page props in Next.js 14+
 type PageProps = {

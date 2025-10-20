@@ -1,10 +1,11 @@
-import { drizzle } from "drizzle-orm/neon-http";
-import { neon } from "@neondatabase/serverless";
-import { config } from "dotenv";
-import * as schema from "./schema"; // Import the SAME schema
+import { drizzle } from 'drizzle-orm/neon-http';
+import { neon } from '@neondatabase/serverless';
+import { config } from 'dotenv';
+import { fatLogger } from '@/lib/logger';
+import * as schema from './index'; // Import the SAME schema
 
 // Load environment variables
-config({ path: ".env.local" });
+config({ path: '.env.local' });
 
 // Test database connection - no client-side restriction
 // This is specifically for testing purposes
@@ -27,14 +28,14 @@ export { schema };
 export async function cleanupTestData() {
   try {
     // Clean up test users (you can add more cleanup logic here)
-    console.log("🧹 Cleaning up test data...");
+    fatLogger.info('🧹 Cleaning up test data...', 'be');
     // Add specific cleanup logic as needed
   } catch (error) {
-    console.error("❌ Error cleaning up test data:", error);
+    fatLogger.error('❌ Error cleaning up test data:', 'be', { data: error instanceof Error ? error : undefined });
   }
 }
 
 // Helper function to check if we're in test environment
 export function isTestEnvironment(): boolean {
-  return process.env.NODE_ENV === "test" || process.env.VITEST === "true";
+  return process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
 }

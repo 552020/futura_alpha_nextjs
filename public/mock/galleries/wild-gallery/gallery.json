@@ -1,8 +1,0 @@
-{
-  "name": "wild-gallery",
-  "description": "All aspect ratios including square and panoramic",
-  "imageCount":       25,
-  "aspectRatio": "wild",
-  "format": "webp",
-  "createdAt": "2025-08-25T08:54:51Z"
-}

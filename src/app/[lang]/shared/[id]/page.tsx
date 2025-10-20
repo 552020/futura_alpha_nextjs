@@ -1,12 +1,13 @@
-import { notFound } from "next/navigation";
-import { db } from "@/db/db";
-import { memoryShares, allUsers } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
-import { findMemory } from "@/app/api/memories/utils/memory";
-import { MemoryViewer } from "@/components/memory/memory-viewer";
-import { Card } from "@/components/ui/card";
-import { auth } from "@/auth";
+import { notFound } from 'next/navigation';
+import { db } from '@/db/db';
+import { resourceMembership, allUsers } from '@/db';
+import { eq, and } from 'drizzle-orm';
+import { findMemory } from '@/app/api/memories/utils/memory';
+import { MemoryViewer } from '@/components/memory/memory-viewer';
+import { Card } from '@/components/ui/card';
+import { auth } from '@/auth';
 
+import { fatLogger } from '@/lib/logger';
 interface SharedMemoryPageProps {
   params: Promise<{
     id: string;
@@ -17,7 +18,7 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
   const { id } = await params;
   const session = await auth();
 
-  console.log("🔍 DEBUG SharedMemoryPage - Auth Check:", {
+  fatLogger.info('🔍 DEBUG SharedMemoryPage - Auth Check:', 'fe', {
     id,
     hasSession: !!session,
     userId: session?.user?.id,
@@ -25,7 +26,7 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
   });
 
   if (!session?.user?.id) {
-    console.log("❌ DEBUG SharedMemoryPage - No authenticated user");
+    fatLogger.info('❌ DEBUG SharedMemoryPage - No authenticated user', 'fe');
     notFound();
   }
 
@@ -35,7 +36,7 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
       where: eq(allUsers.userId, session.user.id),
     });
 
-    console.log("🔍 DEBUG SharedMemoryPage - AllUser Lookup:", {
+    fatLogger.info('🔍 DEBUG SharedMemoryPage - AllUser Lookup:', 'fe', {
       found: !!allUserRecord,
       userId: session.user.id,
       allUserId: allUserRecord?.id,
@@ -43,44 +44,48 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
     });
 
     if (!allUserRecord) {
-      console.log("❌ DEBUG SharedMemoryPage - No allUser record found");
+      fatLogger.info('❌ DEBUG SharedMemoryPage - No allUser record found', 'fe');
       notFound();
     }
 
     // First try to find the memory
     const memory = await findMemory(id);
-    console.log("🔍 DEBUG SharedMemoryPage - Memory Lookup:", {
+    fatLogger.info('🔍 DEBUG SharedMemoryPage - Memory Lookup:', 'fe', {
       memoryFound: !!memory,
       memoryId: id,
-      ownerId: memory?.data?.ownerId,
+      ownerId: memory?.ownerId,
       timestamp: new Date().toISOString(),
     });
 
     if (!memory) {
-      console.log("❌ DEBUG SharedMemoryPage - Memory not found");
+      fatLogger.info('❌ DEBUG SharedMemoryPage - Memory not found', 'fe');
       notFound();
     }
 
-    const isOwner = memory.data.ownerId === allUserRecord.id;
-    console.log("🔍 DEBUG SharedMemoryPage - Ownership Check:", {
+    const isOwner = memory.ownerId === allUserRecord.id;
+    fatLogger.info('🔍 DEBUG SharedMemoryPage - Ownership Check:', 'fe', {
       isOwner,
-      memoryOwnerId: memory.data.ownerId,
+      memoryOwnerId: memory.ownerId,
       currentUserAllId: allUserRecord.id,
       timestamp: new Date().toISOString(),
     });
 
-    // Check if the user has access to this memory
-    const share = await db.query.memoryShares.findFirst({
-      where: and(eq(memoryShares.memoryId, id), eq(memoryShares.sharedWithId, allUserRecord.id)),
+    // Check if the user has access to this memory via resourceMembership
+    const membership = await db.query.resourceMembership.findFirst({
+      where: and(
+        eq(resourceMembership.resourceType, 'memory'),
+        eq(resourceMembership.resourceId, id),
+        eq(resourceMembership.allUserId, allUserRecord.id)
+      ),
     });
 
-    console.log("🔍 DEBUG SharedMemoryPage - Share Check:", {
-      hasShare: !!share,
-      shareDetails: share
+    fatLogger.info('🔍 DEBUG SharedMemoryPage - Membership Check:', 'fe', {
+      hasMembership: !!membership,
+      membershipDetails: membership
         ? {
-            accessLevel: share.accessLevel,
-            sharedWithId: share.sharedWithId,
-            memoryId: share.memoryId,
+            role: membership.role,
+            grantSource: membership.grantSource,
+            resourceId: membership.resourceId,
           }
         : null,
       timestamp: new Date().toISOString(),
@@ -88,12 +93,12 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
 
     // User should have access if they are either:
     // 1. The owner of the memory OR
-    // 2. Have a share record
-    if (!isOwner && !share) {
-      console.log("❌ DEBUG SharedMemoryPage - Access Denied:", {
-        reason: "User is not owner and has no share record",
+    // 2. Have a membership record
+    if (!isOwner && !membership) {
+      fatLogger.info('❌ DEBUG SharedMemoryPage - Access Denied:', 'fe', {
+        reason: 'User is not owner and has no membership record',
         isOwner,
-        hasShare: !!share,
+        hasMembership: !!membership,
         userId: allUserRecord.id,
         memoryId: id,
         timestamp: new Date().toISOString(),
@@ -101,21 +106,41 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
       notFound();
     }
 
-    console.log("✅ DEBUG SharedMemoryPage - Access Granted:", {
-      reason: isOwner ? "User is owner" : "User has share record",
-      accessLevel: isOwner ? "write" : share?.accessLevel || "read",
+    // Convert membership role to access level
+    let accessLevel: 'read' | 'write' = 'read';
+    if (isOwner) {
+      accessLevel = 'write';
+    } else if (membership) {
+      switch (membership.role) {
+        case 'owner':
+        case 'superadmin':
+        case 'admin':
+          accessLevel = 'write';
+          break;
+        case 'member':
+          accessLevel = 'write';
+          break;
+        case 'guest':
+        default:
+          accessLevel = 'read';
+          break;
+      }
+    }
+
+    fatLogger.info('✅ DEBUG SharedMemoryPage - Access Granted:', 'fe', {
+      reason: isOwner ? 'User is owner' : 'User has membership record',
+      accessLevel,
       timestamp: new Date().toISOString(),
     });
 
-    const accessLevel = isOwner ? "write" : share?.accessLevel || "read";
 
     return (
       <div className="container mx-auto py-8">
         <Card className="p-6">
           <div className="mb-4">
-            <h1 className="text-2xl font-bold">{isOwner ? "Your Memory" : "Shared Memory"}</h1>
+            <h1 className="text-2xl font-bold">{isOwner ? 'Your Memory' : 'Shared Memory'}</h1>
             <p className="text-muted-foreground">
-              {isOwner ? "You are viewing this memory as the owner" : `You have ${accessLevel} access to this memory`}
+              {isOwner ? 'You are viewing this memory as the owner' : `You have ${accessLevel} access to this memory`}
             </p>
           </div>
 
@@ -124,7 +149,7 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
       </div>
     );
   } catch (error) {
-    console.error("Error accessing shared memory:", error);
+    fatLogger.error('Error accessing shared memory', 'fe', { data: error as Error });
     notFound();
   }
 }

@@ -1,0 +1,98 @@
+name: Create/Delete Branch for Pull Request (DISABLED)
+on:
+  workflow_dispatch:
+    inputs:
+      enable_neon_operations:
+        description: 'Enable Neon database operations (create branch, migrations, etc.)'
+        required: false
+        default: false
+        type: boolean
+
+# This workflow is disabled by default
+# To enable Neon operations, run this workflow manually with enable_neon_operations = true
+# Or rename this file to neon-branching.yml to replace the active workflow
+jobs:
+  setup:
+    name: Setup
+    outputs:
+      branch: ${{ steps.branch_name.outputs.current_branch }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get branch name
+        id: branch_name
+        uses: tj-actions/branch-names@v8
+
+  create_neon_branch:
+    name: Create Neon Branch
+    outputs:
+      db_url: ${{ steps.create_neon_branch_encode.outputs.db_url }}
+      db_url_with_pooler: ${{ steps.create_neon_branch_encode.outputs.db_url_with_pooler }}
+    needs: setup
+    if: github.event.inputs.enable_neon_operations == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Create Neon Branch
+        id: create_neon_branch
+        uses: neondatabase/create-branch-action@v5
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch_name: preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+          username: neondb_owner
+
+      # Run database migrations on the new branch
+      - name: Run Database Migrations
+        run: pnpm run db:push
+        env:
+          DATABASE_URL_UNPOOLED: '${{ steps.create_neon_branch.outputs.db_url_with_pooler }}'
+
+      # Post schema diff as PR comment
+      - name: Post Schema Diff Comment to PR
+        uses: neondatabase/schema-diff-action@v1
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          compare_branch: preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+
+  delete_neon_branch:
+    name: Delete Neon Branch
+    needs: setup
+    if: github.event.inputs.enable_neon_operations == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete Neon Branch
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch: preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+
+  skip_notification:
+    name: Skip Neon Operations
+    if: github.event.inputs.enable_neon_operations != true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify that Neon operations are skipped
+        run: |
+          echo "Neon database operations are disabled for this workflow run."
+          echo "To enable Neon operations, run this workflow manually with enable_neon_operations = true"

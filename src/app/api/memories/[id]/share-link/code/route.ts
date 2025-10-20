@@ -1,15 +1,16 @@
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/db/db";
-import { memoryShares } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
-import { auth } from "@/auth";
-import { findMemory } from "@/app/api/memories/utils/memory";
+import { NextRequest, NextResponse } from 'next/server';
+import { db } from '@/db/db';
+import { resourceMembership, allUsers } from '@/db';
+import { eq, and } from 'drizzle-orm';
+import { auth } from '@/auth';
+import { findMemory } from '@/app/api/memories/utils/memory';
 
+import { fatLogger } from '@/lib/logger';
 export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   // Check authentication
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const { id } = await context.params;
@@ -18,24 +19,40 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     // First try to find the memory
     const memory = await findMemory(id);
     if (!memory) {
-      return NextResponse.json({ error: "Memory not found" }, { status: 404 });
+      return NextResponse.json({ error: 'Memory not found' }, { status: 404 });
     }
 
-    // Find the share record for this user
-    const share = await db.query.memoryShares.findFirst({
-      where: and(eq(memoryShares.memoryId, id), eq(memoryShares.sharedWithId, session.user.id)),
+    // Get the allUserId for the authenticated user
+    const allUserRecord = await db.query.allUsers.findFirst({
+      where: eq(allUsers.userId, session.user.id),
     });
 
-    if (!share) {
-      return NextResponse.json({ error: "Share not found" }, { status: 404 });
+    if (!allUserRecord) {
+      return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
-    // Return the secure code
+    // Find the membership record for this user
+    const membership = await db.query.resourceMembership.findFirst({
+      where: and(
+        eq(resourceMembership.resourceType, 'memory'),
+        eq(resourceMembership.resourceId, id),
+        eq(resourceMembership.allUserId, allUserRecord.id)
+      ),
+    });
+
+    if (!membership) {
+      return NextResponse.json({ error: 'Membership not found' }, { status: 404 });
+    }
+
+    // For now, return a simple response since the old secure code system
+    // may not be directly applicable to the new resourceMembership system
     return NextResponse.json({
-      code: share.inviteeSecureCode,
+      message: 'Access granted via resourceMembership',
+      role: membership.role,
+      grantSource: membership.grantSource,
     });
   } catch (error) {
-    console.error("Error getting share code:", error);
-    return NextResponse.json({ error: "Failed to get share code" }, { status: 500 });
+    fatLogger.error('Error getting membership info:', 'be', { data: error instanceof Error ? error : undefined });
+    return NextResponse.json({ error: 'Failed to get membership info' }, { status: 500 });
   }
 }

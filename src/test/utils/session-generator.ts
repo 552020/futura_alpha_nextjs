@@ -1,8 +1,8 @@
-import jwt from "jsonwebtoken";
-import { config } from "dotenv";
+import jwt from 'jsonwebtoken';
+import { config } from 'dotenv';
 
 // Load environment variables
-config({ path: ".env.local" });
+config({ path: '.env.local' });
 
 // 🎯 SESSION GENERATION UTILITY FOR TESTING
 // This creates proper NextAuth session cookies that the auth() function will accept
@@ -48,9 +48,9 @@ export function generateNextAuthSession(user: TestUserSession): NextAuthSession 
       id: user.id,
       email: user.email,
       name: user.name,
-      role: user.role || "user",
+      role: user.role || 'user',
       businessUserId: user.businessUserId,
-      loginProvider: user.loginProvider || "google",
+      loginProvider: user.loginProvider || 'google',
       linkedIcPrincipal: user.linkedIcPrincipal,
       icpPrincipal: user.activeIcPrincipal,
       icpPrincipalAssertedAt: user.activeIcPrincipal ? Date.now() : undefined,
@@ -75,8 +75,8 @@ export function generateSessionCookie(user: TestUserSession): string {
 
   // Create a JWT token for the session
   const sessionToken = jwt.sign(sessionData, secret, {
-    algorithm: "HS256",
-    expiresIn: "1h",
+    algorithm: 'HS256',
+    expiresIn: '1h',
   });
 
   // Return the cookie string that NextAuth expects
@@ -89,7 +89,7 @@ export function generateSessionCookie(user: TestUserSession): string {
 export function generateGoogleSessionCookie(user: TestUserSession): string {
   return generateSessionCookie({
     ...user,
-    loginProvider: "google",
+    loginProvider: 'google',
   });
 }
 
@@ -131,10 +131,8 @@ export function generateSessionCookies(user: TestUserSession): string[] {
   cookies.push(sessionCookie);
 
   // Add CSRF token cookie if needed
-  const csrfToken = jwt.sign({ csrf: true }, secret, { algorithm: "HS256" });
+  const csrfToken = jwt.sign({ csrf: true }, secret, { algorithm: 'HS256' });
   cookies.push(`next-auth.csrf-token=${csrfToken}`);
 
   return cookies;
 }
-
-

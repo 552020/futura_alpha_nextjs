@@ -1,36 +1,105 @@
-"use client";
+'use client';
 
-import { useEffect, useState, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
-import Image from "next/image";
-import { MemoryActions } from "@/components/memory/memory-actions";
-import { Button } from "@/components/ui/button";
-import { Loader2, Image as ImageIcon, Video, FileText, Music, ChevronLeft } from "lucide-react";
-import { useAuthGuard } from "@/utils/authentication";
-import { format } from "date-fns";
-import { shortenTitle } from "@/lib/utils";
-import { MemoryStorageBadge } from "@/components/common/memory-storage-badge";
-import { sampleDashboardMemories } from "../sample-data";
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import Image from 'next/image';
+import { MemoryActions } from '@/components/memory/memory-actions';
+import { Button } from '@/components/ui/button';
+import { Loader2, Image as ImageIcon, Video, FileText, Music, ChevronLeft } from 'lucide-react';
+import { useAuthGuard } from '@/utils/authentication';
+import { format } from 'date-fns';
+import { shortenTitle } from '@/lib/utils';
+import { MemoryStorageBadge } from '@/components/common/memory-storage-badge';
+import { sampleDashboardMemories } from '../../../../../scripts/mock-data/create-dashboard-sample-data';
+import { getBlurPlaceholder, IMAGE_SIZES } from '@/utils/image-utils';
+import { generateBestAssetUrl } from '@/lib/presigned-url-utils';
 
+import { fatLogger } from '@/lib/logger';
 // Demo flag - set to true to use mock data for demo
-const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_MEMORY === "true";
+// 📝 Sample data generation script: scripts/mock-data/create-dashboard-sample-data.ts
+const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_MEMORY === 'true';
+
+interface MemoryAsset {
+  id: string;
+  assetType: 'original' | 'display' | 'thumb' | 'placeholder' | 'poster' | 'waveform';
+  url: string;
+  mimeType: string;
+  bytes: number;
+  width?: number;
+  height?: number;
+  bucket?: string;
+  storageKey?: string;
+  storageBackend?: string;
+}
 
 interface Memory {
   id: string;
-  type: "image" | "video" | "note" | "audio" | "document" | "folder";
+  type: 'image' | 'video' | 'note' | 'audio' | 'document' | 'folder';
   title: string;
   description?: string;
   createdAt: string;
-  url?: string;
+  url?: string; // Legacy field - will be extracted from assets
   content?: string;
-  mimeType?: string;
+  mimeType?: string; // Legacy field - will be extracted from assets
   ownerId?: string;
-  thumbnail?: string;
+  thumbnail?: string; // Legacy field - will be extracted from assets
+  assets?: MemoryAsset[];
   metadata?: {
     originalPath?: string;
     folderName?: string;
   };
+  storageStatus?: {
+    storageLocations: string[];
+  };
 }
+
+// Allow all possible asset types
+type AssetType = MemoryAsset['assetType'];
+
+const getAssetUrl = async (
+  assets: MemoryAsset[] | undefined,
+  preferredType: AssetType = 'display'
+): Promise<string | undefined> => {
+  if (!assets || assets.length === 0) return undefined;
+
+  // Helper function to construct URL from bucket and storageKey
+  const constructS3Url = async (asset: MemoryAsset): Promise<string> => {
+    fatLogger.info('🔍 Constructing URL for asset:', 'fe', {
+      id: asset.id,
+      type: asset.assetType,
+      hasStorageKey: !!asset.storageKey,
+      hasDirectUrl: !!asset.url,
+      bucket: asset.bucket,
+    });
+
+    return generateBestAssetUrl(asset);
+  };
+
+  // Try to find the preferred asset type first
+  const preferredAsset = assets.find(asset => asset.assetType === preferredType);
+  if (preferredAsset) return constructS3Url(preferredAsset);
+
+  // Fallback to original if preferred type not found
+  const originalAsset = assets.find(asset => asset.assetType === 'original');
+  if (originalAsset) return constructS3Url(originalAsset);
+
+  // Fallback to first available asset
+  return assets[0] ? constructS3Url(assets[0]) : undefined;
+};
+
+// Helper function to extract MIME type from assets
+const getAssetMimeType = (assets: MemoryAsset[] | undefined): string | undefined => {
+  if (!assets || assets.length === 0) return undefined;
+
+  // Try to find display asset first, then original
+  const displayAsset = assets.find(asset => asset.assetType === 'display');
+  if (displayAsset) return displayAsset.mimeType;
+
+  const originalAsset = assets.find(asset => asset.assetType === 'original');
+  if (originalAsset) return originalAsset.mimeType;
+
+  return assets[0]?.mimeType;
+};
 
 export default function MemoryDetailPage() {
   const params = useParams<{ id: string; lang: string }>();
@@ -39,42 +108,105 @@ export default function MemoryDetailPage() {
   const { isAuthorized, isTemporaryUser, userId, redirectToSignIn } = useAuthGuard();
   const [memory, setMemory] = useState<Memory | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // Cache for presigned URLs to prevent duplicate requests
+  const urlCache = useRef<Map<string, string>>(new Map());
+
+  // Store asset URLs in a ref to avoid re-renders
+  const assetUrlsRef = useRef<{
+    displayUrl?: string;
+    originalUrl?: string;
+    mimeType?: string;
+  }>({});
+
+  // Function to get a cached URL or generate a new one
+  const getCachedAssetUrl = useCallback(async (assets: MemoryAsset[] = [], type: AssetType) => {
+    if (!assets.length) return undefined;
+
+    // Find the asset
+    const asset = assets.find(a => a.assetType === type) || assets.find(a => a.assetType === 'original') || assets[0];
+
+    if (!asset?.storageKey) return undefined;
+
+    // Check cache first
+    if (urlCache.current.has(asset.storageKey)) {
+      return urlCache.current.get(asset.storageKey);
+    }
+
+    try {
+      // Generate new URL if not in cache
+      const url = await getAssetUrl(assets, type);
+      if (url) {
+        urlCache.current.set(asset.storageKey, url);
+      }
+      return url;
+    } catch (error) {
+      fatLogger.error('Error generating asset URL:', 'fe', { data: error as Error });
+      return undefined;
+    }
+  }, []);
+
+  // Function to load asset URLs
+  const loadAssetUrls = useCallback(
+    async (assets: MemoryAsset[] = []) => {
+      if (!assets.length) return assetUrlsRef.current;
+
+      try {
+        const [display, original] = await Promise.all([
+          getCachedAssetUrl(assets, 'display'),
+          getCachedAssetUrl(assets, 'original'),
+        ]);
+
+        const newAssetUrls = {
+          displayUrl: display,
+          originalUrl: original,
+          mimeType: getAssetMimeType(assets),
+        };
+
+        assetUrlsRef.current = newAssetUrls;
+        return newAssetUrls;
+      } catch (error) {
+        fatLogger.error('Error loading asset URLs:', 'fe', { data: error as Error });
+        return assetUrlsRef.current;
+      }
+    },
+    [getCachedAssetUrl]
+  );
 
   const fetchMemory = useCallback(async () => {
     try {
       setIsLoading(true);
 
       if (USE_MOCK_DATA) {
-        console.log("🎭 MOCK DATA - Using sample data for memory detail");
+        fatLogger.info('🎭 MOCK DATA - Using sample data for memory detail', 'fe');
         // Find the memory in the sample data
-        const mockMemory = sampleDashboardMemories.find((m) => m.id === id);
+        const mockMemory = sampleDashboardMemories.find(m => m.id === id);
 
         if (mockMemory) {
-          console.log("🔍 Found mock memory:", mockMemory);
+          fatLogger.info('Found mock memory', 'fe', { memoryId: mockMemory.id, type: mockMemory.type });
           const transformedMemory: Memory = {
             id: mockMemory.id,
             type: mockMemory.type,
-            title: mockMemory.title || "Untitled",
+            title: mockMemory.title || 'Untitled',
             description: mockMemory.description,
             createdAt: mockMemory.createdAt,
             url: mockMemory.url,
             thumbnail: mockMemory.thumbnail,
             content:
-              mockMemory.type === "note" ? "This is a sample note content for demonstration purposes." : undefined,
+              mockMemory.type === 'note' ? 'This is a sample note content for demonstration purposes.' : undefined,
             mimeType:
-              mockMemory.type === "video"
-                ? "video/mp4"
-                : mockMemory.type === "audio"
-                ? "audio/mp3"
-                : mockMemory.type === "document"
-                ? "text/markdown"
-                : undefined,
-            ownerId: "mock-user-id",
+              mockMemory.type === 'video'
+                ? 'video/mp4'
+                : mockMemory.type === 'audio'
+                  ? 'audio/mp3'
+                  : mockMemory.type === 'document'
+                    ? 'text/markdown'
+                    : undefined,
+            ownerId: 'mock-user-id',
             metadata: mockMemory.metadata,
           };
           setMemory(transformedMemory);
         } else {
-          console.log("❌ Mock memory not found:", id);
+          fatLogger.info('Mock memory not found', 'fe', { memoryId: id });
           setMemory(null);
         }
         return;
@@ -82,43 +214,79 @@ export default function MemoryDetailPage() {
 
       const response = await fetch(`/api/memories/${id}`);
 
-      console.log("Memory API Response:", {
+      fatLogger.info('Memory API Response:', 'fe', {
         status: response.status,
         ok: response.ok,
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("Memory fetch error:", errorData);
-        throw new Error(errorData.error || "Failed to fetch memory");
+        fatLogger.error('Memory fetch error:', 'fe', { data: new Error(errorData) });
+        throw new Error(errorData.error || 'Failed to fetch memory');
       }
 
       const data = await response.json();
-      console.log("Memory data:", data);
+      fatLogger.info('Memory data loaded', 'fe', { memoryId: data.id, type: data.type });
 
       if (data.success && data.data) {
+        const memoryData = data.data;
+        const assets = memoryData.assets || [];
+
+        fatLogger.info('Memory assets loaded', 'fe', { assetCount: assets.length });
+
+        // Load asset URLs if assets exist
+        let displayUrl: string | undefined;
+        let originalUrl: string | undefined;
+        let mimeType: string | undefined;
+
+        if (assets && assets.length > 0) {
+          const loadedUrls = await loadAssetUrls(assets);
+          displayUrl = loadedUrls.displayUrl;
+          originalUrl = loadedUrls.originalUrl;
+          mimeType = loadedUrls.mimeType;
+        }
+
+        fatLogger.info('Extracted display URL', 'fe', { displayUrl });
+        fatLogger.info('Extracted original URL', 'fe', { originalUrl });
+        fatLogger.info('Extracted MIME type', 'fe', { mimeType });
+
+        // Get the thumbnail URL with caching
+        const thumbnailUrl = assets ? await getCachedAssetUrl(assets, 'thumb') : undefined;
+
         const transformedMemory: Memory = {
-          id: data.data.id,
-          type: data.type === "document" ? (data.data.mimeType?.startsWith("video/") ? "video" : "audio") : data.type,
-          title: data.data.title || "Untitled",
-          description: data.data.description,
-          createdAt: data.data.createdAt,
-          url: data.data.url,
-          content: "content" in data.data ? data.data.content : undefined,
-          mimeType: "mimeType" in data.data ? data.data.mimeType : undefined,
-          ownerId: data.data.ownerId,
+          id: memoryData.id,
+          type: memoryData.type,
+          title: memoryData.title || 'Untitled',
+          description: memoryData.description,
+          createdAt: memoryData.createdAt,
+          url: displayUrl || originalUrl, // Use display URL if available, fallback to original
+          content: 'content' in memoryData ? memoryData.content : undefined,
+          mimeType: mimeType,
+          ownerId: memoryData.ownerId,
+          assets: assets,
+          metadata: memoryData.metadata,
+          thumbnail: thumbnailUrl || displayUrl || originalUrl,
         };
+
+        fatLogger.info('🔄 Transformed memory:', 'fe', {
+          id: transformedMemory.id,
+          type: transformedMemory.type,
+          url: transformedMemory.url,
+          thumbnail: transformedMemory.thumbnail,
+          hasAssets: !!assets?.length,
+        });
+
         setMemory(transformedMemory);
       } else {
-        throw new Error("Invalid memory data format");
+        throw new Error('Invalid memory data format');
       }
     } catch (error) {
-      console.error("Error fetching memory:", error);
+      fatLogger.error('Error fetching memory:', 'fe', { data: error as Error });
       setMemory(null);
     } finally {
       setIsLoading(false);
     }
-  }, [id]);
+  }, [id, loadAssetUrls, getCachedAssetUrl]);
 
   useEffect(() => {
     if (!isAuthorized) {
@@ -135,21 +303,21 @@ export default function MemoryDetailPage() {
   const handleDelete = async () => {
     try {
       const response = await fetch(`/api/memories/${id}`, {
-        method: "DELETE",
+        method: 'DELETE',
       });
 
-      if (!response.ok) throw new Error("Failed to delete memory");
+      if (!response.ok) throw new Error('Failed to delete memory');
 
       // Use router.push for smoother navigation
-      router.push("/vault");
+      router.push('/vault');
     } catch (error) {
-      console.error("Error deleting memory:", error);
+      fatLogger.error('Error deleting memory:', 'fe', { data: error as Error });
     }
   };
 
   const handleShare = () => {
     // TODO: Implement share functionality
-    console.log("Share memory:", id);
+    fatLogger.info('Share memory', 'fe', { memoryId: id });
   };
 
   if (!isAuthorized) {
@@ -189,13 +357,13 @@ export default function MemoryDetailPage() {
 
   const getIcon = () => {
     switch (memory.type) {
-      case "image":
+      case 'image':
         return <ImageIcon className="h-8 w-8" />;
-      case "video":
+      case 'video':
         return <Video className="h-8 w-8" />;
-      case "note":
+      case 'note':
         return <FileText className="h-8 w-8" />;
-      case "audio":
+      case 'audio':
         return <Music className="h-8 w-8" />;
       default:
         return null;
@@ -206,7 +374,7 @@ export default function MemoryDetailPage() {
   const isOwner = memory.ownerId === userId;
 
   // Get display title
-  const displayTitle = memory.title?.trim() && memory.title !== memory.id ? memory.title : "Untitled Memory";
+  const displayTitle = memory.title?.trim() && memory.title !== memory.id ? memory.title : 'Untitled Memory';
   const shortTitle = shortenTitle(displayTitle, 40);
 
   return (
@@ -262,10 +430,16 @@ export default function MemoryDetailPage() {
                 {shortTitle}
               </h1>
               <div className="flex items-center gap-3">
-                <p className="text-sm text-muted-foreground">Saved on {format(new Date(memory.createdAt), "PPP")}</p>
+                <p className="text-sm text-muted-foreground">Saved on {format(new Date(memory.createdAt), 'PPP')}</p>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">Storage:</span>
-                  <MemoryStorageBadge memoryId={memory.id} memoryType={memory.type} size="sm" showTooltip={true} />
+                  <MemoryStorageBadge
+                    memoryId={memory.id}
+                    memoryType={memory.type}
+                    storageStatus={memory.storageStatus}
+                    size="sm"
+                    showTooltip={true}
+                  />
                 </div>
               </div>
             </div>
@@ -275,30 +449,44 @@ export default function MemoryDetailPage() {
       </div>
 
       <div className="rounded-lg border p-6">
-        {memory.type === "image" && memory.url && (
+        {memory.type === 'image' && (memory.url || memory.assets?.length) && (
           <div className="relative mx-auto h-[600px] w-full">
             <Image
-              src={memory.url}
-              alt={memory.title || "Memory image"}
+              src={memory.url || ''}
+              alt={memory.title || 'Memory image'}
               fill
               className="rounded-lg object-contain"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
+              sizes={IMAGE_SIZES.lightbox}
+              onLoad={() => {
+				fatLogger.info('Image loaded successfully for memory:', 'fe', {
+                  memoryId: memory.id,
+                  url: memory.url,
+                });
+              }}
+              onError={() => {
+                fatLogger.error('Image error for memory:', 'fe', {
+                  memoryId: memory.id,
+                  url: memory.url,
+                });
+              }}
+              placeholder="blur"
+              blurDataURL={memory.assets?.find?.(a => a.assetType === 'placeholder')?.url || getBlurPlaceholder()}
             />
           </div>
         )}
-        {memory.type === "video" && memory.url && (
+        {memory.type === 'video' && memory.url && (
           <video controls className="mx-auto max-h-[600px] rounded-lg">
             <source src={memory.url} type={memory.mimeType} />
             Your browser does not support the video tag.
           </video>
         )}
-        {memory.type === "audio" && memory.url && (
+        {memory.type === 'audio' && memory.url && (
           <audio controls className="mx-auto w-full">
             <source src={memory.url} type={memory.mimeType} />
             Your browser does not support the audio tag.
           </audio>
         )}
-        {memory.type === "note" && (
+        {memory.type === 'note' && (
           <div className="prose max-w-none">
             <p className="whitespace-pre-wrap">{memory.content}</p>
           </div>

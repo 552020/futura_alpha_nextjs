@@ -1,0 +1,1 @@
+ALTER TYPE "public"."processing_status_t" ADD VALUE 'skipped' BEFORE 'failed';

@@ -1,5 +1,6 @@
-import { locales } from "@/middleware";
+import { locales } from '@/middleware';
 
+import { fatLogger } from '@/lib/logger';
 /**
  * Dictionary type definition for internationalization.
  *
@@ -145,37 +146,37 @@ export type FAQDictionary = {
 // Onboarding dictionary type
 export type OnboardingDictionary = {
   onboarding?: {
-    "items-upload"?: {
+    'items-upload'?: {
       variations?: {
-        "leave-one-item"?: {
+        'leave-one-item'?: {
           title?: string;
           subtitle?: string;
         };
-        "single-item"?: {
+        'single-item'?: {
           title?: string;
           subtitle?: string;
         };
-        "three-items"?: {
+        'three-items'?: {
           title?: string;
           subtitle?: string;
         };
-        "one-photo-one-memory-forever"?: {
+        'one-photo-one-memory-forever'?: {
           title?: string;
           subtitle?: string;
         };
-        "preserve-your-digital-legacy"?: {
+        'preserve-your-digital-legacy'?: {
           title?: string;
           subtitle?: string;
         };
-        "digital-time-capsule"?: {
+        'digital-time-capsule'?: {
           title?: string;
           subtitle?: string;
         };
-        "pass-to-the-future"?: {
+        'pass-to-the-future'?: {
           title?: string;
           subtitle?: string;
         };
-        "wedding-memory"?: {
+        'wedding-memory'?: {
           title?: string;
           subtitle?: string;
         };
@@ -190,62 +191,62 @@ export type Dictionary = BaseDictionary &
   AboutDictionary &
   FAQDictionary &
   OnboardingDictionary & {
-    "items-upload"?: {
+    'items-upload'?: {
       variations: {
-        "leave-one-item": { title: string; subtitle: string };
-        "single-item": { title: string; subtitle: string };
-        "three-items": { title: string; subtitle: string };
-        "one-photo-one-memory-forever": { title: string; subtitle: string };
-        "preserve-your-digital-legacy": { title: string; subtitle: string };
-        "digital-time-capsule": { title: string; subtitle: string };
-        "pass-to-the-future": { title: string; subtitle: string };
-        "wedding-memory": { title: string; subtitle: string };
+        'leave-one-item': { title: string; subtitle: string };
+        'single-item': { title: string; subtitle: string };
+        'three-items': { title: string; subtitle: string };
+        'one-photo-one-memory-forever': { title: string; subtitle: string };
+        'preserve-your-digital-legacy': { title: string; subtitle: string };
+        'digital-time-capsule': { title: string; subtitle: string };
+        'pass-to-the-future': { title: string; subtitle: string };
+        'wedding-memory': { title: string; subtitle: string };
       };
     };
   } & {
     [K in
-      | "metadata"
-      | "hero"
-      | "header"
-      | "nav"
-      | "footer"
-      | "onboarding"
-      | "valueJourney"
-      | "about"
-      | "faq"
-      | "variations"]?: Record<string, unknown>;
+      | 'metadata'
+      | 'hero'
+      | 'header'
+      | 'nav'
+      | 'footer'
+      | 'onboarding'
+      | 'valueJourney'
+      | 'about'
+      | 'faq'
+      | 'variations']?: Record<string, unknown>;
   };
 
 const dictionaries: Record<string, () => Promise<BaseDictionary>> = {
-  en: () => import("../app/[lang]/dictionaries/base/en.json").then((module) => module.default),
-  fr: () => import("../app/[lang]/dictionaries/base/fr.json").then((module) => module.default),
-  es: () => import("../app/[lang]/dictionaries/base/es.json").then((module) => module.default),
-  pt: () => import("../app/[lang]/dictionaries/base/pt.json").then((module) => module.default),
-  it: () => import("../app/[lang]/dictionaries/base/it.json").then((module) => module.default),
-  de: () => import("../app/[lang]/dictionaries/base/de.json").then((module) => module.default),
-  pl: () => import("../app/[lang]/dictionaries/base/pl.json").then((module) => module.default),
-  zh: () => import("../app/[lang]/dictionaries/base/zh.json").then((module) => module.default),
+  en: () => import('../app/[lang]/dictionaries/base/en.json').then(module => module.default),
+  fr: () => import('../app/[lang]/dictionaries/base/fr.json').then(module => module.default),
+  es: () => import('../app/[lang]/dictionaries/base/es.json').then(module => module.default),
+  pt: () => import('../app/[lang]/dictionaries/base/pt.json').then(module => module.default),
+  it: () => import('../app/[lang]/dictionaries/base/it.json').then(module => module.default),
+  de: () => import('../app/[lang]/dictionaries/base/de.json').then(module => module.default),
+  pl: () => import('../app/[lang]/dictionaries/base/pl.json').then(module => module.default),
+  zh: () => import('../app/[lang]/dictionaries/base/zh.json').then(module => module.default),
 };
 
 // Onboarding dictionaries
 const onboardingDictionaries: Record<string, () => Promise<OnboardingDictionary>> = {
   en: () =>
-    import("../app/[lang]/dictionaries/onboarding/en.json").then((module) => module.default as OnboardingDictionary),
+    import('../app/[lang]/dictionaries/onboarding/en.json').then(module => module.default as OnboardingDictionary),
   de: () =>
-    import("../app/[lang]/dictionaries/onboarding/de.json").then((module) => module.default as OnboardingDictionary),
+    import('../app/[lang]/dictionaries/onboarding/de.json').then(module => module.default as OnboardingDictionary),
   // Add other languages as needed
 };
 
 // Segment-specific dictionaries
 const segmentDictionaries: Record<string, Record<string, () => Promise<ValueJourneyDictionary>>> = {
   family: {
-    en: () => import("../app/[lang]/dictionaries/segments/family/en.json").then((module) => module.default),
-    de: () => import("../app/[lang]/dictionaries/segments/family/de.json").then((module) => module.default),
+    en: () => import('../app/[lang]/dictionaries/segments/family/en.json').then(module => module.default),
+    de: () => import('../app/[lang]/dictionaries/segments/family/de.json').then(module => module.default),
     // Add other languages as needed
   },
-  "black-mirror": {
-    en: () => import("../app/[lang]/dictionaries/segments/black-mirror/en.json").then((module) => module.default),
-    de: () => import("../app/[lang]/dictionaries/segments/black-mirror/de.json").then((module) => module.default),
+  'black-mirror': {
+    en: () => import('../app/[lang]/dictionaries/segments/black-mirror/en.json').then(module => module.default),
+    de: () => import('../app/[lang]/dictionaries/segments/black-mirror/de.json').then(module => module.default),
     // Add other languages as needed
   },
   // Add other segments as needed
@@ -253,15 +254,15 @@ const segmentDictionaries: Record<string, Record<string, () => Promise<ValueJour
 
 // About page dictionaries
 const aboutDictionaries: Record<string, () => Promise<AboutDictionary>> = {
-  en: () => import("../app/[lang]/dictionaries/about/en.json").then((module) => module.default as AboutDictionary),
-  de: () => import("../app/[lang]/dictionaries/about/de.json").then((module) => module.default as AboutDictionary),
+  en: () => import('../app/[lang]/dictionaries/about/en.json').then(module => module.default as AboutDictionary),
+  de: () => import('../app/[lang]/dictionaries/about/de.json').then(module => module.default as AboutDictionary),
   // Add other languages as needed
 };
 
 // FAQ page dictionaries
 const faqDictionaries: Record<string, () => Promise<FAQDictionary>> = {
-  en: () => import("../app/[lang]/dictionaries/faq/en.json").then((module) => module.default as FAQDictionary),
-  de: () => import("../app/[lang]/dictionaries/faq/de.json").then((module) => module.default as FAQDictionary),
+  en: () => import('../app/[lang]/dictionaries/faq/en.json').then(module => module.default as FAQDictionary),
+  de: () => import('../app/[lang]/dictionaries/faq/de.json').then(module => module.default as FAQDictionary),
   // Add other languages as needed
 };
 
@@ -293,8 +294,8 @@ export const getDictionary = async (
   try {
     // Check if the locale is supported
     if (!locales.includes(locale)) {
-      console.warn(`Locale ${locale} not supported, falling back to English`);
-      locale = "en";
+      fatLogger.warn(`Locale ${locale} not supported, falling back to English`, 'fe');
+      locale = 'en';
     }
 
     // Load the main dictionary for the locale
@@ -312,7 +313,9 @@ export const getDictionary = async (
           result = { ...result, ...onboardingDict };
         }
       } catch (error) {
-        console.error(`Error loading onboarding dictionary:`, error);
+        fatLogger.error(`Error loading onboarding dictionary:`, 'fe', {
+          data: error instanceof Error ? error : undefined,
+        });
       }
     }
 
@@ -332,7 +335,9 @@ export const getDictionary = async (
           result = { ...result, ...segmentDict };
         }
       } catch (error) {
-        console.error(`Error loading segment dictionary for ${options.segment}:`, error);
+        fatLogger.error(`Error loading segment dictionary for ${options.segment}:`, 'fe', {
+          data: error instanceof Error ? error : undefined,
+        });
         // Continue with just the base dictionary if there's an error
       }
     }
@@ -353,7 +358,9 @@ export const getDictionary = async (
           result = { ...result, ...aboutDict };
         }
       } catch (error) {
-        console.error(`Error loading about dictionary for ${locale}:`, error);
+        fatLogger.error(`Error loading about dictionary for ${locale}:`, 'fe', {
+          data: error instanceof Error ? error : undefined,
+        });
         // Continue without about content if there's an error
       }
     }
@@ -374,14 +381,16 @@ export const getDictionary = async (
           result = { ...result, ...faqDict };
         }
       } catch (error) {
-        console.error(`Error loading FAQ dictionary for ${locale}:`, error);
+        fatLogger.error(`Error loading FAQ dictionary for ${locale}:`, 'fe', {
+          data: error instanceof Error ? error : undefined,
+        });
         // Continue without FAQ content if there's an error
       }
     }
 
     return result;
   } catch (error) {
-    console.error(`Error loading dictionaries:`, error);
+    fatLogger.error(`Error loading dictionaries:`, 'fe', { data: error instanceof Error ? error : undefined });
     throw error;
   }
 };

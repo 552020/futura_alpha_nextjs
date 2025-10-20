@@ -1,9 +1,9 @@
-import { auth } from "@/auth";
-import { db } from "@/db/db";
-import { eq } from "drizzle-orm";
-import { documents, images, notes } from "@/db/schema";
-import { notFound } from "next/navigation";
-import FileDetailEditor from "@/app/tests/files/[id]/file-detail-editor";
+import { auth } from '@/auth';
+import { db } from '@/db/db';
+import { eq } from 'drizzle-orm';
+import { documents, images, notes } from '@/db';
+import { notFound } from 'next/navigation';
+import FileDetailEditor from '@/app/tests/files/[id]/file-detail-editor';
 
 // Server component to handle data fetching
 export default async function FileDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -29,7 +29,7 @@ export default async function FileDetailPage({ params }: { params: Promise<{ id:
 
   if (photo) {
     // Verify access
-    if (photo.ownerId !== session.user.id && !photo.isPublic) {
+    if (photo.ownerId !== session.user.id && photo.sharingStatus !== 'public') {
       return (
         <div className="p-8 max-w-xl mx-auto">
           <h1 className="text-2xl font-bold mb-6">Access Denied</h1>
@@ -38,7 +38,7 @@ export default async function FileDetailPage({ params }: { params: Promise<{ id:
       );
     }
 
-    return <FileDetailEditor fileDetails={{ type: "image", data: photo }} />;
+    return <FileDetailEditor fileDetails={{ type: 'image', data: photo }} />;
   }
 
   // Try to find in files
@@ -57,7 +57,7 @@ export default async function FileDetailPage({ params }: { params: Promise<{ id:
       );
     }
 
-    return <FileDetailEditor fileDetails={{ type: "document", data: file }} />;
+    return <FileDetailEditor fileDetails={{ type: 'document', data: file }} />;
   }
 
   // Try to find in texts
@@ -76,7 +76,7 @@ export default async function FileDetailPage({ params }: { params: Promise<{ id:
       );
     }
 
-    return <FileDetailEditor fileDetails={{ type: "note", data: text }} />;
+    return <FileDetailEditor fileDetails={{ type: 'note', data: text }} />;
   }
 
   // If we get here, the file doesn't exist

@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createNonce, type NonceContext } from "@/lib/ii-nonce";
-import { headers } from "next/headers";
+import { NextRequest, NextResponse } from 'next/server';
+import { createNonce, type NonceContext } from '@/lib/ii-nonce';
+import { headers } from 'next/headers';
 
+import { fatLogger } from '@/lib/logger';
 // Rate limiting store (in production, use Redis or similar)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
@@ -17,7 +18,7 @@ const DEFAULT_TTL_SECONDS = 180; // 3 minutes default
  */
 function isValidCallbackUrl(url: string): boolean {
   // Allow relative paths
-  if (url.startsWith("/")) {
+  if (url.startsWith('/')) {
     return true;
   }
 
@@ -62,8 +63,8 @@ function checkRateLimit(ip: string): boolean {
  * Check origin/referer for basic CSRF protection
  */
 function checkOrigin(request: NextRequest): boolean {
-  const origin = request.headers.get("origin");
-  const referer = request.headers.get("referer");
+  const origin = request.headers.get('origin');
+  const referer = request.headers.get('referer');
   const allowedOrigin = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_SITE_URL;
 
   if (!allowedOrigin) {
@@ -112,21 +113,21 @@ export async function POST(request: NextRequest) {
   try {
     // Extract request context first for security checks
     const headersList = await headers();
-    const userAgent = headersList.get("user-agent") || undefined;
-    const forwardedFor = headersList.get("x-forwarded-for");
-    const realIp = headersList.get("x-real-ip");
-    const ipAddress = forwardedFor?.split(",")[0]?.trim() || realIp || "unknown";
+    const userAgent = headersList.get('user-agent') || undefined;
+    const forwardedFor = headersList.get('x-forwarded-for');
+    const realIp = headersList.get('x-real-ip');
+    const ipAddress = forwardedFor?.split(',')[0]?.trim() || realIp || 'unknown';
 
     // Security Check 1: Origin/Referer validation (CSRF protection)
     if (!checkOrigin(request)) {
-      console.warn(`II Challenge: Invalid origin/referer from IP ${ipAddress}`);
-      return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
+      fatLogger.warn(`II Challenge: Invalid origin/referer from IP ${ipAddress}`, 'be');
+      return NextResponse.json({ error: 'Invalid origin' }, { status: 403 });
     }
 
     // Security Check 2: Rate limiting
     if (!checkRateLimit(ipAddress)) {
-      console.warn(`II Challenge: Rate limit exceeded for IP ${ipAddress}`);
-      return NextResponse.json({ error: "Rate limit exceeded. Please try again later." }, { status: 429 });
+      fatLogger.warn(`II Challenge: Rate limit exceeded for IP ${ipAddress}`, 'be');
+      return NextResponse.json({ error: 'Rate limit exceeded. Please try again later.' }, { status: 429 });
     }
 
     // Parse request body
@@ -134,21 +135,21 @@ export async function POST(request: NextRequest) {
     const { callbackUrl, ttlSeconds: clientTtlSeconds } = body;
 
     // Security Check 3: CallbackUrl validation (prevent open redirects)
-    if (callbackUrl && typeof callbackUrl !== "string") {
-      return NextResponse.json({ error: "callbackUrl must be a string" }, { status: 400 });
+    if (callbackUrl && typeof callbackUrl !== 'string') {
+      return NextResponse.json({ error: 'callbackUrl must be a string' }, { status: 400 });
     }
 
     if (callbackUrl && !isValidCallbackUrl(callbackUrl)) {
-      console.warn(`II Challenge: Invalid callbackUrl attempted: ${callbackUrl} from IP ${ipAddress}`);
+      fatLogger.warn(`II Challenge: Invalid callbackUrl attempted: ${callbackUrl} from IP ${ipAddress}`, 'be');
       return NextResponse.json(
-        { error: "Invalid callbackUrl. Must be a relative path or same-origin URL." },
+        { error: 'Invalid callbackUrl. Must be a relative path or same-origin URL.' },
         { status: 400 }
       );
     }
 
     // Security Check 4: TTL clamping (don't trust client values)
     let ttlSeconds = DEFAULT_TTL_SECONDS;
-    if (typeof clientTtlSeconds === "number") {
+    if (typeof clientTtlSeconds === 'number') {
       ttlSeconds = Math.max(MIN_TTL_SECONDS, Math.min(MAX_TTL_SECONDS, clientTtlSeconds));
     }
 
@@ -164,7 +165,7 @@ export async function POST(request: NextRequest) {
     const result = await createNonce(context);
 
     // Security logging (never log raw nonce)
-    // console.log(
+    // fatLogger.info(
     //   `II Challenge created: nonceId=${result.nonceId}, ttl=${
     //     result.ttlSeconds
     //   }s, ip=${ipAddress}, ua=${userAgent?.substring(0, 50)}...`
@@ -177,8 +178,8 @@ export async function POST(request: NextRequest) {
       ttlSeconds: result.ttlSeconds,
     });
   } catch (error) {
-    console.error("Error creating II challenge nonce:", error);
-    return NextResponse.json({ error: "Failed to create challenge nonce" }, { status: 500 });
+    fatLogger.error('Error creating II challenge nonce:', 'be', { data: error instanceof Error ? error : undefined });
+    return NextResponse.json({ error: 'Failed to create challenge nonce' }, { status: 500 });
   }
 }
 
@@ -190,28 +191,28 @@ export async function POST(request: NextRequest) {
  */
 export async function GET() {
   // Disable in production
-  if (process.env.NODE_ENV === "production") {
-    return NextResponse.json({ error: "Endpoint not available" }, { status: 404 });
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Endpoint not available' }, { status: 404 });
   }
 
   return NextResponse.json({
-    endpoint: "/api/ii/challenge",
-    method: "POST",
-    description: "Creates a nonce for Internet Identity canister-first signup",
+    endpoint: '/api/ii/challenge',
+    method: 'POST',
+    description: 'Creates a nonce for Internet Identity canister-first signup',
     security: {
       rateLimit: `${RATE_LIMIT_MAX_REQUESTS} requests per ${RATE_LIMIT_WINDOW_MS / 1000}s per IP`,
       ttlLimits: `${MIN_TTL_SECONDS}-${MAX_TTL_SECONDS} seconds`,
-      originCheck: "Same-origin requests only",
-      callbackValidation: "Relative paths or same-origin URLs only",
+      originCheck: 'Same-origin requests only',
+      callbackValidation: 'Relative paths or same-origin URLs only',
     },
     requestBody: {
-      callbackUrl: "string (optional) - URL to redirect after successful auth",
-      ttlSeconds: "number (optional) - TTL in seconds, clamped to server limits",
+      callbackUrl: 'string (optional) - URL to redirect after successful auth',
+      ttlSeconds: 'number (optional) - TTL in seconds, clamped to server limits',
     },
     response: {
-      nonceId: "string - unique identifier for this nonce",
-      nonce: "string - the actual nonce value to prove to canister",
-      ttlSeconds: "number - actual TTL in seconds (server-clamped)",
+      nonceId: 'string - unique identifier for this nonce',
+      nonce: 'string - the actual nonce value to prove to canister',
+      ttlSeconds: 'number - actual TTL in seconds (server-clamped)',
     },
   });
 }

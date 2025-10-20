@@ -1,10 +1,10 @@
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useOnboarding } from "@/contexts/onboarding-context";
-import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
-import { StepContainer } from "../common/step-container";
-import { StepNavigation } from "../common/step-navigation";
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useOnboarding } from '@/contexts/onboarding-context';
+import Image from 'next/image';
+import { useEffect, useRef, useState } from 'react';
+import { StepContainer } from '../common/step-container';
+import { StepNavigation } from '../common/step-navigation';
 
 interface UserInfoStepProps {
   withImage?: boolean;
@@ -37,7 +37,7 @@ export function UserInfoStep({
 
   // Sync local state with context when userData changes
   useEffect(() => {
-    if (currentStep === "user-info") {
+    if (currentStep === 'user-info') {
       setLocalName(userData.name);
       setLocalEmail(userData.email);
     }
@@ -45,14 +45,14 @@ export function UserInfoStep({
 
   // Focus for name field
   useEffect(() => {
-    if (currentStep === "user-info" && nameInputRef.current) {
+    if (currentStep === 'user-info' && nameInputRef.current) {
       nameInputRef.current.focus();
     }
   }, [currentStep, localName]);
 
   // Focus for email field
   useEffect(() => {
-    if (currentStep === "user-info" && emailInputRef.current) {
+    if (currentStep === 'user-info' && emailInputRef.current) {
       emailInputRef.current.focus();
     }
   }, [currentStep, localEmail]);
@@ -60,7 +60,7 @@ export function UserInfoStep({
   const validateEmail = (email: string) => {
     const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
     const isValid = emailRegex.test(email);
-    // console.log("Email validation:", { email, isValid });
+    // userLogger.info("Email validation:", { email, isValid });
     return isValid;
   };
 
@@ -72,7 +72,7 @@ export function UserInfoStep({
 
   const handleEventBasedEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
-    // console.log("Email changed:", newValue);
+    // userLogger.info("Email changed:", newValue);
     setLocalEmail(newValue);
     updateUserData({ email: newValue });
   };
@@ -86,7 +86,7 @@ export function UserInfoStep({
 
   // Add debug log for button state
   const isNextDisabled = collectEmail && !validateEmail(localEmail);
-  // console.log("Button state:", {
+  // userLogger.info("Button state:", {
   //   collectEmail,
   //   localEmail,
   //   isValid: validateEmail(localEmail),

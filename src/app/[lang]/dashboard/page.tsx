@@ -1,226 +1,227 @@
-"use client";
+'use client';
 
-import { useEffect, useState, useCallback } from "react";
-import { MemoryGrid } from "@/components/memory/memory-grid";
-import { Loader2 } from "lucide-react";
-import { useInView } from "react-intersection-observer";
-import { useAuthGuard } from "@/utils/authentication";
-import { Memory } from "@/types/memory";
-import { useRouter } from "next/navigation";
-import { useToast } from "@/hooks/use-toast";
-import { ItemUploadButton } from "@/components/memory/item-upload-button";
-import { useParams } from "next/navigation";
-import RequireAuth from "@/components/auth/require-auth";
+/**
+ * DASHBOARD PAGE (formerly "Vault")
+ *
+ * This page displays the user's memory collection in a grid/list view.
+ * It was previously called "Vault" but has been renamed to "Dashboard"
+ * for better UX clarity.
+ *
+ * Features:
+ * - Memory grid/list view with pagination
+ * - Upload functionality
+ * - Memory management (delete, share, edit)
+ * - Folder organization
+ * - Search and filtering
+ */
+
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useInfiniteQuery, keepPreviousData, useQueryClient } from '@tanstack/react-query';
+import { qk } from '@/lib/query-keys';
+import { MemoryGrid } from '@/components/memory/memory-grid';
+import { Loader2 } from 'lucide-react';
+import { useAuthGuard } from '@/utils/authentication';
+import { Memory } from '@/types/memory';
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
+import { ItemUploadButton } from '@/components/memory/item-upload-button';
+import { useParams } from 'next/navigation';
+import RequireAuth from '@/components/auth/require-auth';
 import {
-  fetchAndNormalizeMemories,
+  fetchMemories,
   processDashboardItems,
   deleteMemory,
   deleteAllMemories,
-  type NormalizedMemory,
+  type MemoryWithFolder,
   type DashboardItem,
-} from "@/services/memories";
-import { Memory as BaseMemory } from "@/types/memory";
-
-// Extended Memory interface for compatibility with DashboardTopBar
-interface ExtendedMemory extends BaseMemory {
-  tags?: string[];
-  isFavorite?: boolean;
-  views?: number;
-}
-import { TawkChat } from "@/components/chat/tawk-chat";
-import { DashboardTopBar } from "@/components/dashboard/dashboard-top-bar";
-import { sampleDashboardMemories } from "./sample-data";
+  type FolderItem,
+} from '@/services/memories';
+import { ExtendedMemory } from '@/types/dashboard';
+// import { TawkChat } from '@/components/chat/tawk-chat';
+import { DashboardTopBar } from '@/components/dashboard/dashboard-top-bar';
+import { sampleDashboardMemories } from '../../../../scripts/mock-data/create-dashboard-sample-data';
+import { useHostingPreferences, getRecommendedDashboardDataSource } from '@/hooks/use-hosting-preferences';
 
 // Demo flag - set to true to use mock data for demo
-const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_DASHBOARD === "true";
+// 📝 Sample data generation script: scripts/mock-data/create-dashboard-sample-data.ts
+const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_DASHBOARD === 'true';
 
 export default function VaultPage() {
-  // console.log("🔍 Dashboard component rendered");
   const { isAuthorized, isTemporaryUser, userId, isLoading } = useAuthGuard();
-  // console.log("🔍 Dashboard auth state:", { isAuthorized, isTemporaryUser, userId, isLoading });
   const router = useRouter();
   const { toast } = useToast();
-  const [memories, setMemories] = useState<DashboardItem[]>([]);
-  const [isLoadingMemories, setIsLoadingMemories] = useState(true);
-  const [hasMore, setHasMore] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [filteredMemories, setFilteredMemories] = useState<NormalizedMemory[]>([]);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-
-  // Dashboard items are already processed by processDashboardItems
-  const dashboardItems = memories;
-  const { ref } = useInView();
+  const queryClient = useQueryClient();
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [filteredMemories, setFilteredMemories] = useState<DashboardItem[]>([]);
   const params = useParams();
 
-  const fetchMemories = useCallback(async () => {
-    // console.log("🚀 LINE 104: ENTERING fetchMemories function");
-    const timestamp = new Date().toISOString();
-    // console.log("🔍 fetchMemories called with:", { currentPage, USE_MOCK_DATA, timestamp });
+  // Get hosting preferences to determine recommended data source
+  const { data: hostingPreferences } = useHostingPreferences();
 
-    if (USE_MOCK_DATA) {
-      // console.log("🎭 MOCK DATA - Using sample data for demo");
-      const processedItems = processDashboardItems(sampleDashboardMemories as NormalizedMemory[]);
-      setMemories(processedItems);
-      setHasMore(false);
-      setIsLoadingMemories(false);
-      return;
+  // Database source state for switching between ICP and Neon
+  // Automatically set based on hosting preferences
+  const [dataSource, setDataSource] = useState<'neon' | 'icp' | null>(null);
+  const [isAutoSelected, setIsAutoSelected] = useState(true); // Track if data source was auto-selected
+
+  // Update data source when hosting preferences change
+  useEffect(() => {
+    if (hostingPreferences) {
+      const recommendedDataSource = getRecommendedDashboardDataSource(hostingPreferences);
+      setDataSource(recommendedDataSource);
+      setIsAutoSelected(true); // Mark as auto-selected when preferences change
     }
+  }, [hostingPreferences]);
 
-    try {
-      // console.log("🔄 FETCH MEMORIES - Starting fetch:", {
-      //   page: currentPage,
-      //   timestamp,
-      // });
+  // Handle manual data source changes
+  const handleDataSourceChange = useCallback((newDataSource: 'neon' | 'icp') => {
+    setDataSource(newDataSource);
+    setIsAutoSelected(false); // Mark as manually selected
+  }, []);
 
-      // console.log("🚀 LINE 122: CALLING fetchAndNormalizeMemories");
-      const result = await fetchAndNormalizeMemories(currentPage);
-      // console.log("✅ LINE 124: EXITED fetchAndNormalizeMemories");
+  // React Query for dashboard data
+  const {
+    data,
+    isLoading: isLoadingMemories,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    error: queryError,
+  } = useInfiniteQuery({
+    queryKey: qk.memories.dashboard(userId, params.lang as string, dataSource),
+    queryFn: ({ pageParam = 1 }) => {
+      return fetchMemories(pageParam as number, dataSource!);
+    },
+    enabled: dataSource !== null && Boolean(!USE_MOCK_DATA && isAuthorized && !isLoading && userId), // Only run when dataSource is determined AND user is authorized
+    initialPageParam: 1,
+    getNextPageParam: () => undefined, // No pagination for now
+    placeholderData: keepPreviousData,
+  });
 
-      // console.log("🚀 LINE 126: CALLING processDashboardItems");
-      const processedItems = processDashboardItems(result.memories);
-      // console.log("✅ LINE 128: EXITED processDashboardItems");
-
-      // console.log("✅ FETCH MEMORIES - Success:", {
-      //   memoriesCount: result.memories.length,
-      //   processedItemsCount: processedItems.length,
-      //   hasMore: result.hasMore,
-      //   timestamp,
-      // });
-
-      // console.log("🔍 About to set memories with processedItems:", processedItems);
-      setMemories((prev) => {
-        const newMemories = currentPage === 1 ? processedItems : [...prev, ...processedItems];
-        // console.log("🔍 Setting memories to:", newMemories);
-        return newMemories;
-      });
-      setHasMore(result.hasMore);
-    } catch (error) {
-      console.error("❌ FETCH MEMORIES ERROR:", {
-        error,
-        message: error instanceof Error ? error.message : "Unknown error",
-        stack: error instanceof Error ? error.stack : undefined,
-        timestamp,
-      });
+  // Handle ICP connection errors
+  useEffect(() => {
+    if (queryError && dataSource === 'icp') {
       toast({
-        title: "Error",
-        description: "Failed to load memories. Please try again.",
-        variant: "destructive",
+        title: 'ICP Unavailable',
+        description: 'Internet Computer network is currently unavailable',
+        variant: 'default',
       });
-    } finally {
-      setIsLoadingMemories(false);
     }
-    // console.log("🚀 LINE 156: EXITING fetchMemories function");
-  }, [currentPage, toast]);
+  }, [queryError, dataSource, toast]);
+
+  // Process items from React Query or mock data
+  const items = useMemo(() => {
+    if (USE_MOCK_DATA) {
+      return processDashboardItems(sampleDashboardMemories as MemoryWithFolder[]);
+    }
+    return (data?.pages ?? []).flatMap(p => processDashboardItems(p.memories ?? []));
+  }, [data]);
+
+  // Dashboard items are already processed by processDashboardItems
+  const dashboardItems = items;
+
+  // Mock data handling for demo mode
+  useEffect(() => {
+    if (USE_MOCK_DATA && isAuthorized && !isLoading) {
+      const processedItems = processDashboardItems(sampleDashboardMemories as MemoryWithFolder[]);
+      setFilteredMemories(processedItems);
+    }
+  }, [isAuthorized, isLoading]);
 
   // Removed automatic redirect - now handled by RequireAuth component in render
 
-  useEffect(() => {
-    // console.log("🔍 Dashboard useEffect - Auth check:", { isAuthorized, userId, isLoading });
-    if (isAuthorized && !isLoading) {
-      // console.log("🚀 LINE 168: CALLING fetchMemories");
-      fetchMemories();
-      // console.log("✅ LINE 170: EXITED fetchMemories");
-    } else {
-      // console.log("🔍 Dashboard useEffect - Not authorized or still loading");
-    }
-  }, [isAuthorized, isLoading, userId, fetchMemories]);
-
+  // Handle infinite scroll for React Query
   useEffect(() => {
     const handleScroll = () => {
       if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 100) {
-        if (!isLoadingMemories && hasMore) {
-          setCurrentPage((prev) => prev + 1);
+        if (!isFetchingNextPage && hasNextPage && !USE_MOCK_DATA) {
+          fetchNextPage();
         }
       }
     };
 
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [isLoadingMemories, hasMore]);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isFetchingNextPage, hasNextPage, fetchNextPage]);
 
-  // Initialize filtered memories when memories are loaded
+  // Initialize filtered memories when items are loaded
   useEffect(() => {
-    setFilteredMemories(memories);
-  }, [memories]);
+    setFilteredMemories(items);
+  }, [items]);
 
   const handleDelete = async (id: string) => {
     try {
       await deleteMemory(id);
-      setMemories((prev) => prev.filter((memory) => memory.id !== id));
+      // Invalidate and refetch dashboard data
+      queryClient.invalidateQueries({ queryKey: qk.memories.dashboard() });
       toast({
-        title: "Success",
-        description: "Memory deleted successfully.",
+        title: 'Success',
+        description: 'Memory deleted successfully.',
       });
-    } catch (error) {
-      console.error("Error deleting memory:", error);
+    } catch (_error) {
       toast({
-        title: "Error",
-        description: "Failed to delete memory. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to delete memory. Please try again.',
+        variant: 'destructive',
       });
     }
   };
 
   const handleShare = () => {
-    // Refresh the memories list to show any new shares
-    fetchMemories();
+    // Invalidate and refetch dashboard data to show any new shares
+    queryClient.invalidateQueries({ queryKey: ['memories', 'dashboard'] });
   };
 
-  const handleMemoryClick = (memory: Memory) => {
-    // console.log("🔍 Memory clicked:", memory);
-    // console.log("🔍 Memory type:", memory.type);
-    // console.log("🔍 Memory ID:", memory.id);
-
+  const handleMemoryClick = (memory: Memory | DashboardItem) => {
     // Check if it's a folder item
-    if (memory.type === "folder") {
-      // For folders, we need to extract the folder name from the ID
-      const folderName = memory.id.replace("folder-", "");
-      // console.log("🔍 Extracted folder name:", folderName);
-      // console.log("🔍 Navigating to folder:", folderName);
-      router.push(`/${params.lang}/dashboard/folder/${folderName}`);
+    if (memory.type === 'folder') {
+      // For folders, use the folderId property (new structure) or fallback to extracting from ID (old structure)
+      const folderId = (memory as FolderItem).folderId || memory.id.replace('folder-', '');
+      router.push(`/${params.lang}/dashboard/folder/${folderId}`);
     } else {
       // For individual memories, navigate to the memory detail page
-      // console.log("🔍 Navigating to memory:", memory.id);
       router.push(`/${params.lang}/dashboard/${memory.id}`);
     }
   };
 
   const handleUploadSuccess = () => {
     // Refresh the memories list to show the new memory
-    fetchMemories();
+    queryClient.invalidateQueries({ queryKey: ['memories', 'dashboard'] });
   };
 
   const handleUploadError = (error: Error) => {
     toast({
-      title: "Error",
-      description: error.message || "Failed to upload memory",
-      variant: "destructive",
+      title: 'Error',
+      description: error.message || 'Failed to upload memory',
+      variant: 'destructive',
     });
   };
 
   const handleFilteredMemoriesChange = useCallback((filtered: ExtendedMemory[]) => {
-    setFilteredMemories(filtered as NormalizedMemory[]);
+    setFilteredMemories(filtered as MemoryWithFolder[]);
   }, []);
 
   const handleClearAllMemories = async () => {
-    if (!confirm("Are you sure you want to delete ALL memories? This action cannot be undone.")) {
+    if (!confirm('Are you sure you want to delete ALL memories? This action cannot be undone.')) {
       return;
     }
 
     try {
-      const result = await deleteAllMemories({ all: true });
-      setMemories([]);
+      const result = await deleteAllMemories({
+        all: true,
+        hostingPreferences: hostingPreferences,
+      });
+      // Invalidate and refetch dashboard data
+      queryClient.invalidateQueries({ queryKey: qk.memories.dashboard() });
       setFilteredMemories([]);
       toast({
-        title: "Success",
+        title: 'Success',
         description: `Successfully deleted ${result.deletedCount} memories.`,
       });
-    } catch (error) {
-      console.error("Error clearing all memories:", error);
+    } catch (_error) {
       toast({
-        title: "Error",
-        description: "Failed to clear all memories. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to clear all memories. Please try again.',
+        variant: 'destructive',
       });
     }
   };
@@ -240,7 +241,7 @@ export default function VaultPage() {
   }
 
   return (
-    <div className="container mx-auto px-6 py-8">
+    <div className="container mx-auto px-6 py-8 max-w-full">
       {isTemporaryUser && (
         <div className="mb-4 rounded-lg bg-yellow-50 p-4 text-yellow-800">
           <div className="flex items-start gap-3">
@@ -269,7 +270,7 @@ export default function VaultPage() {
 
       {/* DashboardTopBar Component */}
       <DashboardTopBar
-        memories={dashboardItems as NormalizedMemory[]}
+        memories={dashboardItems as MemoryWithFolder[]}
         onFilteredMemoriesChange={handleFilteredMemoriesChange}
         showViewToggle={true}
         onViewModeChange={setViewMode}
@@ -278,9 +279,20 @@ export default function VaultPage() {
         onUploadSuccess={handleUploadSuccess}
         onUploadError={handleUploadError}
         onClearAllMemories={handleClearAllMemories}
+        dataSource={dataSource || 'neon'}
+        onDataSourceChange={handleDataSourceChange}
+        isAutoSelected={isAutoSelected}
+        hostingPreferences={hostingPreferences}
       />
 
-      {dashboardItems.length === 0 ? (
+      {/* Show loading state while fetching */}
+      {dataSource === null || isLoadingMemories ? (
+        <div className="flex justify-center items-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin mr-2" />
+          <span>Loading memories...</span>
+        </div>
+      ) : /* Show empty state if no memories */
+      dashboardItems.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border-2 border-gray-300 p-16 text-center bg-gray-50 shadow-lg">
           <h3 className="text-4xl font-bold text-gray-800 mb-4">No memories yet</h3>
           <p className="mt-2 text-base text-gray-600 mb-6 max-w-md">
@@ -289,24 +301,33 @@ export default function VaultPage() {
           <ItemUploadButton variant="large-icon" onSuccess={handleUploadSuccess} onError={handleUploadError} />
         </div>
       ) : (
-        <MemoryGrid
-          memories={filteredMemories}
-          onDelete={handleDelete}
-          onShare={handleShare}
-          onClick={handleMemoryClick}
-          viewMode={viewMode}
-        />
-      )}
+        /* Show memories grid */
+        <>
+          <MemoryGrid
+            memories={filteredMemories}
+            onDelete={handleDelete}
+            onShare={handleShare}
+            onClick={handleMemoryClick}
+            viewMode={viewMode}
+          />
 
-      {/* Loading indicator */}
-      {isLoadingMemories && (
-        <div className="mt-8 flex justify-center" ref={ref}>
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
+          {/* Load more button for React Query */}
+          {hasNextPage && !USE_MOCK_DATA && (
+            <div className="flex justify-center mt-8">
+              <button
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
+                className="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isFetchingNextPage ? 'Loading…' : 'Load more'}
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {/* Tawk.to Chat */}
-      <TawkChat />
+      {/* <TawkChat /> */}
     </div>
   );
 }

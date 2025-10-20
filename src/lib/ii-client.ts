@@ -1,6 +1,7 @@
-import { backendActor } from "@/ic/backend";
-import { Identity } from "@dfinity/agent";
+import { backendActor } from '@/ic/backend';
+import { Identity } from '@dfinity/agent';
 
+import { fatLogger } from '@/lib/logger';
 /**
  * Client-side functions for Internet Identity integration
  */
@@ -15,16 +16,16 @@ export interface IIChallengeResponse {
  * Fetch a challenge nonce from the Web2 backend
  */
 export async function fetchChallenge(callbackUrl?: string): Promise<IIChallengeResponse> {
-  // console.log("DEBUG: fetchChallenge called with callbackUrl:", callbackUrl);
-  // console.log("DEBUG: fetchChallenge using fallback:", callbackUrl || "/en/dashboard");
+  // fatLogger.info("DEBUG: fetchChallenge called with callbackUrl:", callbackUrl);
+  // fatLogger.info("DEBUG: fetchChallenge using fallback:", callbackUrl || "/en/dashboard");
 
-  const response = await fetch("/api/ii/challenge", {
-    method: "POST",
+  const response = await fetch('/api/ii/challenge', {
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      callbackUrl: callbackUrl || "/en/dashboard",
+      callbackUrl: callbackUrl || '/en/dashboard',
     }),
   });
 
@@ -42,17 +43,17 @@ export async function fetchChallenge(callbackUrl?: string): Promise<IIChallengeR
  */
 export async function registerWithNonce(nonce: string, identity: Identity) {
   try {
-    // console.log("DEBUG: registerWithNonce called with nonce length:", nonce.length);
-    // console.log("DEBUG: registerWithNonce nonce preview:", nonce.substring(0, 10) + "...");
+    // fatLogger.info("DEBUG: registerWithNonce called with nonce length:", nonce.length);
+    // fatLogger.info("DEBUG: registerWithNonce nonce preview:", nonce.substring(0, 10) + "...");
   } catch (error) {
-    console.warn("registerWithNonce error:", error);
+    fatLogger.warn('registerWithNonce error:', 'fe', { error: error instanceof Error ? error : undefined });
   }
 
   const actor = await backendActor(identity);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result = (await actor.register_with_nonce(nonce)) as { Ok: any } | { Err: any };
 
-  if ("Err" in result) {
+  if ('Err' in result) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     throw new Error(`Registration with nonce failed: ${JSON.stringify((result as { Err: any }).Err)}`);
   }
@@ -67,5 +68,5 @@ export async function registerWithNonce(nonce: string, identity: Identity) {
 export async function markBoundOnCanister(identity: Identity) {
   const actor = await backendActor(identity);
   // Use the new flexible binding function to bind the caller's capsule to Neon
-  return actor.capsules_bind_neon({ Capsule: null }, "", true);
+  return actor.capsules_bind_neon({ Capsule: null }, '', true);
 }

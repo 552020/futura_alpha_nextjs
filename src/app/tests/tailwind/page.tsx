@@ -1,25 +1,25 @@
-"use client";
+'use client';
 
-import React, { useEffect } from "react";
+import React, { useEffect } from 'react';
 
+import { fatLogger } from '@/lib/logger';
 export default function TailwindTestPage() {
   useEffect(() => {
-    console.log("TailwindTestPage mounted");
+    fatLogger.info('TailwindTestPage mounted', 'fe');
 
     // Log all loaded stylesheets
-    console.log(
-      "All loaded stylesheets:",
-      Array.from(document.styleSheets).map((sheet) => ({
+    fatLogger.info('All loaded stylesheets:', 'fe', {
+      stylesheets: Array.from(document.styleSheets).map(sheet => ({
         href: sheet.href,
         type: sheet.type,
         rules: sheet.cssRules?.length,
-      }))
-    );
+      })),
+    });
 
     // Check specific Tailwind classes
     //     const testElement = document.querySelector(".test-tailwind");
     //     if (testElement) {
-    //       console.log("Test element styles:", {
+    //       fatLogger.info("Test element styles:", undefined, {
     //         computed: window.getComputedStyle(testElement),
     //         classList: testElement.classList,
     //         backgroundColor: window.getComputedStyle(testElement).backgroundColor,
@@ -44,7 +44,7 @@ export default function TailwindTestPage() {
           0_0_92px_#fff,
           0_0_102px_#fff,
           0_0_151px_#fff]"
-          style={{ top: "0.5px", left: "0.5px" }}
+          style={{ top: '0.5px', left: '0.5px' }}
         >
           Neon White
         </h1>

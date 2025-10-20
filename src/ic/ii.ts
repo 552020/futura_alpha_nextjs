@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { AuthClient } from "@dfinity/auth-client";
-import type { Identity } from "@dfinity/agent";
-import { clearAgentCache } from "./agent";
+import { AuthClient } from '@dfinity/auth-client';
+import type { Identity } from '@dfinity/agent';
+import { clearAgentCache } from './agent';
 
 let cachedAuthClientPromise: Promise<AuthClient> | null = null;
 
@@ -21,13 +21,13 @@ export function getSessionTtlNs(): bigint | undefined {
 }
 
 export async function loginWithII(): Promise<{ identity: Identity; principal: string }> {
-  // console.log("loginWithII");
+  // icpLogger.info("loginWithII");
   const provider = process.env.NEXT_PUBLIC_II_URL || process.env.NEXT_PUBLIC_II_URL_FALLBACK;
-  if (!provider) throw new Error("II URL not configured");
-  // console.log("loginWithII", "provider", provider);
+  if (!provider) throw new Error('II URL not configured');
+  // icpLogger.info("loginWithII", "provider", provider);
   const authClient = await getAuthClient();
   const maxTimeToLive = getSessionTtlNs();
-  // console.log("authClient", authClient);
+  // icpLogger.info("authClient", authClient);
 
   await new Promise<void>((resolve, reject) =>
     authClient.login({
@@ -37,11 +37,11 @@ export async function loginWithII(): Promise<{ identity: Identity; principal: st
       onError: reject,
     })
   );
-  // console.log("loginWithII");
+  // icpLogger.info("loginWithII");
   const identity = authClient.getIdentity();
-  // console.log("identity", identity);
+  // icpLogger.info("identity", identity);
   const principal = identity.getPrincipal().toString();
-  // console.log("principal", principal);
+  // icpLogger.info("principal", principal);
   return { identity, principal };
 }
 

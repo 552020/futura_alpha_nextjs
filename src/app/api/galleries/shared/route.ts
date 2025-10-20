@@ -1,10 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
-import { db } from "@/db/db";
-import { allUsers, galleries, galleryShares, users, temporaryUsers } from "@/db/schema";
-import { addStorageStatusToGallery } from "../utils";
-import { eq, desc, sql } from "drizzle-orm";
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/auth';
+import { db } from '@/db/db';
+import { allUsers, galleries, users, temporaryUsers, resourceMembership } from '@/db';
+import { addStorageStatusToGallery } from '../utils';
+import { eq, and, desc, sql } from 'drizzle-orm';
 
+import { fatLogger } from '@/lib/logger';
 /**
  * GET /api/galleries/shared
  *
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!allUserRecord) {
-      return NextResponse.json({ error: "User record not found" }, { status: 404 });
+      return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
     allUserId = allUserRecord.id;
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
     const body = await request.json();
     if (!body?.allUserId) {
       return NextResponse.json(
-        { error: "For temporary users, allUserId must be provided in the request body" },
+        { error: 'For temporary users, allUserId must be provided in the request body' },
         { status: 401 }
       );
     }
@@ -51,7 +52,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!tempUserRecord) {
-      return NextResponse.json({ error: "Invalid temporary user ID" }, { status: 404 });
+      return NextResponse.json({ error: 'Invalid temporary user ID' }, { status: 404 });
     }
 
     allUserId = body.allUserId;
@@ -60,33 +61,35 @@ export async function GET(request: NextRequest) {
   try {
     // Get query parameters
     const searchParams = request.nextUrl.searchParams;
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "12");
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '12');
     const offset = (page - 1) * limit;
 
-    // Get all gallery shares for this user
-    const shares = await db.query.galleryShares.findMany({
-      where: eq(galleryShares.sharedWithId, allUserId),
-      orderBy: desc(galleryShares.createdAt),
+    // Get all gallery shares for this user using the new universal resource sharing system
+    const shares = await db.query.resourceMembership.findMany({
+      where: and(eq(resourceMembership.allUserId, allUserId), eq(resourceMembership.resourceType, 'gallery')),
+      orderBy: desc(resourceMembership.createdAt),
     });
 
     // Fetch the actual galleries
     const sharedGalleries = await Promise.all(
-      shares.map(async (share) => {
+      shares.map(async share => {
         const gallery = await db.query.galleries.findFirst({
-          where: eq(galleries.id, share.galleryId),
+          where: eq(galleries.id, share.resourceId),
         });
         if (!gallery) return null;
 
-        // Get total share count for this gallery
+        // Get total share count for this gallery using the new universal resource sharing system
         const shareCount = await db
           .select({ count: sql<number>`count(*)` })
-          .from(galleryShares)
-          .where(eq(galleryShares.galleryId, share.galleryId));
+          .from(resourceMembership)
+          .where(
+            and(eq(resourceMembership.resourceId, share.resourceId), eq(resourceMembership.resourceType, 'gallery'))
+          );
 
-        // Get owner name
+        // Get owner name from the gallery itself
         const owner = await db.query.allUsers.findFirst({
-          where: eq(allUsers.id, share.ownerId),
+          where: eq(allUsers.id, gallery.ownerId),
         });
 
         // Add storage status to the gallery
@@ -95,11 +98,11 @@ export async function GET(request: NextRequest) {
         return {
           ...galleryWithStorageStatus,
           sharedBy: {
-            id: share.ownerId,
-            name: owner?.userId ? await getOwnerName(share.ownerId) : "Unknown",
+            id: gallery.ownerId,
+            name: owner?.userId ? await getOwnerName(gallery.ownerId) : 'Unknown',
           },
-          accessLevel: share.accessLevel,
-          status: "shared" as const,
+          accessLevel: share.role === 'member' ? 'write' : 'read',
+          status: 'shared' as const,
           sharedWithCount: shareCount[0].count,
         };
       })
@@ -109,7 +112,7 @@ export async function GET(request: NextRequest) {
     const validGalleries = sharedGalleries.filter(Boolean);
     const paginatedGalleries = validGalleries.slice(offset, offset + limit);
 
-    // console.log("Fetched shared galleries:", {
+    // fatLogger.info("Fetched shared galleries:", undefined, {
     //   page,
     //   limit,
     //   offset,
@@ -123,8 +126,8 @@ export async function GET(request: NextRequest) {
       hasMore: offset + limit < validGalleries.length,
     });
   } catch (error) {
-    console.error("Error listing shared galleries:", error);
-    return NextResponse.json({ error: "Failed to list shared galleries" }, { status: 500 });
+    fatLogger.error('Error listing shared galleries:', 'be', { data: error instanceof Error ? error : undefined });
+    return NextResponse.json({ error: 'Failed to list shared galleries' }, { status: 500 });
   }
 }
 
@@ -135,14 +138,14 @@ async function getOwnerName(ownerId: string): Promise<string> {
       where: eq(allUsers.id, ownerId),
     });
 
-    if (!owner) return "Unknown";
+    if (!owner) return 'Unknown';
 
     // If it's a regular user, get their name from the users table
     if (owner.userId) {
       const user = await db.query.users.findFirst({
         where: eq(users.id, owner.userId),
       });
-      return user?.name || "Unknown";
+      return user?.name || 'Unknown';
     }
 
     // If it's a temporary user, get their name from the temporary_users table
@@ -150,12 +153,12 @@ async function getOwnerName(ownerId: string): Promise<string> {
       const tempUser = await db.query.temporaryUsers.findFirst({
         where: eq(temporaryUsers.id, owner.temporaryUserId),
       });
-      return tempUser?.name || "Unknown";
+      return tempUser?.name || 'Unknown';
     }
 
-    return "Unknown";
+    return 'Unknown';
   } catch (error) {
-    console.error("Error getting owner name:", error);
-    return "Unknown";
+    fatLogger.error('Error getting owner name:', 'be', { data: error instanceof Error ? error : undefined });
+    return 'Unknown';
   }
 }

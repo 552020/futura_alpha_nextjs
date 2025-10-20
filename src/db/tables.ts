@@ -1,0 +1,1323 @@
+import {
+  pgTable,
+  text,
+  timestamp,
+  json,
+  jsonb,
+  boolean,
+  primaryKey,
+  integer,
+  uniqueIndex,
+  foreignKey,
+  index,
+  uuid,
+  bigint,
+  check,
+} from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import type { AdapterAccount } from 'next-auth/adapters';
+import {
+  // Import enums
+  artifact_t,
+  memory_type_t,
+  sync_t,
+  frontend_hosting_t,
+  backend_hosting_t,
+  database_hosting_t,
+  blob_hosting_t,
+  asset_type_t,
+  processing_status_t,
+  resource_type_t,
+  grant_source_t,
+  membership_role_t,
+  // Import constants
+  MEMORY_TYPES,
+  ACCESS_LEVELS,
+  MEMBER_ROLES,
+  RELATIONSHIP_TYPES,
+  SHARING_RELATIONSHIP_TYPES,
+  RELATIONSHIP_STATUS,
+  FAMILY_RELATIONSHIP_TYPES,
+  PRIMARY_RELATIONSHIP_ROLES,
+  // Import types
+  BlobHosting,
+  DatabaseHosting,
+} from './enums';
+
+// Forward declaration needed for foreign key references
+export const allUsers = pgTable(
+  'all_user',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+
+    type: text('type', { enum: ['user', 'temporary'] }).notNull(),
+
+    userId: text('user_id'), // FK defined below
+    temporaryUserId: text('temporary_user_id'), // FK defined below
+
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    deletedAt: timestamp('deleted_at'), // Soft delete support
+  },
+  table => [
+    // Ensure exactly one of userId or temporaryUserId is set
+    uniqueIndex('all_users_one_ref_guard').on(table.id) // dummy index anchor
+      .where(sql`(CASE WHEN ${table.userId} IS NOT NULL THEN 1 ELSE 0 END +
+                   CASE WHEN ${table.temporaryUserId} IS NOT NULL THEN 1 ELSE 0 END) = 1`),
+  ]
+);
+
+// Users table - Core user data - required for auth.js
+export const users = pgTable(
+  'user',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()), // required for auth.js
+    name: text('name'), // required for auth.js
+    email: text('email').unique(), // required for auth.js
+    emailVerified: timestamp('emailVerified', { mode: 'date' }), // required for auth.js
+    image: text('image'), // required for auth.js
+    // Our additional fields
+    password: text('password'),
+    username: text('username').unique(),
+    parentId: text('parent_id'), // This links a child to their parent (can be NULL for root nodes)
+
+    // New invitation-related fields:
+    invitedByAllUserId: text('invited_by_all_user_id'), // No `.references()` here!
+    invitedAt: timestamp('invited_at'), // When the invitation was sent
+    registrationStatus: text('registration_status', {
+      enum: ['pending', 'visited', 'initiated', 'completed', 'declined', 'expired'],
+    })
+      .default('pending')
+      .notNull(), // Tracks signup progress
+
+    // User type (what kind of user you are)
+    userType: text('user_type', {
+      enum: ['personal', 'professional'],
+    })
+      .default('personal')
+      .notNull(),
+
+    // Platform role (what permissions you have)
+    role: text('role', {
+      enum: ['user', 'moderator', 'admin', 'developer', 'superadmin'],
+    })
+      .default('user')
+      .notNull(),
+
+    // Payment-related
+    plan: text('plan', {
+      enum: ['free', 'premium'],
+    })
+      .default('free')
+      .notNull(),
+
+    premiumExpiresAt: timestamp('premium_expires_at', { mode: 'date' }),
+
+    // Storage preferences moved to userHostingPreferences table
+
+    // Timestamp fields
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+    deletedAt: timestamp('deleted_at'), // Soft delete support
+    metadata: json('metadata')
+      .$type<{
+        bio?: string;
+        location?: string;
+        website?: string;
+      }>()
+      .default({}),
+  },
+  table => [
+    // Define the foreign key to allUsers
+    foreignKey({
+      columns: [table.invitedByAllUserId],
+      foreignColumns: [allUsers.id],
+      name: 'user_invited_by_fk',
+    }),
+    // Self-referencing Foreign Key
+    foreignKey({
+      columns: [table.parentId],
+      foreignColumns: [table.id],
+      name: 'user_parent_fk',
+    }),
+  ]
+);
+
+export const temporaryUsers = pgTable(
+  'temporary_user',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+
+    name: text('name'),
+    email: text('email'),
+    secureCode: text('secure_code').notNull(),
+    secureCodeExpiresAt: timestamp('secure_code_expires_at', { mode: 'date' }).notNull(),
+
+    role: text('role', { enum: ['inviter', 'invitee'] }).notNull(),
+
+    invitedByAllUserId: text('invited_by_all_user_id'), // FK declared later
+
+    registrationStatus: text('registration_status', {
+      enum: ['pending', 'visited', 'initiated', 'completed', 'declined', 'expired'],
+    })
+      .default('pending')
+      .notNull(),
+
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+
+    metadata: json('metadata')
+      .$type<{
+        notes?: string;
+        location?: string;
+        campaign?: string;
+      }>()
+      .default({}),
+  },
+  (table): [ReturnType<typeof foreignKey>] => [
+    foreignKey({
+      columns: [table.invitedByAllUserId],
+      foreignColumns: [allUsers.id],
+      name: 'temporary_user_invited_by_fk',
+    }),
+  ]
+);
+
+// Auth.js required tables
+export const accounts = pgTable(
+  'account',
+  {
+    userId: text('userId')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    type: text('type').$type<AdapterAccount['type']>().notNull(),
+    provider: text('provider').notNull(),
+    providerAccountId: text('providerAccountId').notNull(),
+    refresh_token: text('refresh_token'),
+    access_token: text('access_token'),
+    expires_at: integer('expires_at'),
+    token_type: text('token_type'),
+    scope: text('scope'),
+    id_token: text('id_token'),
+    session_state: text('session_state'),
+  },
+  account => [
+    // ✅ EXISTING: Composite primary key already enforces uniqueness
+    // This prevents the same II principal from being linked to multiple users
+    primaryKey({
+      columns: [account.provider, account.providerAccountId],
+    }),
+
+    // 🚀 PERFORMANCE: Index for common lookups
+    // Find all accounts for a user by provider (e.g., "does user have II linked?")
+    index('accounts_user_provider_idx').on(account.userId, account.provider),
+
+    // 🚀 PERFORMANCE: Index for finding all accounts for a user
+    // Useful for "show me all linked accounts" queries
+    index('accounts_user_idx').on(account.userId),
+  ]
+);
+
+// Auth.js required tables
+export const sessions = pgTable('session', {
+  sessionToken: text('sessionToken').primaryKey(),
+  userId: text('userId')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  expires: timestamp('expires', { mode: 'date' }).notNull(),
+});
+
+export const verificationTokens = pgTable(
+  'verificationToken',
+  {
+    identifier: text('identifier').notNull(),
+    token: text('token').notNull(),
+    expires: timestamp('expires', { mode: 'date' }).notNull(),
+  },
+  verificationToken => ({
+    compositePk: primaryKey({
+      columns: [verificationToken.identifier, verificationToken.token],
+    }),
+  })
+);
+
+// required for webauthn by auth.js
+export const authenticators = pgTable(
+  'authenticator',
+  {
+    credentialID: text('credentialID').notNull().unique(),
+    userId: text('userId')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    providerAccountId: text('providerAccountId').notNull(),
+    credentialPublicKey: text('credentialPublicKey').notNull(),
+    counter: integer('counter').notNull(),
+    credentialDeviceType: text('credentialDeviceType').notNull(),
+    credentialBackedUp: boolean('credentialBackedUp').notNull(),
+    transports: text('transports'),
+  },
+  authenticator => [
+    {
+      compositePK: primaryKey({
+        columns: [authenticator.userId, authenticator.credentialID],
+      }),
+    },
+  ]
+);
+
+/**
+ * MEMORIES TABLE - Base memory storage with inheritance pattern
+ *
+ * This table stores all types of memories (images, videos, audio, documents) in a single
+ * base table following an OOP inheritance pattern. Each memory can have multiple optimized assets
+ * and type-specific extension data in separate tables.
+ *
+ * COMPOSITION:
+ * - Basic info: id, title, description, takenAt, type
+ * - Ownership: ownerId, ownerSecureCode, sharingStatus
+ * - Organization: parentFolderId
+ * - Tags: tags (for fast search and queries)
+ * - Flexible metadata: metadata JSON field for additional data
+ * - Timestamps: createdAt, updatedAt
+ *
+ * INHERITANCE PATTERN:
+ * - Base table: Common fields for all memory types
+ * - Extension tables: imageDetails, videoDetails, noteDetails, etc. for type-specific data
+ * - 1:1 relationship between base memory and its extension table
+ *
+ * RELATED DATA (via relations):
+ * - assets: MemoryAsset[] - Multiple optimized versions (original, display, thumb, etc.)
+ * - extensions: Type-specific detail tables (imageDetails, videoDetails, etc.)
+ * - shares: MemoryShare[] - Sharing permissions
+ *
+ * USAGE EXAMPLES:
+ * ```typescript
+ * // Get memory with all assets
+ * const memory = await db.query.memories.findFirst({
+ *   where: eq(memories.id, memoryId),
+ *   with: { assets: true }
+ * });
+ *
+ * // Get memory with type-specific details
+ * const imageMemory = await db.query.memories.findFirst({
+ *   where: eq(memories.id, memoryId),
+ *   with: {
+ *     assets: true,
+ *     imageDetails: true // Only exists for image memories
+ *   }
+ * });
+ *
+ * // Search by tags
+ * const taggedMemories = await db.select()
+ *   .from(memories)
+ *   .where(arrayContains(memories.tags, ['nature', 'sunset']));
+ * ```
+ */
+export const memories = pgTable(
+  'memories',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ownerId: text('owner_id')
+      .notNull()
+      .references(() => allUsers.id, { onDelete: 'cascade' }),
+    type: memory_type_t('type').notNull(),
+    title: text('title'),
+    name: text('name'), // Added to match database schema
+    description: text('description'),
+    sharingStatus: text('sharing_status', {
+      enum: ['private', 'public', 'unlisted', 'password_protected'],
+    })
+      .default('private')
+      .notNull(), // Replaced isPublic with sharingStatus
+    ownerSecureCode: text('owner_secure_code').notNull(),
+    parentFolderId: uuid('parent_folder_id'),
+    // Tags for better performance and search
+    tags: text('tags').array().default([]),
+    // Universal fields for all memory types
+    recipients: text('recipients').array().default([]),
+    // Date fields - grouped together
+    fileCreatedAt: timestamp('file_created_at', { mode: 'date' }), // When file was originally created
+    unlockDate: timestamp('unlock_date', { mode: 'date' }), // When memory becomes accessible
+    createdAt: timestamp('created_at').notNull().defaultNow(), // When memory was uploaded/created in our system
+    updatedAt: timestamp('updated_at').notNull().defaultNow(), // When memory was last modified
+    deletedAt: timestamp('deleted_at'), // Soft delete support
+    // Flexible metadata for truly common additional data
+    metadata: json('metadata')
+      .$type<{
+        // File upload context (applies to all types)
+        originalPath?: string; // Original file path from upload
+        // Custom user data (truly universal)
+        custom?: Record<string, unknown>;
+      }>()
+      .default({}),
+    // Storage duration field (from actual database) - removed storageLocations and storageCount
+    storageDuration: integer('storage_duration'), // Duration in days, null for permanent
+  },
+  table => [
+    // Performance indexes for common queries
+    index('memories_owner_created_idx').on(table.ownerId, table.createdAt.desc()),
+    index('memories_type_idx').on(table.type),
+    index('memories_sharing_status_idx').on(table.sharingStatus), // Updated index name to match database
+    // Performance indexes for tags and people
+    index('memories_tags_idx').on(table.tags),
+    // Performance index for storage duration
+    index('memories_storage_duration_idx').on(table.storageDuration),
+  ]
+);
+
+/**
+ * MEMORY ASSETS TABLE - Multiple optimized assets per memory
+ *
+ * This table stores different optimized versions of each memory (original, display, thumb, etc.).
+ * Each memory can have multiple assets, but only one asset per type per memory.
+ *
+ * COMPOSITION:
+ * - Identity: id, memoryId (FK to memories)
+ * - Asset info: assetType, variant, url, storageBackend, storageKey
+ * - Media properties: bytes, width, height, mimeType, sha256
+ * - Processing: processingStatus, processingError
+ * - Timestamps: createdAt, updatedAt
+ *
+ * ASSET TYPES:
+ * - original: Full resolution, unprocessed file
+ * - display: Optimized for viewing (~1600-2048px, WebP)
+ * - thumb: Thumbnail for grids (~320-512px, WebP)
+ * - placeholder: Low-quality placeholder (blurhash, base64)
+ * - poster: Video poster frame
+ * - waveform: Audio waveform visualization
+ *
+ * USAGE EXAMPLES:
+ * ```typescript
+ * // Get all assets for a memory
+ * const assets = await db.select()
+ *   .from(memoryAssets)
+ *   .where(eq(memoryAssets.memoryId, memoryId));
+ *
+ * // Get specific asset type
+ * const thumbnail = await db.select()
+ *   .from(memoryAssets)
+ *   .where(
+ *     and(
+ *       eq(memoryAssets.memoryId, memoryId),
+ *       eq(memoryAssets.assetType, 'thumb')
+ *     )
+ *   );
+ * ```
+ */
+export const memoryAssets = pgTable(
+  'memory_assets',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    memoryId: uuid('memory_id')
+      .notNull()
+      .references(() => memories.id, { onDelete: 'cascade' }),
+    assetType: asset_type_t('asset_type').notNull(),
+    variant: text('variant'), // Optional for future variants (2k, mobile, etc.)
+    url: text('url').notNull(), // Derived/public URL
+    assetLocation: blob_hosting_t('asset_location').notNull(),
+    bucket: text('bucket'), // Storage bucket/container
+    storageKey: text('storage_key').notNull(), // Bucket/key or blob ID
+    bytes: bigint('bytes', { mode: 'number' }).notNull(), // Use bigint for >2GB files
+    width: integer('width'), // Nullable for non-image assets
+    height: integer('height'), // Nullable for non-image assets
+    mimeType: text('mime_type').notNull(), // Consistent naming
+    sha256: text('sha256'), // 64-char hex (enforced by validation)
+    processingStatus: processing_status_t('processing_status').default('pending').notNull(),
+    processingError: text('processing_error'),
+    deletedAt: timestamp('deleted_at'), // Soft delete support
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  table => [
+    // Ensure one asset type per memory
+    uniqueIndex('memory_assets_unique').on(table.memoryId, table.assetType),
+    // Performance indexes
+    index('memory_assets_memory_idx').on(table.memoryId),
+    index('memory_assets_type_idx').on(table.assetType),
+    index('memory_assets_url_idx').on(table.url),
+    index('memory_assets_storage_idx').on(table.assetLocation, table.storageKey),
+    // Data integrity constraints
+    check('memory_assets_bytes_positive', sql`${table.bytes} > 0`),
+    check(
+      'memory_assets_dimensions_positive',
+      sql`(${table.width} IS NULL OR ${table.width} > 0) AND (${table.height} IS NULL OR ${table.height} > 0)`
+    ),
+  ]
+);
+
+/**
+ * FOLDERS TABLE - Google Drive-style organization
+ *
+ * This table enables folder-based organization of memories, similar to Google Drive.
+ * Folders can be nested (parentFolderId) and contain both memories and subfolders.
+ *
+ * COMPOSITION:
+ * - Identity: id, ownerId (FK to allUsers)
+ * - Organization: name, parentFolderId (self-referencing FK)
+ * - Timestamps: createdAt, updatedAt
+ *
+ * USAGE EXAMPLES:
+ * ```typescript
+ * // Create a folder
+ * const folder = await db.insert(folders).values({
+ *   ownerId: userId,
+ *   name: "Wedding Photos",
+ *   parentFolderId: null // Root level
+ * });
+ *
+ * // Get folder with contents
+ * const folderWithContents = await db.query.folders.findFirst({
+ *   where: eq(folders.id, folderId),
+ *   with: { memories: true, subfolders: true }
+ * });
+ * ```
+ */
+export const folders = pgTable(
+  'folders',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ownerId: text('owner_id')
+      .notNull()
+      .references(() => allUsers.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(), // ✅ ADDED: User-facing display name
+    name: text('name').notNull(), // ✅ URL-safe identifier (auto-generated from title)
+    parentFolderId: uuid('parent_folder_id'), // Self-referencing FK for nested folders
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  table => [
+    // Performance indexes
+    index('folders_owner_idx').on(table.ownerId),
+    index('folders_parent_idx').on(table.parentFolderId),
+  ]
+);
+
+/**
+ * IMAGE DETAILS TABLE - Type-specific data for image memories
+ *
+ * This optional table stores image-specific metadata that doesn't belong in the
+ * core memories table. Only created when actually needed for image memories.
+ *
+ * COMPOSITION:
+ * - Identity: memoryId (FK to memories, 1:1)
+ * - Image data: width, height, exif metadata
+ *
+ * USAGE:
+ * Only create this table when you need image-specific fields beyond what's
+ * stored in the memoryAssets table (which already has width/height).
+ */
+export const imageDetails = pgTable('image_details', {
+  memoryId: uuid('memory_id')
+    .primaryKey()
+    .references(() => memories.id, { onDelete: 'cascade' }),
+  width: integer('width'),
+  height: integer('height'),
+  // Image-specific EXIF data as proper columns
+  camera: text('camera'),
+  focal: integer('focal'),
+  iso: integer('iso'),
+  aperture: text('aperture'), // e.g., "f/2.8"
+  shutterSpeed: text('shutter_speed'), // e.g., "1/125"
+  orientation: integer('orientation'),
+});
+
+/**
+ * VIDEO DETAILS TABLE - Type-specific data for video memories
+ *
+ * This optional table stores video-specific metadata like duration, codec, etc.
+ * Only created when actually needed for video memories.
+ *
+ * COMPOSITION:
+ * - Identity: memoryId (FK to memories, 1:1)
+ * - Video data: durationMs, width, height, codec, fps
+ */
+export const videoDetails = pgTable('video_details', {
+  memoryId: uuid('memory_id')
+    .primaryKey()
+    .references(() => memories.id, { onDelete: 'cascade' }),
+  durationMs: integer('duration_ms').notNull(),
+  width: integer('width'),
+  height: integer('height'),
+  codec: text('codec'),
+  fps: text('fps'),
+});
+
+/**
+ * DOCUMENT DETAILS TABLE - Type-specific data for document memories
+ *
+ * This optional table stores document-specific metadata like page count, etc.
+ * Only created when actually needed for document memories.
+ *
+ * COMPOSITION:
+ * - Identity: memoryId (FK to memories, 1:1)
+ * - Document data: pages, mimeType
+ */
+export const documentDetails = pgTable('document_details', {
+  memoryId: uuid('memory_id')
+    .primaryKey()
+    .references(() => memories.id, { onDelete: 'cascade' }),
+  pages: integer('pages'),
+  mimeType: text('mime_type'),
+});
+
+/**
+ * AUDIO DETAILS TABLE - Type-specific data for audio memories
+ *
+ * This optional table stores audio-specific metadata like duration, bitrate, etc.
+ * Only created when actually needed for audio memories.
+ *
+ * COMPOSITION:
+ * - Identity: memoryId (FK to memories, 1:1)
+ * - Audio data: durationMs, bitrate, sampleRate, channels
+ */
+export const audioDetails = pgTable('audio_details', {
+  memoryId: uuid('memory_id')
+    .primaryKey()
+    .references(() => memories.id, { onDelete: 'cascade' }),
+  durationMs: integer('duration_ms'),
+  bitrate: integer('bitrate'),
+  sampleRate: integer('sample_rate'),
+  channels: integer('channels'),
+});
+
+/**
+ * NOTE DETAILS TABLE - Type-specific data for note memories
+ *
+ * This optional table stores note-specific content and formatting.
+ * Only created when actually needed for note memories.
+ *
+ * COMPOSITION:
+ * - Identity: memoryId (FK to memories, 1:1)
+ * - Note data: content (the actual note text)
+ */
+export const noteDetails = pgTable('note_details', {
+  memoryId: uuid('memory_id')
+    .primaryKey()
+    .references(() => memories.id, { onDelete: 'cascade' }),
+  content: text('content').notNull(),
+});
+
+/**
+ * PEOPLE IN MEMORIES TABLE - Links people to memories
+ *
+ * This table connects people (both registered and temporary users) to memories.
+ * People can be tagged in photos, videos, notes, etc. and can be either:
+ * - Registered users (via allUsers -> users)
+ * - Temporary users (via allUsers -> temporaryUsers)
+ *
+ * COMPOSITION:
+ * - Identity: memoryId (FK to memories), allUserId (FK to allUsers)
+ * - Role: What role the person has in the memory
+ * - Timestamps: createdAt
+ *
+ * USAGE EXAMPLES:
+ * ```typescript
+ * // Get all people in a memory
+ * const people = await db.select()
+ *   .from(peopleInMemories)
+ *   .leftJoin(allUsers, eq(peopleInMemories.allUserId, allUsers.id))
+ *   .leftJoin(users, eq(allUsers.userId, users.id))
+ *   .leftJoin(temporaryUsers, eq(allUsers.temporaryUserId, temporaryUsers.id))
+ *   .where(eq(peopleInMemories.memoryId, memoryId));
+ * ```
+ */
+export const peopleInMemories = pgTable(
+  'people_in_memories',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    memoryId: uuid('memory_id')
+      .notNull()
+      .references(() => memories.id, { onDelete: 'cascade' }),
+    allUserId: text('all_user_id')
+      .notNull()
+      .references(() => allUsers.id, { onDelete: 'cascade' }),
+    role: text('role').default('subject'), // "subject", "photographer", "witness", etc.
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  table => [
+    // Ensure a person can only be tagged once per memory
+    uniqueIndex('people_in_memories_unique').on(table.memoryId, table.allUserId),
+    // Performance indexes
+    index('people_in_memories_memory_idx').on(table.memoryId),
+    index('people_in_memories_user_idx').on(table.allUserId),
+  ]
+);
+
+/**
+ * MEMORY LIKES TABLE - Tracks likes on memories
+ *
+ * This table tracks which users have liked which memories.
+ * Each user can like a memory only once, but multiple users can like the same memory.
+ *
+ * COMPOSITION:
+ * - Identity: memoryId (FK to memories), allUserId (FK to allUsers)
+ * - Timestamps: createdAt
+ *
+ * USAGE EXAMPLES:
+ * ```typescript
+ * // Get all likes for a memory
+ * const likes = await db.select()
+ *   .from(memoryLikes)
+ *   .leftJoin(allUsers, eq(memoryLikes.allUserId, allUsers.id))
+ *   .where(eq(memoryLikes.memoryId, memoryId));
+ *
+ * // Check if a user liked a memory
+ * const userLike = await db.query.memoryLikes.findFirst({
+ *   where: and(
+ *     eq(memoryLikes.memoryId, memoryId),
+ *     eq(memoryLikes.allUserId, userId)
+ *   )
+ * });
+ * ```
+ */
+export const memoryLikes = pgTable(
+  'memory_likes',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    memoryId: uuid('memory_id')
+      .notNull()
+      .references(() => memories.id, { onDelete: 'cascade' }),
+    allUserId: text('all_user_id')
+      .notNull()
+      .references(() => allUsers.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  table => [
+    // Ensure a user can only like a memory once
+    uniqueIndex('memory_likes_unique').on(table.memoryId, table.allUserId),
+    // Performance indexes
+    index('memory_likes_memory_idx').on(table.memoryId),
+    index('memory_likes_user_idx').on(table.allUserId),
+  ]
+);
+
+/**
+ * MEMORY COMMENTS TABLE - Tracks comments on memories
+ *
+ * This table tracks comments made by users on memories.
+ * Unlike likes, users can make multiple comments on the same memory.
+ * Comments are displayed chronologically and support nested replies.
+ *
+ * COMPOSITION:
+ * - Identity: memoryId (FK to memories), allUserId (FK to allUsers)
+ * - Content: content (the actual comment text)
+ * - Threading: parentCommentId (for nested replies)
+ * - Timestamps: createdAt, updatedAt, deletedAt (soft delete)
+ *
+ * USAGE EXAMPLES:
+ * ```typescript
+ * // Get all comments for a memory (chronological order)
+ * const comments = await db.select()
+ *   .from(memoryComments)
+ *   .leftJoin(allUsers, eq(memoryComments.allUserId, allUsers.id))
+ *   .where(eq(memoryComments.memoryId, memoryId))
+ *   .orderBy(desc(memoryComments.createdAt));
+ *
+ * // Get nested replies to a comment
+ * const replies = await db.select()
+ *   .from(memoryComments)
+ *   .where(eq(memoryComments.parentCommentId, parentCommentId));
+ * ```
+ */
+export const memoryComments = pgTable(
+  'memory_comments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    memoryId: uuid('memory_id')
+      .notNull()
+      .references(() => memories.id, { onDelete: 'cascade' }),
+    allUserId: text('all_user_id')
+      .notNull()
+      .references(() => allUsers.id, { onDelete: 'cascade' }),
+    content: text('content').notNull(),
+    parentCommentId: uuid('parent_comment_id'), // For nested replies
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+    deletedAt: timestamp('deleted_at'), // Soft delete
+  },
+  table => [
+    // Performance indexes - ordered by date for chronological display
+    index('memory_comments_memory_created_idx').on(table.memoryId, table.createdAt.desc()),
+    index('memory_comments_user_idx').on(table.allUserId),
+    index('memory_comments_parent_idx').on(table.parentCommentId),
+  ]
+);
+
+/**
+ * RESOURCE MEMBERSHIP TABLE - Universal sharing system
+ *
+ * This table provides a universal sharing system that works across all resource types
+ * (memories, galleries, folders). It uses a bitmask permission system and tracks
+ * the provenance of each grant for better security and auditability.
+ *
+ * COMPOSITION:
+ * - Resource: resourceType + resourceId (what is being shared)
+ * - Principal: allUserId (who has access)
+ * - Provenance: grantSource + sourceId (how they got access)
+ * - Permissions: role + permMask (what they can do)
+ * - Audit: invitedBy + timestamps (tracking)
+ *
+ * GRANT SOURCES:
+ * - user: Direct sharing by another user
+ * - group: Access via group membership
+ * - magic_link: Access via magic link
+ * - public_mode: Public resource access
+ * - system: System-granted access (e.g., ownership)
+ *
+ * ROLES:
+ * - owner: Full control over resource
+ * - superadmin: Administrative access
+ * - admin: Management access
+ * - member: Standard access
+ * - guest: Limited access
+ *
+ * USAGE EXAMPLES:
+ * ```typescript
+ * // Get all users with access to a memory
+ * const memberships = await db.select()
+ *   .from(resourceMembership)
+ *   .where(and(
+ *     eq(resourceMembership.resourceType, 'memory'),
+ *     eq(resourceMembership.resourceId, memoryId)
+ *   ));
+ *
+ * // Check if user has access to a gallery
+ * const access = await db.query.resourceMembership.findFirst({
+ *   where: and(
+ *     eq(resourceMembership.resourceType, 'gallery'),
+ *     eq(resourceMembership.resourceId, galleryId),
+ *     eq(resourceMembership.allUserId, userId)
+ *   )
+ * });
+ * ```
+ */
+export const resourceMembership = pgTable(
+  'resource_membership',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    resourceType: resource_type_t('resource_type').notNull(),
+    resourceId: text('resource_id').notNull(),
+    allUserId: text('all_user_id')
+      .notNull()
+      .references(() => allUsers.id, { onDelete: 'cascade' }),
+
+    // Provenance of the grant
+    grantSource: grant_source_t('grant_source').notNull(),
+    sourceId: text('source_id'), // e.g., group id or magic_link id
+    role: membership_role_t('role').notNull(),
+    permMask: integer('perm_mask').notNull().default(0),
+    invitedByAllUserId: text('invited_by_all_user_id').references(() => allUsers.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  t => [
+    index('rm_resource_idx').on(t.resourceType, t.resourceId),
+    index('rm_user_idx').on(t.allUserId),
+    index('rm_role_idx').on(t.role),
+    // Allow multiple grants per principal from different sources
+    index('rm_source_idx').on(t.grantSource, t.sourceId),
+    uniqueIndex('rm_unique_grant').on(t.resourceType, t.resourceId, t.allUserId, t.grantSource, t.sourceId),
+  ]
+);
+
+// This table is for shared groups where all members see the same group composition
+// (e.g., book clubs, work teams, shared family groups).
+// For personal 'groups' like friend lists, use the relationship table instead,
+// querying with type='friend' and status='accepted' to get a user's friends.
+export const group = pgTable('group', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  name: text('name').notNull(),
+  ownerId: text('owner_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  metadata: json('metadata')
+    .$type<{
+      description?: string;
+    }>()
+    .default({}),
+});
+
+export const groupMember = pgTable(
+  'group_member',
+  {
+    groupId: text('group_id')
+      .notNull()
+      .references(() => group.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    role: text('role', { enum: MEMBER_ROLES }).default('member').notNull(),
+  },
+  groupMember => [
+    primaryKey({
+      columns: [groupMember.groupId, groupMember.userId],
+    }),
+  ]
+);
+
+export const relationship = pgTable(
+  'relationship',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id')
+      .notNull()
+      .references(() => allUsers.id, { onDelete: 'cascade' }),
+    relatedUserId: text('related_user_id')
+      .notNull()
+      .references(() => allUsers.id, { onDelete: 'cascade' }),
+    type: text('type', { enum: RELATIONSHIP_TYPES }).notNull(),
+    status: text('status', { enum: RELATIONSHIP_STATUS }).default('pending').notNull(),
+    note: text('note'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  t => [uniqueIndex('unique_relation_idx').on(t.userId, t.relatedUserId)]
+);
+
+export const familyRelationship = pgTable('family_relationship', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  relationshipId: text('relationship_id')
+    .notNull()
+    .references(() => relationship.id, { onDelete: 'cascade' }),
+  familyRole: text('family_role', { enum: FAMILY_RELATIONSHIP_TYPES }).notNull(),
+  // New: Fuzziness Indicator
+  relationshipClarity: text('relationship_clarity', {
+    enum: ['resolved', 'fuzzy'],
+  })
+    .default('fuzzy')
+    .notNull(),
+  // New: Store the common ancestor if known
+  sharedAncestorId: text('shared_ancestor_id').references(() => allUsers.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Business Relationships Table
+// Minimal client-provider relationships
+export const businessRelationship = pgTable(
+  'business_relationship',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+
+    // The business (service provider) - must be a registered user
+    businessId: text('business_id')
+      .notNull()
+      .references(() => allUsers.id, { onDelete: 'cascade' }),
+
+    // The client - can be a registered user or external client
+    clientId: text('client_id').references(() => allUsers.id, { onDelete: 'cascade' }), // Optional - for external clients
+
+    // Client details (for external clients who aren't registered users)
+    clientName: text('client_name'), // For external clients
+    clientEmail: text('client_email'), // For external clients
+
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  table => [
+    foreignKey({
+      columns: [table.businessId],
+      foreignColumns: [allUsers.id],
+      name: 'business_relationship_business_id_all_user_id_fk',
+    }),
+    foreignKey({
+      columns: [table.clientId],
+      foreignColumns: [allUsers.id],
+      name: 'business_relationship_client_id_all_user_id_fk',
+    }),
+    // Index for efficient querying
+    index('business_relationship_business_idx').on(table.businessId),
+    index('business_relationship_client_idx').on(table.clientId),
+  ]
+);
+
+export const familyMember = pgTable(
+  'family_member',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+
+    // The owner of the family tree (the user who created the record)
+    ownerId: text('owner_id')
+      .notNull()
+      .references(() => allUsers.id, { onDelete: 'cascade' }),
+
+    // If this family member is a registered user, link them here (optional)
+    userId: text('user_id').references(() => allUsers.id, { onDelete: 'set null' }),
+
+    // Basic information
+    fullName: text('full_name').notNull(),
+
+    // Primary (resolved) relationship: e.g. "son", "father", etc.
+    primaryRelationship: text('primary_relationship', { enum: PRIMARY_RELATIONSHIP_ROLES }).notNull(),
+
+    // Fuzzy relationships: an array of strings (e.g. ["grandfather"])
+    // Requires Postgres array support via pgArray.
+    fuzzyRelationships: text('fuzzy_relationships', { enum: FAMILY_RELATIONSHIP_TYPES }).array().notNull().default([]),
+
+    // Additional details for the family member
+    birthDate: timestamp('birth_date', { mode: 'date' }),
+    deathDate: timestamp('death_date', { mode: 'date' }),
+    birthplace: text('birthplace'),
+
+    // Optional metadata field for extra details
+    metadata: json('metadata').$type<{ notes?: string }>().default({}),
+
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  table => [
+    // Optional foreign key constraints (if needed) for userId can be defined here.
+    foreignKey({
+      columns: [table.userId],
+      foreignColumns: [allUsers.id],
+      name: 'family_member_user_fk',
+    }),
+  ]
+);
+
+// Gallery tables for gallery functionality
+export const galleries = pgTable(
+  'gallery',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    ownerId: text('owner_id')
+      .notNull()
+      .references(() => allUsers.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    name: text('name').notNull(), // ✅ ADDED: URL-safe identifier (auto-generated from title)
+    description: text('description'),
+
+    // ✅ ADDED: Pre-computed dashboard fields (same pattern as memories)
+    sharedCount: integer('shared_count').default(0).notNull(), // Count of active shares
+    sharingStatus: text('sharing_status').default('private').notNull(), // "public" | "shared" | "private"
+    totalMemories: integer('total_memories').default(0).notNull(), // Count of memories in gallery
+    storageLocation: jsonb('storage_location').$type<BlobHosting[]>().default(['s3']).notNull(), // ✅ ADDED: Where gallery memories are stored (all in same location(s))
+
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+
+    // ❌ REMOVED: averageStorageDuration (not needed)
+    // ❌ REMOVED: storageDistribution (redundant - gallery storage mirrors memory storage)
+  },
+  table => [
+    // Indexes for efficient queries
+    index('galleries_owner_idx').on(table.ownerId),
+    index('galleries_sharing_status_idx').on(table.sharingStatus),
+    // Note: storageLocation is jsonb array - can't index directly, use GIN index if needed
+  ]
+);
+
+export const galleryItems = pgTable(
+  'gallery_item',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    galleryId: text('gallery_id')
+      .notNull()
+      .references(() => galleries.id, { onDelete: 'cascade' }),
+    memoryId: uuid('memory_id').notNull(),
+    memoryType: text('memory_type', { enum: MEMORY_TYPES }).notNull(), // 'image' | 'video' | 'document' | 'note' | 'audio'
+    position: integer('position').notNull(),
+    caption: text('caption'),
+    isFeatured: boolean('is_featured').default(false).notNull(),
+    metadata: json('metadata').$type<Record<string, unknown>>().notNull().default({}),
+  },
+  t => [
+    // Fast ordering inside a gallery
+    index('gallery_items_gallery_position_idx').on(t.galleryId, t.position),
+    // Prevent duplicates of same memory in the same gallery
+    uniqueIndex('gallery_items_gallery_memory_uq').on(t.galleryId, t.memoryId, t.memoryType),
+    // Quickly find all galleries for a memory
+    index('gallery_items_by_memory_idx').on(t.memoryId, t.memoryType),
+  ]
+);
+
+// Gallery sharing table - similar to memoryShares but for galleries
+export const galleryShares = pgTable('gallery_share', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  galleryId: text('gallery_id')
+    .notNull()
+    .references(() => galleries.id, { onDelete: 'cascade' }),
+  ownerId: text('owner_id') // The user who owns the gallery
+    .notNull()
+    .references(() => allUsers.id, { onDelete: 'cascade' }),
+
+  sharedWithType: text('shared_with_type', {
+    enum: ['user', 'group', 'relationship'],
+  }).notNull(),
+
+  sharedWithId: text('shared_with_id') // For direct user sharing
+    .references(() => allUsers.id, { onDelete: 'cascade' }),
+  groupId: text('group_id') // For group sharing
+    .references(() => group.id, { onDelete: 'cascade' }),
+  sharedRelationshipType: text('shared_relationship_type', {
+    // For relationship-based sharing
+    enum: SHARING_RELATIONSHIP_TYPES,
+  }),
+
+  accessLevel: text('access_level', { enum: ACCESS_LEVELS }).default('read').notNull(),
+  inviteeSecureCode: text('invitee_secure_code').notNull(), // For invitee to access the gallery
+  inviteeSecureCodeCreatedAt: timestamp('secure_code_created_at', { mode: 'date' }).notNull().defaultNow(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Internet Identity nonce table for canister-first signup
+export const iiNonces = pgTable(
+  'ii_nonce',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    nonceHash: text('nonce_hash').notNull(), // SHA-256 hash of the actual nonce
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    expiresAt: timestamp('expires_at', { mode: 'date' }).notNull(),
+    usedAt: timestamp('used_at', { mode: 'date' }), // null = unused, timestamp = used
+    context: json('context')
+      .$type<{
+        callbackUrl?: string;
+        userAgent?: string;
+        ipAddress?: string;
+        sessionId?: string;
+      }>()
+      .default({}),
+  },
+  table => [
+    // Index for fast lookup by hash
+    index('ii_nonces_hash_idx').on(table.nonceHash),
+    // Index for cleanup of expired nonces
+    index('ii_nonces_expires_idx').on(table.expiresAt),
+    // Index for stats queries on usedAt
+    index('ii_nonces_used_idx').on(table.usedAt),
+    // Composite index for active nonce lookups (usedAt IS NULL AND expiresAt > now)
+    index('ii_nonces_active_idx').on(table.usedAt, table.expiresAt),
+    // Index for rate limiting queries on createdAt
+    index('ii_nonces_created_idx').on(table.createdAt),
+  ]
+);
+
+// Storage Edges Table - Track storage presence per memory artifact and location
+export const storageEdges = pgTable(
+  'storage_edges',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    memoryId: uuid('memory_id')
+      .notNull()
+      .references(() => memories.id, { onDelete: 'cascade' }), // References memories.id with cascade delete
+    memoryType: memory_type_t('memory_type').notNull(), // 'image' | 'video' | 'note' | 'document' | 'audio'
+    artifact: artifact_t('artifact').notNull(), // 'metadata' | 'asset'
+    locationMetadata: database_hosting_t('location_metadata'), // 'neon' | 'icp' (for metadata artifacts)
+    locationAsset: blob_hosting_t('location_asset'), // 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs' (for asset artifacts)
+    present: boolean('present').notNull().default(false),
+    locationUrl: text('location_url'), // blob key / icp path / etc.
+    contentHash: text('content_hash'), // SHA-256 for assets
+    sizeBytes: bigint('size_bytes', { mode: 'number' }),
+    syncState: sync_t('sync_state').notNull().default('idle'), // 'idle' | 'migrating' | 'failed'
+    lastSyncedAt: timestamp('last_synced_at', { mode: 'date' }),
+    syncError: text('sync_error'),
+    createdAt: timestamp('created_at', { mode: 'date' }).defaultNow(),
+    updatedAt: timestamp('updated_at', { mode: 'date' }).defaultNow(),
+  },
+  t => [
+    uniqueIndex('uq_edge').on(t.memoryId, t.memoryType, t.artifact, t.locationMetadata, t.locationAsset),
+    index('ix_edges_memory').on(t.memoryId, t.memoryType),
+    index('ix_edges_location_present').on(t.locationMetadata, t.locationAsset, t.artifact, t.present),
+    index('ix_edges_sync_state').on(t.syncState),
+  ]
+);
+
+// Memory Metadata Table - stores universal metadata and processing status
+export const memoryMetadata = pgTable(
+  'memory_metadata',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    memoryId: uuid('memory_id')
+      .notNull()
+      .references(() => memories.id, { onDelete: 'cascade' }), // References memories.id with cascade delete
+    memoryType: memory_type_t('memory_type').notNull(),
+    // Universal metadata that applies to all memory types
+    universalData: json('universal_data').$type<{
+      gps?: {
+        latitude?: number;
+        longitude?: number;
+        altitude?: number;
+      };
+      // Add other universal fields as needed
+    }>(),
+    processingStatus: processing_status_t('processing_status').default('pending').notNull(),
+    processingError: text('processing_error'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  table => [
+    uniqueIndex('memory_metadata_unique').on(table.memoryId, table.memoryType),
+    index('memory_metadata_memory_idx').on(table.memoryId, table.memoryType),
+    index('memory_metadata_status_idx').on(table.processingStatus),
+  ]
+);
+
+// NOTE: Views are created/updated ONLY via SQL migrations.
+// These helpers are read-only projections for typing & autocompletion.
+
+// Note: Memory and Gallery presence views have been replaced with direct fields in the tables
+
+export type DBSyncStatus = {
+  memory_id: string;
+  memory_type: 'image' | 'video' | 'note' | 'document' | 'audio';
+  artifact: 'metadata' | 'asset';
+  backend: 'neon-db' | 'vercel-blob' | 'icp-canister';
+  sync_state: 'idle' | 'migrating' | 'failed';
+  sync_error: string | null;
+  last_synced_at: Date | null;
+  created_at: Date;
+  updated_at: Date;
+  sync_duration_seconds: number | null;
+  is_stuck: boolean;
+};
+
+// Read-only bindings for views (defined in migrations):
+// These are NOT DDL; just typed selectors for application code.
+
+export const syncStatus = sql<DBSyncStatus>`SELECT * FROM sync_status`.as('sync_status');
+
+// Helper functions for common queries
+
+export const getSyncStatusByState = (syncState: 'migrating' | 'failed') =>
+  sql<DBSyncStatus>`SELECT * FROM sync_status WHERE sync_state = ${syncState}`;
+
+export const getStuckSyncs = () => sql<DBSyncStatus>`SELECT * FROM sync_status WHERE is_stuck = true`;
+
+export const getSyncStatusByBackend = (backend: 'neon-db' | 'vercel-blob' | 'icp-canister') =>
+  sql<DBSyncStatus>`SELECT * FROM sync_status WHERE backend = ${backend}`;
+
+// Hosting Preferences Tables
+
+/**
+ * USER HOSTING PREFERENCES - User's preferred hosting providers for different services
+ *
+ * This table stores the user's preferred hosting providers for different parts of the application.
+ * Each user must have preferences set for all four service categories.
+ *
+ * NOTE: databaseHosting and blobHosting use JSONB arrays to support multiple storage options with fallback order.
+ * This is PostgreSQL-specific but maintains schema symmetry and provides type safety via Drizzle.
+ * Examples:
+ * - databaseHosting: ['neon', 'icp'] for primary Neon with ICP as fallback
+ * - blobHosting: ['s3', 'icp', 'vercel_blob'] for primary S3 with ICP and Vercel Blob as fallbacks
+ */
+export const userHostingPreferences = pgTable(
+  'user_hosting_preferences',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    frontendHosting: frontend_hosting_t('frontend_hosting').default('vercel').notNull(),
+    backendHosting: backend_hosting_t('backend_hosting').default('vercel').notNull(),
+    databaseHosting: jsonb('database_hosting').$type<DatabaseHosting[]>().default(['neon']).notNull(),
+    blobHosting: jsonb('blob_hosting').$type<BlobHosting[]>().default(['s3']).notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  table => ({
+    // Ensure one preference set per user
+    userIdIdx: uniqueIndex('user_hosting_preferences_user_id_idx').on(table.userId),
+  })
+);
+
+/**
+ * SERVICE DEPLOYMENTS - Tracks where user's services are actually deployed
+ *
+ * This table tracks the actual deployment locations of a user's services.
+ * It can have multiple entries per user to track deployment history.
+ */
+export const serviceDeployments = pgTable(
+  'service_deployments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    frontendLocation: frontend_hosting_t('frontend_location').notNull(),
+    backendLocation: backend_hosting_t('backend_location').notNull(),
+    databaseLocation: database_hosting_t('database_location').notNull(),
+    blobLocation: blob_hosting_t('blob_location').notNull(),
+    isActive: boolean('is_active').default(false).notNull(),
+    deployedAt: timestamp('deployed_at').defaultNow().notNull(),
+    lastCheckedAt: timestamp('last_checked_at'),
+    deploymentMetadata: json('deployment_metadata')
+      .$type<{
+        version?: string;
+        region?: string;
+        url?: string;
+        status?: 'deploying' | 'active' | 'failed' | 'deleting';
+        error?: string;
+      }>()
+      .default({}),
+  },
+  table => ({
+    // Index for looking up active deployments
+    activeDeploymentIdx: index('service_deployments_user_active_idx').on(table.userId, table.isActive),
+  })
+);
+
+/**
+ * USER SETTINGS - UI preferences that affect user experience
+ *
+ * This table stores UI-affecting preferences that must survive sessions/devices.
+ * Separate from hosting preferences to decouple UI concerns from infrastructure choices.
+ *
+ * COMPOSITION:
+ * - Identity: userId (FK to users, 1:1)
+ * - UI Settings: hasAdvancedSettings (controls advanced features visibility)
+ * - Timestamps: createdAt, updatedAt
+ *
+ * USAGE:
+ * - Controls whether user sees advanced database toggle, sync indicators, etc.
+ * - Extensible for future UI preferences (themes, experiment flags, etc.)
+ * - Syncs to ICP backend for Web3 users
+ */
+export const userSettings = pgTable(
+  'user_settings',
+  {
+    userId: text('user_id')
+      .primaryKey()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    hasAdvancedSettings: boolean('has_advanced_settings').notNull().default(false),
+    createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
+  },
+  table => [
+    // Index for efficient lookups
+    index('user_settings_user_idx').on(table.userId),
+  ]
+);
+
+// Temporary exports for backward compatibility during migration
+// TODO: Remove these once all files are updated to use the new unified schema
+export const images = memories;
+export const videos = memories;
+export const documents = memories;
+export const notes = memories;
+export const audio = memories;
+
+// Add foreign key constraint for memoryShares.groupId after group is defined
+// This is handled by adding the reference after table creation
+// Note: In a real migration, this would be handled in the migration file

@@ -1,16 +1,17 @@
-import { seedTenenbaum } from "./fixtures/tenenbaum";
+import { seedTenenbaum } from './fixtures/tenenbaum';
 
+import { fatLogger } from '@/lib/logger';
 export async function seed() {
-  // console.log("🌱 Starting database seeding...");
+  // fatLogger.info("🌱 Starting database seeding...");
 
   try {
     // Seed Tenenbaum family data
     await seedTenenbaum();
 
-    // console.log("✅ Database seeding completed successfully");
+    // fatLogger.info("✅ Database seeding completed successfully");
     process.exit(0);
   } catch (error) {
-    console.error("❌ Error seeding database:", error);
+    fatLogger.error('❌ Error seeding database:', 'be', { data: error instanceof Error ? error : undefined });
     process.exit(1);
   }
 }

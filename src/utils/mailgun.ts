@@ -1,24 +1,28 @@
-import formData from "form-data";
-import Mailgun from "mailgun.js";
-import { MailgunClientOptions, MessagesSendResult } from "mailgun.js/definitions";
+import Mailgun from 'mailgun.js';
+import { MailgunClientOptions, MessagesSendResult } from 'mailgun.js/definitions';
+import formData from 'form-data';
 
 const mailgun = new Mailgun(formData);
 
 // Environment variables
-const API_KEY = process.env.MAILGUN_API_KEY || "";
-const DOMAIN = process.env.MAILGUN_DOMAIN || ""; // e.g., "futura.now"
+import { fatLogger } from '@/lib/logger';
+
+// Environment variables
+const API_KEY = process.env.MAILGUN_API_KEY || '';
+const DOMAIN = process.env.MAILGUN_DOMAIN || ''; // e.g., "futura.now"
 const FROM_EMAIL = process.env.MAILGUN_FROM || `hello@${DOMAIN}`;
 
 // Fail early if credentials are missing
 if (!API_KEY || !DOMAIN) {
-  throw new Error("Missing Mailgun API credentials");
+  throw new Error('Missing Mailgun API credentials');
 }
 
 // Initialize Mailgun client with proper type
 const clientOptions: MailgunClientOptions = {
-  username: "api",
+  username: 'api',
   key: API_KEY,
-  url: "https://api.eu.mailgun.net", // or "https://api.mailgun.net" if in the US region
+  // Use EU endpoint by default as it was working before
+  url: 'https://api.eu.mailgun.net',
 };
 
 const mg = mailgun.client(clientOptions);
@@ -36,6 +40,8 @@ interface EmailOptions {
     filename: string;
     data: Buffer | string;
   }>;
+  headers?: Record<string, string>;
+  [key: `h:${string}`]: unknown; // Allow custom headers
 }
 
 // Define the message data interface
@@ -60,7 +66,7 @@ interface EmailOptions {
 //   [key: string]: unknown; // For any other properties
 // }
 
-// Send function using FormData
+// Send function
 export const sendEmail = async ({
   to,
   subject,
@@ -72,55 +78,82 @@ export const sendEmail = async ({
   attachments,
 }: EmailOptions): Promise<MessagesSendResult> => {
   try {
-    // Use FormData directly as shown in the documentation
-    const data = new formData();
+    // Log Mailgun configuration when this function is called (not at module import)
+    fatLogger.info('Mailgun Configuration', 'be', {
+      domain: DOMAIN,
+      fromEmail: FROM_EMAIL,
+      region: 'EU (explicitly set)',
+      apiKey: API_KEY ? '***' + API_KEY.slice(-4) : 'Not configured',
+    });
+    const messageData: {
+      from: string;
+      to: string;
+      subject: string;
+      text?: string;
+      html?: string;
+      'h:Reply-To'?: string;
+      template?: string;
+      'h:X-Mailgun-Variables'?: string;
+      attachment?: {
+        data: Buffer | string;
+        filename: string;
+      }[];
+    } = {
+      from: FROM_EMAIL,
+      to: Array.isArray(to) ? to.join(',') : to,
+      subject,
+    };
 
-    // Required fields
-    data.append("from", FROM_EMAIL);
+    if (text) messageData.text = text;
+    if (html) messageData.html = html;
+    if (replyTo) messageData['h:Reply-To'] = replyTo;
 
-    // Handle array of recipients
-    if (Array.isArray(to)) {
-      to.forEach((recipient) => data.append("to", recipient));
-    } else {
-      data.append("to", to);
-    }
-
-    data.append("subject", subject);
-
-    // Optional fields
-    if (text) data.append("text", text);
-    if (html) data.append("html", html);
-    if (replyTo) data.append("h:Reply-To", replyTo);
-
-    // Template support
     if (template) {
-      data.append("template", template);
-
+      messageData.template = template;
       if (templateVariables) {
-        data.append("h:X-Mailgun-Variables", JSON.stringify(templateVariables));
+        messageData['h:X-Mailgun-Variables'] = JSON.stringify(templateVariables);
       }
     }
 
-    // Handle attachments
     if (attachments?.length) {
-      attachments.forEach((file) => {
-        data.append("attachment", file.data, file.filename);
-      });
+      messageData.attachment = attachments.map(file => ({
+        data: file.data,
+        filename: file.filename,
+      }));
     }
 
-    // Add a dummy message property to satisfy TypeScript
-    // This won't actually be used by Mailgun when sending with FormData
-    data.append("message", "");
+    const response = await mg.messages.create(DOMAIN, { ...messageData, message: '' });
 
-    // Call Mailgun with FormData and use a safer type assertion
-    // Disable ESLint for this line because FormData is compatible with Mailgun's API but not with its TypeScript definitions
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const response = await mg.messages.create(DOMAIN, data as any);
-
-    // console.log(`Email sent to ${Array.isArray(to) ? to.join(", ") : to} with subject: ${subject}`);
     return response;
   } catch (error) {
-    console.error("Mailgun Error:", error);
-    throw error;
+    // Create a more detailed error message
+    const errorMessage =
+      error instanceof Error
+        ? `Mailgun Error: ${error.message}${error.stack ? `\n${error.stack}` : ''}`
+        : 'Unknown error occurred while sending email';
+
+    fatLogger.error('Mailgun Error', 'be', {
+      error: errorMessage,
+      domain: DOMAIN,
+      fromEmail: FROM_EMAIL,
+    });
+
+    // Create a new error with more context
+    const enhancedError = new Error(`Failed to send email: ${errorMessage}`);
+    if (error instanceof Error) {
+      enhancedError.stack = error.stack;
+    }
+
+    // Add additional debug information
+    Object.defineProperty(enhancedError, 'details', {
+      value: {
+        originalError: error,
+        domain: DOMAIN,
+        fromEmail: FROM_EMAIL,
+      },
+      enumerable: false,
+    });
+
+    throw enhancedError;
   }
 };

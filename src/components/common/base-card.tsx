@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Pencil, Share2, Trash2 } from "lucide-react";
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Pencil, Share2, Trash2 } from 'lucide-react';
 
 interface BaseCardProps<T> {
   item: T;
@@ -13,7 +13,7 @@ interface BaseCardProps<T> {
 
   // Content renderers
   renderPreview: (item: T) => React.ReactNode;
-  renderTitle: (item: T) => React.ReactNode;
+  renderTitle?: (item: T) => React.ReactNode;
   renderDescription?: (item: T) => React.ReactNode;
   renderStorageBadge?: (item: T) => React.ReactNode;
   renderLeftStatus: (item: T) => React.ReactNode;
@@ -33,7 +33,7 @@ export function BaseCard<T>({
   renderDescription,
   renderStorageBadge,
   renderLeftStatus,
-  className = "",
+  className = '',
 }: BaseCardProps<T>) {
   return (
     <Card
@@ -42,14 +42,16 @@ export function BaseCard<T>({
     >
       <CardContent className="px-2 pt-4 pb-2 flex-1">
         {/* Preview section */}
-        <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-muted flex items-center justify-center">
+        <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-background flex items-center justify-center">
           {renderPreview(item)}
         </div>
 
         {/* Title */}
-        <h3 className="mt-2 text-sm font-medium truncate" title={String(renderTitle(item))}>
-          {renderTitle(item)}
-        </h3>
+        {renderTitle && (
+          <h3 className="mt-2 text-sm font-medium truncate" title={String(renderTitle(item))}>
+            {renderTitle(item)}
+          </h3>
+        )}
 
         {/* Description (optional) */}
         {renderDescription && (
@@ -57,7 +59,7 @@ export function BaseCard<T>({
         )}
 
         {/* Storage Badge (optional) */}
-        {renderStorageBadge && (
+        {renderStorageBadge && renderStorageBadge(item) && (
           <div className="mt-1 flex items-center gap-1">
             <span className="text-xs text-muted-foreground">Storage:</span>
             {renderStorageBadge(item)}
@@ -77,7 +79,7 @@ export function BaseCard<T>({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={(e) => {
+                onClick={e => {
                   e.stopPropagation();
                   onEdit(item);
                 }}
@@ -89,7 +91,7 @@ export function BaseCard<T>({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={(e) => {
+                onClick={e => {
                   e.stopPropagation();
                   onShare(item);
                 }}
@@ -101,7 +103,7 @@ export function BaseCard<T>({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={(e) => {
+                onClick={e => {
                   e.stopPropagation();
                   onDelete(item);
                 }}

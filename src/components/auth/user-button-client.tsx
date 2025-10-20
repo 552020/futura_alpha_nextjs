@@ -1,26 +1,26 @@
-"use client";
+'use client';
 
-import { useSession, signIn } from "next-auth/react";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+import { useSession, signIn } from 'next-auth/react';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { SignOut } from "./auth-components";
-import Link from "next/link";
+} from '@/components/ui/dropdown-menu';
+import { SignOut } from './auth-components';
+import Link from 'next/link';
 // Removed tooltip to avoid click interception; using native title on button instead
-import { useIICoAuth } from "@/hooks/use-ii-coauth";
-import { Badge } from "@/components/ui/badge";
+import { useICPIdentity } from '@/hooks/use-icp-identity';
+// import { Badge } from '@/components/ui/badge'; // Removed unused import
 
-export default function UserButtonClient({ lang = "en" }: { lang?: string }) {
+export default function UserButtonClient({ lang = 'en' }: { lang?: string }) {
   const { data: session, status } = useSession();
-  const { isCoAuthActive, activeIcPrincipal, statusMessage, statusClass } = useIICoAuth();
+  const { principal, isAuthenticated } = useICPIdentity();
 
-  if (status === "loading") {
+  if (status === 'loading') {
     return (
       <Button variant="ghost" className="relative h-8 w-8 rounded-full" disabled>
         Loading...
@@ -28,7 +28,7 @@ export default function UserButtonClient({ lang = "en" }: { lang?: string }) {
     );
   }
 
-  if (status === "unauthenticated" || !session?.user) {
+  if (status === 'unauthenticated' || !session?.user) {
     return (
       <Button variant="ghost" onClick={() => signIn()}>
         Sign In
@@ -36,16 +36,16 @@ export default function UserButtonClient({ lang = "en" }: { lang?: string }) {
     );
   }
 
-  // Only show Principal when II co-auth is active
-  const principal = isCoAuthActive ? activeIcPrincipal : undefined;
+  // Show principal only when actually signed in with II
+  const showPrincipal = isAuthenticated && !!principal;
   const name =
     session.user.name ||
     session.user.email ||
-    (principal ? `Principal ${principal.slice(0, 8)}…${principal.slice(-6)}` : "User");
+    (showPrincipal ? `Principal ${principal!.slice(0, 8)}…${principal!.slice(-6)}` : 'User');
   const initials = name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
+    .split(' ')
+    .map(n => n[0])
+    .join('')
     .slice(0, 2)
     .toUpperCase();
 
@@ -56,6 +56,7 @@ export default function UserButtonClient({ lang = "en" }: { lang?: string }) {
           variant="ghost"
           className="relative h-8 w-8 rounded-full hover:bg-muted dark:hover:bg-muted dark:hover:text-white"
           title={principal ? `Principal: ${principal}` : name}
+          data-testid="user-avatar"
         >
           <Avatar className="h-8 w-8">
             <AvatarImage
@@ -76,14 +77,7 @@ export default function UserButtonClient({ lang = "en" }: { lang?: string }) {
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">{name}</p>
             {session.user.email && <p className="text-muted-foreground text-xs leading-none">{session.user.email}</p>}
-            {principal && (
-              <div className="space-y-1">
-                <p className="text-muted-foreground text-xs leading-none break-all">{principal}</p>
-                <Badge variant="outline" className={`text-xs ${statusClass}`}>
-                  {statusMessage}
-                </Badge>
-              </div>
-            )}
+            {principal && <p className="text-muted-foreground text-xs leading-none break-all">{principal}</p>}
           </div>
         </DropdownMenuLabel>
         <div className="p-2">

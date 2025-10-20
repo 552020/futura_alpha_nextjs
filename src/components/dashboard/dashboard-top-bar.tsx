@@ -1,28 +1,27 @@
-"use client";
+'use client';
 
-import { Button } from "@/components/ui/button";
-import { Memory as BaseMemory } from "@/types/memory";
-import { ItemUploadButton } from "@/components/memory/item-upload-button";
-import { BaseTopBar } from "@/components/common/base-top-bar";
-
-// Extended Memory interface for gallery with additional properties
-interface ExtendedMemory extends BaseMemory {
-  tags?: string[];
-  isFavorite?: boolean;
-  views?: number;
-}
+import { Button } from '@/components/ui/button';
+import { ExtendedMemory } from '@/types/dashboard';
+import { ItemUploadButton } from '@/components/memory/item-upload-button';
+import { BaseTopBar } from '@/components/common/base-top-bar';
+import { Switch } from '@/components/ui/switch';
+import { canSwitchDashboardDataSources, type HostingPreferences } from '@/hooks/use-hosting-preferences';
 
 interface SearchAndFilterBarProps {
   memories: ExtendedMemory[];
   onFilteredMemoriesChange: (filteredMemories: ExtendedMemory[]) => void;
   showViewToggle?: boolean;
-  onViewModeChange?: (mode: "grid" | "list") => void;
-  viewMode?: "grid" | "list";
+  onViewModeChange?: (mode: 'grid' | 'list') => void;
+  viewMode?: 'grid' | 'list';
   className?: string;
   showUploadButtons?: boolean;
   onUploadSuccess?: () => void;
   onUploadError?: (error: Error) => void;
   onClearAllMemories?: () => void;
+  dataSource: 'neon' | 'icp';
+  onDataSourceChange: (source: 'neon' | 'icp') => void;
+  isAutoSelected?: boolean; // Whether the data source was automatically selected
+  hostingPreferences?: HostingPreferences; // Hosting preferences to check if switching is allowed
 }
 
 export function DashboardTopBar({
@@ -30,12 +29,15 @@ export function DashboardTopBar({
   onFilteredMemoriesChange,
   showViewToggle = true,
   onViewModeChange,
-  viewMode = "grid",
-  className = "",
+  viewMode = 'grid',
+  className = '',
   showUploadButtons = false,
   onUploadSuccess,
   onUploadError,
   onClearAllMemories,
+  dataSource,
+  onDataSourceChange,
+  hostingPreferences,
 }: SearchAndFilterBarProps) {
   // Create left action buttons
   const leftActions = (
@@ -43,13 +45,13 @@ export function DashboardTopBar({
       {showUploadButtons && (
         <>
           <ItemUploadButton
-            mode="folder"
+            mode="directory"
             variant="dashboard-add-folder"
             onSuccess={onUploadSuccess}
             onError={onUploadError}
           />
           <ItemUploadButton
-            mode="files"
+            mode="multiple-files"
             variant="dashboard-add-file"
             onSuccess={onUploadSuccess}
             onError={onUploadError}
@@ -57,15 +59,24 @@ export function DashboardTopBar({
         </>
       )}
       {onClearAllMemories && (
-        <Button
-          variant="destructive"
-          size="sm"
-          onClick={onClearAllMemories}
-          className="h-9 px-4 py-1 text-sm whitespace-nowrap"
-        >
+        <Button variant="destructive" size="sm" onClick={onClearAllMemories} className="h-9 px-4 py-1 text-sm shrink-0">
           Clear All
         </Button>
       )}
+
+      {/* Database Toggle Switch */}
+      <div
+        className={`flex items-center gap-2 px-3 py-1 border rounded-md ${
+          !canSwitchDashboardDataSources(hostingPreferences) ? 'bg-muted' : 'bg-background'
+        }`}
+      >
+        <Switch
+          checked={dataSource === 'icp'}
+          onCheckedChange={checked => onDataSourceChange(checked ? 'icp' : 'neon')}
+          disabled={!canSwitchDashboardDataSources(hostingPreferences)}
+        />
+        <span className="text-xs font-medium">{dataSource === 'icp' ? 'ICP' : 'Neon'}</span>
+      </div>
     </>
   );
 
@@ -79,33 +90,33 @@ export function DashboardTopBar({
       className={className}
       leftActions={leftActions}
       searchPlaceholder="Search memories, tags, or descriptions..."
-      searchFields={(memory) => [memory.title, memory.description || "", ...(memory.tags || [])]}
+      searchFields={memory => [memory.title, memory.description || '', ...(memory.tags || [])]}
       filterOptions={[
-        { value: "all", label: "All Types" },
-        { value: "image", label: "Images" },
-        { value: "video", label: "Videos" },
-        { value: "document", label: "Documents" },
-        { value: "audio", label: "Audio" },
+        { value: 'all', label: 'All Types' },
+        { value: 'image', label: 'Images' },
+        { value: 'video', label: 'Videos' },
+        { value: 'document', label: 'Documents' },
+        { value: 'audio', label: 'Audio' },
       ]}
       filterLogic={(memory, filterType) => {
-        if (filterType === "all") return true;
+        if (filterType === 'all') return true;
         return memory.type === filterType;
       }}
       sortOptions={[
-        { value: "newest", label: "Newest First" },
-        { value: "oldest", label: "Oldest First" },
-        { value: "most-viewed", label: "Most Viewed" },
-        { value: "favorites", label: "Favorites First" },
+        { value: 'newest', label: 'Newest First' },
+        { value: 'oldest', label: 'Oldest First' },
+        { value: 'most-viewed', label: 'Most Viewed' },
+        { value: 'favorites', label: 'Favorites First' },
       ]}
       sortLogic={(a, b, sortBy) => {
         switch (sortBy) {
-          case "newest":
+          case 'newest':
             return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-          case "oldest":
+          case 'oldest':
             return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-          case "most-viewed":
+          case 'most-viewed':
             return ((b as ExtendedMemory).views || 0) - ((a as ExtendedMemory).views || 0);
-          case "favorites":
+          case 'favorites':
             return ((b as ExtendedMemory).isFavorite ? 1 : 0) - ((a as ExtendedMemory).isFavorite ? 1 : 0);
           default:
             return 0;

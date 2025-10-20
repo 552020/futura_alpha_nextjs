@@ -1,13 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
-import { db } from "@/db/db";
-import { allUsers, images, notes, documents, memoryShares, videos } from "@/db/schema";
-import { eq, desc, sql } from "drizzle-orm";
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/auth';
+import { db } from '@/db/db';
+import { allUsers, memories, resourceMembership } from '@/db';
+import { eq, desc, sql, ne, and } from 'drizzle-orm';
 
+import { fatLogger } from '@/lib/logger';
 /**
  * GET /api/memories/shared
  *
  * Retrieves shared memories for the authenticated user or temporary user.
+ * Updated to use the new unified memories table.
  *
  * Authentication:
  * - For authenticated users: Uses the session userId to find their allUserId
@@ -30,16 +32,17 @@ export async function GET(request: NextRequest) {
     });
 
     if (!allUserRecord) {
-      return NextResponse.json({ error: "User record not found" }, { status: 404 });
+      return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
     allUserId = allUserRecord.id;
   } else {
-    // Handle temporary user - get allUserId from request body
-    const body = await request.json();
+    // Handle temporary user
+    const body = await request.json().catch(() => null);
+
     if (!body?.allUserId) {
       return NextResponse.json(
-        { error: "For temporary users, allUserId must be provided in the request body" },
+        { error: 'For temporary users, allUserId must be provided in the request body' },
         { status: 401 }
       );
     }
@@ -50,7 +53,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!tempUserRecord) {
-      return NextResponse.json({ error: "Invalid temporary user ID" }, { status: 404 });
+      return NextResponse.json({ error: 'Invalid temporary user ID' }, { status: 404 });
     }
 
     allUserId = body.allUserId;
@@ -59,165 +62,150 @@ export async function GET(request: NextRequest) {
   try {
     // Get query parameters
     const searchParams = request.nextUrl.searchParams;
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "12");
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '12');
     const offset = (page - 1) * limit;
+    const orderBy = searchParams.get('orderBy') || 'sharedAt'; // "sharedAt" or "createdAt"
 
-    // Get all memory shares for this user
-    const shares = await db.query.memoryShares.findMany({
-      where: eq(memoryShares.sharedWithId, allUserId),
-      orderBy: desc(memoryShares.createdAt),
+    // Get all memory memberships for this user (excluding their own memories)
+    const memberships = await db.query.resourceMembership.findMany({
+      where: and(
+        eq(resourceMembership.resourceType, 'memory'),
+        eq(resourceMembership.allUserId, allUserId),
+        // Exclude system-granted memberships (usually ownership)
+        ne(resourceMembership.grantSource, 'system')
+      ),
+      orderBy: orderBy === 'sharedAt' ? desc(resourceMembership.createdAt) : desc(resourceMembership.createdAt),
     });
 
-    // Group shares by memory type
-    const imageShares = shares.filter((share) => share.memoryType === "image");
-    const documentShares = shares.filter((share) => share.memoryType === "document");
-    const noteShares = shares.filter((share) => share.memoryType === "note");
-    const videoShares = shares.filter((share) => share.memoryType === "video");
+    // Get memory IDs from memberships (already ordered)
+    const memoryIds = memberships.map(membership => membership.resourceId);
 
-    // Fetch the actual memories
-    const sharedImages = await Promise.all(
-      imageShares.map(async (share) => {
-        const image = await db.query.images.findFirst({
-          where: eq(images.id, share.memoryId),
-        });
-        if (!image) return null;
+    if (memoryIds.length === 0) {
+      return NextResponse.json({
+        images: [],
+        documents: [],
+        notes: [],
+        videos: [],
+        audio: [],
+        hasMore: false,
+        success: true,
+        data: [],
+        total: 0,
+      });
+    }
 
-        // Get total share count for this memory
-        const shareCount = await db
+    // Fetch the actual memories using unified table
+    // Note: We maintain the order from shares by using the memoryIds array order
+    const sharedMemories = await db.query.memories.findMany({
+      where: sql`${memories.id} = ANY(${memoryIds})`,
+      // Don't order here - we'll sort by the original shares order
+    });
+
+    // Sort memories by the order they appear in memoryIds (which is ordered by shares)
+    const orderedMemories = memoryIds
+      .map(id => sharedMemories.find(memory => memory.id === id))
+      .filter(Boolean) as typeof sharedMemories;
+
+    // Apply pagination to the ordered results
+    const paginatedMemories = orderedMemories.slice(offset, offset + limit);
+
+    // Calculate share counts and add sharing info
+    const memoriesWithShareInfo = await Promise.all(
+      paginatedMemories.map(async memory => {
+        // Find the membership record for this memory and user
+        const membership = memberships.find(m => m.resourceId === memory.id);
+
+        // Get total membership count for this memory (excluding owner)
+        const membershipCount = await db
           .select({ count: sql<number>`count(*)` })
-          .from(memoryShares)
-          .where(eq(memoryShares.memoryId, share.memoryId));
+          .from(resourceMembership)
+          .where(and(
+            eq(resourceMembership.resourceType, 'memory'),
+            eq(resourceMembership.resourceId, memory.id),
+            ne(resourceMembership.grantSource, 'system')
+          ));
+
+        // Convert membership role to access level
+        let accessLevel = 'read';
+        if (membership) {
+          switch (membership.role) {
+            case 'owner':
+            case 'superadmin':
+            case 'admin':
+              accessLevel = 'write';
+              break;
+            case 'member':
+              accessLevel = 'write';
+              break;
+            case 'guest':
+            default:
+              accessLevel = 'read';
+              break;
+          }
+        }
 
         return {
-          ...image,
+          ...memory,
           sharedBy: {
-            id: share.ownerId,
-            name: await getOwnerName(share.ownerId),
+            id: memory.ownerId,
+            name: await getOwnerName(memory.ownerId),
           },
-          accessLevel: share.accessLevel,
-          status: "shared" as const,
-          sharedWithCount: shareCount[0].count,
+          accessLevel,
+          status: 'shared' as const,
+          sharedWithCount: membershipCount[0]?.count || 0,
         };
       })
     );
 
-    const sharedDocuments = await Promise.all(
-      documentShares.map(async (share) => {
-        const document = await db.query.documents.findFirst({
-          where: eq(documents.id, share.memoryId),
-        });
-        if (!document) return null;
+    // Filter memories by type for backward compatibility
+    const images = memoriesWithShareInfo.filter(m => m.type === 'image');
+    const documents = memoriesWithShareInfo.filter(m => m.type === 'document');
+    const notes = memoriesWithShareInfo.filter(m => m.type === 'note');
+    const videos = memoriesWithShareInfo.filter(m => m.type === 'video');
+    const audio = memoriesWithShareInfo.filter(m => m.type === 'audio');
 
-        // Get total share count for this memory
-        const shareCount = await db
-          .select({ count: sql<number>`count(*)` })
-          .from(memoryShares)
-          .where(eq(memoryShares.memoryId, share.memoryId));
-
-        return {
-          ...document,
-          sharedBy: {
-            id: share.ownerId,
-            name: await getOwnerName(share.ownerId),
-          },
-          accessLevel: share.accessLevel,
-          status: "shared" as const,
-          sharedWithCount: shareCount[0].count,
-        };
-      })
-    );
-
-    const sharedNotes = await Promise.all(
-      noteShares.map(async (share) => {
-        const note = await db.query.notes.findFirst({
-          where: eq(notes.id, share.memoryId),
-        });
-        if (!note) return null;
-
-        // Get total share count for this memory
-        const shareCount = await db
-          .select({ count: sql<number>`count(*)` })
-          .from(memoryShares)
-          .where(eq(memoryShares.memoryId, share.memoryId));
-
-        return {
-          ...note,
-          sharedBy: {
-            id: share.ownerId,
-            name: await getOwnerName(share.ownerId),
-          },
-          accessLevel: share.accessLevel,
-          status: "shared" as const,
-          sharedWithCount: shareCount[0].count,
-        };
-      })
-    );
-
-    const sharedVideos = await Promise.all(
-      videoShares.map(async (share) => {
-        const video = await db.query.videos.findFirst({
-          where: eq(videos.id, share.memoryId),
-        });
-        if (!video) return null;
-
-        // Get total share count for this memory
-        const shareCount = await db
-          .select({ count: sql<number>`count(*)` })
-          .from(memoryShares)
-          .where(eq(memoryShares.memoryId, share.memoryId));
-
-        return {
-          ...video,
-          sharedBy: {
-            id: share.ownerId,
-            name: await getOwnerName(share.ownerId),
-          },
-          accessLevel: share.accessLevel,
-          status: "shared" as const,
-          sharedWithCount: shareCount[0].count,
-        };
-      })
-    );
-
-    // Filter out null values and apply pagination
-    const filteredImages = sharedImages.filter(Boolean).slice(offset, offset + limit);
-    const filteredDocuments = sharedDocuments.filter(Boolean).slice(offset, offset + limit);
-    const filteredNotes = sharedNotes.filter(Boolean).slice(offset, offset + limit);
-    const filteredVideos = sharedVideos.filter(Boolean).slice(offset, offset + limit);
+    const hasMore = orderedMemories.length > offset + limit;
 
     return NextResponse.json({
-      images: filteredImages,
-      documents: filteredDocuments,
-      notes: filteredNotes,
-      videos: filteredVideos,
-      total: sharedImages.length + sharedDocuments.length + sharedNotes.length + sharedVideos.length,
-      hasMore: offset + limit < sharedImages.length + sharedDocuments.length + sharedNotes.length + sharedVideos.length,
+      // Legacy format for backward compatibility
+      images,
+      documents,
+      notes,
+      videos,
+      audio,
+      hasMore,
+      // New unified format (additional)
+      success: true,
+      data: memoriesWithShareInfo,
+      total: memoriesWithShareInfo.length,
     });
   } catch (error) {
-    console.error("Error listing shared memories:", error);
-    return NextResponse.json({ error: "Failed to list shared memories" }, { status: 500 });
+    fatLogger.error('Error fetching shared memories:', 'be', { data: error instanceof Error ? error : undefined });
+    return NextResponse.json({ error: 'Failed to fetch shared memories' }, { status: 500 });
   }
 }
 
+// Helper function to get owner name
 async function getOwnerName(ownerId: string): Promise<string> {
-  const owner = await db.query.allUsers.findFirst({
-    where: eq(allUsers.id, ownerId),
-  });
-
-  if (!owner) return "Unknown";
-
-  if (owner.type === "user" && owner.userId) {
-    const user = await db.query.users.findFirst({
-      where: eq(allUsers.id, owner.userId),
+  try {
+    const owner = await db.query.allUsers.findFirst({
+      where: eq(allUsers.id, ownerId),
+      with: {
+        user: true,
+        temporaryUser: true,
+      },
     });
-    return user?.name || "Unknown";
-  } else if (owner.type === "temporary" && owner.temporaryUserId) {
-    const tempUser = await db.query.temporaryUsers.findFirst({
-      where: eq(allUsers.id, owner.temporaryUserId),
-    });
-    return tempUser?.name || "Unknown";
+
+    if (owner?.user) {
+      return (owner.user as { name?: string }).name || 'Unknown User';
+    } else if (owner?.temporaryUser) {
+      return (owner.temporaryUser as { name?: string }).name || 'Temporary User';
+    }
+
+    return 'Unknown';
+  } catch (error) {
+    fatLogger.error('Error getting owner name:', 'be', { data: error instanceof Error ? error : undefined });
+    return 'Unknown';
   }
-
-  return "Unknown";
 }

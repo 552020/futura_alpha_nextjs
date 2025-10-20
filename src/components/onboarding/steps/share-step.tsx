@@ -1,10 +1,10 @@
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useOnboarding } from "@/contexts/onboarding-context";
-import { useEffect, useRef, useState } from "react";
-import { StepContainer } from "../common/step-container";
-import { StepNavigation } from "../common/step-navigation";
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useOnboarding } from '@/contexts/onboarding-context';
+import { useEffect, useRef, useState } from 'react';
+import { StepContainer } from '../common/step-container';
+import { StepNavigation } from '../common/step-navigation';
 
 interface ShareStepProps {
   onNext: () => void;
@@ -23,10 +23,10 @@ export function ShareStep({ onNext, onBack }: ShareStepProps) {
 
   // Add this useEffect to maintain focus for recipient fields
   useEffect(() => {
-    if (currentStep === "share" && lastFocusedField) {
-      if (lastFocusedField === "recipientName" && recipientNameRef.current) {
+    if (currentStep === 'share' && lastFocusedField) {
+      if (lastFocusedField === 'recipientName' && recipientNameRef.current) {
         recipientNameRef.current.focus();
-      } else if (lastFocusedField === "recipientEmail" && recipientEmailRef.current) {
+      } else if (lastFocusedField === 'recipientEmail' && recipientEmailRef.current) {
         recipientEmailRef.current.focus();
       }
     }
@@ -35,7 +35,7 @@ export function ShareStep({ onNext, onBack }: ShareStepProps) {
   const validateEmail = (email: string) => {
     const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
     const isValid = emailRegex.test(email);
-    // console.log("Recipient email validation:", { email, isValid });
+    // icpLogger.info("Recipient email validation:", { email, isValid });
     return isValid;
   };
 
@@ -47,7 +47,7 @@ export function ShareStep({ onNext, onBack }: ShareStepProps) {
 
   const handleRecipientEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
-    // console.log("Recipient email changed:", newValue);
+    // icpLogger.info("Recipient email changed:", newValue);
     setLocalRecipientEmail(newValue);
     updateUserData({ recipientEmail: newValue });
   };
@@ -61,7 +61,7 @@ export function ShareStep({ onNext, onBack }: ShareStepProps) {
 
   // Add debug log for button state
   const isNextDisabled = !validateEmail(localRecipientEmail);
-  // console.log("Share step button state:", {
+  // icpLogger.info("Share step button state:", {
   //   localRecipientEmail,
   //   isValid: validateEmail(localRecipientEmail),
   //   isNextDisabled,
@@ -85,7 +85,7 @@ export function ShareStep({ onNext, onBack }: ShareStepProps) {
             name="recipientName"
             value={localRecipientName}
             onChange={handleRecipientNameChange}
-            onFocus={() => setLastFocusedField("recipientName")}
+            onFocus={() => setLastFocusedField('recipientName')}
             placeholder="Enter their name"
           />
         </div>
@@ -99,7 +99,7 @@ export function ShareStep({ onNext, onBack }: ShareStepProps) {
             type="email"
             value={localRecipientEmail}
             onChange={handleRecipientEmailChange}
-            onFocus={() => setLastFocusedField("recipientEmail")}
+            onFocus={() => setLastFocusedField('recipientEmail')}
             placeholder="Enter their email"
           />
           {!validateEmail(localRecipientEmail) && (
@@ -111,9 +111,9 @@ export function ShareStep({ onNext, onBack }: ShareStepProps) {
           <Label htmlFor="relationship">Your Relationship</Label>
           <Select
             value={userData.relationship}
-            onValueChange={(value) => {
+            onValueChange={value => {
               // If changing away from family, clear the family relationship
-              if (value !== "family" && userData.familyRelationship) {
+              if (value !== 'family' && userData.familyRelationship) {
                 updateUserData({
                   relationship: value,
                   familyRelationship: undefined,
@@ -138,12 +138,12 @@ export function ShareStep({ onNext, onBack }: ShareStepProps) {
         </div>
 
         {/* Conditional family relationship selector */}
-        {userData.relationship === "family" && (
+        {userData.relationship === 'family' && (
           <div className="space-y-2 animate-in fade-in slide-in-from-top duration-300">
             <Label htmlFor="familyRelationship">Family Relationship</Label>
             <Select
               value={userData.familyRelationship}
-              onValueChange={(value) => updateUserData({ familyRelationship: value })}
+              onValueChange={value => updateUserData({ familyRelationship: value })}
             >
               <SelectTrigger id="familyRelationship">
                 <SelectValue placeholder="What is your family relationship?" />

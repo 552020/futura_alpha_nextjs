@@ -1,17 +1,19 @@
-import { describe, it, expect } from "vitest";
-import request from "supertest";
+import { describe, it, expect } from 'vitest';
+import request from 'supertest';
 
+import { fatLogger } from '@/lib/logger';
 // 🎯 LEARNING GOOGLE AUTHENTICATION MOCKING
 // This file is specifically for learning how to fake Google authentication in tests
 // We'll test different approaches to simulate authenticated users
 
-describe("Learning Google Authentication Mocking with Supertest", () => {
+describe('Learning Google Authentication Mocking with Supertest', () => {
   // Point Supertest directly at your running dev server
-  const baseURL = "http://localhost:3000";
+  const baseURL = 'http://localhost:3000';
 
-  describe("Understanding the Challenge", () => {
-    it("should explain why we need to fake authentication", () => {
-      console.log(`
+  describe('Understanding the Challenge', () => {
+    it('should explain why we need to fake authentication', () => {
+      fatLogger.info(
+        `
 🔍 WHY WE NEED TO FAKE GOOGLE AUTHENTICATION:
 
 1. **OAuth Flow Limitation**: Google OAuth requires browser interaction
@@ -20,27 +22,30 @@ describe("Learning Google Authentication Mocking with Supertest", () => {
 4. **Learning Path**: Understand how to simulate different user states
 
 💡 SOLUTION: Create fake authentication tokens/sessions to simulate logged-in users
-      `);
+      `,
+        'be'
+      );
 
       expect(true).toBe(true);
     });
   });
 
-  describe("Testing Protected Endpoint Without Authentication", () => {
-    it("should confirm that /api/test/auth requires authentication", async () => {
-      const response = await request(baseURL).get("/api/test/auth").expect(401);
+  describe('Testing Protected Endpoint Without Authentication', () => {
+    it('should confirm that /api/test/auth requires authentication', async () => {
+      const response = await request(baseURL).get('/api/test/auth').expect(401);
 
       expect(response.body).toMatchObject({
-        message: "Authentication required",
-        error: "No valid session found",
-        status: "unauthorized",
+        message: 'Authentication required',
+        error: 'No valid session found',
+        status: 'unauthorized',
       });
     });
   });
 
-  describe("Approaches to Fake Google Authentication", () => {
-    it("should document different methods we can try", () => {
-      console.log(`
+  describe('Approaches to Fake Google Authentication', () => {
+    it('should document different methods we can try', () => {
+      fatLogger.info(
+        `
 🎯 DIFFERENT APPROACHES TO FAKE GOOGLE AUTH:
 
 1. **JWT Token Manipulation**: Create fake JWT tokens with user data
@@ -50,57 +55,66 @@ describe("Learning Google Authentication Mocking with Supertest", () => {
 5. **Database User Creation**: Create test users directly in database
 
 🔬 LET'S EXPERIMENT: We'll try these approaches to see what works!
-      `);
+      `,
+        'be'
+      );
 
       expect(true).toBe(true);
     });
   });
 
-  describe("Method 1: Try Setting Authorization Header", () => {
-    it("should attempt to use fake Bearer token", async () => {
+  describe('Method 1: Try Setting Authorization Header', () => {
+    it('should attempt to use fake Bearer token', async () => {
       // This will likely fail, but it's good to understand why
-      const fakeToken = "fake-google-jwt-token-12345";
+      const fakeToken = 'fake-google-jwt-token-12345';
 
       const response = await request(baseURL)
-        .get("/api/test/auth")
-        .set("Authorization", `Bearer ${fakeToken}`)
+        .get('/api/test/auth')
+        .set('Authorization', `Bearer ${fakeToken}`)
         .expect(401); // Expected to fail
 
-      console.log(`
+      fatLogger.info(
+        `
 🔍 RESULT: Authorization header approach failed (expected)
    - Fake Bearer token not accepted
    - NextAuth requires valid JWT signature
    - We need a different approach
-      `);
+      `,
+        'be'
+      );
 
-      expect(response.body.status).toBe("unauthorized");
+      expect(response.body.status).toBe('unauthorized');
     });
   });
 
-  describe("Method 2: Try Setting Session Cookie", () => {
-    it("should attempt to use fake session cookie", async () => {
+  describe('Method 2: Try Setting Session Cookie', () => {
+    it('should attempt to use fake session cookie', async () => {
       // This will also likely fail, but let's see what happens
-      const fakeSessionCookie = "fake-nextauth-session-cookie";
+      const fakeSessionCookie = 'fake-nextauth-session-cookie';
 
       const response = await request(baseURL)
-        .get("/api/test/auth")
-        .set("Cookie", `next-auth.session-token=${fakeSessionCookie}`)
+        .get('/api/test/auth')
+        .set('Cookie', `next-auth.session-token=${fakeSessionCookie}`)
         .expect(401); // Expected to fail
 
-      console.log(`
+      fatLogger.info(
+        `
 🔍 RESULT: Session cookie approach failed (expected)
    - Fake session cookie not accepted
    - NextAuth validates session tokens against database
    - We need to understand NextAuth session structure
-      `);
+      `,
+        'be'
+      );
 
-      expect(response.body.status).toBe("unauthorized");
+      expect(response.body.status).toBe('unauthorized');
     });
   });
 
-  describe("Next Steps for Authentication Mocking", () => {
-    it("should outline what we need to learn next", () => {
-      console.log(`
+  describe('Next Steps for Authentication Mocking', () => {
+    it('should outline what we need to learn next', () => {
+      fatLogger.info(
+        `
 🎯 NEXT LEARNING STEPS FOR AUTHENTICATION MOCKING:
 
 1. **Understand NextAuth Session Structure**: How are sessions stored and validated?
@@ -110,7 +124,9 @@ describe("Learning Google Authentication Mocking with Supertest", () => {
 5. **Test User Creation**: How to create test users for authentication testing?
 
 💡 INSIGHT: We need to understand how NextAuth works internally to fake it properly!
-      `);
+      `,
+        'be'
+      );
 
       expect(true).toBe(true);
     });

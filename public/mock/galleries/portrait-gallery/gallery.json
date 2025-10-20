@@ -1,8 +1,0 @@
-{
-  "name": "portrait-gallery",
-  "description": "Portrait-only gallery for testing vertical layouts",
-  "imageCount":       15,
-  "aspectRatio": "portrait",
-  "format": "webp",
-  "createdAt": "2025-08-25T08:54:43Z"
-}

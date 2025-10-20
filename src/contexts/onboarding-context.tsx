@@ -1,12 +1,13 @@
-"use client";
+'use client';
 
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
+import { fatLogger } from '@/lib/logger';
 // Add these constants at the top of the file
-const ONBOARDING_STATE_KEY = "onboarding_state";
-const ONBOARDING_STEP_KEY = "onboarding_step";
+const ONBOARDING_STATE_KEY = 'onboarding_state';
+const ONBOARDING_STEP_KEY = 'onboarding_step';
 
-export type OnboardingStatus = "not_started" | "in_progress" | "completed";
+export type OnboardingStatus = 'not_started' | 'in_progress' | 'completed';
 
 export interface TempFile {
   url: string;
@@ -16,7 +17,7 @@ export interface TempFile {
   fileType?: string; // MIME type of the file
 }
 
-export type OnboardingStep = "upload" | "user-info" | "share" | "sign-up" | "complete";
+export type OnboardingStep = 'upload' | 'user-info' | 'share' | 'sign-up' | 'complete';
 
 interface OnboardingContextType {
   files: TempFile[];
@@ -39,7 +40,7 @@ interface OnboardingContextType {
     memoryId?: string;
     uploadedFileCount?: number;
   };
-  updateUserData: (data: Partial<OnboardingContextType["userData"]>) => void;
+  updateUserData: (data: Partial<OnboardingContextType['userData']>) => void;
   clearOnboardingState: () => void;
 }
 
@@ -47,15 +48,15 @@ const OnboardingContext = createContext<OnboardingContextType | undefined>(undef
 
 export function OnboardingProvider({ children }: { children: React.ReactNode }) {
   const [files, setFiles] = useState<TempFile[]>([]);
-  const [currentStep, setCurrentStep] = useState<OnboardingStep>("upload");
-  const [onboardingStatus, setOnboardingStatus] = useState<OnboardingStatus>("not_started");
+  const [currentStep, setCurrentStep] = useState<OnboardingStep>('upload');
+  const [onboardingStatus, setOnboardingStatus] = useState<OnboardingStatus>('not_started');
   const [userData, setUserData] = useState({
-    name: "",
-    email: "",
-    recipientName: "",
-    recipientEmail: "",
-    relationship: "",
-    familyRelationship: "",
+    name: '',
+    email: '',
+    recipientName: '',
+    recipientEmail: '',
+    relationship: '',
+    familyRelationship: '',
     isTemporary: true,
     allUserId: undefined as string | undefined,
     memoryId: undefined as string | undefined,
@@ -80,7 +81,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
           setCurrentStep(savedStep as OnboardingStep);
         }
       } catch (error) {
-        console.error("Error loading onboarding state:", error);
+        fatLogger.error('Error loading onboarding state:', 'fe', { data: error instanceof Error ? error : undefined });
       }
     }
   }, []);
@@ -97,16 +98,16 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
       );
       localStorage.setItem(ONBOARDING_STEP_KEY, currentStep);
     } catch (error) {
-      console.error("Error saving onboarding state:", error);
+      fatLogger.error('Error saving onboarding state:', 'fe', { data: error instanceof Error ? error : undefined });
     }
   }, [currentStep, userData, onboardingStatus]);
 
   // Update user data - using functional update pattern
   const updateUserData = useCallback(
     (update: Partial<typeof userData> | ((prev: typeof userData) => Partial<typeof userData>)) => {
-      setUserData((prev) => ({
+      setUserData(prev => ({
         ...prev,
-        ...(typeof update === "function" ? update(prev) : update),
+        ...(typeof update === 'function' ? update(prev) : update),
       }));
     },
     []
@@ -114,7 +115,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
 
   // Add a file
   const addFile = useCallback((file: TempFile) => {
-    setFiles((prev) => {
+    setFiles(prev => {
       const newFiles = [...prev, file];
       return newFiles;
     });
@@ -124,8 +125,8 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   const removeFile = useCallback((url: string) => {
     // Revoke the object URL to prevent memory leaks
     URL.revokeObjectURL(url);
-    setFiles((prev) => {
-      const newFiles = prev.filter((f) => f.url !== url);
+    setFiles(prev => {
+      const newFiles = prev.filter(f => f.url !== url);
       return newFiles;
     });
   }, []);
@@ -133,7 +134,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   // Clear all files
   const clearFiles = useCallback(() => {
     // Revoke all object URLs
-    files.forEach((file) => URL.revokeObjectURL(file.url));
+    files.forEach(file => URL.revokeObjectURL(file.url));
     setFiles([]);
   }, [files]);
 
@@ -166,6 +167,6 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
 
 export const useOnboarding = () => {
   const context = useContext(OnboardingContext);
-  if (!context) throw new Error("useOnboarding must be used within OnboardingProvider");
+  if (!context) throw new Error('useOnboarding must be used within OnboardingProvider');
   return context;
 };

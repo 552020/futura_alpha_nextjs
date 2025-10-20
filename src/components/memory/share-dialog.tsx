@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -8,12 +8,13 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Share2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Share2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
+import { fatLogger } from '@/lib/logger';
 interface ShareDialogProps {
   memoryId: string;
   onShare?: () => void;
@@ -21,7 +22,7 @@ interface ShareDialogProps {
 
 export function ShareDialog({ memoryId, onShare }: ShareDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -31,13 +32,13 @@ export function ShareDialog({ memoryId, onShare }: ShareDialogProps) {
 
     try {
       const response = await fetch(`/api/memories/${memoryId}/share`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           target: {
-            type: "user",
+            type: 'user',
             allUserId: email, // This should be replaced with actual user ID lookup
           },
           sendEmail: true,
@@ -46,23 +47,23 @@ export function ShareDialog({ memoryId, onShare }: ShareDialogProps) {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Failed to share memory");
+        throw new Error(error.error || 'Failed to share memory');
       }
 
       await response.json();
-      // console.log("🎉 SHARE SUCCESS - Memory shared successfully!");
+      // fatLogger.info("🎉 SHARE SUCCESS - Memory shared successfully!");
       toast({
-        title: "Success!",
-        description: "Memory shared successfully!",
+        title: 'Success!',
+        description: 'Memory shared successfully!',
       });
       setIsOpen(false);
       onShare?.();
     } catch (error) {
-      console.error("Error sharing memory:", error);
+      fatLogger.error('Error sharing memory:', 'fe', { data: error instanceof Error ? error : undefined });
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to share memory",
-        variant: "destructive",
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to share memory',
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
@@ -92,14 +93,14 @@ export function ShareDialog({ memoryId, onShare }: ShareDialogProps) {
                 type="email"
                 placeholder="Enter email address"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={e => setEmail(e.target.value)}
                 required
               />
             </div>
           </div>
           <DialogFooter>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Sharing..." : "Share"}
+              {isLoading ? 'Sharing...' : 'Share'}
             </Button>
           </DialogFooter>
         </form>

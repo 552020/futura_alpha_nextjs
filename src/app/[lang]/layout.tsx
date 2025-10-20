@@ -1,30 +1,36 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import { ThemeProvider } from "@/components/providers/theme-provider";
-import { SessionProvider } from "next-auth/react";
-import Header from "@/components/layout/header";
-import { InterfaceProvider } from "@/contexts/interface-context";
-import { locales } from "@/middleware";
-import { notFound } from "next/navigation";
-import { getDictionary, Dictionary } from "@/utils/dictionaries";
-import { PostHogProvider } from "@/components/utils/posthog-provider";
-import BottomNav from "@/components/layout/bottom-nav";
-import Sidebar from "@/components/layout/sidebar";
-import { OnboardingProvider } from "@/contexts/onboarding-context";
-import { Analytics } from "@vercel/analytics/react";
-import { Toaster } from "@/components/ui/toaster";
-import Footer from "@/components/layout/footer";
-import { QueryProvider } from "@/components/providers/query-provider";
+import type { Metadata } from 'next';
+import { Geist, Geist_Mono } from 'next/font/google';
+import './globals.css';
+import { ThemeProvider } from '@/components/providers/theme-provider';
+import { SessionProvider } from 'next-auth/react';
+import Header from '@/components/layout/header';
+import { InterfaceProvider } from '@/contexts/interface-context';
+import { locales } from '@/middleware';
+import { notFound } from 'next/navigation';
+import { getDictionary, Dictionary } from '@/utils/dictionaries';
+import { PostHogProvider } from '@/components/utils/posthog-provider';
+import BottomNav from '@/components/layout/bottom-nav';
+import Sidebar from '@/components/layout/sidebar';
+import { OnboardingProvider } from '@/contexts/onboarding-context';
+import { Analytics } from '@vercel/analytics/react';
+import { Toaster } from '@/components/ui/toaster';
+import Footer from '@/components/layout/footer';
+import { QueryProvider } from '@/components/providers/query-provider';
+import ServiceWorkerClient from '@/lib/service-worker';
 
+import { fatLogger } from '@/lib/logger';
 const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+  variable: '--font-geist-sans',
+  subsets: ['latin'],
+  display: 'swap', // Add font-display: swap for better loading
+  preload: true, // Explicitly enable preloading
 });
 
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  variable: '--font-geist-mono',
+  subsets: ['latin'],
+  display: 'swap', // Add font-display: swap for better loading
+  preload: true, // Explicitly enable preloading
 });
 
 // Dynamic metadata based on the current language
@@ -36,32 +42,34 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
   const dict: Dictionary = await getDictionary(resolvedParams.lang);
 
   // Check for missing translations and log warnings in development
-  if (process.env.NODE_ENV === "development") {
+  if (process.env.NODE_ENV === 'development') {
     if (!dict?.metadata?.title) {
-      console.warn(
-        `[i18n] Missing translation for "metadata.title" in locale "${resolvedParams.lang}". Using fallback: "Futura"`
+      fatLogger.warn(
+        `[i18n] Missing translation for "metadata.title" in locale "${resolvedParams.lang}". Using fallback: "Futura"`,
+        'fe'
       );
     }
     if (!dict?.metadata?.description) {
-      console.warn(
-        `[i18n] Missing translation for "metadata.description" in locale "${resolvedParams.lang}". Using fallback: "Live forever. Now."`
+      fatLogger.warn(
+        `[i18n] Missing translation for "metadata.description" in locale "${resolvedParams.lang}". Using fallback: "Live forever. Now."`,
+        'fe'
       );
     }
   }
 
   return {
-    title: dict?.metadata?.title || "Futura",
-    description: dict?.metadata?.description || "Live forever. Now.",
+    title: dict?.metadata?.title || 'Futura',
+    description: dict?.metadata?.description || 'Live forever. Now.',
     openGraph: {
-      title: dict?.metadata?.title || "Futura",
-      description: dict?.metadata?.description || "Live forever. Now.",
+      title: dict?.metadata?.title || 'Futura',
+      description: dict?.metadata?.description || 'Live forever. Now.',
       locale: resolvedParams.lang,
     },
   };
 }
 
 export function generateStaticParams() {
-  return locales.map((lang) => ({ lang }));
+  return locales.map(lang => ({ lang }));
 }
 
 export default async function RootLayout({
@@ -85,8 +93,12 @@ export default async function RootLayout({
 
   return (
     <html lang={lang} suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </head>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`} suppressHydrationWarning>
         <QueryProvider>
+          <ServiceWorkerClient />
           <SessionProvider basePath="/api/auth">
             <PostHogProvider>
               <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
@@ -97,7 +109,7 @@ export default async function RootLayout({
                       <BottomNav dict={dict} />
                       <div className="flex flex-1">
                         <Sidebar dict={dict} />
-                        <main className="flex-1">{children}</main>
+                        <main className="flex-1 pb-16 md:pb-0">{children}</main>
                       </div>
                     </div>
                     <Footer dict={dict} lang={lang} />
