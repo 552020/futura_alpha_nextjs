@@ -459,10 +459,10 @@ export const createMemoryWithAssets = async (params: {
 
         // Import storage edge creation function
         const { createMemoryStorageEdges } = await import('@/lib/usecases/memory/create-memory-storage-edges');
-        
+
         // Get the first asset (original) for storage edge creation
         const originalAsset = params.assets.find(asset => asset.assetType === 'original') || params.assets[0];
-        
+
         fatLogger.info('🔗 Creating storage edges with asset data', 'be', {
           operation: 'create_memory_with_assets',
           memoryId: createdMemory.id,
@@ -473,7 +473,7 @@ export const createMemoryWithAssets = async (params: {
             sha256: originalAsset.sha256,
           },
         });
-        
+
         const storageEdgeResult = await createMemoryStorageEdges({
           memoryId: createdMemory.id,
           memoryType: params.type,
