@@ -184,8 +184,12 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
             operation: 'add_asset_to_memory',
             memoryId,
             assetType: asset.assetType,
-            metadataEdge: storageEdgeResult.metadataEdge?.id,
-            assetEdge: storageEdgeResult.assetEdge?.id,
+            metadataEdge: Array.isArray(storageEdgeResult.metadataEdge)
+              ? storageEdgeResult.metadataEdge[0]?.id
+              : storageEdgeResult.metadataEdge?.id,
+            assetEdge: Array.isArray(storageEdgeResult.assetEdge)
+              ? storageEdgeResult.assetEdge[0]?.id
+              : storageEdgeResult.assetEdge?.id,
           });
         }
       }
@@ -300,6 +304,15 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
+    // Verify memory exists
+    const memory = await db.query.memories.findFirst({
+      where: eq(memories.id, memoryId),
+    });
+
+    if (!memory) {
+      return NextResponse.json({ error: 'Memory not found' }, { status: 404 });
+    }
+
     // Parse request body to get asset types to delete
     let assetTypes: string[] = [];
     try {
@@ -348,7 +361,11 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
         fatLogger.info('Successfully deleted storage edges for deleted assets', 'be', {
           operation: 'delete_assets_from_memory',
           memoryId,
-          deletedEdgesCount: storageEdgeResult.data?.length || 0,
+          deletedEdgesCount: Array.isArray(storageEdgeResult.data)
+            ? storageEdgeResult.data.length
+            : storageEdgeResult.data
+              ? 1
+              : 0,
         });
       }
     } catch (error) {

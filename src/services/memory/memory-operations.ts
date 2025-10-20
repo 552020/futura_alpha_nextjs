@@ -498,8 +498,12 @@ export const createMemoryWithAssets = async (params: {
           fatLogger.info('✅ Successfully created storage edges for memory', 'be', {
             operation: 'create_memory_with_assets',
             memoryId: createdMemory.id,
-            metadataEdge: storageEdgeResult.metadataEdge?.id,
-            assetEdge: storageEdgeResult.assetEdge?.id,
+            metadataEdge: Array.isArray(storageEdgeResult.metadataEdge)
+              ? storageEdgeResult.metadataEdge[0]?.id
+              : storageEdgeResult.metadataEdge?.id,
+            assetEdge: Array.isArray(storageEdgeResult.assetEdge)
+              ? storageEdgeResult.assetEdge[0]?.id
+              : storageEdgeResult.assetEdge?.id,
             originalAsset: {
               type: originalAsset.assetType,
               url: originalAsset.url,

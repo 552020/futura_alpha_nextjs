@@ -16,7 +16,7 @@
 import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
 import { config } from 'dotenv';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { storageEdges, memories, allUsers } from '../../../src/db/index';
 
 // Load environment variables

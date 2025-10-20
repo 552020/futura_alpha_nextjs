@@ -371,7 +371,7 @@ async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserI
       memoryType: memoryType,
       url: fileUrl,
       size: size,
-      contentHash: null, // Legacy format doesn't provide content hash
+      contentHash: undefined, // Legacy format doesn't provide content hash
     });
 
     if (!storageEdgeResult.success) {
@@ -379,8 +379,12 @@ async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserI
       // Don't fail the entire operation if storage edges fail
     } else {
       console.log('✅ [DEBUG] Storage edges created successfully:', {
-        metadataEdge: storageEdgeResult.metadataEdge?.id,
-        assetEdge: storageEdgeResult.assetEdge?.id,
+        metadataEdge: Array.isArray(storageEdgeResult.metadataEdge)
+          ? storageEdgeResult.metadataEdge[0]?.id
+          : storageEdgeResult.metadataEdge?.id,
+        assetEdge: Array.isArray(storageEdgeResult.assetEdge)
+          ? storageEdgeResult.assetEdge[0]?.id
+          : storageEdgeResult.assetEdge?.id,
       });
     }
   } catch (error) {
