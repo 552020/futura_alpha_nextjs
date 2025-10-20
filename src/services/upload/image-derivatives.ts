@@ -331,22 +331,47 @@ async function handleProcessedAssets(response: ProcessResponse, grant: GrantResp
  * Upload asset blob to S3 using presigned URL
  */
 async function uploadAssetToS3(blob: Blob, uploadUrl: string): Promise<void> {
-  fatLogger.info(`S3 PUT request: ${blob.size} bytes, ${blob.type}`, 'be');
-
-  const response = await fetch(uploadUrl, {
-    method: 'PUT',
-    body: blob,
-    headers: {
-      'Content-Type': blob.type,
-    },
+  fatLogger.info(`S3 PUT request: ${blob.size} bytes, ${blob.type}`, 'be', {
+    url: uploadUrl,
+    blobSize: blob.size,
+    blobType: blob.type,
   });
 
-  if (!response.ok) {
-    fatLogger.error(`S3 upload failed: ${response.status} ${response.statusText}`, 'be');
-    throw new Error(`S3 upload failed: ${response.status} ${response.statusText}`);
-  }
+  try {
+    const response = await fetch(uploadUrl, {
+      method: 'PUT',
+      body: blob,
+      headers: {
+        'Content-Type': blob.type,
+      },
+    });
 
-  fatLogger.info(`S3 upload successful: ${response.status} ${response.statusText}`, 'be');
+    if (!response.ok) {
+      const errorText = await response.text();
+      fatLogger.error(`S3 upload failed: ${response.status} ${response.statusText}`, 'be', {
+        status: response.status,
+        statusText: response.statusText,
+        errorBody: errorText,
+        url: uploadUrl,
+        blobSize: blob.size,
+      });
+      throw new Error(`S3 upload failed: ${response.status} ${response.statusText} - ${errorText}`);
+    }
+
+    fatLogger.info(`S3 upload successful: ${response.status} ${response.statusText}`, 'be', {
+      status: response.status,
+      url: uploadUrl,
+      blobSize: blob.size,
+    });
+  } catch (error) {
+    fatLogger.error(`S3 upload fetch failed: ${error instanceof Error ? error.message : 'Unknown error'}`, 'be', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      url: uploadUrl,
+      blobSize: blob.size,
+      blobType: blob.type,
+    });
+    throw error;
+  }
 }
 
 /**

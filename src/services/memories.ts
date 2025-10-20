@@ -32,10 +32,6 @@ function formatBytes(bytes: number | bigint | [] | [bigint]): string {
  * Debug function to check asset sizes for all memories in a page
  */
 async function debugMemoriesPage(memoriesPage: { items: MemoryHeader[] }): Promise<void> {
-  console.log('🔍 [DEBUG] Entering debugMemoriesPage');
-  console.log('🔍 [DEBUG] Full memoriesPage object:', memoriesPage);
-  console.log('🔍 [DEBUG] Memories page contains', memoriesPage.items.length, 'memories');
-
   const assetSummary: Array<{
     memoryId: string;
     display: { bytes: number; size: string } | null;
@@ -43,13 +39,7 @@ async function debugMemoriesPage(memoriesPage: { items: MemoryHeader[] }): Promi
     placeholder: { bytes: number; size: string } | null;
   }> = [];
 
-  memoriesPage.items.forEach((header: MemoryHeader, index: number) => {
-    console.log(`🔍 [DEBUG] Memory ${index + 1}/${memoriesPage.items.length}:`, header.id);
-    console.log('🔍 [DEBUG] Raw header.assets:', header.assets);
-    console.log('🔍 [DEBUG] Thumbnail assets count:', header.assets.thumbnail.length);
-    console.log('🔍 [DEBUG] Display assets count:', header.assets.display.length);
-    console.log('🔍 [DEBUG] Original assets count:', header.assets.original.length);
-
+  memoriesPage.items.forEach((header: MemoryHeader, _index: number) => {
     const memoryAssets = {
       memoryId: header.id,
       display: null as { bytes: number; size: string } | null,
@@ -59,18 +49,7 @@ async function debugMemoriesPage(memoriesPage: { items: MemoryHeader[] }): Promi
 
     // Debug original asset
     if (header.assets.original.length > 0 && header.assets.original[0]) {
-      const originalAsset = header.assets.original[0];
-      console.log('🔍 [DEBUG] Original asset details:', {
-        path: originalAsset.path,
-        asset_id: originalAsset.asset_id,
-        asset_kind: originalAsset.asset_kind,
-        content_type: originalAsset.content_type,
-        width: originalAsset.width,
-        height: originalAsset.height,
-        bytes: `${formatBytes(originalAsset.bytes)} (${Array.isArray(originalAsset.bytes) ? originalAsset.bytes[0] || 0 : originalAsset.bytes} bytes)`,
-        expires_at_ns: originalAsset.expires_at_ns,
-        token: originalAsset.token.substring(0, 50) + '...',
-      });
+      // const _originalAsset = header.assets.original[0];
     }
 
     // Debug thumbnail asset
@@ -81,7 +60,7 @@ async function debugMemoriesPage(memoriesPage: { items: MemoryHeader[] }): Promi
         : Number(thumbnailAsset.bytes);
       const thumbnailSize = formatBytes(thumbnailAsset.bytes);
 
-      console.log('🔍 [DEBUG] Thumbnail asset details:', {
+      fatLogger.info('🔍 [DEBUG] Thumbnail asset details', 'be', {
         path: thumbnailAsset.path,
         asset_id: thumbnailAsset.asset_id,
         asset_kind: thumbnailAsset.asset_kind,
@@ -104,7 +83,7 @@ async function debugMemoriesPage(memoriesPage: { items: MemoryHeader[] }): Promi
         : Number(displayAsset.bytes);
       const displaySize = formatBytes(displayAsset.bytes);
 
-      console.log('🔍 [DEBUG] Display asset details:', {
+      fatLogger.info('🔍 [DEBUG] Display asset details', 'be', {
         path: displayAsset.path,
         asset_id: displayAsset.asset_id,
         asset_kind: displayAsset.asset_kind,
@@ -119,9 +98,11 @@ async function debugMemoriesPage(memoriesPage: { items: MemoryHeader[] }): Promi
       // Validate display asset size
       if (displayBytes < 50000) {
         // Less than 50KB
-        console.log(
-          `⚠️ [WARNING] Display asset is suspiciously small: ${displaySize} (${displayBytes} bytes) - should be > 50KB`
-        );
+        fatLogger.warn('Display asset is suspiciously small', 'be', {
+          displaySize,
+          displayBytes,
+          memoryId: header.id,
+        });
       }
 
       memoryAssets.display = { bytes: displayBytes, size: displaySize };
@@ -130,23 +111,32 @@ async function debugMemoriesPage(memoriesPage: { items: MemoryHeader[] }): Promi
     // Debug placeholder data
     if (header.placeholder_data.length > 0) {
       const placeholderData = header.placeholder_data[0];
-      console.log('🔍 [DEBUG] Placeholder data found for memory:', header.id);
-      console.log('🔍 [DEBUG] Placeholder data length:', placeholderData!.length, 'characters');
+      fatLogger.info('🔍 [DEBUG] Placeholder data found for memory', 'be', { memoryId: header.id });
+      fatLogger.info('🔍 [DEBUG] Placeholder data length', 'be', {
+        length: placeholderData!.length,
+        unit: 'characters',
+      });
 
       try {
         const placeholderBytes = atob(placeholderData!);
         const placeholderSize = formatBytes(placeholderBytes.length);
-        console.log('🔍 [ASSET SIZE CHECK] PLACEHOLDER for memory', header.id, ':');
-        console.log('🔍 [ASSET SIZE CHECK] Base64 length:', placeholderData!.length, 'characters');
-        console.log('🔍 [ASSET SIZE CHECK] Decoded size:', `${placeholderSize} (${placeholderBytes.length} bytes)`);
-        console.log('🔍 [ASSET SIZE CHECK] Data URL:', placeholderData!.substring(0, 50) + '...');
+        fatLogger.info('🔍 [ASSET SIZE CHECK] PLACEHOLDER for memory', 'be', { memoryId: header.id });
+        fatLogger.info('🔍 [ASSET SIZE CHECK] Base64 length', 'be', {
+          length: placeholderData!.length,
+          unit: 'characters',
+        });
+        fatLogger.info('🔍 [ASSET SIZE CHECK] Decoded size', 'be', {
+          size: placeholderSize,
+          bytes: placeholderBytes.length,
+        });
+        fatLogger.info('🔍 [ASSET SIZE CHECK] Data URL', 'be', { preview: placeholderData!.substring(0, 50) + '...' });
 
         memoryAssets.placeholder = { bytes: placeholderBytes.length, size: placeholderSize };
       } catch (error) {
-        console.log('❌ [ASSET SIZE CHECK] Failed to decode placeholder data:', error);
+        fatLogger.error('❌ [ASSET SIZE CHECK] Failed to decode placeholder data', 'be', { error });
       }
     } else {
-      console.log('🔍 [DEBUG] No placeholder data found for memory:', header.id);
+      fatLogger.info('🔍 [DEBUG] No placeholder data found for memory', 'be', { memoryId: header.id });
     }
 
     // Check actual asset sizes by fetching URLs
@@ -157,74 +147,85 @@ async function debugMemoriesPage(memoriesPage: { items: MemoryHeader[] }): Promi
   });
 
   // Print asset size summary before exiting
-  console.log('🔍 [DEBUG] === ASSET SIZE SUMMARY ===');
+  fatLogger.info('🔍 [DEBUG] === ASSET SIZE SUMMARY ===', 'be');
   assetSummary.forEach((assets, index) => {
-    console.log(`🔍 [SUMMARY] Memory ${index + 1} (${assets.memoryId}):`);
+    fatLogger.info(`🔍 [SUMMARY] Memory ${index + 1}`, 'be', { memoryId: assets.memoryId });
     if (assets.display) {
-      console.log(`🔍 [SUMMARY]   Display: ${assets.display.size} (${assets.display.bytes} bytes)`);
+      fatLogger.info('🔍 [SUMMARY] Display', 'be', { size: assets.display.size, bytes: assets.display.bytes });
     } else {
-      console.log(`🔍 [SUMMARY]   Display: MISSING`);
+      fatLogger.info('🔍 [SUMMARY] Display: MISSING', 'be');
     }
     if (assets.thumbnail) {
-      console.log(`🔍 [SUMMARY]   Thumbnail: ${assets.thumbnail.size} (${assets.thumbnail.bytes} bytes)`);
+      fatLogger.info('🔍 [SUMMARY] Thumbnail', 'be', { size: assets.thumbnail.size, bytes: assets.thumbnail.bytes });
     } else {
-      console.log(`🔍 [SUMMARY]   Thumbnail: MISSING`);
+      fatLogger.info('🔍 [SUMMARY] Thumbnail: MISSING', 'be');
     }
     if (assets.placeholder) {
-      console.log(`🔍 [SUMMARY]   Placeholder: ${assets.placeholder.size} (${assets.placeholder.bytes} bytes)`);
+      fatLogger.info('🔍 [SUMMARY] Placeholder', 'be', {
+        size: assets.placeholder.size,
+        bytes: assets.placeholder.bytes,
+      });
     } else {
-      console.log(`🔍 [SUMMARY]   Placeholder: MISSING`);
+      fatLogger.info('🔍 [SUMMARY] Placeholder: MISSING', 'be');
     }
   });
-  console.log('🔍 [DEBUG] === END ASSET SIZE SUMMARY ===');
+  fatLogger.info('🔍 [DEBUG] === END ASSET SIZE SUMMARY ===', 'be');
 
   // Fetch and compare actual vs expected sizes
-  console.log('🔍 [DEBUG] === FETCHING ACTUAL ASSET SIZES ===');
+  fatLogger.info('🔍 [DEBUG] === FETCHING ACTUAL ASSET SIZES ===', 'be');
   for (const assets of assetSummary) {
     const memory = memoriesPage.items.find(h => h.id === assets.memoryId);
     if (!memory) continue;
 
-    console.log(`🔍 [FETCH] Memory ${assets.memoryId}:`);
+    fatLogger.info('🔍 [FETCH] Memory', 'be', { memoryId: assets.memoryId });
 
     // Fetch display asset
     if (memory.assets.display.length > 0 && memory.assets.display[0]) {
       const displayUrl = `${getHttpBaseUrl()}${memory.assets.display[0].path}?token=${memory.assets.display[0].token}`;
-      console.log(`🔍 [FETCH] Display URL: ${displayUrl}`);
+      fatLogger.info('🔍 [FETCH] Display URL', 'be', { url: displayUrl });
       try {
         const response = await fetch(displayUrl);
         const blob = await response.blob();
         const actualSize = formatBytes(blob.size);
         const expectedSize = assets.display?.size || 'UNKNOWN';
-        console.log(`🔍 [FETCH] Display: Expected ${expectedSize} vs Actual ${actualSize} (${blob.size} bytes)`);
+        fatLogger.info('🔍 [FETCH] Display comparison', 'be', {
+          expected: expectedSize,
+          actual: actualSize,
+          bytes: blob.size,
+        });
         if (blob.size <= 2000) {
-          console.log(`🚨 [FETCH] Display appears to be placeholder-sized!`);
+          fatLogger.warn('🚨 [FETCH] Display appears to be placeholder-sized!', 'be');
         }
       } catch (error) {
-        console.log(`❌ [FETCH] Failed to fetch display:`, error);
+        fatLogger.error('❌ [FETCH] Failed to fetch display', 'be', { error });
       }
     }
 
     // Fetch thumbnail asset
     if (memory.assets.thumbnail.length > 0 && memory.assets.thumbnail[0]) {
       const thumbnailUrl = `${getHttpBaseUrl()}${memory.assets.thumbnail[0].path}?token=${memory.assets.thumbnail[0].token}`;
-      console.log(`🔍 [FETCH] Thumbnail URL: ${thumbnailUrl}`);
+      fatLogger.info('🔍 [FETCH] Thumbnail URL', 'be', { url: thumbnailUrl });
       try {
         const response = await fetch(thumbnailUrl);
         const blob = await response.blob();
         const actualSize = formatBytes(blob.size);
         const expectedSize = assets.thumbnail?.size || 'UNKNOWN';
-        console.log(`🔍 [FETCH] Thumbnail: Expected ${expectedSize} vs Actual ${actualSize} (${blob.size} bytes)`);
+        fatLogger.info('🔍 [FETCH] Thumbnail comparison', 'be', {
+          expected: expectedSize,
+          actual: actualSize,
+          bytes: blob.size,
+        });
         if (blob.size <= 2000) {
-          console.log(`🚨 [FETCH] Thumbnail appears to be placeholder-sized!`);
+          fatLogger.warn('🚨 [FETCH] Thumbnail appears to be placeholder-sized!', 'be');
         }
       } catch (error) {
-        console.log(`❌ [FETCH] Failed to fetch thumbnail:`, error);
+        fatLogger.error('❌ [FETCH] Failed to fetch thumbnail', 'be', { error });
       }
     }
   }
-  console.log('🔍 [DEBUG] === END FETCHING ACTUAL ASSET SIZES ===');
+  fatLogger.info('🔍 [DEBUG] === END FETCHING ACTUAL ASSET SIZES ===', 'be');
 
-  console.log('🔍 [DEBUG] Exiting debugMemoriesPage');
+  fatLogger.info('🔍 [DEBUG] Exiting debugMemoriesPage', 'be');
 }
 
 /**
@@ -234,27 +235,27 @@ function checkAllAssetSizes(header: MemoryHeader): void {
   // Check thumbnail
   if (header.assets.thumbnail.length > 0 && header.assets.thumbnail[0]) {
     const thumbnailUrl = `${getHttpBaseUrl()}${header.assets.thumbnail[0].path}?token=${header.assets.thumbnail[0].token}`;
-    console.log('🔍 [Transform] Generated thumbnail URL for memory:', header.id);
-    console.log('🔍 [Transform] Full URL:', thumbnailUrl);
-    console.log('🔍 [Transform] 🧪 TEST THIS URL IN BROWSER:', thumbnailUrl);
+    fatLogger.info('🔍 [Transform] Generated thumbnail URL for memory', 'be', { memoryId: header.id });
+    fatLogger.info('🔍 [Transform] Full URL', 'be', { url: thumbnailUrl });
+    fatLogger.info('🔍 [Transform] 🧪 TEST THIS URL IN BROWSER', 'be', { url: thumbnailUrl });
     checkAssetSize(thumbnailUrl, 'THUMBNAIL', header.id);
   }
 
   // Check display
   if (header.assets.display.length > 0 && header.assets.display[0]) {
     const displayUrl = `${getHttpBaseUrl()}${header.assets.display[0].path}?token=${header.assets.display[0].token}`;
-    console.log('🔍 [Transform] Generated display URL for memory:', header.id);
-    console.log('🔍 [Transform] Full URL:', displayUrl);
-    console.log('🔍 [Transform] 🧪 TEST THIS URL IN BROWSER:', displayUrl);
+    fatLogger.info('🔍 [Transform] Generated display URL for memory', 'be', { memoryId: header.id });
+    fatLogger.info('🔍 [Transform] Full URL', 'be', { url: displayUrl });
+    fatLogger.info('🔍 [Transform] 🧪 TEST THIS URL IN BROWSER', 'be', { url: displayUrl });
     checkAssetSize(displayUrl, 'DISPLAY', header.id);
   }
 
   // Check original
   if (header.assets.original.length > 0 && header.assets.original[0]) {
     const originalUrl = `${getHttpBaseUrl()}${header.assets.original[0].path}?token=${header.assets.original[0].token}`;
-    console.log('🔍 [Transform] Generated original URL for memory:', header.id);
-    console.log('🔍 [Transform] Full URL:', originalUrl);
-    console.log('🔍 [Transform] 🧪 TEST THIS URL IN BROWSER:', originalUrl);
+    fatLogger.info('🔍 [Transform] Generated original URL for memory', 'be', { memoryId: header.id });
+    fatLogger.info('🔍 [Transform] Full URL', 'be', { url: originalUrl });
+    fatLogger.info('🔍 [Transform] 🧪 TEST THIS URL IN BROWSER', 'be', { url: originalUrl });
     checkAssetSize(originalUrl, 'ORIGINAL', header.id);
   }
 }
@@ -270,22 +271,28 @@ async function checkAssetSize(url: string, assetType: string, memoryId: string):
     // Create image element to get dimensions
     const img = document.createElement('img');
     img.onload = () => {
-      console.log(`🔍 [ASSET SIZE CHECK] ${assetType} for memory ${memoryId}:`);
-      console.log(`🔍 [ASSET SIZE CHECK] URL: ${url}`);
-      console.log(`🔍 [ASSET SIZE CHECK] Actual dimensions: ${img.naturalWidth}x${img.naturalHeight}`);
-      console.log(`🔍 [ASSET SIZE CHECK] Actual file size: ${formatBytes(blob.size)} (${blob.size} bytes)`);
-      console.log(`🔍 [ASSET SIZE CHECK] Content type: ${blob.type}`);
+      fatLogger.info(`🔍 [ASSET SIZE CHECK] ${assetType} for memory`, 'be', { memoryId });
+      fatLogger.info('🔍 [ASSET SIZE CHECK] URL', 'be', { url });
+      fatLogger.info('🔍 [ASSET SIZE CHECK] Actual dimensions', 'be', {
+        width: img.naturalWidth,
+        height: img.naturalHeight,
+      });
+      fatLogger.info('🔍 [ASSET SIZE CHECK] Actual file size', 'be', {
+        size: formatBytes(blob.size),
+        bytes: blob.size,
+      });
+      fatLogger.info('🔍 [ASSET SIZE CHECK] Content type', 'be', { contentType: blob.type });
 
       // Check if this looks like a placeholder
       if (img.naturalWidth <= 32 && img.naturalHeight <= 32 && blob.size <= 2000) {
-        console.log(`🚨 [ASSET SIZE CHECK] PLACEHOLDER DETECTED for ${assetType}!`);
+        fatLogger.warn(`🚨 [ASSET SIZE CHECK] PLACEHOLDER DETECTED for ${assetType}!`, 'be');
       } else {
-        console.log(`✅ [ASSET SIZE CHECK] ${assetType} looks correct`);
+        fatLogger.info(`✅ [ASSET SIZE CHECK] ${assetType} looks correct`, 'be');
       }
     };
     img.src = URL.createObjectURL(blob);
   } catch (error) {
-    console.log(`❌ [ASSET SIZE CHECK] Failed to check ${assetType} for memory ${memoryId}:`, error);
+    fatLogger.error(`❌ [ASSET SIZE CHECK] Failed to check ${assetType} for memory`, 'be', { memoryId, error });
   }
 }
 
@@ -482,11 +489,19 @@ const fetchMemoriesFromICP = async (page: number): Promise<FetchMemoriesResult> 
       };
     }
   } catch (error) {
-    fatLogger.error('Failed to fetch memories from ICP:', 'be', {
+    fatLogger.warn('ICP connection failed:', 'be', {
       error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
     });
-    throw error;
+
+    // Show user-friendly toast message
+    // Note: Toast will be handled by the calling component
+    fatLogger.warn('ICP connection failed', 'be', { error });
+
+    // Return empty results when ICP is unavailable
+    return {
+      memories: [],
+      hasMore: false,
+    };
   }
 };
 
@@ -551,24 +566,30 @@ const transformICPMemoryHeaderToNeon = (header: MemoryHeader): MemoryWithFolder 
     placeholder: (() => {
       const placeholderData = header.placeholder_data.length > 0 ? header.placeholder_data[0] : undefined;
       if (placeholderData) {
-        console.log('🔍 [DEBUG] Placeholder data found for memory:', header.id);
-        console.log('🔍 [DEBUG] Placeholder data length:', placeholderData.length, 'characters');
+        fatLogger.info('🔍 [DEBUG] Placeholder data found for memory', 'be', { memoryId: header.id });
+        fatLogger.info('🔍 [DEBUG] Placeholder data length', 'be', {
+          length: placeholderData.length,
+          unit: 'characters',
+        });
 
         // Check placeholder size (it's base64 encoded)
         try {
           const placeholderBytes = atob(placeholderData);
-          console.log('🔍 [ASSET SIZE CHECK] PLACEHOLDER for memory', header.id, ':');
-          console.log('🔍 [ASSET SIZE CHECK] Base64 length:', placeholderData.length, 'characters');
-          console.log(
-            '🔍 [ASSET SIZE CHECK] Decoded size:',
-            `${formatBytes(placeholderBytes.length)} (${placeholderBytes.length} bytes)`
-          );
-          console.log('🔍 [ASSET SIZE CHECK] Data URL:', placeholderData.substring(0, 50) + '...');
+          fatLogger.info('🔍 [ASSET SIZE CHECK] PLACEHOLDER for memory', 'be', { memoryId: header.id });
+          fatLogger.info('🔍 [ASSET SIZE CHECK] Base64 length', 'be', {
+            length: placeholderData.length,
+            unit: 'characters',
+          });
+          fatLogger.info('🔍 [ASSET SIZE CHECK] Decoded size', 'be', {
+            size: formatBytes(placeholderBytes.length),
+            bytes: placeholderBytes.length,
+          });
+          fatLogger.info('🔍 [ASSET SIZE CHECK] Data URL', 'be', { preview: placeholderData.substring(0, 50) + '...' });
         } catch (error) {
-          console.log('❌ [ASSET SIZE CHECK] Failed to decode placeholder data:', error);
+          fatLogger.error('❌ [ASSET SIZE CHECK] Failed to decode placeholder data', 'be', { error });
         }
       } else {
-        console.log('🔍 [DEBUG] No placeholder data found for memory:', header.id);
+        fatLogger.info('🔍 [DEBUG] No placeholder data found for memory', 'be', { memoryId: header.id });
       }
       return placeholderData;
     })(),
@@ -580,14 +601,13 @@ const transformICPMemoryHeaderToNeon = (header: MemoryHeader): MemoryWithFolder 
           ? `${getHttpBaseUrl()}${header.assets.original[0].path}?token=${header.assets.original[0].token}`
           : undefined;
       if (originalUrl && header.assets.original[0]) {
-        console.log('🔍 [Transform] Generated original URL for memory:', header.id);
-        console.log('🔍 [Transform] Token:', header.assets.original[0].token);
-        console.log(
-          '🔍 [Transform] Expires at:',
-          new Date(Number(header.assets.original[0].expires_at_ns / BigInt(1000000)))
-        );
-        console.log('🔍 [Transform] Full URL:', originalUrl);
-        console.log('🔍 [Transform] 🧪 TEST THIS URL IN BROWSER:', originalUrl);
+        fatLogger.info('🔍 [Transform] Generated original URL for memory', 'be', { memoryId: header.id });
+        fatLogger.info('🔍 [Transform] Token', 'be', { token: header.assets.original[0].token });
+        fatLogger.info('🔍 [Transform] Expires at', 'be', {
+          expiresAt: new Date(Number(header.assets.original[0].expires_at_ns / BigInt(1000000))),
+        });
+        fatLogger.info('🔍 [Transform] Full URL', 'be', { url: originalUrl });
+        fatLogger.info('🔍 [Transform] 🧪 TEST THIS URL IN BROWSER', 'be', { url: originalUrl });
 
         // Check actual asset size
         checkAssetSize(originalUrl, 'ORIGINAL', header.id);
@@ -722,50 +742,50 @@ const deleteAllMemoriesFromICP = async (_options?: {
 
       if (capsuleInfo) {
         capsuleId = capsuleInfo.capsule_id;
-        console.log('🔍 [Delete All Dev] Found existing capsule:', capsuleId);
+        fatLogger.info('🔍 [Delete All Dev] Found existing capsule', 'be', { capsuleId });
       } else {
         // No capsule found, create one
-        console.log('🔍 [Delete All Dev] No capsule found, creating one...');
+        fatLogger.info('🔍 [Delete All Dev] No capsule found, creating one...', 'be');
         const createResult = await backend.capsules_create([]);
         if ('Ok' in createResult) {
           capsuleId = createResult.Ok.id;
-          console.log('🔍 [Delete All Dev] Created new capsule:', capsuleId);
+          fatLogger.info('🔍 [Delete All Dev] Created new capsule', 'be', { capsuleId });
         } else {
           throw new Error(`Failed to create capsule: ${JSON.stringify(createResult.Err)}`);
         }
       }
     } catch (error) {
-      console.error('🔍 [Delete All Dev] Error getting/creating capsule:', error);
+      fatLogger.error('🔍 [Delete All Dev] Error getting/creating capsule', 'be', { error });
       throw new Error(
         `Failed to get or create user capsule: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     }
 
     // Use the new dev method for efficient deletion
-    console.log('🔍 [Delete All Dev] Calling dev_clear_all_memories_in_capsule for capsule:', capsuleId);
+    fatLogger.info('🔍 [Delete All Dev] Calling dev_clear_all_memories_in_capsule for capsule', 'be', { capsuleId });
     try {
       const deleteAllResult = await backend.dev_clear_all_memories_in_capsule(capsuleId, true); // true = delete assets
 
       if ('Ok' in deleteAllResult) {
         const result = deleteAllResult.Ok;
-        console.log('🔍 [Delete All Dev] Success:', result);
+        fatLogger.info('🔍 [Delete All Dev] Success', 'be', { result });
         return {
           success: true,
           message: result.message,
           deletedCount: result.deleted_count,
         };
       } else {
-        console.error('🔍 [Delete All Dev] Failed:', deleteAllResult.Err);
+        fatLogger.error('🔍 [Delete All Dev] Failed', 'be', { error: deleteAllResult.Err });
         throw new Error(`Failed to delete all memories: ${JSON.stringify(deleteAllResult.Err)}`);
       }
     } catch (error) {
-      console.error('🔍 [Delete All Dev] Error calling dev_clear_all_memories_in_capsule:', error);
+      fatLogger.error('🔍 [Delete All Dev] Error calling dev_clear_all_memories_in_capsule', 'be', { error });
       throw new Error(
         `Failed to call dev_clear_all_memories_in_capsule: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     }
   } catch (error) {
-    console.error('Failed to delete memories from ICP:', error);
+    fatLogger.error('Failed to delete memories from ICP', 'be', { error });
     throw new Error(`Failed to delete ICP memories: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 };

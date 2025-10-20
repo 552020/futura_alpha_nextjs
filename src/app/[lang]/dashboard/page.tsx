@@ -98,6 +98,7 @@ export default function VaultPage() {
     isFetchingNextPage,
     hasNextPage,
     fetchNextPage,
+    error: queryError,
   } = useInfiniteQuery({
     queryKey: qk.memories.dashboard(userId, params.lang as string, dataSource),
     queryFn: ({ pageParam = 1 }) => {
@@ -109,10 +110,16 @@ export default function VaultPage() {
     placeholderData: keepPreviousData,
   });
 
-  // Log when React Query data changes
+  // Handle ICP connection errors
   useEffect(() => {
-    // Query enabled logic is handled in the useInfiniteQuery enabled option
-  }, [data, isLoadingMemories, dataSource, isAuthorized, isLoading, userId]);
+    if (queryError && dataSource === 'icp') {
+      toast({
+        title: 'ICP Unavailable',
+        description: 'Internet Computer network is currently unavailable',
+        variant: 'default',
+      });
+    }
+  }, [queryError, dataSource, toast]);
 
   // Process items from React Query or mock data
   const items = useMemo(() => {

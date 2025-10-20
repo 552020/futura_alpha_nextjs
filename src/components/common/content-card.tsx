@@ -30,6 +30,7 @@ import { Memory } from '@/types/memory';
 import { DashboardItem } from '@/services/memories';
 import { Badge } from '@/components/ui/badge';
 import { GalleryWithItems } from '@/types/gallery';
+import { fatLogger } from '@/lib/logger/fat-logger';
 
 interface BaseItem {
   id: string;
@@ -140,7 +141,7 @@ function renderPreview(item: FlexibleItem) {
     if (memory.type === 'image' && (memory.url || memory.thumbnail || derivedThumb)) {
       // Prefer display URL (memory.url) over thumbnail for better quality in grid view
       const imageSrc = memory.url || memory.thumbnail || derivedThumb || '';
-      console.log('🔍 [ContentCard] Image src for memory:', memory.id, 'URL:', imageSrc);
+      fatLogger.info('Image src for memory:', 'be', { memoryId: memory.id, url: imageSrc });
 
       return (
         <Image
@@ -152,7 +153,7 @@ function renderPreview(item: FlexibleItem) {
           placeholder="blur"
           blurDataURL={blurDataURL}
           onLoad={async () => {
-            console.log('🔍 [ContentCard] Image loaded successfully for memory:', memory.id, 'URL:', imageSrc);
+            fatLogger.info('Image loaded successfully for memory:', 'be', { memoryId: memory.id, url: imageSrc });
 
             // Check actual image dimensions and file size
             try {
@@ -161,30 +162,30 @@ function renderPreview(item: FlexibleItem) {
 
               const img = document.createElement('img');
               img.onload = () => {
-                console.log('🔍 [Image Check] Memory:', memory.id);
-                console.log('🔍 [Image Check] URL:', imageSrc);
-                console.log('🔍 [Image Check] Dimensions:', img.naturalWidth, 'x', img.naturalHeight);
-                console.log('🔍 [Image Check] File size:', blob.size, 'bytes');
-                console.log('🔍 [Image Check] Expected: Display ~2048px, Thumbnail ~512px, Placeholder 32px');
+                fatLogger.info('Memory:', 'be', { memoryId: memory.id });
+                fatLogger.info('URL:', 'be', { url: imageSrc });
+                fatLogger.info('Dimensions:', 'be', { width: img.naturalWidth, height: img.naturalHeight });
+                fatLogger.info('File size:', 'be', { size: blob.size });
+                fatLogger.info('Expected: Display ~2048px, Thumbnail ~512px, Placeholder 32px', 'be');
 
                 // Determine what type of image this is based on dimensions
                 if (img.naturalWidth <= 50 && img.naturalHeight <= 50) {
-                  console.log('🔍 [Image Check] ⚠️  PLACEHOLDER IMAGE DETECTED!');
+                  fatLogger.warn('PLACEHOLDER IMAGE DETECTED!', 'be');
                 } else if (img.naturalWidth >= 1000 || img.naturalHeight >= 1000) {
-                  console.log('🔍 [Image Check] ✅ Display image detected');
+                  fatLogger.info('Display image detected', 'be');
                 } else if (img.naturalWidth >= 400 || img.naturalHeight >= 400) {
-                  console.log('🔍 [Image Check] ✅ Thumbnail image detected');
+                  fatLogger.info('Thumbnail image detected', 'be');
                 } else {
-                  console.log('🔍 [Image Check] ❓ Unknown image type');
+                  fatLogger.info('Unknown image type', 'be');
                 }
               };
               img.src = URL.createObjectURL(blob);
             } catch (error) {
-              console.log('🔍 [Image Check] Failed to check image dimensions:', error);
+              fatLogger.error('Failed to check image dimensions:', 'be', { error });
             }
           }}
           onError={() => {
-            console.log('🔍 [ContentCard] Image error for memory:', memory.id, 'URL:', imageSrc);
+            fatLogger.error('Image error for memory:', 'be', { memoryId: memory.id, url: imageSrc });
           }}
         />
       );
@@ -457,12 +458,10 @@ export function ContentCard({
                     fill={true}
                     className="object-cover"
                     onError={() => {
-                      console.log(
-                        '🔍 [ContentCard] Image error for memory:',
-                        photoItem.memory.id,
-                        'URL:',
-                        photoItem.memory.url
-                      );
+                      fatLogger.error('Image error for memory:', 'be', {
+                        memoryId: photoItem.memory.id,
+                        url: photoItem.memory.url,
+                      });
                       onImageError?.(photoItem.memory.url!);
                     }}
                     sizes={IMAGE_SIZES.gallery}
