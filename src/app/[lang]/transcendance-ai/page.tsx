@@ -1,7 +1,6 @@
 'use client';
 
-import { useChat } from '@ai-sdk/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthGuard } from '@/utils/authentication';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,10 +9,96 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Bot, User, Send, Loader2 } from 'lucide-react';
 import RequireAuth from '@/components/auth/require-auth';
 
+const WELCOME_MESSAGE = "Hello! I'm here to help you preserve your life story for your loved ones. Think of me as your personal biographer - I'd love to learn about your experiences, memories, and the wisdom you'd like to share with future generations.\n\nWhere would you like to begin? We could talk about your childhood, your family, important moments in your life, or anything else that feels meaningful to you.";
+
 export default function TranscendanceAIPage() {
   const { isAuthorized, isLoading } = useAuthGuard();
-  const { messages, sendMessage, status } = useChat();
+  const [messages, setMessages] = useState<Array<{ id: string; role: 'user' | 'assistant'; content: string }>>([]);
   const [input, setInput] = useState('');
+  const [hasInitialized, setHasInitialized] = useState(false);
+  const [status, setStatus] = useState<'ready' | 'loading'>('ready');
+
+  // Add welcome message on mount
+  useEffect(() => {
+    if (isAuthorized && !hasInitialized && messages.length === 0) {
+      setMessages([
+        {
+          id: 'welcome-' + Date.now(),
+          role: 'assistant',
+          content: WELCOME_MESSAGE,
+        },
+      ]);
+      setHasInitialized(true);
+    }
+  }, [isAuthorized, hasInitialized, messages.length]);
+
+  const quickResponses = [
+    "Let me tell you about my childhood",
+    "I'd like to share about my family",
+    "I want to talk about my career",
+    "Here are some life lessons I've learned",
+    "Let me share a memorable moment",
+  ];
+
+  const handleQuickResponse = async (response: string) => {
+    await sendUserMessage(response);
+  };
+
+  const sendUserMessage = async (content: string) => {
+    const userMessage = {
+      id: Date.now().toString(),
+      role: 'user' as const,
+      content,
+    };
+    
+    setMessages(prev => [...prev, userMessage]);
+    setStatus('loading');
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: [...messages, userMessage] }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error:', errorText);
+        throw new Error('Failed to get response');
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let assistantMessage = '';
+      const assistantId = (Date.now() + 1).toString();
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n');
+          
+          for (const line of lines) {
+            if (line.startsWith('0:')) {
+              const data = line.slice(2);
+              assistantMessage += data;
+              
+              setMessages(prev => {
+                const withoutLast = prev.filter(m => m.id !== assistantId);
+                return [...withoutLast, { id: assistantId, role: 'assistant', content: assistantMessage }];
+              });
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+    } finally {
+      setStatus('ready');
+    }
+  };
 
   if (!isAuthorized || isLoading) {
     // Show loading spinner only while status is loading
@@ -38,7 +123,7 @@ export default function TranscendanceAIPage() {
             Transcendance AI
           </h1>
           <p className="text-muted-foreground mt-2">
-            Your AI companion for meaningful conversations and insights
+            Your personal biographer - preserving your life story for future generations
           </p>
         </div>
       </div>
@@ -47,20 +132,12 @@ export default function TranscendanceAIPage() {
           <CardContent className="flex-1 flex flex-col p-6">
             <ScrollArea className="flex-1 pr-4">
               <div className="space-y-4">
-                {messages.length === 0 && (
-                  <div className="text-center text-muted-foreground py-12">
-                    <Bot className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                    <h3 className="text-xl font-semibold mb-2">Welcome to Transcendance AI</h3>
-                    <p>Start a meaningful conversation. I&apos;m here to listen, understand, and provide insights.</p>
-                  </div>
-                )}
-                
-                {messages.map((message) => (
+                {messages.map((message, idx) => (
                   <div
                     key={message.id}
                     className={`flex gap-3 ${
                       message.role === 'user' ? 'justify-end' : 'justify-start'
-                    }`}
+                    } ${idx === 0 && message.role === 'assistant' ? 'animate-in fade-in slide-in-from-left-4 duration-500' : ''}`}
                   >
                     <div
                       className={`flex gap-3 max-w-[80%] ${
@@ -85,9 +162,7 @@ export default function TranscendanceAIPage() {
                             : 'bg-muted'
                         }`}
                       >
-                        {message.parts?.map((part, index: number) => 
-                          part.type === 'text' ? <span key={index}>{(part as { text: string }).text}</span> : null
-                        )}
+                        <div className="whitespace-pre-wrap">{message.content}</div>
                       </div>
                     </div>
                   </div>
@@ -113,21 +188,40 @@ export default function TranscendanceAIPage() {
                 )}
               </div>
             </ScrollArea>
+
+            {/* Quick Response Buttons */}
+            {messages.length <= 1 && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                {quickResponses.map((response, index) => (
+                  <Button
+                    key={index}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleQuickResponse(response)}
+                    disabled={status !== 'ready'}
+                    className="text-xs"
+                  >
+                    {response}
+                  </Button>
+                ))}
+              </div>
+            )}
             
             <form
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
                 if (input.trim()) {
-                  sendMessage({ text: input });
+                  const message = input;
                   setInput('');
+                  await sendUserMessage(message);
                 }
               }}
-              className="flex gap-2 mt-4"
+              className="flex gap-2"
             >
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask me anything..."
+                placeholder="Share your story..."
                 disabled={status !== 'ready'}
                 className="flex-1"
               />

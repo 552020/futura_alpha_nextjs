@@ -5,7 +5,15 @@ import { convertToModelMessages, streamText, UIMessage } from 'ai';
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-    const { messages }: { messages: UIMessage[] } = await req.json();
+    const body = await req.json();
+    const messages = body.messages || [];
+
+    if (!Array.isArray(messages)) {
+        return new Response('Invalid messages format', { status: 400 });
+    }
+
+    // Filter out assistant messages from the welcome (only keep user messages for the API)
+    const userMessages = messages.filter(m => m.role === 'user');
 
     const result = streamText({
         model: openai('gpt-5-mini'),
@@ -20,8 +28,11 @@ Your role is to:
 - Guide the conversation naturally, following interesting threads while covering important life areas
 
 Remember: You're helping create a legacy - a gift for their family and descendants. Every story matters.`,
-        messages: convertToModelMessages(messages),
+        messages: userMessages.map(m => ({
+            role: m.role,
+            content: m.content,
+        })),
     });
 
-    return result.toUIMessageStreamResponse();
+    return result.toTextStreamResponse();
 }
