@@ -169,6 +169,46 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
       upsertedAssets.push(upsertedAsset);
     }
 
+    // Create storage edges for the new assets
+    try {
+      const { createMemoryStorageEdges } = await import('@/lib/usecases/memory/create-memory-storage-edges');
+      
+      for (const asset of assets) {
+        const storageEdgeResult = await createMemoryStorageEdges({
+          memoryId,
+          memoryType: memory.type as 'image' | 'video' | 'note' | 'document' | 'audio',
+          url: asset.url,
+          size: asset.bytes,
+          contentHash: asset.sha256,
+        });
+
+        if (!storageEdgeResult.success) {
+          fatLogger.warn('Failed to create storage edges for added asset', 'be', {
+            operation: 'add_asset_to_memory',
+            memoryId,
+            assetType: asset.assetType,
+            error: storageEdgeResult.error,
+          });
+          // Don't fail the entire operation if storage edges fail
+        } else {
+          fatLogger.info('Successfully created storage edges for added asset', 'be', {
+            operation: 'add_asset_to_memory',
+            memoryId,
+            assetType: asset.assetType,
+            metadataEdge: storageEdgeResult.metadataEdge?.id,
+            assetEdge: storageEdgeResult.assetEdge?.id,
+          });
+        }
+      }
+    } catch (error) {
+      fatLogger.warn('Error creating storage edges for added assets', 'be', {
+        operation: 'add_asset_to_memory',
+        memoryId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      // Don't fail the entire operation if storage edges fail
+    }
+
     return NextResponse.json({
       success: true,
       data: {

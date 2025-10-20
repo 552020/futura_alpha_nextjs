@@ -446,6 +446,48 @@ export const createMemoryWithAssets = async (params: {
       }
     }
 
+    // Create storage edges for the memory
+    if (createdMemory && params.assets && params.assets.length > 0) {
+      try {
+        // Import storage edge creation function
+        const { createMemoryStorageEdges } = await import('@/lib/usecases/memory/create-memory-storage-edges');
+        
+        // Get the first asset (original) for storage edge creation
+        const originalAsset = params.assets.find(asset => asset.assetType === 'original') || params.assets[0];
+        
+        const storageEdgeResult = await createMemoryStorageEdges({
+          memoryId: createdMemory.id,
+          memoryType: params.type,
+          url: originalAsset.url,
+          size: originalAsset.bytes,
+          contentHash: originalAsset.sha256,
+        });
+
+        if (!storageEdgeResult.success) {
+          fatLogger.warn('Failed to create storage edges for memory', 'be', {
+            operation: 'create_memory_with_assets',
+            memoryId: createdMemory.id,
+            error: storageEdgeResult.error,
+          });
+          // Don't fail the entire operation if storage edges fail
+        } else {
+          fatLogger.info('Successfully created storage edges for memory', 'be', {
+            operation: 'create_memory_with_assets',
+            memoryId: createdMemory.id,
+            metadataEdge: storageEdgeResult.metadataEdge?.id,
+            assetEdge: storageEdgeResult.assetEdge?.id,
+          });
+        }
+      } catch (error) {
+        fatLogger.warn('Error creating storage edges for memory', 'be', {
+          operation: 'create_memory_with_assets',
+          memoryId: createdMemory.id,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+        // Don't fail the entire operation if storage edges fail
+      }
+    }
+
     fatLogger.info('Created memory with assets', 'be', {
       operation: 'create_memory_with_assets',
       memoryId: createdMemory.id,
