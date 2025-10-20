@@ -7,6 +7,7 @@ import { randomUUID } from 'crypto';
 import { eq, and } from 'drizzle-orm';
 import { fatLogger } from '@/lib/logger';
 import { detectMemoryType } from '@/utils/memory-type';
+import { createTemporaryUser } from '@/services/user';
 // Drizzle ORM imports are used in the where clause
 
 interface FileMetadata {
@@ -62,6 +63,17 @@ interface CompleteUploadRequest {
 export async function POST(request: Request) {
   try {
     fatLogger.info('Starting upload complete request', 'be');
+
+    // Check for onboarding query parameter
+    const url = new URL(request.url);
+    const isOnboarding = url.searchParams.get('onboarding') === 'true';
+
+    if (isOnboarding) {
+      fatLogger.info('Handling onboarding request (no auth required)', 'be');
+      return await handleOnboardingComplete(request);
+    }
+
+    // Existing authenticated logic
     const session = await auth();
     if (!session?.user?.id) {
       fatLogger.error('No session or user ID', 'be');
@@ -389,4 +401,96 @@ async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserI
       createdAt: new Date().toISOString(),
     },
   });
+}
+
+/**
+ * Handle onboarding complete request (no authentication required)
+ */
+async function handleOnboardingComplete(request: Request) {
+  try {
+    const { blobUrl, metadata } = await request.json();
+
+    if (!blobUrl) {
+      return NextResponse.json({ error: 'Blob URL is required' }, { status: 400 });
+    }
+
+    // Create temporary user using service
+    const tempUserResult = await createTemporaryUser({
+      name: 'Temporary User',
+      email: 'temp@example.com',
+    });
+
+    if (!tempUserResult.success || !tempUserResult.data) {
+      fatLogger.error('Failed to create temporary user:', 'be', { error: tempUserResult.error });
+      return NextResponse.json({ error: 'Failed to create temporary user' }, { status: 500 });
+    }
+
+    const { tempUserId, allUserId } = tempUserResult.data;
+    const memoryId = randomUUID();
+
+    fatLogger.info('Created temporary user:', 'be', {
+      tempUserId,
+      allUserId,
+    });
+
+    // Determine memory type from metadata
+    const memoryType = detectMemoryType(
+      metadata?.mimeType || 'application/octet-stream',
+      metadata?.title || 'Untitled'
+    );
+
+    // Create memory record
+    await db.insert(memories).values({
+      id: memoryId,
+      ownerId: allUserId,
+      type: memoryType,
+      title: metadata?.title || 'Untitled',
+      description: metadata?.description || '',
+      fileCreatedAt: new Date(),
+      sharingStatus: 'private',
+      ownerSecureCode: randomBytes(16).toString('hex'),
+      parentFolderId: null,
+      tags: [],
+      recipients: [],
+      unlockDate: null,
+      metadata: {
+        originalPath: metadata?.title || 'Untitled',
+        custom: metadata || {},
+      },
+      storageDuration: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      deletedAt: null,
+    });
+
+    // Create asset record
+    await db.insert(memoryAssets).values({
+      id: randomUUID(),
+      memoryId: memoryId,
+      assetType: 'original',
+      variant: null,
+      url: blobUrl,
+      assetLocation: 'vercel_blob',
+      storageKey: blobUrl.split('/').pop() || '',
+      bucket: 'vercel-blob',
+      bytes: metadata?.size || 0,
+      width: metadata?.width || null,
+      height: metadata?.height || null,
+      mimeType: metadata?.mimeType || 'application/octet-stream',
+      processingStatus: 'completed',
+      processingError: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    return NextResponse.json({
+      ok: true,
+      memoryId,
+      tempUserId,
+      allUserId, // ← Return the allUserId to frontend
+    });
+  } catch (error) {
+    fatLogger.error('Error creating onboarding memory:', 'be', { error });
+    return NextResponse.json({ error: 'Failed to create memory' }, { status: 500 });
+  }
 }

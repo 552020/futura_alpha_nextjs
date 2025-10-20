@@ -21,6 +21,7 @@ interface UploadResponse {
   success: boolean;
   data: {
     id: string;
+    ownerId?: string; // For onboarding users
     type: string;
     title: string;
     description: string;
@@ -63,9 +64,14 @@ export async function uploadFileToVercelBlob(
     // Add any other context needed on the server side
   };
 
+  // Choose the correct endpoint based on authentication status
+  const uploadEndpoint = isOnboarding
+    ? '/api/upload/vercel-blob/upload-url' // No auth required for onboarding
+    : '/api/upload/vercel-blob/grant'; // Auth required for authenticated users
+
   const blob = await blobUpload(file.name, file, {
     access: 'public',
-    handleUploadUrl: '/api/upload/vercel-blob/grant', // Use Vercel Blob specific grant endpoint
+    handleUploadUrl: uploadEndpoint,
     multipart: true, // chunked + parallel + retries for large files
     clientPayload: JSON.stringify(clientPayloadData),
     onUploadProgress: _ev => {
@@ -77,71 +83,137 @@ export async function uploadFileToVercelBlob(
     },
   });
 
-  // Memory was already created by the grant endpoint's onUploadCompleted callback
-  // The grant endpoint now returns the memoryId in the response
-  const memoryId = (blob as { memoryId?: string }).memoryId;
+  if (isOnboarding) {
+    // For onboarding users, we need to create the memory separately using the complete endpoint
+    try {
+      const commitResponse = await fetch('/api/upload/complete?onboarding=true', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          blobUrl: blob.url,
+          metadata: {
+            title: file.name,
+            mimeType: file.type,
+            size: file.size,
+            width: undefined, // TODO: Extract from image if needed
+            height: undefined, // TODO: Extract from image if needed
+          },
+        }),
+      });
 
-  if (memoryId) {
-    // Return the memory data using the ID from the grant endpoint
-    return {
-      success: true,
-      data: {
-        id: memoryId,
-        type: detectMemoryTypeFromFile(file),
-        title: file.name.split('.')[0] || 'Untitled',
-        description: '',
-        fileCreatedAt: new Date().toISOString(),
-        isPublic: false,
-        parentFolderId: null,
-        tags: [],
-        recipients: [],
-        unlockDate: null,
-        metadata: {},
-        createdAt: new Date().toISOString(),
-        assets: [
-          {
-            id: 'temp-asset-id',
-            assetType: 'original',
-            url: blob.url,
-            bytes: file.size,
-            mimeType: file.type,
-            storageBackend: 'vercel_blob',
-            storageKey: blob.pathname,
-          },
-        ],
-      },
-    };
+      if (!commitResponse.ok) {
+        const error = await commitResponse.json();
+        throw new Error(error.error || 'Failed to create onboarding memory');
+      }
+
+      const commitResult = await commitResponse.json();
+      console.log('🔍 [DEBUG] commitResult from /api/upload/complete:', JSON.stringify(commitResult, null, 2));
+
+      // Return result in expected format with allUserId for onboarding context
+      const result = {
+        success: true,
+        data: {
+          id: commitResult.memoryId,
+          ownerId: commitResult.allUserId, // ← This is the allUserId for onboarding context
+          type: detectMemoryTypeFromFile(file),
+          title: file.name.split('.')[0] || 'Untitled',
+          description: '',
+          fileCreatedAt: new Date().toISOString(),
+          isPublic: false,
+          parentFolderId: null,
+          tags: [],
+          recipients: [],
+          unlockDate: null,
+          metadata: {},
+          createdAt: new Date().toISOString(),
+          assets: [
+            {
+              id: 'temp-asset-id',
+              assetType: 'original',
+              url: blob.url,
+              bytes: file.size,
+              mimeType: file.type,
+              storageBackend: 'vercel_blob',
+              storageKey: blob.pathname,
+            },
+          ],
+        },
+      };
+
+      console.log('🔍 [DEBUG] Final upload result:', JSON.stringify(result, null, 2));
+      return result;
+    } catch (error) {
+      throw new Error(
+        `Failed to create onboarding memory: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
   } else {
-    // Fallback: return the blob info even if memory creation failed
-    // This allows the upload to appear successful, but the file won't show in dashboard
-    return {
-      success: true,
-      data: {
-        id: 'temp-id', // Temporary ID - file won't appear in dashboard
-        type: detectMemoryTypeFromFile(file),
-        title: file.name.split('.')[0] || 'Untitled',
-        description: '',
-        fileCreatedAt: new Date().toISOString(),
-        isPublic: false,
-        parentFolderId: null,
-        tags: [],
-        recipients: [],
-        unlockDate: null,
-        metadata: {},
-        createdAt: new Date().toISOString(),
-        assets: [
-          {
-            id: 'temp-asset-id',
-            assetType: 'original',
-            url: blob.url,
-            bytes: file.size,
-            mimeType: file.type,
-            storageBackend: 'vercel_blob',
-            storageKey: blob.pathname,
-          },
-        ],
-      },
-    };
+    // For authenticated users, memory was already created by the grant endpoint's onUploadCompleted callback
+    // The grant endpoint now returns the memoryId in the response
+    const memoryId = (blob as { memoryId?: string }).memoryId;
+
+    if (memoryId) {
+      // Return the memory data using the ID from the grant endpoint
+      return {
+        success: true,
+        data: {
+          id: memoryId,
+          type: detectMemoryTypeFromFile(file),
+          title: file.name.split('.')[0] || 'Untitled',
+          description: '',
+          fileCreatedAt: new Date().toISOString(),
+          isPublic: false,
+          parentFolderId: null,
+          tags: [],
+          recipients: [],
+          unlockDate: null,
+          metadata: {},
+          createdAt: new Date().toISOString(),
+          assets: [
+            {
+              id: 'temp-asset-id',
+              assetType: 'original',
+              url: blob.url,
+              bytes: file.size,
+              mimeType: file.type,
+              storageBackend: 'vercel_blob',
+              storageKey: blob.pathname,
+            },
+          ],
+        },
+      };
+    } else {
+      // Fallback: return the blob info even if memory creation failed
+      // This allows the upload to appear successful, but the file won't show in dashboard
+      return {
+        success: true,
+        data: {
+          id: 'temp-id', // Temporary ID - file won't appear in dashboard
+          type: detectMemoryTypeFromFile(file),
+          title: file.name.split('.')[0] || 'Untitled',
+          description: '',
+          fileCreatedAt: new Date().toISOString(),
+          isPublic: false,
+          parentFolderId: null,
+          tags: [],
+          recipients: [],
+          unlockDate: null,
+          metadata: {},
+          createdAt: new Date().toISOString(),
+          assets: [
+            {
+              id: 'temp-asset-id',
+              assetType: 'original',
+              url: blob.url,
+              bytes: file.size,
+              mimeType: file.type,
+              storageBackend: 'vercel_blob',
+              storageKey: blob.pathname,
+            },
+          ],
+        },
+      };
+    }
   }
 }
 
@@ -180,8 +252,14 @@ export async function uploadToVercelBlob(
         throw new Error(`Upload failed for file ${file.name}: Invalid response from server`);
       }
 
+      console.log('🔍 [DEBUG] uploadToVercelBlob: memory object:', JSON.stringify(memory, null, 2));
+      console.log('🔍 [DEBUG] uploadToVercelBlob: memory.ownerId:', memory.ownerId);
+
       results.push({
-        data: { id: memory.id },
+        data: {
+          id: memory.id,
+          ownerId: memory.ownerId || '', // Preserve ownerId for onboarding context
+        } as { id: string; ownerId?: string },
         results: [
           {
             memoryId: memory.id,
@@ -242,18 +320,26 @@ export async function uploadToVercelBlobWithProcessing(
     const laneBResult = laneBPromise ? await Promise.allSettled([laneBPromise]).then(results => results[0]) : null;
 
     // 4. Upload processed assets to Vercel Blob if they exist
+    let processedAssetUrls: { display?: { url: string; pathname: string }; thumb?: { url: string; pathname: string } } =
+      {};
     if (laneBResult?.status === 'fulfilled' && laneBResult.value) {
-      await uploadProcessedAssetsToVercelBlob(laneBResult.value, file.name, isOnboarding, existingUserId, mode);
+      processedAssetUrls = await uploadProcessedAssetsToVercelBlob(
+        laneBResult.value,
+        file.name,
+        isOnboarding,
+        existingUserId,
+        mode
+      );
     }
 
     // 5. Create memory with all assets using unified completion endpoint
     const memoryResult = await createMemoryWithUnifiedCompletion(
       laneAResult,
       laneBResult?.status === 'fulfilled' ? laneBResult.value : null,
+      processedAssetUrls,
       file,
       isOnboarding,
-      existingUserId,
-      mode
+      existingUserId
     );
 
     // Return the result from memory creation
@@ -275,7 +361,7 @@ async function uploadOriginalToVercelBlob(
 ): Promise<{ blob: { url: string; pathname: string }; file: File }> {
   const blob = await blobUpload(file.name, file, {
     access: 'public',
-    handleUploadUrl: '/api/upload/vercel-blob', // ← New simplified endpoint
+    handleUploadUrl: '/api/upload/vercel-blob', // ← Use existing endpoint
     multipart: true,
     onUploadProgress: ev => {
       onProgress?.(ev.percentage);
@@ -294,7 +380,7 @@ async function processImageDerivativesForVercelBlob(file: File): Promise<Process
 }
 
 /**
- * Upload processed assets to Vercel Blob
+ * Upload processed assets to Vercel Blob and return their URLs
  */
 async function uploadProcessedAssetsToVercelBlob(
   processedBlobs: ProcessedBlobs,
@@ -302,25 +388,47 @@ async function uploadProcessedAssetsToVercelBlob(
   isOnboarding: boolean,
   existingUserId?: string,
   mode: UploadMode = 'multiple-files'
-): Promise<void> {
+): Promise<{
+  display?: { url: string; pathname: string };
+  thumb?: { url: string; pathname: string };
+}> {
+  const results: {
+    display?: { url: string; pathname: string };
+    thumb?: { url: string; pathname: string };
+  } = {};
+
   const uploadPromises: Promise<void>[] = [];
 
   // Upload display asset
   if (processedBlobs.display) {
     uploadPromises.push(
-      uploadAssetToVercelBlob(processedBlobs.display, `${baseFileName}_display`, isOnboarding, existingUserId, mode)
+      uploadAssetToVercelBlob(
+        processedBlobs.display,
+        `${baseFileName}_display`,
+        isOnboarding,
+        existingUserId,
+        mode
+      ).then(result => {
+        results.display = result;
+      })
     );
   }
 
   // Upload thumb asset
   if (processedBlobs.thumb) {
     uploadPromises.push(
-      uploadAssetToVercelBlob(processedBlobs.thumb, `${baseFileName}_thumb`, isOnboarding, existingUserId, mode)
+      uploadAssetToVercelBlob(processedBlobs.thumb, `${baseFileName}_thumb`, isOnboarding, existingUserId, mode).then(
+        result => {
+          results.thumb = result;
+        }
+      )
     );
   }
 
-  // Placeholder is stored in database, not uploaded
+  // Wait for all uploads to complete
   await Promise.all(uploadPromises);
+
+  return results;
 }
 
 /**
@@ -332,7 +440,7 @@ async function uploadAssetToVercelBlob(
   isOnboarding: boolean,
   existingUserId?: string,
   mode: UploadMode = 'multiple-files'
-): Promise<void> {
+): Promise<{ url: string; pathname: string }> {
   const clientPayloadData = {
     isOnboarding,
     mode,
@@ -341,12 +449,17 @@ async function uploadAssetToVercelBlob(
     assetType: 'processed',
   };
 
-  await blobUpload(fileName, asset.blob, {
+  const blob = await blobUpload(fileName, asset.blob, {
     access: 'public',
-    handleUploadUrl: '/api/upload/vercel-blob/grant',
+    handleUploadUrl: '/api/upload/vercel-blob', // Use the main endpoint for processed assets
     multipart: true,
     clientPayload: JSON.stringify(clientPayloadData),
   });
+
+  return {
+    url: blob.url,
+    pathname: blob.pathname,
+  };
 }
 
 /**
@@ -355,10 +468,10 @@ async function uploadAssetToVercelBlob(
 async function createMemoryWithUnifiedCompletion(
   laneAResult: PromiseSettledResult<{ blob: { url: string; pathname: string }; file: File }>,
   laneBResult: ProcessedBlobs | null,
+  processedAssetUrls: { display?: { url: string; pathname: string }; thumb?: { url: string; pathname: string } },
   file: File,
   isOnboarding: boolean,
-  existingUserId?: string,
-  mode: UploadMode = 'multiple-files'
+  _existingUserId?: string
 ): Promise<UploadServiceResult> {
   if (laneAResult.status !== 'fulfilled') {
     throw new Error('Original upload failed');
@@ -366,11 +479,7 @@ async function createMemoryWithUnifiedCompletion(
 
   const { blob } = laneAResult.value;
 
-  // First, create the memory record using our unified createMemory function
-  const { createMemory } = await import('@/app/api/memories/utils/memory-creation');
-
-  const memoryType = detectMemoryTypeFromFile(file);
-  const title = file.name.split('.')[0] || 'Untitled';
+  // Memory creation is now handled by the appropriate endpoint
 
   // Prepare assets array
   const assets: Array<{
@@ -397,33 +506,31 @@ async function createMemoryWithUnifiedCompletion(
 
   // Add processed assets if available
   if (laneBResult) {
-    if (laneBResult.display) {
-      // Note: For Vercel Blob, we would need to upload the processed assets first
-      // and get their URLs. For now, we'll mark them as pending.
+    if (laneBResult.display && processedAssetUrls.display) {
       assets.push({
         assetType: 'display',
-        url: 'pending-upload', // TODO: Upload to Vercel Blob and get URL
+        url: processedAssetUrls.display.url,
         assetLocation: 'vercel_blob',
-        storageKey: 'pending-upload',
+        storageKey: processedAssetUrls.display.pathname,
         bytes: laneBResult.display.bytes,
         width: laneBResult.display.width,
         height: laneBResult.display.height,
         mimeType: laneBResult.display.mimeType,
-        processingStatus: 'failed',
+        processingStatus: 'completed',
       });
     }
 
-    if (laneBResult.thumb) {
+    if (laneBResult.thumb && processedAssetUrls.thumb) {
       assets.push({
         assetType: 'thumb',
-        url: 'pending-upload', // TODO: Upload to Vercel Blob and get URL
+        url: processedAssetUrls.thumb.url,
         assetLocation: 'vercel_blob',
-        storageKey: 'pending-upload',
+        storageKey: processedAssetUrls.thumb.pathname,
         bytes: laneBResult.thumb.bytes,
         width: laneBResult.thumb.width,
         height: laneBResult.thumb.height,
         mimeType: laneBResult.thumb.mimeType,
-        processingStatus: 'failed',
+        processingStatus: 'completed',
       });
     }
 
@@ -442,48 +549,79 @@ async function createMemoryWithUnifiedCompletion(
     }
   }
 
-  // Create memory using unified function
-  const result = await createMemory({
-    ownerId: existingUserId || 'temp-user-id', // TODO: Handle user resolution
-    type: memoryType,
-    title,
-    description: '',
-    fileCreatedAt: new Date(),
-    isPublic: false,
-    parentFolderId: null,
-    tags: [],
-    recipients: [],
-    unlockDate: null,
-    metadata: {},
-    storageDuration: null,
-    assets,
-    isOnboarding,
-    mode,
-  });
+  // Create memory using appropriate endpoint based on onboarding status
+  if (isOnboarding) {
+    // For onboarding users, use onboarding-specific endpoint
+    const commitResponse = await fetch('/api/upload/complete?onboarding=true', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        blobUrl: assets[0]?.url || '', // Use first asset URL for onboarding
+        metadata: {
+          title: file.name,
+          mimeType: file.type,
+          size: file.size,
+          width: assets[0]?.width,
+          height: assets[0]?.height,
+        },
+      }),
+    });
 
-  if (!result.success) {
-    throw new Error(result.error);
+    if (!commitResponse.ok) {
+      const error = await commitResponse.json();
+      throw new Error(error.error || 'Failed to create onboarding memory');
+    }
+
+    const commitResult = await commitResponse.json();
+
+    // Return result in expected format
+    return {
+      data: { id: commitResult.memoryId },
+      results: [
+        {
+          memoryId: commitResult.memoryId,
+          blobId: commitResult.memoryId,
+          size: BigInt(file.size),
+          checksumSha256: undefined,
+          storageBackend: 'vercel_blob' as const,
+          storageLocation: assets[0]?.url || '',
+          uploadedAt: BigInt(Date.now()),
+        },
+      ],
+      userId: commitResult.tempUserId,
+      totalFiles: 1,
+      totalSize: file.size,
+      processingTime: 0,
+      storageBackend: 'vercel_blob' as const,
+      databaseBackend: 'neon' as const,
+    };
+  } else {
+    // For authenticated users, use existing complete endpoint
+    const completeResponse = await fetch('/api/upload/complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        memoryId: 'temp-memory-id', // Will be generated by the endpoint
+        assets: assets.map(asset => ({
+          assetType: asset.assetType,
+          assetLocation: asset.assetLocation,
+          storageKey: asset.storageKey,
+          bytes: asset.bytes,
+          width: asset.width,
+          height: asset.height,
+          mimeType: asset.mimeType,
+          processingStatus: asset.processingStatus,
+          url: asset.url,
+        })),
+      }),
+    });
+
+    if (!completeResponse.ok) {
+      const error = await completeResponse.json();
+      throw new Error(error.error || 'Failed to create memory');
+    }
+
+    const result = await completeResponse.json();
+    return result;
   }
-
-  // Return in expected format
-  return {
-    data: { id: result.memoryId },
-    results: [
-      {
-        memoryId: result.memoryId,
-        blobId: result.memoryId,
-        size: BigInt(file.size),
-        checksumSha256: undefined,
-        storageBackend: 'vercel_blob' as const,
-        storageLocation: '', // Will be filled by finalizeAllAssets
-        uploadedAt: BigInt(Date.now()),
-      },
-    ],
-    userId: existingUserId || '',
-    totalFiles: 1,
-    totalSize: file.size,
-    processingTime: 0,
-    storageBackend: 'vercel_blob' as const,
-    databaseBackend: 'neon' as const,
-  };
 }

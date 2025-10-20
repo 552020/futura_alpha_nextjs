@@ -143,7 +143,7 @@ function idempotencyKey() {
 }
 
 // ---- Queries ----
-export function useHostingPreferences() {
+export function useHostingPreferences(options?: { enabled?: boolean }) {
   return useQuery<HostingPreferences, NormalizedError>({
     queryKey: ['me', 'hosting-preferences'],
     queryFn: async () => {
@@ -171,6 +171,7 @@ export function useHostingPreferences() {
 
       return data;
     },
+    enabled: options?.enabled ?? true, // Default to true, but allow disabling
     staleTime: Infinity, // Never consider data stale - fetch only once per session
     gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes after component unmounts
     refetchOnWindowFocus: false, // Don't refetch when switching tabs
