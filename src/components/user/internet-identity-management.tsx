@@ -193,7 +193,7 @@ export function InternetIdentityManagement({ className = '' }: InternetIdentityM
         {/* Action Buttons */}
         <div className="pt-4 border-t">
           {!isAuthenticated ? (
-            <Button onClick={handleSignInII}>
+            <Button onClick={handleSignInII} data-testid="ii-connect">
               <User className="h-4 w-4 mr-2" />
               Connect Internet Identity
             </Button>

@@ -115,7 +115,7 @@ importers:
         version: 8.15.5
       '@vercel/analytics':
         specifier: ^1.5.0
-        version: 1.5.0(next@15.5.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react@19.1.1)
+        version: 1.5.0(next@15.5.3(@playwright/test@1.56.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react@19.1.1)
       '@vercel/blob':
         specifier: ^0.27.3
         version: 0.27.3
@@ -166,10 +166,10 @@ importers:
         version: 1.0.0
       next:
         specifier: ^15.5.3
-        version: 15.5.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+        version: 15.5.3(@playwright/test@1.56.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       next-auth:
         specifier: 5.0.0-beta.25
-        version: 5.0.0-beta.25(next@15.5.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react@19.1.1)
+        version: 5.0.0-beta.25(next@15.5.3(@playwright/test@1.56.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react@19.1.1)
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -225,9 +225,15 @@ importers:
       '@dfinity/identity':
         specifier: ^3.2.4
         version: 3.2.4(@dfinity/agent@3.2.4(@dfinity/candid@3.2.4(@dfinity/principal@3.2.4))(@dfinity/principal@3.2.4)(@noble/hashes@1.8.0))(@dfinity/candid@3.2.4(@dfinity/principal@3.2.4))(@dfinity/principal@3.2.4)(@noble/curves@1.9.7)(@noble/hashes@1.8.0)
+      '@dfinity/internet-identity-playwright':
+        specifier: ^2.0.0
+        version: 2.0.0(@playwright/test@1.56.0)
       '@eslint/eslintrc':
         specifier: ^3.3.1
         version: 3.3.1
+      '@playwright/test':
+        specifier: ^1.56.0
+        version: 1.56.0
       '@tailwindcss/postcss':
         specifier: ^4.1.13
         version: 4.1.13
@@ -585,6 +591,12 @@ packages:
       '@dfinity/principal': 3.2.4
       '@noble/curves': ^1.9.2
       '@noble/hashes': ^1.8.0
+
+  '@dfinity/internet-identity-playwright@2.0.0':
+    resolution: {integrity: sha512-8dqxxKEqNhM+dozEHFB3Dn54lXsFMjuDKy4qT4ALWypWDM61Ey1KFfvI34gyn70xWLLTLxEiWb6CrDnzJu3NGQ==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      '@playwright/test': ^1.52.0
 
   '@dfinity/principal@3.2.4':
     resolution: {integrity: sha512-7qTjDb9k/J/55k0/ZnD8s2+L+IgfG6K1lC7iywhQQL/4Qe0UIljUTasDk85kooY2QeNvWSl7MsLWp69LPBiYjw==}
@@ -1097,6 +1109,11 @@ packages:
 
   '@paralleldrive/cuid2@2.2.2':
     resolution: {integrity: sha512-ZOBkgDwEdoYVlSeRbYYXs0S9MejQofiVYoTbKzy/6GQa39/q5tQU2IX46+shYnUkpEl3wc+J6wRlar7r2EK2xA==}
+
+  '@playwright/test@1.56.0':
+    resolution: {integrity: sha512-Tzh95Twig7hUwwNe381/K3PggZBZblKUe2wv25oIpzWLr6Z0m4KgV1ZVIjnR6GM9ANEqjZD7XsZEa6JL/7YEgg==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   '@polka/url@1.0.0-next.29':
     resolution: {integrity: sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww==}
@@ -3254,6 +3271,11 @@ packages:
   fs.realpath@1.0.0:
     resolution: {integrity: sha512-OO0pH2lK6a0hZnAdau5ItzHPI6pUlvI7jMVnxUQRtw4owF2wk8lOSabtGDCTP4Ggrg2MbGnWO9X8K1t4+fGMDw==}
 
+  fsevents@2.3.2:
+    resolution: {integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==}
+    engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
+    os: [darwin]
+
   fsevents@2.3.3:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
@@ -4102,6 +4124,16 @@ packages:
 
   pkg-types@2.3.0:
     resolution: {integrity: sha512-SIqCzDRg0s9npO5XQ3tNZioRY1uK06lA41ynBC1YmFTmnY6FjUjVt6s4LoADmwoig1qqD0oK8h1p/8mlMx8Oig==}
+
+  playwright-core@1.56.0:
+    resolution: {integrity: sha512-1SXl7pMfemAMSDn5rkPeZljxOCYAmQnYLBTExuh6E8USHXGSX3dx6lYZN/xPpTz1vimXmPA9CDnILvmJaB8aSQ==}
+    engines: {node: '>=18'}
+    hasBin: true
+
+  playwright@1.56.0:
+    resolution: {integrity: sha512-X5Q1b8lOdWIE4KAoHpW3SE8HvUB+ZZsUoN64ZhjnN8dOb1UpujxBtENGiZFE+9F/yhzJwYa+ca3u43FeLbboHA==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   possible-typed-array-names@1.1.0:
     resolution: {integrity: sha512-/+5VFTchJDoVj3bhoqi6UeymcD00DAwb1nJwamzPvHEszJ4FpF6SNNbUbOS8yI56qHzdV8eK0qEfOSiodkTdxg==}
@@ -5650,6 +5682,10 @@ snapshots:
       '@noble/curves': 1.9.7
       '@noble/hashes': 1.8.0
 
+  '@dfinity/internet-identity-playwright@2.0.0(@playwright/test@1.56.0)':
+    dependencies:
+      '@playwright/test': 1.56.0
+
   '@dfinity/principal@3.2.4':
     dependencies:
       '@noble/hashes': 1.8.0
@@ -6050,6 +6086,10 @@ snapshots:
   '@paralleldrive/cuid2@2.2.2':
     dependencies:
       '@noble/hashes': 1.8.0
+
+  '@playwright/test@1.56.0':
+    dependencies:
+      playwright: 1.56.0
 
   '@polka/url@1.0.0-next.29': {}
 
@@ -7400,9 +7440,9 @@ snapshots:
   '@unrs/resolver-binding-win32-x64-msvc@1.11.1':
     optional: true
 
-  '@vercel/analytics@1.5.0(next@15.5.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react@19.1.1)':
+  '@vercel/analytics@1.5.0(next@15.5.3(@playwright/test@1.56.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react@19.1.1)':
     optionalDependencies:
-      next: 15.5.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      next: 15.5.3(@playwright/test@1.56.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       react: 19.1.1
 
   '@vercel/blob@0.27.3':
@@ -8404,6 +8444,9 @@ snapshots:
 
   fs.realpath@1.0.0: {}
 
+  fsevents@2.3.2:
+    optional: true
+
   fsevents@2.3.3:
     optional: true
 
@@ -9008,10 +9051,10 @@ snapshots:
 
   negotiator@1.0.0: {}
 
-  next-auth@5.0.0-beta.25(next@15.5.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react@19.1.1):
+  next-auth@5.0.0-beta.25(next@15.5.3(@playwright/test@1.56.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react@19.1.1):
     dependencies:
       '@auth/core': 0.37.2
-      next: 15.5.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      next: 15.5.3(@playwright/test@1.56.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       react: 19.1.1
 
   next-themes@0.4.6(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
@@ -9019,7 +9062,7 @@ snapshots:
       react: 19.1.1
       react-dom: 19.1.1(react@19.1.1)
 
-  next@15.5.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
+  next@15.5.3(@playwright/test@1.56.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
       '@next/env': 15.5.3
       '@swc/helpers': 0.5.15
@@ -9037,6 +9080,7 @@ snapshots:
       '@next/swc-linux-x64-musl': 15.5.3
       '@next/swc-win32-arm64-msvc': 15.5.3
       '@next/swc-win32-x64-msvc': 15.5.3
+      '@playwright/test': 1.56.0
       sharp: 0.34.3
     transitivePeerDependencies:
       - '@babel/core'
@@ -9253,6 +9297,14 @@ snapshots:
       exsolve: 1.0.7
       pathe: 2.0.3
     optional: true
+
+  playwright-core@1.56.0: {}
+
+  playwright@1.56.0:
+    dependencies:
+      playwright-core: 1.56.0
+    optionalDependencies:
+      fsevents: 2.3.2
 
   possible-typed-array-names@1.1.0: {}
 

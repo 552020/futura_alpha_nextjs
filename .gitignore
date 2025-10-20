@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+**/node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -12,6 +13,9 @@
 
 # testing
 /coverage
+/test-results
+/playwright-report
+/e2e/debug
 
 # next.js
 /.next/
@@ -48,3 +52,14 @@ next-env.d.ts
 scripts/blob/blob-files-export.json
 scripts/s3/s3-files-export.json
 .vscode/
+
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+
+# debug artifacts
+e2e/debug/
