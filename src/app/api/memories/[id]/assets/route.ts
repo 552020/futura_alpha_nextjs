@@ -327,6 +327,39 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
         ? deletedAssets.filter((asset: DBMemoryAsset) => assetTypes.includes(asset.assetType))
         : deletedAssets;
 
+    // Clean up storage edges for deleted assets
+    try {
+      const { deleteStorageEdges } = await import('@/services/storage-edges/storage-edge-operations');
+      
+      // Delete storage edges for the memory (since assets are being removed)
+      const storageEdgeResult = await deleteStorageEdges({
+        memoryId,
+        memoryType: memory.type as 'image' | 'video' | 'note' | 'document' | 'audio',
+      });
+
+      if (!storageEdgeResult.success) {
+        fatLogger.warn('Failed to delete storage edges for deleted assets', 'be', {
+          operation: 'delete_assets_from_memory',
+          memoryId,
+          error: storageEdgeResult.error,
+        });
+        // Don't fail the entire operation if storage edge deletion fails
+      } else {
+        fatLogger.info('Successfully deleted storage edges for deleted assets', 'be', {
+          operation: 'delete_assets_from_memory',
+          memoryId,
+          deletedEdgesCount: storageEdgeResult.data?.length || 0,
+        });
+      }
+    } catch (error) {
+      fatLogger.warn('Error deleting storage edges for deleted assets', 'be', {
+        operation: 'delete_assets_from_memory',
+        memoryId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      // Don't fail the entire operation if storage edge deletion fails
+    }
+
     return NextResponse.json({
       success: true,
       data: {
