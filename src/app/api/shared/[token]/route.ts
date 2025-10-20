@@ -2,45 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { validatePublicToken, grantAccessViaToken } from '@/services/sharing';
 import { getAllUserRecord } from '@/services/user';
-import { getMemoryRecord } from '@/services/memory';
-import type { allUsers, memories } from '@/db';
+import type { allUsers } from '@/db';
 import { fatLogger } from '@/lib/logger';
-export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const { id: memoryId } = await context.params;
-  const { searchParams } = new URL(request.url);
-  const token = searchParams.get('token');
 
-  if (!token) {
-    return NextResponse.json({ error: 'Token is required' }, { status: 400 });
-  }
+export async function GET(request: NextRequest, context: { params: Promise<{ token: string }> }) {
+  const { token } = await context.params;
 
   try {
-    fatLogger.info('🔗 Accessing shared memory via token:', 'be', { memoryId, token: token.substring(0, 8) + '...' });
+    fatLogger.info('🔗 Validate public token request:', 'be', { token: token.substring(0, 8) + '...' });
 
-    // First try to find the memory using service function
-    const memoryResult = await getMemoryRecord(memoryId);
-    if (!memoryResult.success) {
-      fatLogger.error('Memory not found', 'be', {
-        memoryId,
-        error: memoryResult.error,
-      });
-      return NextResponse.json(
-        {
-          error: 'Memory not found',
-          details: memoryResult.error,
-        },
-        { status: 404 }
-      );
-    }
-
-    const memory = memoryResult.data as typeof memories.$inferSelect;
-
-    // Validate the public token
+    // Validate the public token using service function
     const validation = await validatePublicToken(token);
 
     if (!validation.success || !validation.data?.isValid) {
       fatLogger.warn('❌ Invalid or expired token:', 'be', {
-        memoryId,
+        token: token.substring(0, 8) + '...',
         error: validation.data?.error,
         isExpired: validation.data?.isExpired,
       });
@@ -53,19 +29,15 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       );
     }
 
-    // Check if the token is for this specific memory
-    if (validation.data.record?.resourceId !== memoryId) {
-      return NextResponse.json(
-        {
-          error: 'Token is not valid for this memory',
-        },
-        { status: 403 }
-      );
-    }
+    fatLogger.info('✅ Token validation successful:', 'be', {
+      token: token.substring(0, 8) + '...',
+      resourceType: validation.data.record?.resourceType,
+      resourceId: validation.data.record?.resourceId,
+    });
 
-    // If user is authenticated, grant them access
+    // Check if user is authenticated and grant access if possible
     let accessGranted = false;
-    const userPermissions = { canView: true, canEdit: false, canDelete: false };
+    let userPermissions = { canView: true, canEdit: false, canDelete: false };
 
     try {
       const session = await auth();
@@ -81,7 +53,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
           if (accessResult.success) {
             accessGranted = true;
             fatLogger.info('✅ Access granted via token:', 'be', {
-              memoryId,
+              token: token.substring(0, 8) + '...',
               userId: allUserRecord.id,
             });
           }
@@ -92,47 +64,39 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
           });
         }
       }
-    } catch (_authError) {
+    } catch (authError) {
       // User might not be authenticated, that's okay for public links
-      fatLogger.info('ℹ️ No authenticated user, providing public access:', 'be', { memoryId });
+      fatLogger.info('ℹ️ No authenticated user, providing public access:', 'be', {
+        token: token.substring(0, 8) + '...',
+      });
     }
-
-    fatLogger.info('✅ Public link access successful:', 'be', {
-      memoryId,
-      accessGranted,
-      tokenId: validation.data.record?.id,
-    });
 
     return NextResponse.json({
       success: true,
       data: {
-        memoryId,
-        memory: {
-          id: memory.id,
-          type: memory.type,
-          title: memory.title,
-          description: memory.description,
-          createdAt: memory.createdAt,
-        },
+        token,
+        resourceType: validation.data.record?.resourceType,
+        resourceId: validation.data.record?.resourceId,
         accessGranted,
         permissions: userPermissions,
         shareInfo: {
           tokenId: validation.data.record?.id,
           expiresAt: validation.data.record?.expiresAt,
           isActive: validation.data.record?.isActive,
+          createdAt: validation.data.record?.createdAt,
         },
       },
     });
   } catch (error) {
-    fatLogger.error('🔴 Error accessing shared memory:', 'be', {
+    fatLogger.error('🔴 Error validating public token:', 'be', {
       error: error instanceof Error ? error : undefined,
       stack: error instanceof Error ? error.stack : undefined,
       message: error instanceof Error ? error.message : String(error),
-      memoryId,
+      token: token.substring(0, 8) + '...',
     });
     return NextResponse.json(
       {
-        error: 'Failed to access memory',
+        error: 'Failed to validate token',
         details: error instanceof Error ? error.message : String(error),
       },
       { status: 500 }
