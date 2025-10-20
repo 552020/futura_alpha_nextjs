@@ -98,12 +98,29 @@ async function handleFolderDeletion(folderId: string, ownerId: string) {
 
 // Helper function to add storage status to memory by querying storageEdges table
 async function addStorageStatusToMemory(memory: typeof memories.$inferSelect) {
+  fatLogger.info(`🔍 [STORAGE STATUS] Fetching storage status for memory: ${memory.id}`, 'be', {
+    memoryId: memory.id,
+    memoryType: memory.type,
+    memoryTitle: memory.title,
+  });
+
   // Query storageEdges table to get actual storage locations
   const edges = await db.query.storageEdges.findMany({
     where: and(eq(storageEdges.memoryId, memory.id), eq(storageEdges.present, true)),
   });
 
-  fatLogger.debug(`🔍 [STORAGE STATUS] Memory ${memory.id} - Found ${edges.length} storage edges:`, 'be', edges);
+  fatLogger.info(`🔍 [STORAGE STATUS] Memory ${memory.id} - Found ${edges.length} storage edges:`, 'be', {
+    memoryId: memory.id,
+    edgesCount: edges.length,
+    edges: edges.map(edge => ({
+      id: edge.id,
+      artifact: edge.artifact,
+      locationMetadata: edge.locationMetadata,
+      locationAsset: edge.locationAsset,
+      present: edge.present,
+      locationUrl: edge.locationUrl,
+    })),
+  });
 
   // Extract unique storage locations from the edges
   const storageLocations = new Set<string>();
@@ -120,7 +137,30 @@ async function addStorageStatusToMemory(memory: typeof memories.$inferSelect) {
   });
 
   const finalLocations = Array.from(storageLocations);
-  fatLogger.debug(`📊 [STORAGE STATUS] Memory ${memory.id} - Final storage locations:`, 'be', finalLocations);
+  
+  if (finalLocations.length === 0) {
+    fatLogger.warn(`⚠️ [STORAGE STATUS] Memory ${memory.id} - NO STORAGE LOCATIONS FOUND!`, 'be', {
+      memoryId: memory.id,
+      memoryType: memory.type,
+      memoryTitle: memory.title,
+      edgesCount: edges.length,
+      finalLocations: finalLocations,
+      edges: edges.map(edge => ({
+        artifact: edge.artifact,
+        locationMetadata: edge.locationMetadata,
+        locationAsset: edge.locationAsset,
+        present: edge.present,
+      })),
+    });
+  } else {
+    fatLogger.info(`✅ [STORAGE STATUS] Memory ${memory.id} - Storage locations found:`, 'be', {
+      memoryId: memory.id,
+      memoryType: memory.type,
+      memoryTitle: memory.title,
+      finalLocations: finalLocations,
+      edgesCount: edges.length,
+    });
+  }
 
   return {
     ...memory,

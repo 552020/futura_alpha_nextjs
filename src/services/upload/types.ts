@@ -21,7 +21,7 @@ import type { UploadResult, StorageBackend } from '@/types/upload';
  */
 export interface UploadServiceResult {
   // Core data
-  data: { id: string };
+  data: { id: string; ownerId?: string }; // ownerId for onboarding context
   results: UploadResult[];
   userId: string;
 
