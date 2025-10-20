@@ -7,17 +7,11 @@
 
 import { db } from '@/db/db';
 import { resourceShareTokens, resourceMembership } from '@/db';
-import { eq, and, or, isNull, gt, ne } from 'drizzle-orm';
+import { eq, and, or, isNull, gt } from 'drizzle-orm';
 import { fatLogger } from '@/lib/logger';
 import crypto from 'node:crypto';
 import type { OperationResult } from '../shared/types';
-import type {
-  CreatePublicLinkParams,
-  PublicLinkRecord,
-  TokenValidationResult,
-  GenerateTokenParams,
-  PublicLinkAccess,
-} from './types';
+import type { CreatePublicLinkParams, PublicLinkRecord, PublicLinkAccess } from './types';
 
 /**
  * Generate a secure random token
@@ -140,7 +134,6 @@ export async function validatePublicToken(token: string, userId?: string): Promi
     // Enhanced access control validation
     let userAllowed = true;
     let roleAllowed = true;
-    let accessGranted = true;
 
     // Check authentication requirement
     if (linkRecord.requireAuth && !userId) {
@@ -157,7 +150,7 @@ export async function validatePublicToken(token: string, userId?: string): Promi
 
     // Check user whitelist
     if (linkRecord.allowedUsers && userId) {
-      const allowedUsers = JSON.parse(linkRecord.allowedUsers);
+      const allowedUsers = JSON.parse(linkRecord.allowedUsers as string);
       userAllowed = allowedUsers.includes(userId);
       if (!userAllowed) {
         return {
@@ -289,7 +282,6 @@ export async function deactivatePublicLink(tokenId: string, deactivatedBy: strin
       .update(resourceShareTokens)
       .set({
         isActive: false,
-        updatedAt: new Date(),
       })
       .where(eq(resourceShareTokens.id, tokenId));
 
@@ -367,11 +359,10 @@ export async function cleanupExpiredTokens(): Promise<OperationResult<number>> {
     });
 
     // Deactivate expired tokens
-    const result = await db
+    await db
       .update(resourceShareTokens)
       .set({
         isActive: false,
-        updatedAt: new Date(),
       })
       .where(
         and(

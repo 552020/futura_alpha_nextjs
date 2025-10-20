@@ -22,7 +22,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ tok
           userId = allUserRecord.id;
         }
       }
-    } catch (authError) {
+    } catch (_authError) {
       // User might not be authenticated, that's okay for public links
       fatLogger.info('ℹ️ No authenticated user for token validation:', 'be', {
         token: token.substring(0, 8) + '...',
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ tok
 
     // Check if user is authenticated and grant access if possible
     let accessGranted = false;
-    let userPermissions = { canView: true, canEdit: false, canDelete: false };
+    const userPermissions = { canView: true, canEdit: false, canDelete: false };
 
     try {
       const session = await auth();
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ tok
           });
         }
       }
-    } catch (authError) {
+    } catch (_authError) {
       // User might not be authenticated, that's okay for public links
       fatLogger.info('ℹ️ No authenticated user, providing public access:', 'be', {
         token: token.substring(0, 8) + '...',
