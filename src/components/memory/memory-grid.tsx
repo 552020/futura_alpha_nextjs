@@ -26,6 +26,9 @@ export function MemoryGrid({
   viewMode = 'grid',
   useReactQuery = false 
 }: MemoryGridProps) {
+  console.log('🔄 [MEMORY GRID] Component rendering with memories:', memories.length);
+  console.log('🔄 [MEMORY GRID] Memory IDs:', memories.map(m => m.id));
+  
   const deleteMemoryMutation = useDeleteMemory();
 
   const handleDelete = (item: FlexibleItem) => {
