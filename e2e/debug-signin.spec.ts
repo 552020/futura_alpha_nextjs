@@ -22,7 +22,7 @@ test.describe('Debug Signin Flow', () => {
     console.log('URL after clicking Sign In:', page.url());
 
     // 4. Take a screenshot of the modal
-    await page.screenshot({ path: 'debug-signin-modal.png' });
+    await page.screenshot({ path: 'debug/debug-signin-modal.png' });
 
     // 5. Check for modal presence
     const modal = page.locator('.fixed.inset-0.z-50'); // Modal container

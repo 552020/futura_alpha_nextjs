@@ -292,7 +292,8 @@ export const getTemporaryUserId = async (providedAllUserId: string): Promise<Use
 };
 
 /**
- * Check if user exists by email
+ * WARNING: this returns ALL user data from the table
+ *          -> Including password
  */
 export const getUserByEmail = async (email: string): Promise<UserOperationResult> => {
   try {

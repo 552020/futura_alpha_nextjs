@@ -17,6 +17,7 @@ import {
   // generateS3PublicUrl,
 } from './shared-utils';
 import { type UploadServiceResult } from './types';
+import { fatLogger } from '@/lib/logger';
 
 /**
  * Upload original files to S3 using grants (Lane A)
@@ -27,6 +28,12 @@ async function uploadOriginalToS3(
   grants: GrantResponse[],
   onProgress?: (progress: number) => void
 ): Promise<UploadServiceResult[]> {
+  fatLogger.info('🚀 ENTERING: uploadOriginalToS3', 'be', {
+    timestamp: new Date().toISOString(),
+    fileCount: files.length,
+    fileNames: files.map(f => f.name),
+    grantCount: grants.length,
+  });
   const isSingleFile = files.length === 1;
 
   const uploadPromises = files.map(async (file, index) => {
@@ -88,6 +95,13 @@ async function uploadOriginalToS3(
   });
 
   const uploadResults = await Promise.all(uploadPromises);
+
+  fatLogger.info('✅ EXITING: uploadOriginalToS3', 'be', {
+    timestamp: new Date().toISOString(),
+    fileCount: files.length,
+    resultCount: uploadResults.length,
+  });
+
   return uploadResults;
 }
 
@@ -95,6 +109,13 @@ export async function uploadToS3WithProcessing(
   file: File,
   onProgress?: (progress: number) => void
 ): Promise<UploadServiceResult> {
+  fatLogger.info('🚀 ENTERING: uploadToS3WithProcessing', 'be', {
+    timestamp: new Date().toISOString(),
+    fileName: file.name,
+    fileSize: file.size,
+    fileType: file.type,
+  });
+
   // const startTime = Date.now();
 
   try {
@@ -123,11 +144,26 @@ export async function uploadToS3WithProcessing(
 
     // Return Lane A result (original upload)
     if (laneAResult.status === 'fulfilled') {
+      fatLogger.info('✅ EXITING: uploadToS3WithProcessing', 'be', {
+        timestamp: new Date().toISOString(),
+        fileName: file.name,
+        status: 'success',
+      });
       return laneAResult.value;
     } else {
+      fatLogger.info('❌ EXITING: uploadToS3WithProcessing (lane A failed)', 'be', {
+        timestamp: new Date().toISOString(),
+        fileName: file.name,
+        error: laneAResult.reason,
+      });
       throw laneAResult.reason;
     }
   } catch (error) {
+    fatLogger.info('❌ EXITING: uploadToS3WithProcessing (with error)', 'be', {
+      timestamp: new Date().toISOString(),
+      fileName: file.name,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
     throw error;
   }
 }

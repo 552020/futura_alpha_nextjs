@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Eye, Edit, Trash2 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
+import { fatLogger } from '@/lib/logger/fat-logger';
 
 interface CapsuleListState {
   capsules: CapsuleListItem[];
@@ -157,13 +158,13 @@ export default function CapsuleList({ refreshTrigger }: CapsuleListProps = {}) {
 
   const handleEditCapsule = (capsuleId: string) => {
     // TODO: Navigate to capsule edit view
-    console.log('Edit capsule:', capsuleId);
+    fatLogger.info('Edit capsule:', 'be', { capsuleId });
     toast({ title: 'Info', description: 'Edit capsule functionality coming soon' });
   };
 
   const handleDeleteCapsule = (capsuleId: string) => {
     // TODO: Implement delete functionality
-    console.log('Delete capsule:', capsuleId);
+    fatLogger.info('Delete capsule:', 'be', { capsuleId });
     toast({ title: 'Info', description: 'Delete capsule functionality coming soon' });
   };
 

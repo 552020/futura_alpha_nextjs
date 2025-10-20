@@ -458,15 +458,16 @@ export default function MemoryDetailPage() {
               className="rounded-lg object-contain"
               sizes={IMAGE_SIZES.lightbox}
               onLoad={() => {
-                console.log(
-                  '🔍 [Dashboard Detail] Image loaded successfully for memory:',
-                  memory.id,
-                  'URL:',
-                  memory.url
-                );
+				fatLogger.info('Image loaded successfully for memory:', 'fe', {
+                  memoryId: memory.id,
+                  url: memory.url,
+                });
               }}
               onError={() => {
-                console.log('🔍 [Dashboard Detail] Image error for memory:', memory.id, 'URL:', memory.url);
+                fatLogger.error('Image error for memory:', 'fe', {
+                  memoryId: memory.id,
+                  url: memory.url,
+                });
               }}
               placeholder="blur"
               blurDataURL={memory.assets?.find?.(a => a.assetType === 'placeholder')?.url || getBlurPlaceholder()}
