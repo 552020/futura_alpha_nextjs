@@ -846,11 +846,12 @@ export const processDashboardItems = (memories: MemoryWithFolder[]): DashboardIt
       }
     });
 
+    const folderName = folderMemories[0]?.folder?.name || 'Unknown Folder';
     return {
       id: `folder-${folderId}`,
       type: 'folder' as const,
-      title: folderMemories[0]?.folder?.name || 'Unknown Folder',
-      description: `${folderMemories.length} items`,
+      title: folderName,
+      description: '',
       itemCount: folderMemories.length,
       memories: folderMemories,
       folderId: folderId, // Store actual folder ID

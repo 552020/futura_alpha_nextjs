@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { db } from '@/db/db';
-import { allUsers, users, temporaryUsers, resourceMembership } from '@/db';
-import { findMemory } from '@/app/api/memories/utils/memory';
-import { eq } from 'drizzle-orm';
-// import { sendInvitationEmail, sendSharedMemoryEmail } from "@/app/api/memories/utils/email";
-import type { RelationshipType, FamilyRelationshipType } from '@/db';
+import { createShare, createPublicLink, generateShareableUrl } from '@/services/sharing';
+import { getAllUserRecord, getAllUserRecordById, getUserEmailByAllUserId } from '@/services/user';
+import { getMemoryWithRelations } from '@/services/memory';
+import type { RelationshipType, FamilyRelationshipType, allUsers, DBMemoryWithAssets } from '@/db';
+import { sendInvitationEmail, sendSharedMemoryEmail } from '@/app/api/memories/utils/email';
 // import crypto from 'crypto';
 
 // function _generateSecureCode(): string {
@@ -27,7 +26,15 @@ type RelationshipInfo = {
 };
 
 type ShareRequest = {
-  target: ShareTarget;
+  shareType: 'user' | 'public';
+  target?: ShareTarget; // Required for user sharing
+  targetUserId?: string; // Alternative to target for user sharing
+  permissions?: {
+    canView: boolean;
+    canEdit: boolean;
+    canDelete: boolean;
+  };
+  expiresAt?: string; // ISO string for public links
   relationship?: RelationshipInfo;
   sendEmail?: boolean;
   isInviteeNew?: boolean;
@@ -43,20 +50,19 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     fatLogger.info('📨 Share request body:', 'be', body);
 
     const {
+      shareType,
       target,
+      targetUserId,
+      permissions,
+      expiresAt,
       relationship: _relationshipInfo,
-      sendEmail: _sendEmail = false,
-      isInviteeNew = false,
+      sendEmail: sendEmail = false,
+      isInviteeNew: _isInviteeNew = false,
       isOnboarding = false,
       ownerAllUserId,
     } = body;
 
-    // Find the memory first
-    const memory = await findMemory(memoryId);
-    fatLogger.info('🔍 Found memory:', 'be', { exists: !!memory, id: memoryId });
-    if (!memory) {
-      return NextResponse.json({ error: 'Memory not found' }, { status: 404 });
-    }
+    // We'll find the memory after authentication to check ownership
 
     // Handle authentication differently for onboarding vs regular flow
     let authenticatedUserId: string | undefined;
@@ -65,13 +71,28 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       if (!ownerAllUserId) {
         return NextResponse.json({ error: 'Owner ID required for onboarding' }, { status: 400 });
       }
-      // For onboarding, verify the owner exists in allUsers
-      const owner = await db.query.allUsers.findFirst({
-        where: eq(allUsers.id, ownerAllUserId),
-      });
+      // For onboarding, verify the owner exists in allUsers using service function
+      const ownerResult = await getAllUserRecordById(ownerAllUserId);
+
+      if (!ownerResult.success) {
+        fatLogger.error('Invalid onboarding user', 'be', {
+          ownerAllUserId,
+          error: ownerResult.error,
+        });
+        return NextResponse.json(
+          {
+            error: 'Invalid onboarding user',
+            details: ownerResult.error,
+          },
+          { status: 401 }
+        );
+      }
+
+      const owner = ownerResult.data as typeof allUsers.$inferSelect;
       fatLogger.info('👤 Found owner:', 'be', { exists: !!owner, type: owner?.type });
-      if (!owner || owner.type !== 'temporary') {
-        return NextResponse.json({ error: 'Invalid onboarding user' }, { status: 401 });
+
+      if (owner.type !== 'temporary') {
+        return NextResponse.json({ error: 'Invalid onboarding user type' }, { status: 401 });
       }
       authenticatedUserId = ownerAllUserId;
     } else {
@@ -80,94 +101,220 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       if (!session?.user?.id) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
-      const owner = await db.query.allUsers.findFirst({
-        where: eq(allUsers.userId, session.user.id),
-      });
-      if (!owner) {
-        return NextResponse.json({ error: 'Owner not found' }, { status: 404 });
+      // Get user record using service function
+      const userResult = await getAllUserRecord(session.user.id);
+
+      if (!userResult.success) {
+        fatLogger.error('Failed to get user record', 'be', {
+          error: userResult.error,
+          userId: session.user.id,
+        });
+        return NextResponse.json(
+          {
+            error: 'User record not found',
+            details: userResult.error,
+          },
+          { status: 404 }
+        );
       }
+
+      const owner = userResult.data as typeof allUsers.$inferSelect;
       authenticatedUserId = owner.id;
     }
 
-    if (target.type === 'group') {
-      // TODO: Implement group sharing
-      return NextResponse.json({ error: 'Group sharing not implemented' }, { status: 501 });
+    // Find the memory and check ownership using service function
+    const memoryResult = await getMemoryWithRelations(memoryId, authenticatedUserId);
+
+    if (!memoryResult.success) {
+      fatLogger.error('Memory not found or not owned by user', 'be', {
+        memoryId,
+        ownerId: authenticatedUserId,
+        error: memoryResult.error,
+      });
+      return NextResponse.json(
+        {
+          error: 'Memory not found or access denied',
+          details: memoryResult.error,
+        },
+        { status: 404 }
+      );
     }
 
-    // Check if target user exists in allUsers
-    const targetUser = await db.query.allUsers.findFirst({
-      where: eq(allUsers.id, target.allUserId!),
+    const memory = memoryResult.data as DBMemoryWithAssets;
+
+    fatLogger.info('✅ Memory found and owned by user:', 'be', {
+      memoryId,
+      memoryTitle: memory.title,
+      ownerId: authenticatedUserId,
     });
 
-    if (!targetUser) {
-      return NextResponse.json({ error: 'Target user not found' }, { status: 404 });
-    }
+    // Handle different sharing types
+    if (shareType === 'user') {
+      // User-to-user sharing
+      const finalTargetUserId = targetUserId || target?.allUserId;
+      if (!finalTargetUserId) {
+        return NextResponse.json({ error: 'Target user ID is required for user sharing' }, { status: 400 });
+      }
 
-    // Check ownership
-    if (memory.ownerId !== authenticatedUserId) {
-      return NextResponse.json({ error: 'Only the owner can share this memory' }, { status: 403 });
-    }
+      // Check if target user exists using service function
+      const targetUserResult = await getAllUserRecordById(finalTargetUserId);
 
-    // Get user's email based on type
-    let userEmail: string | undefined;
-    if (targetUser.type === 'user' && targetUser.userId) {
-      const permanentUser = await db.query.users.findFirst({
-        where: eq(users.id, targetUser.userId),
+      if (!targetUserResult.success) {
+        fatLogger.error('Target user not found', 'be', {
+          targetUserId: finalTargetUserId,
+          error: targetUserResult.error,
+        });
+        return NextResponse.json(
+          {
+            error: 'Target user not found',
+            details: targetUserResult.error,
+          },
+          { status: 404 }
+        );
+      }
+
+      // Create user share
+      const shareResult = await createShare({
+        resourceType: 'memory',
+        resourceId: memoryId,
+        targetUserId: finalTargetUserId,
+        permissions: permissions || { canView: true, canEdit: false, canDelete: false },
+        invitedBy: authenticatedUserId,
       });
-      userEmail = permanentUser?.email ?? undefined;
-      fatLogger.info('📧 Found permanent user email:', 'be', { email: userEmail, userId: targetUser.userId });
-    } else if (targetUser.type === 'temporary' && targetUser.temporaryUserId) {
-      const temporaryUser = await db.query.temporaryUsers.findFirst({
-        where: eq(temporaryUsers.id, targetUser.temporaryUserId),
+
+      if (!shareResult.success) {
+        return NextResponse.json(
+          {
+            error: 'Failed to create share',
+            details: shareResult.error,
+          },
+          { status: 500 }
+        );
+      }
+
+      fatLogger.info('✅ User share created successfully', 'be', {
+        shareId: shareResult.data?.id,
+        memoryId,
+        targetUserId: finalTargetUserId,
       });
-      userEmail = temporaryUser?.email ?? undefined;
-      fatLogger.info('📧 Found temporary user email:', 'be', {
-        email: userEmail,
-        temporaryUserId: targetUser.temporaryUserId,
-        temporaryUser: {
-          id: temporaryUser?.id,
-          email: temporaryUser?.email,
-          name: temporaryUser?.name,
+
+      // Send email notification if requested
+      if (sendEmail && finalTargetUserId) {
+        try {
+          // Get memory details for email
+          const memoryResult = await getMemoryWithRelations(memoryId, authenticatedUserId);
+          if (memoryResult.success) {
+            const memory = memoryResult.data as DBMemoryWithAssets;
+
+            // Get recipient email using the new service function
+            const emailResult = await getUserEmailByAllUserId(finalTargetUserId);
+            if (!emailResult.success) {
+              fatLogger.error('📧 Failed to get recipient email', 'be', {
+                error: emailResult.error,
+                targetUserId: finalTargetUserId,
+                memoryId,
+              });
+              // Continue without email - don't fail the share operation
+            } else {
+              const recipientEmail = emailResult.data;
+
+              if (!recipientEmail) {
+                fatLogger.error('📧 No email address found for user', 'be', {
+                  targetUserId: finalTargetUserId,
+                  memoryId,
+                });
+                // Continue without email - don't fail the share operation
+              } else {
+                // Get recipient details to determine user type
+                const recipientResult = await getAllUserRecordById(finalTargetUserId);
+                const recipient = recipientResult.success
+                  ? (recipientResult.data as typeof allUsers.$inferSelect)
+                  : null;
+
+                // Determine if this is a new user invitation
+                const isNewUser = _isInviteeNew || (recipient && recipient.type === 'temporary');
+
+                if (isNewUser) {
+                  // Send invitation email for new users
+                  await sendInvitationEmail(recipientEmail, memory, authenticatedUserId, { useHTML: true });
+
+                  fatLogger.info('📧 Invitation email sent', 'be', {
+                    recipientEmail,
+                    memoryId,
+                    isNewUser: true,
+                  });
+                } else {
+                  // Send notification email for existing users
+                  const shareUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/memories/${memoryId}`;
+                  await sendSharedMemoryEmail(recipientEmail, memory, authenticatedUserId, shareUrl, { useHTML: true });
+
+                  fatLogger.info('📧 Shared memory email sent', 'be', {
+                    recipientEmail,
+                    memoryId,
+                    shareUrl,
+                  });
+                }
+              }
+            }
+          }
+        } catch (emailError) {
+          // Log error but don't fail the share operation
+          fatLogger.error('📧 Email sending failed', 'be', {
+            error: emailError instanceof Error ? emailError.message : 'Unknown error',
+            memoryId,
+            targetUserId: finalTargetUserId,
+          });
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          shareId: shareResult.data?.id,
+          shareType: 'user',
+          permissions: permissions || { canView: true, canEdit: false, canDelete: false },
         },
       });
-    }
-
-    if (!userEmail) {
-      fatLogger.error('❌ User email not found:', 'be', { data: { targetUser } });
-      return NextResponse.json({ error: 'User email not found' }, { status: 404 });
-    }
-    fatLogger.info('📧 Will send email to:', 'be', { userEmail, isInviteeNew });
-
-    // Create share record using the universal resource sharing system
-    const [share] = await db
-      .insert(resourceMembership)
-      .values({
-        resourceId: memoryId,
+    } else if (shareType === 'public') {
+      // Public link sharing
+      const publicLinkResult = await createPublicLink({
         resourceType: 'memory',
-        allUserId: target.type === 'user' ? target.allUserId! : target.groupId!,
-        grantSource: 'user',
-        role: 'member',
-        permMask: 1, // Read permission
-        invitedByAllUserId: authenticatedUserId,
-      })
-      .returning();
+        resourceId: memoryId,
+        createdBy: authenticatedUserId,
+        expiresAt: expiresAt ? new Date(expiresAt) : undefined,
+      });
 
-    fatLogger.info('✅ Memory shared successfully', 'be', {
-      shareId: share.id,
-      memoryId,
-      targetUserId: target.allUserId,
-      userEmail,
-    });
+      if (!publicLinkResult.success) {
+        return NextResponse.json(
+          {
+            error: 'Failed to create public link',
+            details: publicLinkResult.error,
+          },
+          { status: 500 }
+        );
+      }
 
-    return NextResponse.json({
-      success: true,
-      message: 'Memory shared successfully',
-      shareId: share.id,
-      targetUser: {
-        id: target.allUserId,
-        email: userEmail,
-      },
-    });
+      const shareUrl = generateShareableUrl(publicLinkResult.data!.token);
+
+      fatLogger.info('✅ Public link created successfully', 'be', {
+        tokenId: publicLinkResult.data?.id,
+        memoryId,
+        shareUrl,
+      });
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          shareId: publicLinkResult.data?.id,
+          shareType: 'public',
+          token: publicLinkResult.data?.token,
+          shareUrl,
+          expiresAt: publicLinkResult.data?.expiresAt,
+        },
+      });
+    } else {
+      return NextResponse.json({ error: 'Invalid share type' }, { status: 400 });
+    }
   } catch (error) {
     fatLogger.error('🔴 Error sharing memory:', 'be', {
       error: error instanceof Error ? error : undefined,

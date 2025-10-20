@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useInterface } from '@/contexts/interface-context';
 import { HostingSinglePreferenceCard } from '@/components/user/hosting-single-preference-card';
 import { HostingToggleCard } from '@/components/user/hosting-toggle-card';
+import { GeneralHostingCard } from '@/components/user/general-hosting-card';
 import {
   useHostingPreferences,
   useUpdateHostingPreferences,
@@ -96,6 +97,49 @@ export default function SettingsPage() {
         </div>
 
         {isTemporaryUser && <TemporaryUserCard />}
+
+        {/* General Hosting Card - for non-advanced users */}
+        {!userSettings?.hasAdvancedSettings && (
+          <GeneralHostingCard
+            isWeb2Enabled={getWeb2Enabled(preferences)}
+            isWeb3Enabled={getWeb3Enabled(preferences)}
+            onWeb2Toggle={checked => {
+              const currentWeb3 = getWeb3Enabled(preferences);
+
+              if (checked) {
+                // Enable Web2 stack
+                const newPreferences = createHostingPreferencesFromStacks(true, currentWeb3);
+                updatePreferences.mutate(newPreferences);
+              } else {
+                // Disable Web2 stack - but prevent disabling both
+                if (!currentWeb3) {
+                  alert('At least one hosting stack must be enabled. Please enable Web3 stack first.');
+                  return;
+                }
+                const newPreferences = createHostingPreferencesFromStacks(false, currentWeb3);
+                updatePreferences.mutate(newPreferences);
+              }
+            }}
+            onWeb3Toggle={checked => {
+              const currentWeb2 = getWeb2Enabled(preferences);
+
+              if (checked) {
+                // Enable Web3 stack
+                const newPreferences = createHostingPreferencesFromStacks(currentWeb2, true);
+                updatePreferences.mutate(newPreferences);
+              } else {
+                // Disable Web3 stack - but prevent disabling both
+                if (!currentWeb2) {
+                  alert('At least one hosting stack must be enabled. Please enable Web2 stack first.');
+                  return;
+                }
+                const newPreferences = createHostingPreferencesFromStacks(currentWeb2, false);
+                updatePreferences.mutate(newPreferences);
+              }
+            }}
+            isLoading={updatePreferences.isPending}
+          />
+        )}
 
         {/* Advanced Settings */}
         <AdvancedSettingsCard />
