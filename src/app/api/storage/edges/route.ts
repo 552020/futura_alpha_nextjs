@@ -18,6 +18,20 @@ export async function PUT(request: NextRequest) {
       syncError,
     } = body;
 
+    fatLogger.info('📥 Storage edge API request received', 'be', {
+      memoryId,
+      memoryType,
+      artifact,
+      locationMetadata,
+      locationAsset,
+      present,
+      location,
+      contentHash,
+      sizeBytes,
+      syncState,
+      syncError,
+    });
+
     // Validate required fields
     if (!memoryId || !memoryType || !artifact) {
       return NextResponse.json({ error: 'Missing required fields: memoryId, memoryType, artifact' }, { status: 400 });
@@ -80,6 +94,12 @@ export async function PUT(request: NextRequest) {
     }
 
     // Use the service layer to create storage edge
+    fatLogger.info('🔄 Calling createStorageEdge service', 'be', {
+      memoryId,
+      memoryType,
+      artifact,
+    });
+
     const result = await createStorageEdge({
       memoryId,
       memoryType: memoryType as 'image' | 'video' | 'note' | 'document' | 'audio',
@@ -94,16 +114,36 @@ export async function PUT(request: NextRequest) {
       syncError,
     });
 
+    fatLogger.info('📤 Storage edge service result', 'be', {
+      memoryId,
+      success: result.success,
+      hasData: !!result.data,
+      error: result.error,
+    });
+
     if (!result.success) {
+      fatLogger.error('❌ Storage edge creation failed', 'be', {
+        memoryId,
+        error: result.error,
+      });
       return NextResponse.json({ error: result.error }, { status: 500 });
     }
+
+    fatLogger.info('✅ Storage edge created successfully', 'be', {
+      memoryId,
+      edgeId: Array.isArray(result.data) ? result.data[0]?.id : result.data?.id,
+    });
 
     return NextResponse.json({
       success: true,
       data: result.data,
     });
   } catch (error) {
-    fatLogger.error('Error upserting storage edge:', 'be', { data: error instanceof Error ? error : undefined });
+    fatLogger.error('❌ Storage edge API error', 'be', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      operation: 'storage_edge_api_put',
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

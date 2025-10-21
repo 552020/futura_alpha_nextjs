@@ -1119,9 +1119,7 @@ export const storageEdges = pgTable(
   'storage_edges',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    memoryId: uuid('memory_id')
-      .notNull()
-      .references(() => memories.id, { onDelete: 'cascade' }), // References memories.id with cascade delete
+    memoryId: uuid('memory_id').notNull(), // Independent of memories table - can reference ICP-only memories
     memoryType: memory_type_t('memory_type').notNull(), // 'image' | 'video' | 'note' | 'document' | 'audio'
     artifact: artifact_t('artifact').notNull(), // 'metadata' | 'asset'
     locationMetadata: database_hosting_t('location_metadata'), // 'neon' | 'icp' (for metadata artifacts)
@@ -1367,10 +1365,10 @@ export const resourceShareTokens = pgTable(
     expiresAt: timestamp('expires_at', { mode: 'date' }),
     isActive: boolean('is_active').default(true).notNull(),
     createdAt: timestamp('created_at').notNull().defaultNow(),
-    
+
     // Enhanced access control fields
-    allowedUsers: jsonb('allowed_users'),           // Array of user IDs
-    allowedRoles: jsonb('allowed_roles'),            // Array of roles
+    allowedUsers: jsonb('allowed_users'), // Array of user IDs
+    allowedRoles: jsonb('allowed_roles'), // Array of roles
     requireAuth: boolean('require_auth').default(false).notNull(), // Must be logged in
     accessRestrictions: jsonb('access_restrictions'), // Custom restrictions
   },
