@@ -96,6 +96,23 @@ export function getHttpBaseUrl(): string {
 }
 
 /**
+ * Detect if a memory is from ICP or Neon based on its properties
+ */
+export function isICPMemory(memory: { ownerId?: string; storageStatus?: { storageLocations: string[] } }): boolean {
+  // Check if ownerId indicates ICP user
+  if (memory.ownerId === 'icp-user') {
+    return true;
+  }
+
+  // Check storage status for ICP storage
+  if (memory.storageStatus?.storageLocations?.includes('icp')) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Get a single token for a memory, using cache if available
  */
 export async function getHttpToken(

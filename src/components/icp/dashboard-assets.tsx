@@ -8,6 +8,9 @@ import { fatLogger } from '@/lib/logger';
 interface Memory {
   id: string;
   title: string;
+  thumbnail?: string;
+  ownerId?: string;
+  storageStatus?: { storageLocations: string[] };
   // Add other memory properties as needed
 }
 
@@ -44,8 +47,8 @@ export function DashboardAssets({ memories, onImageError }: DashboardAssetsProps
     try {
       fatLogger.info('Loading dashboard assets', 'fe', { count: memories.length });
 
-      const memoryIds = memories.map(m => m.id);
-      const urls = await loadThumbnails(memoryIds);
+      // Pass full memory objects instead of just IDs
+      const urls = await loadThumbnails(memories);
 
       setThumbnailUrls(urls);
 
@@ -193,8 +196,8 @@ export function useDashboardAssetManager(memories: Memory[]) {
     setError(null);
 
     try {
-      const memoryIds = memories.map(m => m.id);
-      const result = await loadAllVariants(memoryIds);
+      // Pass full memory objects instead of just IDs
+      const result = await loadAllVariants(memories);
 
       setAssets(result);
       fatLogger.info('Dashboard assets loaded successfully', 'fe', {
