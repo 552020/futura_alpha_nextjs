@@ -73,6 +73,33 @@ function getBulkCacheKey(memoryIds: string[], variants: string[], assetIds: stri
 }
 
 /**
+ * Gateway resolver with fallback logic
+ * Force use of icp0.io (boundary network) for production
+ */
+export const icGatewayFor = (host?: string) =>
+  host?.endsWith('.icp0.io') ? 'icp0.io' : 'icp0.io'; // force new BN
+
+/**
+ * Generate ICP URL with proper gateway
+ */
+export const icUrl = (canisterId: string, path: string, token?: string) => {
+  const gw = icGatewayFor(typeof window !== 'undefined' ? window.location.host : undefined);
+  const base = `https://${canisterId}.${gw}`;
+  return token ? `${base}${path}${path.includes('?') ? '&' : '?'}token=${token}` : `${base}${path}`;
+};
+
+/**
+ * Normalize URL to use correct gateway
+ * Rewrite ic0.app to icp0.io for compatibility
+ */
+export function normalizeIcUrl(url: string): string {
+  if (url.includes('.ic0.app')) {
+    return url.replace('.ic0.app', '.icp0.io');
+  }
+  return url;
+}
+
+/**
  * Get HTTP base URL based on environment
  */
 export function getHttpBaseUrl(): string {
@@ -86,10 +113,10 @@ export function getHttpBaseUrl(): string {
     return `http://${canisterId}.localhost:4943`;
   }
 
-  // Production ICP HTTP gateway
+  // Production ICP HTTP gateway - use icp0.io (boundary network)
   const canisterId = process.env.NEXT_PUBLIC_CANISTER_ID_BACKEND;
   if (canisterId) {
-    return `https://${canisterId}.ic0.app`;
+    return `https://${canisterId}.icp0.io`;
   }
 
   throw new Error('Cannot determine HTTP base URL - missing canister ID');

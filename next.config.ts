@@ -92,6 +92,12 @@ const nextConfig: NextConfig = {
         port: '4943',
         pathname: '/asset/**',
       },
+      // ICP boundary network gateway (icp0.io) for production
+      {
+        protocol: 'https',
+        hostname: '*.icp0.io',
+        pathname: '/asset/**',
+      },
       // Dynamic canister ID for local development
       ...(process.env.NEXT_PUBLIC_CANISTER_ID_BACKEND
         ? [
