@@ -131,7 +131,7 @@ export async function PUT(request: NextRequest) {
 
     fatLogger.info('✅ Storage edge created successfully', 'be', {
       memoryId,
-      edgeId: result.data?.id,
+      edgeId: Array.isArray(result.data) ? result.data[0]?.id : result.data?.id,
     });
 
     return NextResponse.json({

@@ -6,7 +6,7 @@
  */
 
 import { db } from '@/db/db';
-import { storageEdges } from '@/db/tables';
+import { storageEdges, memories } from '@/db/tables';
 import { type NewDBStorageEdge, type DBStorageEdge } from '@/db/types';
 import { eq, and, isNull } from 'drizzle-orm';
 import { fatLogger } from '@/lib/logger';
@@ -55,6 +55,12 @@ export const createStorageEdge = async (params: CreateStorageEdgeParams): Promis
       location: params.location,
       sizeBytes: params.sizeBytes,
       syncState: params.syncState,
+    });
+
+    // Storage edges are independent - no need to verify memory exists
+    fatLogger.info('✅ Creating storage edge independently', 'be', {
+      memoryId: params.memoryId,
+      note: 'Storage edges can reference ICP-only memories without database validation',
     });
 
     // Validate that at least one location field is provided
@@ -118,28 +124,46 @@ export const createStorageEdge = async (params: CreateStorageEdgeParams): Promis
 
     let existingEdge;
     try {
+      // Build the where conditions more carefully
+      const whereConditions = [
+        eq(storageEdges.memoryId, params.memoryId),
+        eq(storageEdges.memoryType, params.memoryType),
+        eq(storageEdges.artifact, params.artifact),
+      ];
+
+      // Add location conditions based on what's provided
+      if (params.locationMetadata) {
+        whereConditions.push(eq(storageEdges.locationMetadata, params.locationMetadata));
+      } else {
+        whereConditions.push(isNull(storageEdges.locationMetadata));
+      }
+
+      if (params.locationAsset) {
+        whereConditions.push(eq(storageEdges.locationAsset, params.locationAsset));
+      } else {
+        whereConditions.push(isNull(storageEdges.locationAsset));
+      }
+
+      fatLogger.info('🔍 Building database query', 'be', {
+        memoryId: params.memoryId,
+        memoryType: params.memoryType,
+        artifact: params.artifact,
+        locationMetadata: params.locationMetadata,
+        locationAsset: params.locationAsset,
+        whereConditionsCount: whereConditions.length,
+      });
+
       existingEdge = await db
         .select()
         .from(storageEdges)
-        .where(
-          and(
-            eq(storageEdges.memoryId, params.memoryId),
-            eq(storageEdges.memoryType, params.memoryType),
-            eq(storageEdges.artifact, params.artifact),
-            params.locationMetadata
-              ? eq(storageEdges.locationMetadata, params.locationMetadata)
-              : isNull(storageEdges.locationMetadata),
-            params.locationAsset
-              ? eq(storageEdges.locationAsset, params.locationAsset)
-              : isNull(storageEdges.locationAsset)
-          )
-        )
+        .where(and(...whereConditions))
         .limit(1);
 
       fatLogger.info('🔍 Database query completed', 'be', {
         memoryId: params.memoryId,
         foundExisting: existingEdge.length > 0,
         existingCount: existingEdge.length,
+        existingEdge: existingEdge.length > 0 ? existingEdge[0] : null,
       });
     } catch (queryError) {
       fatLogger.error('❌ Database query failed', 'be', {
@@ -223,6 +247,24 @@ export const createStorageEdge = async (params: CreateStorageEdgeParams): Promis
           error: insertError instanceof Error ? insertError.message : 'Unknown error',
           stack: insertError instanceof Error ? insertError.stack : undefined,
         });
+
+        // Check if it's a foreign key constraint violation
+        if (
+          insertError instanceof Error &&
+          (insertError.message.includes('foreign key') ||
+            insertError.message.includes('violates foreign key') ||
+            insertError.message.includes('referential integrity'))
+        ) {
+          fatLogger.error('❌ Foreign key constraint violation - memory does not exist', 'be', {
+            memoryId: params.memoryId,
+            error: insertError.message,
+          });
+          return {
+            success: false,
+            error: `Memory with ID ${params.memoryId} does not exist. Cannot create storage edge for non-existent memory.`,
+          };
+        }
+
         throw insertError;
       }
     }
