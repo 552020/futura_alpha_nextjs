@@ -34,6 +34,7 @@
     "manage-user-roles": "tsx scripts/manage-user-roles.ts"
   },
   "dependencies": {
+    "@ai-sdk/google": "^2.0.23",
     "@ai-sdk/openai": "^2.0.53",
     "@ai-sdk/react": "^2.0.76",
     "@auth/drizzle-adapter": "^1.10.0",
