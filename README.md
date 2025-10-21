@@ -10,14 +10,17 @@ futura.now
 ## How to
 
 ### Web3
-1. **Create an account**  
+1. **Create an account and login with web2**  
 2. Go to **Settings** and select **Web3** instead of **Web2**  
 3. Go to **ICP** and connect your **Internet Identity**  
 4. Go to the **Dashboard** to add or delete files and folders  
 
 ### Web2
-1. **Create an account**  
+1. **Create an account and login with web2**  
 2. Go to the **Dashboard** to add or delete files and folders  
+
+### Switch
+You can switch between web2 and web3, data is not migrated.
 
 ### Other Features
 - **Gallery Sharing** – Easily share image galleries with others.  
