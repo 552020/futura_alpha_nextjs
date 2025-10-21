@@ -5,6 +5,27 @@
 Futura combines **ICP** and **blockchain technologies** to safeguard the most meaningful memories of a person for the long term, ensuring they can be passed down across generations.
 
 ---
+futura.now
+
+## How to
+
+### Web3
+1. **Create an account**  
+2. Go to **Settings** and select **Web3** instead of **Web2**  
+3. Go to **ICP** and connect your **Internet Identity**  
+4. Go to the **Dashboard** to add or delete files and folders  
+
+### Web2
+1. **Create an account**  
+2. Go to the **Dashboard** to add or delete files and folders  
+
+### Other Features
+- **Gallery Sharing** – Easily share image galleries with others.  
+- **Gallery Selection with Email Notification** – Allows clients to make selections from a gallery, and notifies the photographer via email.  
+  > ⚠️ This feature only works if you have an existing **business–client relationship** set up in the database.
+
+
+---
 
 ## Current Offering
 At this stage, users can choose between **Web2** and **Web3 storage** options.  
