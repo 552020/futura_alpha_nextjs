@@ -103,6 +103,13 @@ const nextConfig: NextConfig = {
             },
           ]
         : []),
+      // Generic pattern for any localhost canister ID (for local development)
+      {
+        protocol: 'http',
+        hostname: '*.localhost',
+        port: '4943',
+        pathname: '/asset/**',
+      },
       // S3 bucket for user-uploaded images
       {
         protocol: 'https',
