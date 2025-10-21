@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useDashboardAssets } from '@/hooks/use-http-tokens';
 import { fatLogger } from '@/lib/logger';
+import { normalizeIcUrl } from '@/lib/http-token-manager';
 
 interface Memory {
   id: string;
@@ -150,7 +151,7 @@ export function DashboardAssets({ memories, onImageError }: DashboardAssetsProps
 
             {thumbnailUrl && !error && (
               <Image
-                src={thumbnailUrl}
+                src={normalizeIcUrl(thumbnailUrl)}
                 alt={memory.title}
                 fill
                 className="object-cover"
