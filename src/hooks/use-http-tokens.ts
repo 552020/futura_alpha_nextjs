@@ -152,15 +152,61 @@ export function useDashboardAssets() {
 
   /**
    * Load thumbnail URLs for a list of memories (dashboard scenario)
+   * Handles both ICP and Neon memories appropriately
    */
   const loadThumbnails = useCallback(
-    async (memoryIds: string[]): Promise<Map<string, string>> => {
+    async (memories: Array<{ id: string; thumbnail?: string; ownerId?: string; storageStatus?: { storageLocations: string[] } }>): Promise<Map<string, string>> => {
       try {
-        fatLogger.info('Loading dashboard thumbnails', 'fe', { count: memoryIds.length });
-        return await getBulkAssetUrls(memoryIds, 'thumbnail');
+        fatLogger.info('Loading dashboard thumbnails', 'fe', { count: memories.length });
+        
+        // Separate ICP and Neon memories
+        const icpMemories = memories.filter(memory => {
+          // Check if ownerId indicates ICP user
+          if (memory.ownerId === 'icp-user') {
+            return true;
+          }
+          // Check storage status for ICP storage
+          if (memory.storageStatus?.storageLocations?.includes('icp')) {
+            return true;
+          }
+          return false;
+        });
+        
+        const neonMemories = memories.filter(memory => !icpMemories.includes(memory));
+        
+        const urlMap = new Map<string, string>();
+        
+        // Handle ICP memories - use pre-generated URLs
+        for (const memory of icpMemories) {
+          if (memory.thumbnail) {
+            urlMap.set(memory.id, memory.thumbnail);
+            fatLogger.info('Using pre-generated ICP thumbnail URL', 'fe', { 
+              memoryId: memory.id, 
+              url: memory.thumbnail 
+            });
+          }
+        }
+        
+        // Handle Neon memories - generate new URLs
+        if (neonMemories.length > 0) {
+          const neonMemoryIds = neonMemories.map(m => m.id);
+          const neonUrls = await getBulkAssetUrls(neonMemoryIds, 'thumbnail');
+          
+          for (const [memoryId, url] of neonUrls) {
+            urlMap.set(memoryId, url);
+          }
+        }
+        
+        fatLogger.info('Dashboard thumbnails loaded', 'fe', {
+          icpCount: icpMemories.length,
+          neonCount: neonMemories.length,
+          totalUrls: urlMap.size
+        });
+        
+        return urlMap;
       } catch (error) {
         fatLogger.error('Failed to load dashboard thumbnails', 'fe', {
-          memoryIds,
+          memories: memories.map(m => m.id),
           error: error instanceof Error ? error : undefined,
         });
         throw error;
@@ -193,23 +239,58 @@ export function useDashboardAssets() {
    */
   const loadAllVariants = useCallback(
     async (
-      memoryIds: string[]
+      memories: Array<{ id: string; thumbnail?: string; ownerId?: string; storageStatus?: { storageLocations: string[] } }>
     ): Promise<{
       thumbnails: Map<string, string>;
       previews: Map<string, string>;
     }> => {
       try {
-        fatLogger.info('Loading all dashboard variants', 'fe', { count: memoryIds.length });
+        fatLogger.info('Loading all dashboard variants', 'fe', { count: memories.length });
 
-        const [thumbnails, previews] = await Promise.all([
-          getBulkAssetUrls(memoryIds, 'thumbnail'),
-          getBulkAssetUrls(memoryIds, 'preview'),
-        ]);
+        // Separate ICP and Neon memories
+        const icpMemories = memories.filter(memory => {
+          if (memory.ownerId === 'icp-user') return true;
+          if (memory.storageStatus?.storageLocations?.includes('icp')) return true;
+          return false;
+        });
+        
+        const neonMemories = memories.filter(memory => !icpMemories.includes(memory));
+        
+        const thumbnails = new Map<string, string>();
+        const previews = new Map<string, string>();
+        
+        // Handle ICP memories - use pre-generated URLs
+        for (const memory of icpMemories) {
+          if (memory.thumbnail) {
+            thumbnails.set(memory.id, memory.thumbnail);
+          }
+          // For previews, we'd need to check if there's a display URL
+          // For now, use thumbnail as preview for ICP memories
+          if (memory.thumbnail) {
+            previews.set(memory.id, memory.thumbnail);
+          }
+        }
+        
+        // Handle Neon memories - generate new URLs
+        if (neonMemories.length > 0) {
+          const neonMemoryIds = neonMemories.map(m => m.id);
+          const [neonThumbnails, neonPreviews] = await Promise.all([
+            getBulkAssetUrls(neonMemoryIds, 'thumbnail'),
+            getBulkAssetUrls(neonMemoryIds, 'preview'),
+          ]);
+          
+          for (const [memoryId, url] of neonThumbnails) {
+            thumbnails.set(memoryId, url);
+          }
+          for (const [memoryId, url] of neonPreviews) {
+            previews.set(memoryId, url);
+          }
+        }
 
         return { thumbnails, previews };
       } catch (error) {
         fatLogger.error('Failed to load all dashboard variants', 'fe', {
-          memoryIds,
+          memories: memories.map(m => m.id),
           error: error instanceof Error ? error : undefined,
         });
         throw error;
