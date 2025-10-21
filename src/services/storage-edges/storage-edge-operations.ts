@@ -6,7 +6,7 @@
  */
 
 import { db } from '@/db/db';
-import { storageEdges, memories } from '@/db/tables';
+import { storageEdges } from '@/db/tables';
 import { type NewDBStorageEdge, type DBStorageEdge } from '@/db/types';
 import { eq, and, isNull } from 'drizzle-orm';
 import { fatLogger } from '@/lib/logger';
