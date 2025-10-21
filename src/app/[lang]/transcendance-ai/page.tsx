@@ -77,31 +77,28 @@ export default function TranscendanceAIPage() {
           const { done, value } = await reader.read();
           if (done) break;
           
-          const chunk = decoder.decode(value);
-          const lines = chunk.split('\n');
+          const text = decoder.decode(value, { stream: true });
+          assistantMessage += text;
           
-          for (const line of lines) {
-            if (line.startsWith('0:')) {
-              const data = line.slice(2);
-              assistantMessage += data;
-              
-              setMessages(prev => {
-                const withoutLast = prev.filter(m => m.id !== assistantId);
-                return [...withoutLast, { id: assistantId, role: 'assistant', content: assistantMessage }];
-              });
-            }
-          }
+          setMessages(prev => {
+            const withoutLast = prev.filter(m => m.id !== assistantId);
+            return [...withoutLast, { id: assistantId, role: 'assistant', content: assistantMessage }];
+          });
         }
       }
     } catch (error) {
       console.error('Error sending message:', error);
+      setMessages(prev => [...prev, {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: 'Sorry, I encountered an error. Please try again.'
+      }]);
     } finally {
       setStatus('ready');
     }
   };
 
   if (!isAuthorized || isLoading) {
-    // Show loading spinner only while status is loading
     if (isLoading) {
       return (
         <div className="flex h-screen items-center justify-center">
@@ -109,8 +106,6 @@ export default function TranscendanceAIPage() {
         </div>
       );
     }
-
-    // Show access denied for unauthenticated users
     return <RequireAuth />;
   }
 
