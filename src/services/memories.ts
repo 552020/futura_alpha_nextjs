@@ -359,6 +359,96 @@ export const fetchMemories = async (
   }
 };
 
+// Fetch a single memory by ID based on data source
+export const fetchMemory = async (
+  memoryId: string,
+  dataSource: 'neon' | 'icp' = 'neon'
+): Promise<MemoryWithFolder | null> => {
+  fatLogger.info(`🔍 Fetching memory ${memoryId} from ${dataSource}...`, 'be');
+
+  if (dataSource === 'icp') {
+    return await fetchMemoryFromICP(memoryId);
+  } else {
+    return await fetchMemoryFromNeon(memoryId);
+  }
+};
+
+// Fetch a single memory from Neon database via API
+const fetchMemoryFromNeon = async (memoryId: string): Promise<MemoryWithFolder | null> => {
+  const response = await fetch(`/api/memories/${memoryId}`, { cache: 'no-store' });
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      return null;
+    }
+    throw new Error(`Neon ${response.status}: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data.success ? data.data : data;
+};
+
+// Fetch a single memory from ICP canister
+const fetchMemoryFromICP = async (memoryId: string): Promise<MemoryWithFolder | null> => {
+  try {
+    const { backendActor } = await import('@/ic/backend');
+    const { getAuthClient } = await import('@/ic/ii');
+
+    const authClient = await getAuthClient();
+    if (!authClient.isAuthenticated()) {
+      throw new Error('Please connect your Internet Identity to fetch ICP memories');
+    }
+
+    const identity = authClient.getIdentity();
+    const actor = await backendActor(identity);
+
+    // Try to get the memory using the same method as dashboard
+    // First get the capsule ID (assuming we need it)
+    const capsuleResult = await actor.capsules_read_basic([]);
+    if ('Ok' in capsuleResult) {
+      const capsules = capsuleResult.Ok;
+      if (capsules.length > 0) {
+        const capsuleId = capsules[0].id;
+        fatLogger.info('Using capsule ID:', 'be', { capsuleId });
+
+        // Try to get all memories and find the one we want
+        const limit: [] | [number] = [100]; // Get more memories to find ours
+        const cursor: [] | [string] = [];
+        const result = await actor.memories_list_by_capsule(capsuleId, cursor, limit);
+
+        fatLogger.info('ICP memories_list_by_capsule result:', 'be', { memoryId, result });
+
+        if ('Ok' in result) {
+          const memoriesPage = result.Ok;
+          const targetMemory = memoriesPage.items.find((item: any) => item.id === memoryId);
+
+          if (targetMemory) {
+            fatLogger.info('ICP memory found in list:', 'be', { memoryId, targetMemory });
+            return transformICPMemoryHeaderToNeon(targetMemory);
+          } else {
+            fatLogger.warn('ICP memory not found in list:', 'be', {
+              memoryId,
+              availableIds: memoriesPage.items.map((item: any) => item.id),
+            });
+            return null;
+          }
+        } else {
+          fatLogger.warn('ICP memories_list_by_capsule failed:', 'be', { memoryId, error: result });
+          return null;
+        }
+      }
+    }
+
+    fatLogger.warn('No capsules found or capsule read failed:', 'be', { memoryId });
+    return null;
+  } catch (error) {
+    fatLogger.warn('ICP connection failed:', 'be', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
+};
+
 // Fetch memories from Neon database via API (current implementation)
 const fetchMemoriesFromNeon = async (page: number): Promise<FetchMemoriesResult> => {
   const response = await fetch(`/api/memories?page=${page}`, { cache: 'no-store' });

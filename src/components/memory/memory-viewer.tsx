@@ -7,7 +7,6 @@ import { Download, Edit, Trash } from 'lucide-react';
 import { useState, useEffect } from 'react';
 // Note: DBImage, DBDocument, DBNote, DBVideo types are no longer used with the new schema
 import { shortenTitle } from '@/lib/utils';
-
 import { fatLogger } from '@/lib/logger';
 interface MemoryViewerProps {
   memory: MemoryWithType;
@@ -96,14 +95,19 @@ export function MemoryViewer({ memory, isOwner }: MemoryViewerProps) {
       <div className="mt-4">
         {memory.type === 'image' && primaryAsset && (
           <div className="relative aspect-video w-full overflow-hidden rounded-lg">
-            <Image src={primaryAsset.url} alt={memory.title || 'Shared memory'} fill className="object-cover" />
+            <Image
+              src={normalizeIcUrl(primaryAsset.url)}
+              alt={memory.title || 'Shared memory'}
+              fill
+              className="object-cover"
+            />
           </div>
         )}
 
         {memory.type === 'video' && primaryAsset && (
           <div className="relative aspect-video w-full overflow-hidden rounded-lg">
             <video controls className="h-full w-full">
-              <source src={primaryAsset.url} type={primaryAsset.mimeType} />
+              <source src={normalizeIcUrl(primaryAsset.url)} type={primaryAsset.mimeType} />
               Your browser does not support the video tag.
             </video>
           </div>

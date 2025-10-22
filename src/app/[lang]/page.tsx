@@ -1,5 +1,6 @@
 import Hero from '@/components/marketing/hero';
 import HeroDemo from '@/components/marketing/hero-demo';
+import SplitFeatureRotatingCube from '@/components/marketing/split-feature-rotating-cube';
 import { getDictionary } from '@/utils/dictionaries';
 import { cookies } from 'next/headers';
 import { auth } from '@/auth';
@@ -42,6 +43,18 @@ export default async function LangPage({ params }: PageProps) {
       ) : (
         <HeroDemo dict={dict} lang={resolvedParams.lang} />
       )}
+
+      {/* Split Feature Rotating Cube Section */}
+      <SplitFeatureRotatingCube
+        title="Your Memories. Preserved Forever."
+        subtitle="Built for eternity. Designed for you."
+        description="Store your most precious memories on the Internet Computer with permanent, decentralized storage that never expires."
+        ctaText="Start Preserving"
+        ctaLink={`/${resolvedParams.lang}/onboarding/items-upload`}
+        secondaryCtaText="Learn More →"
+        secondaryCtaLink={`/${resolvedParams.lang}#learn-more`}
+      />
+
       {/* <ValueJourney dict={dict} lang={resolvedParams.lang} segment={segment} /> */}
     </main>
   );

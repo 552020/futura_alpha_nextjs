@@ -13,6 +13,8 @@ import { MemoryStorageBadge } from '@/components/common/memory-storage-badge';
 import { sampleDashboardMemories } from '../../../../../scripts/mock-data/create-dashboard-sample-data';
 import { getBlurPlaceholder, IMAGE_SIZES } from '@/utils/image-utils';
 import { generateBestAssetUrl } from '@/lib/presigned-url-utils';
+import { fetchMemory, MemoryWithFolder } from '@/services/memories';
+import { useHostingPreferences, getRecommendedDashboardDataSource } from '@/hooks/use-hosting-preferences';
 
 import { fatLogger } from '@/lib/logger';
 // Demo flag - set to true to use mock data for demo
@@ -108,6 +110,12 @@ export default function MemoryDetailPage() {
   const { isAuthorized, isTemporaryUser, userId, redirectToSignIn } = useAuthGuard();
   const [memory, setMemory] = useState<Memory | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Get data source from URL params or derive from hosting preferences
+  const searchParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+  const dsFromUrl = searchParams.get('ds') as 'icp' | 'neon' | null;
+  const { data: hostingPreferences } = useHostingPreferences();
+  const dataSource = dsFromUrl ?? (hostingPreferences ? getRecommendedDashboardDataSource(hostingPreferences) : 'neon');
   // Cache for presigned URLs to prevent duplicate requests
   const urlCache = useRef<Map<string, string>>(new Map());
 
@@ -172,7 +180,7 @@ export default function MemoryDetailPage() {
     [getCachedAssetUrl]
   );
 
-  const fetchMemory = useCallback(async () => {
+  const fetchMemoryData = useCallback(async () => {
     try {
       setIsLoading(true);
 
@@ -212,74 +220,66 @@ export default function MemoryDetailPage() {
         return;
       }
 
-      const response = await fetch(`/api/memories/${id}`);
+      // Use the new fetchMemory service that respects data source
+      fatLogger.info('Fetching memory with data source:', 'fe', { id, dataSource });
+      const memoryData = await fetchMemory(id, dataSource);
 
-      fatLogger.info('Memory API Response:', 'fe', {
-        status: response.status,
-        ok: response.ok,
+      if (!memoryData) {
+        fatLogger.error('Memory not found:', 'fe', { id, dataSource });
+        throw new Error('Memory not found');
+      }
+
+      fatLogger.info('Memory data received:', 'fe', { id, memoryData });
+
+      fatLogger.info('Memory data loaded', 'fe', { memoryId: memoryData.id, type: memoryData.type });
+
+      const assets = (memoryData as MemoryWithFolder & { assets?: MemoryAsset[] }).assets || [];
+
+      fatLogger.info('Memory assets loaded', 'fe', { assetCount: assets.length });
+
+      // Load asset URLs if assets exist
+      let displayUrl: string | undefined;
+      let originalUrl: string | undefined;
+      let mimeType: string | undefined;
+
+      if (assets && assets.length > 0) {
+        const loadedUrls = await loadAssetUrls(assets);
+        displayUrl = loadedUrls.displayUrl;
+        originalUrl = loadedUrls.originalUrl;
+        mimeType = loadedUrls.mimeType;
+      }
+
+      fatLogger.info('Extracted display URL', 'fe', { displayUrl });
+      fatLogger.info('Extracted original URL', 'fe', { originalUrl });
+      fatLogger.info('Extracted MIME type', 'fe', { mimeType });
+
+      // Get the thumbnail URL with caching
+      const thumbnailUrl = assets ? await getCachedAssetUrl(assets, 'thumb') : undefined;
+
+      const transformedMemory: Memory = {
+        id: memoryData.id,
+        type: memoryData.type,
+        title: memoryData.title || 'Untitled',
+        description: memoryData.description,
+        createdAt: memoryData.createdAt,
+        url: displayUrl || originalUrl, // Use display URL if available, fallback to original
+        content: 'content' in memoryData ? memoryData.content : undefined,
+        mimeType: mimeType,
+        ownerId: memoryData.ownerId,
+        assets: assets,
+        metadata: memoryData.metadata,
+        thumbnail: thumbnailUrl || displayUrl || originalUrl,
+      };
+
+      fatLogger.info('🔄 Transformed memory:', 'fe', {
+        id: transformedMemory.id,
+        type: transformedMemory.type,
+        url: transformedMemory.url,
+        thumbnail: transformedMemory.thumbnail,
+        hasAssets: !!assets?.length,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        fatLogger.error('Memory fetch error:', 'fe', { data: new Error(errorData) });
-        throw new Error(errorData.error || 'Failed to fetch memory');
-      }
-
-      const data = await response.json();
-      fatLogger.info('Memory data loaded', 'fe', { memoryId: data.id, type: data.type });
-
-      if (data.success && data.data) {
-        const memoryData = data.data;
-        const assets = memoryData.assets || [];
-
-        fatLogger.info('Memory assets loaded', 'fe', { assetCount: assets.length });
-
-        // Load asset URLs if assets exist
-        let displayUrl: string | undefined;
-        let originalUrl: string | undefined;
-        let mimeType: string | undefined;
-
-        if (assets && assets.length > 0) {
-          const loadedUrls = await loadAssetUrls(assets);
-          displayUrl = loadedUrls.displayUrl;
-          originalUrl = loadedUrls.originalUrl;
-          mimeType = loadedUrls.mimeType;
-        }
-
-        fatLogger.info('Extracted display URL', 'fe', { displayUrl });
-        fatLogger.info('Extracted original URL', 'fe', { originalUrl });
-        fatLogger.info('Extracted MIME type', 'fe', { mimeType });
-
-        // Get the thumbnail URL with caching
-        const thumbnailUrl = assets ? await getCachedAssetUrl(assets, 'thumb') : undefined;
-
-        const transformedMemory: Memory = {
-          id: memoryData.id,
-          type: memoryData.type,
-          title: memoryData.title || 'Untitled',
-          description: memoryData.description,
-          createdAt: memoryData.createdAt,
-          url: displayUrl || originalUrl, // Use display URL if available, fallback to original
-          content: 'content' in memoryData ? memoryData.content : undefined,
-          mimeType: mimeType,
-          ownerId: memoryData.ownerId,
-          assets: assets,
-          metadata: memoryData.metadata,
-          thumbnail: thumbnailUrl || displayUrl || originalUrl,
-        };
-
-        fatLogger.info('🔄 Transformed memory:', 'fe', {
-          id: transformedMemory.id,
-          type: transformedMemory.type,
-          url: transformedMemory.url,
-          thumbnail: transformedMemory.thumbnail,
-          hasAssets: !!assets?.length,
-        });
-
-        setMemory(transformedMemory);
-      } else {
-        throw new Error('Invalid memory data format');
-      }
+      setMemory(transformedMemory);
     } catch (error) {
       fatLogger.error('Error fetching memory:', 'fe', { data: error as Error });
       setMemory(null);
@@ -296,9 +296,9 @@ export default function MemoryDetailPage() {
 
   useEffect(() => {
     if (isAuthorized && userId) {
-      fetchMemory();
+      fetchMemoryData();
     }
-  }, [isAuthorized, userId, fetchMemory]);
+  }, [isAuthorized, userId, fetchMemoryData]);
 
   const handleDelete = async () => {
     try {
@@ -458,7 +458,7 @@ export default function MemoryDetailPage() {
               className="rounded-lg object-contain"
               sizes={IMAGE_SIZES.lightbox}
               onLoad={() => {
-				fatLogger.info('Image loaded successfully for memory:', 'fe', {
+                fatLogger.info('Image loaded successfully for memory:', 'fe', {
                   memoryId: memory.id,
                   url: memory.url,
                 });
