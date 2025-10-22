@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { useEffect, useRef, useState } from 'react';
 
 // Editorial split feature layout: two full-width blocks with hard edges, full-bleed imagery.
 // - No rounded corners
@@ -29,21 +30,51 @@ export default function SplitFeatureRotatingCube({
   secondaryCtaLink = '#',
   className = '',
 }: SplitFeatureRotatingCubeProps) {
+  const cubeRef = useRef<HTMLDivElement>(null);
+  const [cubeSize, setCubeSize] = useState('320px'); // Default fallback
+
+  useEffect(() => {
+    const updateCubeSize = () => {
+      if (cubeRef.current) {
+        // Step 2: Measure the left column's inner width (W) and height (H)
+        const container = cubeRef.current.parentElement;
+        if (container) {
+          const rect = container.getBoundingClientRect();
+          const H = rect.height;
+          const W = rect.width;
+
+          // Step 3: Compute S once - width-safe default
+          const S = Math.min(H * 1.15, W * 0.98);
+
+          // Store S in px (never %)
+          setCubeSize(`${S}px`);
+        }
+      }
+    };
+
+    updateCubeSize();
+    window.addEventListener('resize', updateCubeSize);
+    return () => window.removeEventListener('resize', updateCubeSize);
+  }, []);
   return (
     <div className={`bg-neutral-50 text-neutral-800 ${className}`}>
       {/* Block 1 */}
       <section className="grid grid-cols-1 md:grid-cols-2 min-h-[70vh] lg:min-h-[80vh]">
         {/* Cube column: full-bleed, hard edges */}
-        <div className="relative order-1 md:order-none">
-          <div className="w-full h-full flex items-center justify-center">
+        <div className="relative order-1 md:order-none z-10">
+          <div className="w-full h-full">
             <div className="cube-scene w-full h-full">
               <div
-                className="cube w-full h-full"
+                ref={cubeRef}
+                className="cube"
                 style={
                   {
                     animation: 'spinCubeY 10s ease-in-out infinite',
                     transformStyle: 'preserve-3d',
-                    '--cube-depth': '50vw',
+                    '--cube-size': cubeSize, // JavaScript-measured absolute units (px)
+                    width: cubeSize,
+                    height: cubeSize,
+                    pointerEvents: 'none',
                   } as React.CSSProperties
                 }
               >
