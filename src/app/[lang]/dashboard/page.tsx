@@ -228,8 +228,9 @@ export default function VaultPage() {
       const folderId = (memory as FolderItem).folderId || memory.id.replace('folder-', '');
       router.push(`/${params.lang}/dashboard/folder/${folderId}`);
     } else {
-      // For individual memories, navigate to the memory detail page
-      router.push(`/${params.lang}/dashboard/${memory.id}`);
+      // For individual memories, pass the data source in URL
+      const source = dataSource || 'neon'; // fallback to neon if dataSource is null
+      router.push(`/${params.lang}/dashboard/${memory.id}?ds=${source}`);
     }
   };
 

@@ -98,6 +98,13 @@ const nextConfig: NextConfig = {
         hostname: '*.icp0.io',
         pathname: '/asset/**',
       },
+      // Dynamic ICP canister IDs for local development
+      {
+        protocol: 'http',
+        hostname: '*.localhost',
+        port: '4943',
+        pathname: '/asset/**',
+      },
       // Dynamic canister ID for local development
       ...(process.env.NEXT_PUBLIC_CANISTER_ID_BACKEND
         ? [

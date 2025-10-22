@@ -85,6 +85,7 @@
     "faker-js": "^1.0.0",
     "file-type": "^18.7.0",
     "form-data": "^4.0.4",
+    "framer-motion": "^12.23.24",
     "jsonwebtoken": "^9.0.2",
     "list": "^2.0.19",
     "lucide-react": "^0.475.0",
