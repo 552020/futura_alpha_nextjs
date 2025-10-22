@@ -197,6 +197,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           // 🔍 DEBUG: Log environment values to understand what's happening
           console.log('🔍 [Auth Debug] Environment values:', {
+            AUTH_URL: process.env.AUTH_URL,
             NEXTAUTH_URL: process.env.NEXTAUTH_URL,
             NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
             NODE_ENV: process.env.NODE_ENV,
@@ -205,7 +206,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           });
 
           // Call our API route to verify the nonce
-          const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+          const baseUrl =
+            process.env.AUTH_URL ||
+            process.env.NEXTAUTH_URL ||
+            process.env.NEXT_PUBLIC_SITE_URL ||
+            (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
           console.log('🔍 [Auth Debug] Calculated baseUrl:', baseUrl);
           console.log('🔍 [Auth Debug] Fetch URL:', `${baseUrl}/api/ii/verify-nonce`);
 
