@@ -123,10 +123,10 @@ export async function sendInvitationEmail(
     const inviterName = await getInviterName(invitedById);
     const relationship = await getRelationship(invitedById, memory.id);
 
-    const emailPayload = {
+    const emailPayload: Record<string, unknown> = {
       to: email,
       subject: "You've been invited to view a memory!",
-    } as any;
+    };
 
     if (options.useTemplate) {
       // Use Mailgun template
@@ -185,12 +185,12 @@ export async function sendSharedMemoryEmail(
     const inviterName = await getInviterName(sharedById);
     const relationship = await getRelationship(sharedById, memory.id);
 
-    const emailPayload = {
+    const emailPayload: Record<string, unknown> = {
       to: email,
       subject: 'A memory has been shared with you on Futura',
       text: `${inviterName}${relationship ? `, your ${relationship}` : ''
         } shared a memory with you on Futura. View it here: ${shareUrl}`,
-    } as any;
+    };
 
     if (options.useHTML) {
       emailPayload.html = `
