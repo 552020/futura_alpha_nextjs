@@ -20,7 +20,6 @@ import { db } from '@/db/db';
 import { relationship, users, familyRelationship } from '@/db';
 import { eq, and } from 'drizzle-orm';
 import type { MemoryWithType } from './memory';
-import { sendEmail } from '@/utils/mailgun';
 import { fatLogger } from '@/lib/logger';
 
 /**
@@ -106,7 +105,7 @@ function getTemplateVariables(memory: MemoryWithType, inviterName: string): Reco
 }
 
 /**
- * Sends an invitation email using Mailgun.
+ * Sends an invitation email using the centralized email API.
  * @param email Recipient email address.
  * @param memory The memory to share.
  * @param invitedById ID of the inviter.
@@ -124,25 +123,37 @@ export async function sendInvitationEmail(
     const inviterName = await getInviterName(invitedById);
     const relationship = await getRelationship(invitedById, memory.id);
 
+    const emailPayload = {
+      to: email,
+      subject: "You've been invited to view a memory!",
+    } as any;
+
     if (options.useTemplate) {
       // Use Mailgun template
       const templateVars = getTemplateVariables(memory, inviterName || 'Someone');
-      await sendEmail({
-        to: email,
-        subject: "You've been invited to view a memory!",
-        template: 'memory-invitation', // Ensure this template exists in your Mailgun dashboard
-        templateVariables: templateVars,
-        text: '', // Fallback text version
-      });
+      emailPayload.templateName = 'memory-invitation';
+      emailPayload.templateVars = templateVars;
+      emailPayload.text = ''; // Fallback text version
     } else {
       // Use hardcoded message
       const { text, html } = getEmailContent(memory, inviterName || 'Someone', relationship, options.useHTML ?? false);
-      await sendEmail({
-        to: email,
-        subject: "You've been invited to view a memory!",
-        text: text,
-        ...(options.useHTML && html ? { html } : {}),
-      });
+      emailPayload.text = text;
+      if (options.useHTML && html) {
+        emailPayload.html = html;
+      }
+    }
+
+    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/email/send`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(emailPayload),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`Email API error: ${errorData.error || 'Unknown error'}`);
     }
 
     return true;
@@ -155,7 +166,7 @@ export async function sendInvitationEmail(
 }
 
 /**
- * Sends an email about a shared memory to an existing user
+ * Sends an email about a shared memory to an existing user using the centralized email API.
  * @param email Recipient email address.
  * @param memory The memory to share.
  * @param sharedById ID of the person who shared the memory.
@@ -174,13 +185,15 @@ export async function sendSharedMemoryEmail(
     const inviterName = await getInviterName(sharedById);
     const relationship = await getRelationship(sharedById, memory.id);
 
-    await sendEmail({
+    const emailPayload = {
       to: email,
       subject: 'A memory has been shared with you on Futura',
       text: `${inviterName}${relationship ? `, your ${relationship}` : ''
         } shared a memory with you on Futura. View it here: ${shareUrl}`,
-      html: options.useHTML
-        ? `
+    } as any;
+
+    if (options.useHTML) {
+      emailPayload.html = `
         <html>
           <body>
             <h1>Memory Shared</h1>
@@ -188,9 +201,21 @@ export async function sendSharedMemoryEmail(
             <p><a href="${shareUrl}">Click here to view it</a></p>
           </body>
         </html>
-      `
-        : undefined,
+      `;
+    }
+
+    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/email/send`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(emailPayload),
     });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`Email API error: ${errorData.error || 'Unknown error'}`);
+    }
 
     return true;
   } catch (error) {
