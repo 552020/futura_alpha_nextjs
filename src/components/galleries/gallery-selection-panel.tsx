@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Image from 'next/image';
-import { ImageIcon, X, Star } from 'lucide-react';
+import { ImageIcon, X /* , Star */ } from 'lucide-react';
 
 interface GallerySelectionPanelProps {
   isOpen: boolean;
@@ -12,7 +12,7 @@ interface GallerySelectionPanelProps {
       title?: string;
     };
   }>;
-  ratings: { [imageId: string]: number };
+  // ratings: { [imageId: string]: number };
   failedImages: Set<string>;
   onImageClick: (item: {
     id: string;
@@ -29,7 +29,7 @@ interface GallerySelectionPanelProps {
 export function GallerySelectionPanel({
   isOpen,
   selectedItems,
-  ratings,
+  // ratings,
   failedImages,
   onImageClick,
   onRemoveFromSelection,
@@ -106,13 +106,13 @@ export function GallerySelectionPanel({
                 >
                   <X className="h-3 w-3" />
                 </button>
-                {/* Rating indicator */}
-                <div className="absolute bottom-1 left-1 bg-black/70 rounded-full px-2 py-1">
+                {/* Rating indicator - commented out */}
+                {/* <div className="absolute bottom-1 left-1 bg-black/70 rounded-full px-2 py-1">
                   <div className="flex items-center gap-1">
                     <Star className="h-3 w-3 text-yellow-400 fill-current" />
                     <span className="text-xs text-white">{ratings[item.memory.id] || 0}</span>
                   </div>
-                </div>
+                </div> */}
               </div>
             ))}
           </div>

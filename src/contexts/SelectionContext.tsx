@@ -5,11 +5,11 @@ import React, { createContext, useState, useContext, ReactNode } from 'react';
 interface SelectionContextType {
   selectedImages: string[];
   toggleSelection: (imageId: string) => void;
-  ratings: { [imageId: string]: number };
-  rateImage: (imageId: string, rating: number) => void;
-  hiddenImages: string[];
-  hideImage: (imageId: string) => void;
-  resetHiddenImages: () => void;
+  // ratings: { [imageId: string]: number };
+  // rateImage: (imageId: string, rating: number) => void;
+  // hiddenImages: string[];
+  // hideImage: (imageId: string) => void;
+  // resetHiddenImages: () => void;
 }
 
 const SelectionContext = createContext<SelectionContextType | undefined>(undefined);
@@ -28,8 +28,8 @@ interface SelectionProviderProps {
 
 export const SelectionProvider: React.FC<SelectionProviderProps> = ({ children }) => {
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
-  const [ratings, setRatings] = useState<{ [imageId: string]: number }>({});
-  const [hiddenImages, setHiddenImages] = useState<string[]>([]);
+  // const [ratings, setRatings] = useState<{ [imageId: string]: number }>({});
+  // const [hiddenImages, setHiddenImages] = useState<string[]>([]);
 
   const toggleSelection = (imageId: string) => {
     setSelectedImages(prev =>
@@ -37,20 +37,20 @@ export const SelectionProvider: React.FC<SelectionProviderProps> = ({ children }
     );
   };
 
-  const rateImage = (imageId: string, rating: number) => {
-    setRatings(prev => ({ ...prev, [imageId]: rating }));
-  };
+  // const rateImage = (imageId: string, rating: number) => {
+  //   setRatings(prev => ({ ...prev, [imageId]: rating }));
+  // };
 
-  const hideImage = (imageId: string) => {
-    setHiddenImages(prev => [...prev, imageId]);
-  };
+  // const hideImage = (imageId: string) => {
+  //   setHiddenImages(prev => [...prev, imageId]);
+  // };
 
-  const resetHiddenImages = () => {
-    setHiddenImages([]);
-  };
+  // const resetHiddenImages = () => {
+  //   setHiddenImages([]);
+  // };
 
   return (
-    <SelectionContext.Provider value={{ selectedImages, toggleSelection, ratings, rateImage, hiddenImages, hideImage, resetHiddenImages }}>
+    <SelectionContext.Provider value={{ selectedImages, toggleSelection /* , ratings, rateImage, hiddenImages, hideImage, resetHiddenImages */ }}>
       {children}
     </SelectionContext.Provider>
   );
