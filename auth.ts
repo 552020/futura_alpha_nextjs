@@ -195,24 +195,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           const nonceStr = nonce as string;
 
-          // 🔍 DEBUG: Log environment values to understand what's happening
-          console.log('🔍 [Auth Debug] Environment values:', {
-            AUTH_URL: process.env.AUTH_URL,
-            NEXTAUTH_URL: process.env.NEXTAUTH_URL,
-            NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
-            NODE_ENV: process.env.NODE_ENV,
-            VERCEL_URL: process.env.VERCEL_URL,
-            VERCEL_ENV: process.env.VERCEL_ENV,
-          });
-
           // Call our API route to verify the nonce
           const baseUrl =
             process.env.AUTH_URL ||
             process.env.NEXTAUTH_URL ||
             process.env.NEXT_PUBLIC_SITE_URL ||
             (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
-          console.log('🔍 [Auth Debug] Calculated baseUrl:', baseUrl);
-          console.log('🔍 [Auth Debug] Fetch URL:', `${baseUrl}/api/ii/verify-nonce`);
 
           const response = await fetch(`${baseUrl}/api/ii/verify-nonce`, {
             method: 'POST',
@@ -220,12 +208,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             body: JSON.stringify({ nonce: nonceStr }),
           });
 
-          console.log('🔍 [Auth Debug] Response status:', response.status);
-          console.log('🔍 [Auth Debug] Response ok:', response.ok);
-
           if (!response.ok) {
-            const errorText = await response.text().catch(() => '');
-            console.error('🔍 [Auth Debug] Response error:', errorText);
             throw new Error('Authentication verification service unavailable. Please try signing in again.');
           }
 
