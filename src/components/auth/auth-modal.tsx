@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { fatLogger } from '@/lib/logger';
 import { StepNavigation } from '@/components/onboarding/common/step-navigation';
 import { OnboardingStep } from '@/contexts/onboarding-context';
@@ -206,7 +207,14 @@ export function AuthModal({
           )}
           {showInternetIdentity && (
             <Button variant="outline" onClick={handleInternetIdentity} disabled={iiBusy || busy}>
-              {iiBusy ? 'Connecting to Internet Identity…' : 'Sign in with Internet Identity'}
+              {iiBusy ? (
+                <>
+                  <LoadingSpinner size="sm" text="" className="mr-2" />
+                  Connecting to Internet Identity…
+                </>
+              ) : (
+                'Sign in with Internet Identity'
+              )}
             </Button>
           )}
         </div>
