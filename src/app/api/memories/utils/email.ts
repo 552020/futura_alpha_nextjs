@@ -19,54 +19,8 @@
 import { db } from '@/db/db';
 import { relationship, users, familyRelationship } from '@/db';
 import { eq, and } from 'drizzle-orm';
-import FormData from 'form-data';
-import Mailgun from 'mailgun.js';
 import type { MemoryWithType } from './memory';
-
 import { fatLogger } from '@/lib/logger';
-// Constants
-const DOMAIN = process.env.MAILGUN_DOMAIN || '';
-const API_KEY = process.env.MAILGUN_API_KEY || '';
-const FROM_EMAIL = process.env.MAILGUN_FROM || `hello@${DOMAIN}`;
-
-// Initialize Mailgun
-const mg = new Mailgun(FormData).client({
-  username: 'api',
-  key: API_KEY,
-  url: 'https://api.eu.mailgun.net', // Add EU region URL
-});
-
-interface EmailOptions {
-  to: string;
-  subject: string;
-  text?: string;
-  html?: string;
-  template?: string;
-  'h:X-Mailgun-Variables'?: string;
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function sendEmail(options: EmailOptions): Promise<any> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const messageData: any = {
-    from: FROM_EMAIL,
-    ...options,
-  };
-
-  // fatLogger.info("📧 Sending email:", undefined, {
-  //   from: messageData.from,
-  //   to: messageData.to,
-  //   subject: messageData.subject,
-  // });
-
-  const response = await mg.messages.create(DOMAIN, messageData);
-  // fatLogger.info("📬 Email sent successfully:", undefined, {
-  //   messageId: response.id,
-  //   from: FROM_EMAIL,
-  //   status: response.status,
-  // });
-  return response;
-}
 
 /**
  * Builds email content based on the memory type.
@@ -85,9 +39,8 @@ function getEmailContent(
   const relationshipText = relationship ? `, your ${relationship},` : '';
 
   if (memory.type === 'document') {
-    const textContent = `${inviterName}${relationshipText} has shared a document with you: ${
-      memory.title
-    }. Description: ${memory.description || 'No description'}.`;
+    const textContent = `${inviterName}${relationshipText} has shared a document with you: ${memory.title
+      }. Description: ${memory.description || 'No description'}.`;
     const htmlContent = includeHtml
       ? `
     <html>
@@ -101,9 +54,8 @@ function getEmailContent(
       : undefined;
     return { text: textContent, html: htmlContent };
   } else if (memory.type === 'image') {
-    const textContent = `You've been invited to view an image: ${
-      memory.title || 'Untitled'
-    }. Invited by: ${inviterName}.`;
+    const textContent = `You've been invited to view an image: ${memory.title || 'Untitled'
+      }. Invited by: ${inviterName}.`;
     const htmlContent = includeHtml
       ? `
 		<html>
@@ -153,7 +105,7 @@ function getTemplateVariables(memory: MemoryWithType, inviterName: string): Reco
 }
 
 /**
- * Sends an invitation email using Mailgun.
+ * Sends an invitation email using the centralized email API.
  * @param email Recipient email address.
  * @param memory The memory to share.
  * @param invitedById ID of the inviter.
@@ -167,61 +119,46 @@ export async function sendInvitationEmail(
   options: { useTemplate?: boolean; useHTML?: boolean } = {}
 ) {
   try {
-    // fatLogger.info("📧 sendInvitationEmail called with:", undefined, {
-    //   recipientEmail: email,
-    //   memoryType: memory.type,
-    //   invitedById,
-    //   memoryOwnerId: memory.data.ownerId,
-    // });
-
     // Retrieve the inviter's name and relationship
     const inviterName = await getInviterName(invitedById);
     const relationship = await getRelationship(invitedById, memory.id);
 
-    // fatLogger.info("👤 Got inviter details:", undefined, {
-    //   inviterName,
-    //   relationship,
-    //   invitedById,
-    // });
-
-    // TODO: Find correct Mailgun message type or create proper interface
-    // We struggle to find the correct type for the message data.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let messageData: any;
+    const emailPayload: Record<string, unknown> = {
+      to: email,
+      subject: "You've been invited to view a memory!",
+    };
 
     if (options.useTemplate) {
       // Use Mailgun template
       const templateVars = getTemplateVariables(memory, inviterName || 'Someone');
-      messageData = {
-        to: email,
-        subject: "You've been invited to view a memory!",
-        template: 'memory-invitation', // Ensure this template exists in your Mailgun dashboard
-        'h:X-Mailgun-Variables': JSON.stringify(templateVars),
-        text: '', // You can optionally supply a fallback text version
-      };
-      // fatLogger.info("📧 Using template, sending to:", { email, template: "memory-invitation" });
+      emailPayload.templateName = 'memory-invitation';
+      emailPayload.templateVars = templateVars;
+      emailPayload.text = ''; // Fallback text version
     } else {
       // Use hardcoded message
       const { text, html } = getEmailContent(memory, inviterName || 'Someone', relationship, options.useHTML ?? false);
-      messageData = {
-        to: email,
-        subject: "You've been invited to view a memory!",
-        text: text,
-        ...(options.useHTML && html ? { html } : {}),
-      };
-      // fatLogger.info("📧 Using hardcoded message, sending to:", { email });
+      emailPayload.text = text;
+      if (options.useHTML && html) {
+        emailPayload.html = html;
+      }
     }
 
-    const response = await sendEmail(messageData);
-    // fatLogger.info("📬 Email sent to:", undefined, { email, status: response.status });
+    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/email/send`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(emailPayload),
+    });
 
-    if (response.statusCode === 200) {
-      return true;
-    } else {
-      return false;
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`Email API error: ${errorData.error || 'Unknown error'}`);
     }
+
+    return true;
   } catch (error) {
-    fatLogger.error('Error sending email:', 'be', { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Error sending invitation email:', 'be', { data: error instanceof Error ? error : undefined });
     throw new Error(
       `Failed to send invitation email to ${email}: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
@@ -229,7 +166,7 @@ export async function sendInvitationEmail(
 }
 
 /**
- * Sends an email about a shared memory to an existing user
+ * Sends an email about a shared memory to an existing user using the centralized email API.
  * @param email Recipient email address.
  * @param memory The memory to share.
  * @param sharedById ID of the person who shared the memory.
@@ -248,14 +185,15 @@ export async function sendSharedMemoryEmail(
     const inviterName = await getInviterName(sharedById);
     const relationship = await getRelationship(sharedById, memory.id);
 
-    const messageData = {
+    const emailPayload: Record<string, unknown> = {
       to: email,
       subject: 'A memory has been shared with you on Futura',
-      text: `${inviterName}${
-        relationship ? `, your ${relationship}` : ''
-      } shared a memory with you on Futura. View it here: ${shareUrl}`,
-      html: options.useHTML
-        ? `
+      text: `${inviterName}${relationship ? `, your ${relationship}` : ''
+        } shared a memory with you on Futura. View it here: ${shareUrl}`,
+    };
+
+    if (options.useHTML) {
+      emailPayload.html = `
         <html>
           <body>
             <h1>Memory Shared</h1>
@@ -263,18 +201,25 @@ export async function sendSharedMemoryEmail(
             <p><a href="${shareUrl}">Click here to view it</a></p>
           </body>
         </html>
-      `
-        : undefined,
-    };
-
-    const response = await sendEmail(messageData);
-    if (response.statusCode === 200) {
-      return true;
-    } else {
-      return false;
+      `;
     }
+
+    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/email/send`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(emailPayload),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`Email API error: ${errorData.error || 'Unknown error'}`);
+    }
+
+    return true;
   } catch (error) {
-    fatLogger.error('Error sending email:', 'be', { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Error sending shared memory email:', 'be', { data: error instanceof Error ? error : undefined });
     throw new Error(
       `Failed to send shared memory email to ${email}: ${error instanceof Error ? error.message : 'Unknown error'}`
     );

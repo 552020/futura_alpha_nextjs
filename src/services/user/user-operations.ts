@@ -1,7 +1,7 @@
 import { db } from '@/db/db';
-import { users, allUsers } from '@/db/tables';
+import { users, allUsers, temporaryUsers } from '@/db/tables';
 import { eq } from 'drizzle-orm';
-import { randomUUID } from 'crypto';
+import { randomUUID, randomBytes } from 'crypto';
 import { hash } from 'bcrypt';
 import { fatLogger } from '@/lib/logger';
 import type { UserOperationResult, CreateUserParams, CreateAllUserParams } from './types';
@@ -262,6 +262,338 @@ export const getAuthenticatedUserId = async (sessionUserId: string): Promise<Use
 };
 
 /**
+ * Create a temporary user for onboarding
+ * This creates both a temporaryUser record and an allUser record
+ */
+export const createTemporaryUser = async (params: {
+  name?: string;
+  email?: string;
+}): Promise<
+  UserOperationResult<{ temporaryUser: unknown; allUser: unknown; tempUserId: string; allUserId: string }>
+> => {
+  try {
+    const tempUserId = `temp-${randomUUID()}`;
+    const allUserId = randomUUID();
+
+    // Create temporary user record
+    const [createdTemporaryUser] = await db
+      .insert(temporaryUsers)
+      .values({
+        id: tempUserId,
+        name: params.name || 'Temporary User',
+        email: params.email || 'temp@example.com',
+        secureCode: randomBytes(16).toString('hex'),
+        secureCodeExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
+        role: 'invitee',
+        registrationStatus: 'pending',
+      })
+      .returning();
+
+    // Create allUser record
+    const [createdAllUser] = await db
+      .insert(allUsers)
+      .values({
+        id: allUserId,
+        type: 'temporary',
+        temporaryUserId: tempUserId,
+        createdAt: new Date(),
+      })
+      .returning();
+
+    fatLogger.info('Created temporary user', 'be', {
+      operation: 'create_temporary_user',
+      tempUserId,
+      allUserId,
+      name: params.name,
+      email: params.email,
+    });
+
+    return {
+      success: true,
+      data: {
+        temporaryUser: createdTemporaryUser,
+        allUser: createdAllUser,
+        tempUserId,
+        allUserId,
+      },
+    };
+  } catch (error) {
+    fatLogger.error('Failed to create temporary user', 'be', {
+      error: error instanceof Error ? error : undefined,
+      operation: 'create_temporary_user',
+      name: params.name,
+      email: params.email,
+    });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+};
+
+/**
+ * Update user information (handles both temporary and permanent users)
+ */
+export const updateUser = async (params: {
+  allUserId: string;
+  name: string;
+  email: string;
+}): Promise<UserOperationResult<{ user: unknown; allUser: unknown }>> => {
+  try {
+    // First, get the allUser record
+    const allUserResult = await getAllUserRecordById(params.allUserId);
+    if (!allUserResult.success || !allUserResult.data) {
+      return { success: false, error: 'User not found' };
+    }
+
+    const allUser = allUserResult.data as { type: string; temporaryUserId?: string; userId?: string };
+
+    if (allUser.type === 'temporary') {
+      // Handle case where temporaryUserId is missing (old broken records)
+      if (!allUser.temporaryUserId) {
+        fatLogger.warn('temporaryUserId is missing from allUser - this is an old broken record', 'be', {
+          operation: 'update_user',
+          allUserId: params.allUserId,
+        });
+
+        // Try to find the temporary user by the userId field (old structure)
+        if (allUser.userId) {
+          const tempUser = await db.query.temporaryUsers.findFirst({
+            where: eq(temporaryUsers.id, allUser.userId),
+          });
+
+          if (tempUser) {
+            const [updatedTemporaryUser] = await db
+              .update(temporaryUsers)
+              .set({
+                name: params.name,
+                email: params.email,
+                updatedAt: new Date(),
+              })
+              .where(eq(temporaryUsers.id, allUser.userId))
+              .returning();
+
+            fatLogger.info('Updated temporary user (legacy record)', 'be', {
+              operation: 'update_user',
+              tempUserId: updatedTemporaryUser.id,
+              name: updatedTemporaryUser.name,
+              email: updatedTemporaryUser.email,
+            });
+
+            return {
+              success: true,
+              data: {
+                user: updatedTemporaryUser,
+                allUser,
+              },
+            };
+          }
+        }
+
+        return { success: false, error: 'Invalid user data - missing temporaryUserId' };
+      }
+
+      // Update temporary user
+      const [updatedTemporaryUser] = await db
+        .update(temporaryUsers)
+        .set({
+          name: params.name,
+          email: params.email,
+          updatedAt: new Date(),
+        })
+        .where(eq(temporaryUsers.id, allUser.temporaryUserId))
+        .returning();
+
+      fatLogger.info('Updated temporary user', 'be', {
+        operation: 'update_user',
+        tempUserId: updatedTemporaryUser.id,
+        name: updatedTemporaryUser.name,
+        email: updatedTemporaryUser.email,
+      });
+
+      return {
+        success: true,
+        data: {
+          user: updatedTemporaryUser,
+          allUser,
+        },
+      };
+    } else {
+      // Update permanent user
+      if (!allUser.userId) {
+        return { success: false, error: 'Invalid user data - missing userId' };
+      }
+
+      const [updatedUser] = await db
+        .update(users)
+        .set({
+          name: params.name,
+          email: params.email,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, allUser.userId))
+        .returning();
+
+      fatLogger.info('Updated permanent user', 'be', {
+        operation: 'update_user',
+        userId: updatedUser.id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+      });
+
+      return {
+        success: true,
+        data: {
+          user: updatedUser,
+          allUser,
+        },
+      };
+    }
+  } catch (error) {
+    fatLogger.error('Failed to update user', 'be', {
+      error: error instanceof Error ? error : undefined,
+      operation: 'update_user',
+      allUserId: params.allUserId,
+      name: params.name,
+      email: params.email,
+    });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+};
+
+/**
+ * Get user by ID or email
+ */
+export const getUserByIdOrEmail = async (params: {
+  id?: string;
+  email?: string;
+}): Promise<UserOperationResult<{ user: unknown; allUser: unknown }>> => {
+  try {
+    if (params.email) {
+      // Search by email
+      const user = await db.query.users.findFirst({
+        where: eq(users.email, params.email),
+      });
+
+      if (!user) {
+        return { success: false, error: 'User not found' };
+      }
+
+      // Find corresponding allUsers entry
+      const allUser = await db.query.allUsers.findFirst({
+        where: eq(allUsers.userId, user.id),
+      });
+
+      return {
+        success: true,
+        data: {
+          user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            image: user.image,
+            username: user.username,
+            userType: user.userType,
+            role: user.role,
+            plan: user.plan,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt,
+          },
+          allUser: allUser
+            ? {
+                id: allUser.id,
+                type: allUser.type,
+                userId: allUser.userId,
+                createdAt: allUser.createdAt,
+              }
+            : null,
+        },
+      };
+    } else if (params.id) {
+      // Search by allUser ID
+      const allUser = await db.query.allUsers.findFirst({
+        where: eq(allUsers.id, params.id),
+      });
+
+      if (!allUser) {
+        return { success: false, error: 'User not found' };
+      }
+
+      if (allUser.type === 'temporary') {
+        // Get temporary user
+        if (!allUser.temporaryUserId) {
+          return { success: false, error: 'Invalid temporary user data' };
+        }
+
+        const tempUser = await db.query.temporaryUsers.findFirst({
+          where: eq(temporaryUsers.id, allUser.temporaryUserId),
+        });
+
+        if (!tempUser) {
+          return { success: false, error: 'Temporary user not found' };
+        }
+
+        return {
+          success: true,
+          data: {
+            user: tempUser,
+            allUser,
+          },
+        };
+      } else {
+        // Get permanent user
+        if (!allUser.userId) {
+          return { success: false, error: 'Invalid user data' };
+        }
+
+        const user = await db.query.users.findFirst({
+          where: eq(users.id, allUser.userId),
+        });
+
+        if (!user) {
+          return { success: false, error: 'User not found' };
+        }
+
+        return {
+          success: true,
+          data: {
+            user: {
+              id: user.id,
+              name: user.name,
+              email: user.email,
+              image: user.image,
+              username: user.username,
+              userType: user.userType,
+              role: user.role,
+              plan: user.plan,
+              createdAt: user.createdAt,
+              updatedAt: user.updatedAt,
+            },
+            allUser,
+          },
+        };
+      }
+    } else {
+      return { success: false, error: 'Either id or email must be provided' };
+    }
+  } catch (error) {
+    fatLogger.error('Failed to get user by ID or email', 'be', {
+      error: error instanceof Error ? error : undefined,
+      operation: 'get_user_by_id_or_email',
+      id: params.id,
+      email: params.email,
+    });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+};
+
+/**
  * Get user ID for temporary user
  * This function validates and returns the allUserId for temporary users
  */
@@ -498,6 +830,77 @@ export const softDeleteAccount = async (userId: string): Promise<UserOperationRe
       error: error instanceof Error ? error : undefined,
       operation: 'soft_delete_account',
       userId,
+    });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+};
+
+/**
+ * Get temporary user record by ID
+ */
+export const getTemporaryUserRecord = async (temporaryUserId: string): Promise<UserOperationResult> => {
+  try {
+    const temporaryUser = await db.query.temporaryUsers.findFirst({
+      where: eq(temporaryUsers.id, temporaryUserId),
+    });
+
+    if (!temporaryUser) {
+      return { success: false, error: 'Temporary user not found' };
+    }
+
+    return { success: true, data: temporaryUser };
+  } catch (error) {
+    fatLogger.error('Failed to get temporary user', 'be', {
+      error: error instanceof Error ? error : undefined,
+      operation: 'get_temporary_user',
+      temporaryUserId,
+    });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+};
+
+/**
+ * Get user email by allUserId (works for both regular and temporary users)
+ */
+export const getUserEmailByAllUserId = async (allUserId: string): Promise<UserOperationResult<string>> => {
+  try {
+    // First get the allUsers record to determine type
+    const allUserResult = await getAllUserRecordById(allUserId);
+    if (!allUserResult.success || !allUserResult.data) {
+      return { success: false, error: 'User not found' };
+    }
+
+    const allUser = allUserResult.data as typeof allUsers.$inferSelect;
+
+    if (allUser.type === 'temporary' && allUser.temporaryUserId) {
+      // Get email from temporaryUsers table
+      const tempUserResult = await getTemporaryUserRecord(allUser.temporaryUserId);
+      if (!tempUserResult.success || !tempUserResult.data) {
+        return { success: false, error: 'Temporary user not found' };
+      }
+      const email = (tempUserResult.data as typeof temporaryUsers.$inferSelect).email;
+      return { success: true, data: email || '' };
+    } else if (allUser.type === 'user' && allUser.userId) {
+      // Get email from users table
+      const userResult = await getUserRecord(allUser.userId);
+      if (!userResult.success || !userResult.data) {
+        return { success: false, error: 'User not found' };
+      }
+      return { success: true, data: (userResult.data as { email: string }).email };
+    }
+
+    return { success: false, error: 'Invalid user type' };
+  } catch (error) {
+    fatLogger.error('Failed to get user email', 'be', {
+      error: error instanceof Error ? error : undefined,
+      operation: 'get_user_email',
+      allUserId,
     });
     return {
       success: false,

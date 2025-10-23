@@ -1,0 +1,5 @@
+-- This migration file was missing but referenced in the journal
+-- Adding empty migration to maintain sequence
+-- No changes needed
+
+

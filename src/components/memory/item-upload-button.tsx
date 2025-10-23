@@ -61,11 +61,11 @@ const DefaultButton = ({ onClick, isLoading }: BaseButtonProps) => (
 );
 
 /**
- * AlbumButton - Custom styled button for albums
+ * OnboardingAlbumButton - Custom styled button for albums in onboarding flow
  * Used in:
  * - Onboarding flow: /app/[lang]/onboarding/items-upload/items-upload-client.tsx
  */
-const AlbumButton = ({ onClick, isLoading }: BaseButtonProps) => (
+const OnboardingAlbumButton = ({ onClick, isLoading }: BaseButtonProps) => (
   <button
     onClick={onClick}
     disabled={isLoading}
@@ -83,11 +83,11 @@ const AlbumButton = ({ onClick, isLoading }: BaseButtonProps) => (
 );
 
 /**
- * OneShotButton - Custom styled button for one-shot uploads
+ * OnboardingOneShotButton - Custom styled button for one-shot uploads in onboarding flow
  * Used in:
  * - Onboarding flow: /app/[lang]/onboarding/items-upload/items-upload-client.tsx
  */
-const OneShotButton = ({ onClick, isLoading, buttonText }: BaseButtonProps) => (
+const OnboardingOneShotButton = ({ onClick, isLoading, buttonText }: BaseButtonProps) => (
   <button
     onClick={onClick}
     disabled={isLoading}
@@ -177,8 +177,8 @@ interface ItemUploadButtonProps {
     | 'icon'
     | 'large-icon'
     | 'native'
-    | 'album-button'
-    | 'one-shot-button'
+    | 'onboarding-album-button'
+    | 'onboarding-one-shot-button'
     | 'dashboard-add-folder'
     | 'dashboard-add-file';
   buttonText?: string; // Custom button text
@@ -194,8 +194,8 @@ interface ItemUploadButtonProps {
  * - "icon": Small icon for inline uploads
  * - "button": Standard button with text (default)
  * - "native": Browser's default file input
- * - "album-button": Custom styled button for albums
- * - "one-shot-button": Custom styled button for one-shot uploads
+ * - "onboarding-album-button": OnboardingAlbumButton - Custom styled button for albums in onboarding flow
+ * - "onboarding-one-shot-button": OnboardingOneShotButton - Custom styled button for one-shot uploads in onboarding flow
  * - "dashboard-add-folder": Dashboard-specific folder button
  * - "dashboard-add-file": Dashboard-specific file button
  *
@@ -248,10 +248,10 @@ export function ItemUploadButton({
         return <LargeIconButton {...commonProps} />;
       case 'icon':
         return <IconButton {...commonProps} />;
-      case 'album-button':
-        return <AlbumButton {...commonProps} />;
-      case 'one-shot-button':
-        return <OneShotButton {...commonProps} />;
+      case 'onboarding-album-button':
+        return <OnboardingAlbumButton {...commonProps} />;
+      case 'onboarding-one-shot-button':
+        return <OnboardingOneShotButton {...commonProps} />;
       case 'dashboard-add-folder':
         return <DashboardAddFolderButton {...commonProps} />;
       case 'dashboard-add-file':

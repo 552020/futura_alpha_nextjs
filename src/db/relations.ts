@@ -5,6 +5,7 @@ import {
   allUsers,
   memories,
   memoryAssets,
+  resourceShareTokens,
   folders,
   imageDetails,
   videoDetails,
@@ -53,6 +54,7 @@ export const memoriesRelations = relations(memories, ({ many, one }) => ({
   people: many(peopleInMemories),
   likes: many(memoryLikes),
   comments: many(memoryComments),
+  shareTokens: many(resourceShareTokens),
   folder: one(folders, {
     fields: [memories.parentFolderId],
     references: [folders.id],
@@ -63,6 +65,14 @@ export const memoryAssetsRelations = relations(memoryAssets, ({ one }) => ({
   memory: one(memories, {
     fields: [memoryAssets.memoryId],
     references: [memories.id],
+  }),
+}));
+
+// Resource share tokens relations
+export const resourceShareTokensRelations = relations(resourceShareTokens, ({ one }) => ({
+  creator: one(allUsers, {
+    fields: [resourceShareTokens.createdBy],
+    references: [allUsers.id],
   }),
 }));
 

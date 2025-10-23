@@ -105,10 +105,16 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   // Update user data - using functional update pattern
   const updateUserData = useCallback(
     (update: Partial<typeof userData> | ((prev: typeof userData) => Partial<typeof userData>)) => {
-      setUserData(prev => ({
-        ...prev,
-        ...(typeof update === 'function' ? update(prev) : update),
-      }));
+      console.log('🔄 [DEBUG] updateUserData called with update:', JSON.stringify(update, null, 2));
+      setUserData(prev => {
+        const newData = {
+          ...prev,
+          ...(typeof update === 'function' ? update(prev) : update),
+        };
+        console.log('📋 [DEBUG] Previous userData:', JSON.stringify(prev, null, 2));
+        console.log('📋 [DEBUG] New userData:', JSON.stringify(newData, null, 2));
+        return newData;
+      });
     },
     []
   );

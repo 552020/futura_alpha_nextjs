@@ -63,3 +63,6 @@ node_modules/
 
 # debug artifacts
 e2e/debug/
+
+# ignore small images folder
+public/images/segments/small/

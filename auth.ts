@@ -196,7 +196,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const nonceStr = nonce as string;
 
           // Call our API route to verify the nonce
-          const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+          const baseUrl =
+            process.env.AUTH_URL ||
+            process.env.NEXTAUTH_URL ||
+            process.env.NEXT_PUBLIC_SITE_URL ||
+            (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+
           const response = await fetch(`${baseUrl}/api/ii/verify-nonce`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

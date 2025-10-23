@@ -21,12 +21,14 @@
     "feed": "Feed"
   },
   "navigation": {
-    "vault": "Bóveda",
+    "dashboard": "Panel",
+    "gallery": "Galerías",
     "feed": "Feed",
     "shared": "Compartido",
     "contacts": "Contactos",
     "profile": "Perfil",
-    "icp": "ICP"
+    "icp": "ICP",
+    "transcendance-ai": "Transcendance IA"
   },
   "footer": {
     "tagline": "Hecho con ❤️ entre Berlín, Marsella y Lisboa",

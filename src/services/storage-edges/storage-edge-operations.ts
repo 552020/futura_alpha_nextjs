@@ -8,7 +8,7 @@
 import { db } from '@/db/db';
 import { storageEdges } from '@/db/tables';
 import { type NewDBStorageEdge, type DBStorageEdge } from '@/db/types';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, isNull } from 'drizzle-orm';
 import { fatLogger } from '@/lib/logger';
 
 export interface CreateStorageEdgeParams {
@@ -45,8 +45,30 @@ export interface StorageEdgeQueryParams {
  */
 export const createStorageEdge = async (params: CreateStorageEdgeParams): Promise<StorageEdgeOperationResult> => {
   try {
+    fatLogger.info('🚀 Starting storage edge creation', 'be', {
+      memoryId: params.memoryId,
+      memoryType: params.memoryType,
+      artifact: params.artifact,
+      locationMetadata: params.locationMetadata,
+      locationAsset: params.locationAsset,
+      present: params.present,
+      location: params.location,
+      sizeBytes: params.sizeBytes,
+      syncState: params.syncState,
+    });
+
+    // Storage edges are independent - no need to verify memory exists
+    fatLogger.info('✅ Creating storage edge independently', 'be', {
+      memoryId: params.memoryId,
+      note: 'Storage edges can reference ICP-only memories without database validation',
+    });
+
     // Validate that at least one location field is provided
     if (!params.locationMetadata && !params.locationAsset) {
+      fatLogger.error('❌ Validation failed: No location fields provided', 'be', {
+        memoryId: params.memoryId,
+        artifact: params.artifact,
+      });
       return {
         success: false,
         error: 'At least one location field must be provided: locationMetadata or locationAsset',
@@ -55,6 +77,10 @@ export const createStorageEdge = async (params: CreateStorageEdgeParams): Promis
 
     // Validate artifact-specific location fields
     if (params.artifact === 'metadata' && !params.locationMetadata) {
+      fatLogger.error('❌ Validation failed: Missing locationMetadata for metadata artifact', 'be', {
+        memoryId: params.memoryId,
+        artifact: params.artifact,
+      });
       return {
         success: false,
         error: 'locationMetadata is required for metadata artifacts',
@@ -62,6 +88,10 @@ export const createStorageEdge = async (params: CreateStorageEdgeParams): Promis
     }
 
     if (params.artifact === 'asset' && !params.locationAsset) {
+      fatLogger.error('❌ Validation failed: Missing locationAsset for asset artifact', 'be', {
+        memoryId: params.memoryId,
+        artifact: params.artifact,
+      });
       return {
         success: false,
         error: 'locationAsset is required for asset artifacts',
@@ -83,29 +113,161 @@ export const createStorageEdge = async (params: CreateStorageEdgeParams): Promis
       updatedAt: new Date(),
     };
 
-    const [createdEdge] = await db
-      .insert(storageEdges)
-      .values(edgeData)
-      .onConflictDoUpdate({
-        target: [
-          storageEdges.memoryId,
-          storageEdges.memoryType,
-          storageEdges.artifact,
-          storageEdges.locationMetadata,
-          storageEdges.locationAsset,
-        ],
-        set: {
-          present: params.present ?? false,
-          locationUrl: params.location,
-          contentHash: params.contentHash,
-          sizeBytes: params.sizeBytes,
-          syncState: params.syncState ?? 'idle',
-          syncError: params.syncError,
-          lastSyncedAt: params.syncState === 'idle' ? new Date() : undefined,
-          updatedAt: new Date(),
-        },
-      })
-      .returning();
+    // First, try to find existing edge to avoid conflicts
+    fatLogger.info('🔍 Checking for existing storage edge', 'be', {
+      memoryId: params.memoryId,
+      memoryType: params.memoryType,
+      artifact: params.artifact,
+      locationMetadata: params.locationMetadata,
+      locationAsset: params.locationAsset,
+    });
+
+    let existingEdge;
+    try {
+      // Build the where conditions more carefully
+      const whereConditions = [
+        eq(storageEdges.memoryId, params.memoryId),
+        eq(storageEdges.memoryType, params.memoryType),
+        eq(storageEdges.artifact, params.artifact),
+      ];
+
+      // Add location conditions based on what's provided
+      if (params.locationMetadata) {
+        whereConditions.push(eq(storageEdges.locationMetadata, params.locationMetadata));
+      } else {
+        whereConditions.push(isNull(storageEdges.locationMetadata));
+      }
+
+      if (params.locationAsset) {
+        whereConditions.push(eq(storageEdges.locationAsset, params.locationAsset));
+      } else {
+        whereConditions.push(isNull(storageEdges.locationAsset));
+      }
+
+      fatLogger.info('🔍 Building database query', 'be', {
+        memoryId: params.memoryId,
+        memoryType: params.memoryType,
+        artifact: params.artifact,
+        locationMetadata: params.locationMetadata,
+        locationAsset: params.locationAsset,
+        whereConditionsCount: whereConditions.length,
+      });
+
+      existingEdge = await db
+        .select()
+        .from(storageEdges)
+        .where(and(...whereConditions))
+        .limit(1);
+
+      fatLogger.info('🔍 Database query completed', 'be', {
+        memoryId: params.memoryId,
+        foundExisting: existingEdge.length > 0,
+        existingCount: existingEdge.length,
+        existingEdge: existingEdge.length > 0 ? existingEdge[0] : null,
+      });
+    } catch (queryError) {
+      fatLogger.error('❌ Database query failed', 'be', {
+        memoryId: params.memoryId,
+        error: queryError instanceof Error ? queryError.message : 'Unknown error',
+        stack: queryError instanceof Error ? queryError.stack : undefined,
+      });
+      throw queryError;
+    }
+
+    let createdEdge: DBStorageEdge;
+
+    if (existingEdge.length > 0) {
+      // Update existing edge
+      fatLogger.info('🔄 Updating existing storage edge', 'be', {
+        memoryId: params.memoryId,
+        existingEdgeId: existingEdge[0].id,
+        existingPresent: existingEdge[0].present,
+        newPresent: params.present ?? false,
+        existingLocation: existingEdge[0].locationUrl,
+        newLocation: params.location,
+      });
+
+      try {
+        const [updatedEdge] = await db
+          .update(storageEdges)
+          .set({
+            present: params.present ?? false,
+            locationUrl: params.location,
+            contentHash: params.contentHash,
+            sizeBytes: params.sizeBytes,
+            syncState: params.syncState ?? 'idle',
+            syncError: params.syncError,
+            lastSyncedAt: params.syncState === 'idle' ? new Date() : undefined,
+            updatedAt: new Date(),
+          })
+          .where(eq(storageEdges.id, existingEdge[0].id))
+          .returning();
+
+        fatLogger.info('✅ Successfully updated existing storage edge', 'be', {
+          memoryId: params.memoryId,
+          edgeId: updatedEdge.id,
+          updatedAt: updatedEdge.updatedAt,
+        });
+
+        createdEdge = updatedEdge;
+      } catch (updateError) {
+        fatLogger.error('❌ Failed to update existing storage edge', 'be', {
+          memoryId: params.memoryId,
+          existingEdgeId: existingEdge[0].id,
+          error: updateError instanceof Error ? updateError.message : 'Unknown error',
+          stack: updateError instanceof Error ? updateError.stack : undefined,
+        });
+        throw updateError;
+      }
+    } else {
+      // Create new edge
+      fatLogger.info('➕ Creating new storage edge', 'be', {
+        memoryId: params.memoryId,
+        memoryType: params.memoryType,
+        artifact: params.artifact,
+        locationMetadata: params.locationMetadata,
+        locationAsset: params.locationAsset,
+      });
+
+      try {
+        const [newEdge] = await db.insert(storageEdges).values(edgeData).returning();
+
+        fatLogger.info('✅ Successfully created new storage edge', 'be', {
+          memoryId: params.memoryId,
+          edgeId: newEdge.id,
+          createdAt: newEdge.createdAt,
+        });
+
+        createdEdge = newEdge;
+      } catch (insertError) {
+        fatLogger.error('❌ Failed to create new storage edge', 'be', {
+          memoryId: params.memoryId,
+          memoryType: params.memoryType,
+          artifact: params.artifact,
+          error: insertError instanceof Error ? insertError.message : 'Unknown error',
+          stack: insertError instanceof Error ? insertError.stack : undefined,
+        });
+
+        // Check if it's a foreign key constraint violation
+        if (
+          insertError instanceof Error &&
+          (insertError.message.includes('foreign key') ||
+            insertError.message.includes('violates foreign key') ||
+            insertError.message.includes('referential integrity'))
+        ) {
+          fatLogger.error('❌ Foreign key constraint violation - memory does not exist', 'be', {
+            memoryId: params.memoryId,
+            error: insertError.message,
+          });
+          return {
+            success: false,
+            error: `Memory with ID ${params.memoryId} does not exist. Cannot create storage edge for non-existent memory.`,
+          };
+        }
+
+        throw insertError;
+      }
+    }
 
     if (!createdEdge) {
       fatLogger.error('Failed to create storage edge - no result returned', 'be', {
@@ -129,12 +291,15 @@ export const createStorageEdge = async (params: CreateStorageEdgeParams): Promis
 
     return { success: true, data: createdEdge };
   } catch (error) {
-    fatLogger.error('Failed to create storage edge', 'be', {
-      error: error instanceof Error ? error : undefined,
+    fatLogger.error('❌ Failed to create storage edge - unexpected error', 'be', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
       operation: 'create_storage_edge',
       memoryId: params.memoryId,
       memoryType: params.memoryType,
       artifact: params.artifact,
+      locationMetadata: params.locationMetadata,
+      locationAsset: params.locationAsset,
     });
     return {
       success: false,

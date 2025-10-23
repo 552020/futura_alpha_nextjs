@@ -179,11 +179,27 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
       })
     );
 
+    // Normalize folder name to prefer latest folders.title when present (when folder is included)
+    const normalizedMemories = memoriesWithShareInfo.map(memory => {
+      const m = memory as typeof memory & { folder?: { id: string; name?: string; title?: string } };
+      const f = m.folder;
+      if (f?.title) {
+        return {
+          ...m,
+          folder: {
+            ...f,
+            name: f.title ?? f.name,
+          },
+        };
+      }
+      return m;
+    });
+
     // If includeAssets is false, we still want to include thumbnails for grid view
     if (!includeAssets) {
       // Add thumbnails for grid view
       const memoriesWithThumbs = await Promise.all(
-        memoriesWithShareInfo.map(async memory => {
+        normalizedMemories.map(async memory => {
           fatLogger.debug('Processing memory for thumbnail', 'be', { memoryId: memory.id });
 
           // Get thumb asset and placeholder asset for better UX
@@ -275,7 +291,7 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
         success: true,
         data: memoriesWithThumbs,
         hasMore: false, // No pagination for now - dashboard needs all memories to group properly
-        total: memoriesWithShareInfo.length,
+        total: normalizedMemories.length,
       });
     }
 
@@ -286,9 +302,9 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
 
     const responseData = {
       success: true,
-      data: memoriesWithShareInfo,
+      data: normalizedMemories,
       hasMore: false, // No pagination for now - dashboard needs all memories to group properly
-      total: memoriesWithShareInfo.length,
+      total: normalizedMemories.length,
     };
 
     const etag = etagOf(responseData);
@@ -320,6 +336,10 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
       timestamp: new Date().toISOString(),
       userAgent: request.headers.get('user-agent'),
       referer: request.headers.get('referer'),
+    });
+    fatLogger.error('Error listing memories', 'be', {
+      error: listError,
+      userId: session?.user?.id,
     });
     return NextResponse.json(
       {

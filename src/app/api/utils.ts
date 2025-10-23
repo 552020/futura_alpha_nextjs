@@ -1,5 +1,6 @@
 import { db } from '@/db/db';
 import { allUsers, temporaryUsers } from '@/db';
+import crypto from 'node:crypto';
 
 /**
  * Creates a base temporary user and corresponding allUsers entry.
@@ -9,6 +10,8 @@ import { allUsers, temporaryUsers } from '@/db';
  * @returns The created temporary user and allUsers entries
  */
 export async function createTemporaryUserBase(role: 'inviter' | 'invitee') {
+  console.log('🔄 [DEBUG] createTemporaryUserBase: Creating temporary user with role:', role);
+
   const [temporaryUser] = await db
     .insert(temporaryUsers)
     .values({
@@ -18,6 +21,7 @@ export async function createTemporaryUserBase(role: 'inviter' | 'invitee') {
       registrationStatus: 'pending',
     })
     .returning();
+  console.log('✅ [DEBUG] createTemporaryUserBase: Temporary user created:', { id: temporaryUser.id });
 
   const [allUser] = await db
     .insert(allUsers)
@@ -26,6 +30,7 @@ export async function createTemporaryUserBase(role: 'inviter' | 'invitee') {
       temporaryUserId: temporaryUser.id,
     })
     .returning();
+  console.log('✅ [DEBUG] createTemporaryUserBase: AllUser created:', { id: allUser.id });
 
   return { temporaryUser, allUser };
 }

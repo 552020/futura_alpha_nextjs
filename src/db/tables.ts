@@ -1119,9 +1119,7 @@ export const storageEdges = pgTable(
   'storage_edges',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    memoryId: uuid('memory_id')
-      .notNull()
-      .references(() => memories.id, { onDelete: 'cascade' }), // References memories.id with cascade delete
+    memoryId: uuid('memory_id').notNull(), // Independent of memories table - can reference ICP-only memories
     memoryType: memory_type_t('memory_type').notNull(), // 'image' | 'video' | 'note' | 'document' | 'audio'
     artifact: artifact_t('artifact').notNull(), // 'metadata' | 'asset'
     locationMetadata: database_hosting_t('location_metadata'), // 'neon' | 'icp' (for metadata artifacts)
@@ -1307,6 +1305,79 @@ export const userSettings = pgTable(
   table => [
     // Index for efficient lookups
     index('user_settings_user_idx').on(table.userId),
+  ]
+);
+
+/**
+ * RESOURCE SHARE TOKENS TABLE - Universal sharing via secure tokens
+ *
+ * This table stores shareable tokens for any resource type (memories, galleries, folders)
+ * that can be accessed without authentication. Each token is unique and can optionally expire.
+ *
+ * COMPOSITION:
+ * - Identity: id, resourceType, resourceId (what is being shared)
+ * - Token info: token (unique), createdBy (FK to allUsers)
+ * - Access control: expiresAt, isActive
+ * - Timestamps: createdAt
+ *
+ * USAGE EXAMPLES:
+ * ```typescript
+ * // Create a share token for a memory
+ * const shareToken = await db.insert(resourceShareTokens).values({
+ *   resourceType: 'memory',
+ *   resourceId: 'memory-id',
+ *   token: 'secure-random-token',
+ *   createdBy: 'user-id',
+ *   expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+ * });
+ *
+ * // Create a share token for a gallery
+ * const galleryToken = await db.insert(resourceShareTokens).values({
+ *   resourceType: 'gallery',
+ *   resourceId: 'gallery-id',
+ *   token: 'another-secure-token',
+ *   createdBy: 'user-id',
+ * });
+ *
+ * // Find active token by token value
+ * const token = await db.query.resourceShareTokens.findFirst({
+ *   where: and(
+ *     eq(resourceShareTokens.token, tokenValue),
+ *     eq(resourceShareTokens.isActive, true),
+ *     or(
+ *       isNull(resourceShareTokens.expiresAt),
+ *       gt(resourceShareTokens.expiresAt, new Date())
+ *     )
+ *   )
+ * });
+ * ```
+ */
+export const resourceShareTokens = pgTable(
+  'resource_share_tokens',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    resourceType: resource_type_t('resource_type').notNull(),
+    resourceId: text('resource_id').notNull(),
+    token: text('token').notNull().unique(),
+    createdBy: text('created_by')
+      .notNull()
+      .references(() => allUsers.id, { onDelete: 'cascade' }),
+    expiresAt: timestamp('expires_at', { mode: 'date' }),
+    isActive: boolean('is_active').default(true).notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+
+    // Enhanced access control fields
+    allowedUsers: jsonb('allowed_users'), // Array of user IDs
+    allowedRoles: jsonb('allowed_roles'), // Array of roles
+    requireAuth: boolean('require_auth').default(false).notNull(), // Must be logged in
+    accessRestrictions: jsonb('access_restrictions'), // Custom restrictions
+  },
+  table => [
+    // Performance indexes
+    index('resource_share_tokens_token_idx').on(table.token),
+    index('resource_share_tokens_resource_idx').on(table.resourceType, table.resourceId),
+    index('resource_share_tokens_created_by_idx').on(table.createdBy),
+    index('resource_share_tokens_active_expires_idx').on(table.isActive, table.expiresAt),
   ]
 );
 

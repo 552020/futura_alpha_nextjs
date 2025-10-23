@@ -13,8 +13,13 @@ export {
   getAllUserRecord,
   getAllUserRecordById,
   createUserWithAllUser,
+  createTemporaryUser,
+  updateUser,
+  getUserByIdOrEmail,
   getAuthenticatedUserId,
   getTemporaryUserId,
+  getTemporaryUserRecord,
+  getUserEmailByAllUserId,
 } from './user-operations';
 
 // Shared types

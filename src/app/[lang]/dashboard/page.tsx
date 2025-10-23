@@ -30,17 +30,20 @@ import RequireAuth from '@/components/auth/require-auth';
 import {
   fetchMemories,
   processDashboardItems,
-  deleteMemory,
   deleteAllMemories,
   type MemoryWithFolder,
   type DashboardItem,
   type FolderItem,
 } from '@/services/memories';
+import { useDeleteMemory, useUpdateMemory } from '@/hooks/use-memory-mutations';
+import { useUpdateFolder } from '@/hooks/use-folder-mutations';
 import { ExtendedMemory } from '@/types/dashboard';
 // import { TawkChat } from '@/components/chat/tawk-chat';
 import { DashboardTopBar } from '@/components/dashboard/dashboard-top-bar';
 import { sampleDashboardMemories } from '../../../../scripts/mock-data/create-dashboard-sample-data';
 import { useHostingPreferences, getRecommendedDashboardDataSource } from '@/hooks/use-hosting-preferences';
+import { MemoryQuickEditModal } from '@/components/memory/memory-quick-edit-modal';
+import { SharingModal } from '@/components/memory/sharing-modal';
 
 // Demo flag - set to true to use mock data for demo
 // 📝 Sample data generation script: scripts/mock-data/create-dashboard-sample-data.ts
@@ -53,6 +56,16 @@ export default function VaultPage() {
   const queryClient = useQueryClient();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filteredMemories, setFilteredMemories] = useState<DashboardItem[]>([]);
+  const [quickEditOpen, setQuickEditOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedTitle, setSelectedTitle] = useState<string | undefined>(undefined);
+  const [selectedDescription, setSelectedDescription] = useState<string | undefined>(undefined);
+
+  // Sharing modal state
+  const [sharingOpen, setSharingOpen] = useState(false);
+  const [sharingResourceType, setSharingResourceType] = useState<'memory' | 'folder'>('memory');
+  const [sharingResourceId, setSharingResourceId] = useState<string>('');
+  const [sharingResourceTitle, setSharingResourceTitle] = useState<string>('');
   const params = useParams();
 
   // Get hosting preferences to determine recommended data source
@@ -113,7 +126,11 @@ export default function VaultPage() {
     if (USE_MOCK_DATA) {
       return processDashboardItems(sampleDashboardMemories as MemoryWithFolder[]);
     }
-    return (data?.pages ?? []).flatMap(p => processDashboardItems(p.memories ?? []));
+
+    const processedItems = (data?.pages ?? []).flatMap(p => {
+      return processDashboardItems(p.memories ?? []);
+    });
+    return processedItems;
   }, [data]);
 
   // Dashboard items are already processed by processDashboardItems
@@ -148,27 +165,60 @@ export default function VaultPage() {
     setFilteredMemories(items);
   }, [items]);
 
-  const handleDelete = async (id: string) => {
-    try {
-      await deleteMemory(id);
-      // Invalidate and refetch dashboard data
-      queryClient.invalidateQueries({ queryKey: qk.memories.dashboard() });
-      toast({
-        title: 'Success',
-        description: 'Memory deleted successfully.',
-      });
-    } catch (_error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to delete memory. Please try again.',
-        variant: 'destructive',
-      });
-    }
+  // React Query mutation for memory deletion
+  const deleteMemoryMutation = useDeleteMemory();
+  const updateMemoryMutation = useUpdateMemory();
+  const updateFolderMutation = useUpdateFolder();
+
+  const handleDelete = (id: string) => {
+    deleteMemoryMutation.mutate(id);
   };
 
-  const handleShare = () => {
+  const handleShare = (item: Memory | DashboardItem) => {
+    // Set sharing modal data
+    setSharingResourceType(item.type === 'folder' ? 'folder' : 'memory');
+    setSharingResourceId(item.id);
+    setSharingResourceTitle(item.title || 'Untitled');
+    setSharingOpen(true);
+  };
+
+  const handleSharingSuccess = () => {
     // Invalidate and refetch dashboard data to show any new shares
     queryClient.invalidateQueries({ queryKey: ['memories', 'dashboard'] });
+  };
+
+  const handleEdit = (id: string) => {
+    // Prefill from current list
+    const item = (filteredMemories || []).find(m => m.id === id);
+    setSelectedId(id);
+    setSelectedTitle(item?.title);
+    // DashboardItem may not always have description; leave undefined if absent
+    setSelectedDescription((item as { description?: string })?.description);
+    setQuickEditOpen(true);
+  };
+
+  const handleEditItem = (item: Memory | DashboardItem) => {
+    setSelectedId(item.id);
+    setSelectedTitle((item as { title?: string })?.title);
+    setSelectedDescription((item as { description?: string })?.description);
+    setQuickEditOpen(true);
+  };
+
+  const handleQuickEditSave = async ({ data }: { data: { title?: string; description?: string } }) => {
+    if (!selectedId) return;
+    const selected = (filteredMemories || []).find(m => m.id === selectedId);
+    console.log('📝 [DASHBOARD] QuickEdit save', { selectedId, type: selected?.type, data });
+    if (selected?.type === 'folder') {
+      const cleanId = selectedId.startsWith('folder-') ? selectedId.replace('folder-', '') : selectedId;
+      console.log('📝 [DASHBOARD] Updating folder', { cleanId });
+      await updateFolderMutation.mutateAsync({ id: cleanId, updates: { title: data.title } });
+    } else {
+      console.log('📝 [DASHBOARD] Updating memory', { id: selectedId });
+      await updateMemoryMutation.mutateAsync({
+        id: selectedId,
+        updates: { title: data.title, description: data.description },
+      });
+    }
   };
 
   const handleMemoryClick = (memory: Memory | DashboardItem) => {
@@ -307,8 +357,11 @@ export default function VaultPage() {
             memories={filteredMemories}
             onDelete={handleDelete}
             onShare={handleShare}
+            onEdit={handleEdit}
+            onEditItem={handleEditItem}
             onClick={handleMemoryClick}
             viewMode={viewMode}
+            useReactQuery={true}
           />
 
           {/* Load more button for React Query */}
@@ -328,6 +381,32 @@ export default function VaultPage() {
 
       {/* Tawk.to Chat */}
       {/* <TawkChat /> */}
+
+      {/* Quick Edit Modal */}
+      {selectedId && (
+        <MemoryQuickEditModal
+          open={quickEditOpen}
+          onOpenChange={setQuickEditOpen}
+          resourceType="memory"
+          resourceId={selectedId}
+          initialTitle={selectedTitle}
+          initialDescription={selectedDescription}
+          onSave={async params => {
+            await handleQuickEditSave({ data: params.data });
+          }}
+          isSaving={updateMemoryMutation.isPending}
+        />
+      )}
+
+      {/* Sharing Modal */}
+      <SharingModal
+        isOpen={sharingOpen}
+        onClose={() => setSharingOpen(false)}
+        resourceType={sharingResourceType}
+        resourceId={sharingResourceId}
+        resourceTitle={sharingResourceTitle}
+        onShareSuccess={handleSharingSuccess}
+      />
     </div>
   );
 }

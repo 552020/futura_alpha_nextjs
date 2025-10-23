@@ -2,17 +2,30 @@ import { useSession } from 'next-auth/react';
 import { useOnboarding } from '@/contexts/onboarding-context';
 import { useRouter } from 'next/navigation';
 import { useParams } from 'next/navigation';
+import { useEffect, useRef } from 'react';
 
 export function useAuthGuard() {
   const { data: session, status } = useSession();
-  const { userData } = useOnboarding();
+  const { userData, updateUserData } = useOnboarding();
   const router = useRouter();
   const params = useParams();
   const lang = params.lang || 'en';
+  const hasClearedTemporaryState = useRef(false);
 
   const isAuthenticated = status === 'authenticated' && session?.user?.id;
   const isTemporaryUser = userData.allUserId && userData.isTemporary;
   const isLoading = status === 'loading';
+
+  // Clear temporary state when user becomes authenticated (only once per session)
+  useEffect(() => {
+    if (isAuthenticated && userData.isTemporary && !hasClearedTemporaryState.current) {
+      // User is now authenticated (permanent), clear temporary state
+      updateUserData({
+        isTemporary: false,
+      });
+      hasClearedTemporaryState.current = true;
+    }
+  }, [isAuthenticated, userData.isTemporary, updateUserData]);
 
   const redirectToSignIn = () => {
     if (!isLoading && !isAuthenticated && !isTemporaryUser) {

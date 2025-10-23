@@ -50,9 +50,9 @@ function GalleryViewContent() {
   // Selection state
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
-  const [ratings, setRatings] = useState<{ [imageId: string]: number }>({});
-  const [hiddenImages, setHiddenImages] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<'all' | 'hidden'>('all');
+  // const [ratings, setRatings] = useState<{ [imageId: string]: number }>({});
+  // const [hiddenImages, setHiddenImages] = useState<string[]>([]);
+  // const [activeTab, setActiveTab] = useState<'all' | 'hidden'>('all');
   const [showSidePanel, setShowSidePanel] = useState(false);
   const [showForeverStorageModal, setShowForeverStorageModal] = useState(false);
   const [businessEmail, setBusinessEmail] = useState<string | null>(null);
@@ -159,69 +159,72 @@ function GalleryViewContent() {
     } else {
       // Exiting selection mode
       setSelectedImages([]);
-      setActiveTab('all');
+      // setActiveTab('all');
     }
 
     setIsSelecting(newIsSelecting);
   };
 
   // Filter items based on active tab and hidden state
-  const filteredItems =
-    gallery?.items.filter(item => {
-      if (activeTab === 'hidden') {
-        return hiddenImages.includes(item.memory.id);
-      }
-      // Always hide images that are in the hidden list when viewing 'all' tab
-      if (hiddenImages.includes(item.memory.id)) {
-        return false;
-      }
-      return true;
-    }) || [];
+  // Filtering functionality commented out - show all items
+  const filteredItems = gallery?.items || [];
+  // const filteredItems =
+  //   gallery?.items.filter(item => {
+  //     if (activeTab === 'hidden') {
+  //       return hiddenImages.includes(item.memory.id);
+  //     }
+  //     // Always hide images that are in the hidden list when viewing 'all' tab
+  //     if (hiddenImages.includes(item.memory.id)) {
+  //       return false;
+  //     }
+  //     return true;
+  //   }) || [];
 
-  const handleRateImage = (imageId: string, rating: number) => {
-    setRatings(prev => ({ ...prev, [imageId]: rating }));
+  // Rating and hiding handlers commented out
+  // const handleRateImage = (imageId: string, rating: number) => {
+  //   setRatings(prev => ({ ...prev, [imageId]: rating }));
 
-    // Auto-select the image when rating it
-    if (isSelecting && !selectedImages.includes(imageId) && selectedImages.length < MAX_SELECTION) {
-      setSelectedImages(prev => [...prev, imageId]);
-    }
-  };
+  //   // Auto-select the image when rating it
+  //   if (isSelecting && !selectedImages.includes(imageId) && selectedImages.length < MAX_SELECTION) {
+  //     setSelectedImages(prev => [...prev, imageId]);
+  //   }
+  // };
 
-  const handleHideImage = (imageId: string) => {
-    fatLogger.info('Hiding image', 'fe', { imageId });
-    setHiddenImages(prev => {
-      const newHidden = [...prev, imageId];
-      fatLogger.info('New hidden images', 'fe', { hiddenCount: newHidden.length, imageIds: newHidden });
-      return newHidden;
-    });
-    // Remove from selected images if hidden
-    setSelectedImages(prev => {
-      const filtered = prev.filter(id => id !== imageId);
-      fatLogger.info('Removed from selection, new selection', 'fe', {
-        selectedCount: filtered.length,
-        imageIds: filtered,
-      });
-      return filtered;
-    });
-  };
+  // const handleHideImage = (imageId: string) => {
+  //   fatLogger.info('Hiding image', 'fe', { imageId });
+  //   setHiddenImages(prev => {
+  //     const newHidden = [...prev, imageId];
+  //     fatLogger.info('New hidden images', 'fe', { hiddenCount: newHidden.length, imageIds: newHidden });
+  //     return newHidden;
+  //   });
+  //   // Remove from selected images if hidden
+  //   setSelectedImages(prev => {
+  //     const filtered = prev.filter(id => id !== imageId);
+  //     fatLogger.info('Removed from selection, new selection', 'fe', {
+  //       selectedCount: filtered.length,
+  //       imageIds: filtered,
+  //     });
+  //     return filtered;
+  //   });
+  // };
 
-  const handleUnhideImage = (imageId: string) => {
-    fatLogger.info('Unhiding image', 'fe', { imageId });
-    setHiddenImages(prev => {
-      const newHidden = prev.filter(id => id !== imageId);
-      fatLogger.info('New hidden images', 'fe', { hiddenCount: newHidden.length, imageIds: newHidden });
-      return newHidden;
-    });
-    // Remove from selected images if unhidden
-    setSelectedImages(prev => {
-      const filtered = prev.filter(id => id !== imageId);
-      fatLogger.info('Removed from selection, new selection', 'fe', {
-        selectedCount: filtered.length,
-        imageIds: filtered,
-      });
-      return filtered;
-    });
-  };
+  // const handleUnhideImage = (imageId: string) => {
+  //   fatLogger.info('Unhiding image', 'fe', { imageId });
+  //   setHiddenImages(prev => {
+  //     const newHidden = prev.filter(id => id !== imageId);
+  //     fatLogger.info('New hidden images', 'fe', { hiddenCount: newHidden.length, imageIds: newHidden });
+  //     return newHidden;
+  //   });
+  //   // Remove from selected images if unhidden
+  //   setSelectedImages(prev => {
+  //     const filtered = prev.filter(id => id !== imageId);
+  //     fatLogger.info('Removed from selection, new selection', 'fe', {
+  //       selectedCount: filtered.length,
+  //       imageIds: filtered,
+  //     });
+  //     return filtered;
+  //   });
+  // };
 
   const handleSendClick = () => {
     if (selectedImages.length === 0) return;
@@ -237,7 +240,7 @@ function GalleryViewContent() {
         .map(item => ({
           url: item.memory.url!, // We know it's defined due to the filter above
           name: item.memory.title || `Photo ${item.memory.id}`,
-          rating: ratings[item.memory.id] || 0,
+          // rating: ratings[item.memory.id] || 0,
         })) || [];
 
     try {
@@ -300,7 +303,7 @@ function GalleryViewContent() {
             galleryId: id,
             images: selectedItems.map(img => ({
               ...img,
-              ratingStars: '★'.repeat(Math.round(img.rating || 0)) + '☆'.repeat(5 - Math.round(img.rating || 0)),
+              // ratingStars: '★'.repeat(Math.round(img.rating || 0)) + '☆'.repeat(5 - Math.round(img.rating || 0)),
             })),
             appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://futura.now',
           },
@@ -696,9 +699,9 @@ function GalleryViewContent() {
         isSelecting={isSelecting}
         selectedCount={selectedImages.length}
         maxSelection={MAX_SELECTION}
-        hiddenCount={hiddenImages.length}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
+        // hiddenCount={hiddenImages.length}
+        // activeTab={activeTab}
+        // onTabChange={setActiveTab}
         onSendPhotos={handleSendClick}
       />
 
@@ -714,9 +717,9 @@ function GalleryViewContent() {
                 error={error}
                 isSelecting={isSelecting}
                 selectedImages={selectedImages}
-                ratings={ratings}
-                hiddenImages={hiddenImages}
-                activeTab={activeTab}
+                // ratings={ratings}
+                // hiddenImages={hiddenImages}
+                // activeTab={activeTab}
                 failedImages={failedImages}
                 _maxSelection={MAX_SELECTION}
                 onImageClick={handleImageClick}
@@ -727,9 +730,9 @@ function GalleryViewContent() {
                     setSelectedImages(prev => prev.filter(id => id !== imageId));
                   }
                 }}
-                onRate={handleRateImage}
-                onHide={handleHideImage}
-                onUnhide={handleUnhideImage}
+                // onRate={handleRateImage}
+                // onHide={handleHideImage}
+                // onUnhide={handleUnhideImage}
                 onImageError={handleImageError}
                 onRetry={loadGallery}
               />
@@ -741,7 +744,7 @@ function GalleryViewContent() {
             <GallerySelectionPanel
               isOpen={showSidePanel}
               selectedItems={gallery?.items.filter(item => selectedImages.includes(item.memory.id)) || []}
-              ratings={ratings}
+              // ratings={ratings}
               failedImages={failedImages}
               onImageClick={(item, index) => {
                 handleImageClick(item, index);
