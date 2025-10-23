@@ -36,7 +36,7 @@ export function renderGallerySelectionEmail({
   const formattedDate = formatDate(timestamp);
   const subject = `🎨 New Photo Selection from ${userName} (${sortedImages.length} images)`;
 
-  // HTML Content - Enhanced with better styling and layout
+  // HTML Content - Using global CSS classes
   const html = `
   <!DOCTYPE html>
   <html lang="en">
@@ -44,170 +44,49 @@ export function renderGallerySelectionEmail({
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>New Photo Selection from ${userName}</title>
-    <style>
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-        line-height: 1.6;
-        color: #333;
-        max-width: 600px;
-        margin: 0 auto;
-        padding: 20px;
-        background-color: #f9f9f9;
-      }
-      .container {
-        background-color: white;
-        border-radius: 8px;
-        padding: 30px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      }
-      .header {
-        text-align: center;
-        border-bottom: 2px solid #e1e5e9;
-        padding-bottom: 20px;
-        margin-bottom: 30px;
-      }
-      .header h1 {
-        color: #2c3e50;
-        margin: 0;
-        font-size: 24px;
-      }
-      .date {
-        color: #7f8c8d;
-        font-size: 14px;
-        margin-top: 5px;
-      }
-      .message-section {
-        background-color: #f8f9fa;
-        border-left: 4px solid #3498db;
-        padding: 15px;
-        margin: 20px 0;
-        border-radius: 0 4px 4px 0;
-      }
-      .message-section strong {
-        color: #2c3e50;
-      }
-      .images-section {
-        margin: 30px 0;
-      }
-      .images-header {
-        color: #2c3e50;
-        font-size: 18px;
-        margin-bottom: 15px;
-        padding-bottom: 10px;
-        border-bottom: 1px solid #e1e5e9;
-      }
-      .images-list {
-        background-color: #f8f9fa;
-        border-radius: 6px;
-        padding: 20px;
-        margin: 0;
-        list-style: none;
-      }
-      .images-list li {
-        padding: 15px 0;
-        border-bottom: 1px solid #e9ecef;
-        display: flex;
-        align-items: flex-start;
-        gap: 15px;
-      }
-      .images-list li:last-child {
-        border-bottom: none;
-      }
-
-      .image-preview {
-        width: 120px;
-        height: 120px;
-        object-fit: cover;
-        border-radius: 8px;
-        border: 2px solid #e1e5e9;
-        flex-shrink: 0;
-        display: block;
-        background-color: #f1f3f4;
-      }
-      .image-preview:hover {
-        border-color: #3498db;
-        transform: scale(1.02);
-        transition: all 0.2s ease;
-      }
-      .image-details {
-        flex-grow: 1;
-        min-width: 0;
-      }
-      .image-name {
-        font-weight: 500;
-        margin-bottom: 5px;
-        word-wrap: break-word;
-      }
-      .rating {
-        color: #f39c12;
-        font-size: 14px;
-      }
-      .footer {
-        margin-top: 40px;
-        padding-top: 20px;
-        border-top: 1px solid #e1e5e9;
-        text-align: center;
-        color: #7f8c8d;
-        font-size: 14px;
-      }
-      .contact-info {
-        background-color: #e8f5e8;
-        border: 1px solid #d4edda;
-        border-radius: 6px;
-        padding: 15px;
-        margin: 20px 0;
-        text-align: center;
-      }
-      .selection-id {
-        font-family: 'Courier New', monospace;
-        background-color: #f1f3f4;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 12px;
-      }
-    </style>
+    <link rel="stylesheet" href="/globals.css">
   </head>
-  <body>
-    <div class="container">
-      <div class="header">
+  <body class="email-body">
+    <div class="email-container">
+      <div class="email-header">
         <h1>🎨 New Photo Selection</h1>
-        <div class="date">${formattedDate}</div>
+        <div class="email-date">${formattedDate}</div>
       </div>
       
       <p><strong>From:</strong> ${userName}</p>
       
       ${userMessage
-      ? `<div class="message-section">
+      ? `<div class="email-message-section">
                <strong>Message from ${userName}:</strong><br>
                ${userMessage.replace(/\n/g, '<br>')}
              </div>`
       : ''
     }
       
-      <div class="images-section">
-        <div class="images-header">
+      <div class="email-images-section">
+        <div class="email-images-header">
           Selected Images (${sortedImages.length})
         </div>
-        <ul class="images-list">
+        <ul class="email-images-list">
           ${sortedImages.map((img) => `
             <li>
-              <img src="${img.url}" alt="${img.name}" class="image-preview" />
-              <div class="image-details">
-                <div class="image-name">${img.name}</div>
-                ${img.rating ? `<div class="rating">${'★'.repeat(Math.round(img.rating))}${'☆'.repeat(5 - Math.round(img.rating))}</div>` : ''}
+              <img src="${img.url}" alt="${img.name}" class="email-image-preview" />
+              <div class="email-image-details">
+                <div class="email-image-name">${img.name}</div>
+                ${img.rating ? `<div class="email-rating">${'★'.repeat(Math.round(img.rating))}${'☆'.repeat(5 - Math.round(img.rating))}</div>` : ''}
               </div>
             </li>
           `).join('')}
         </ul>
       </div>
       
-      <div class="contact-info">
+      <div class="email-contact-info">
         <p><strong>Need help?</strong> If you encounter any problems or have questions, please contact us on WhatsApp.</p>
       </div>
       
-      <div class="footer">
+      <div class="email-footer">
         <p>This is an automated message. Please do not reply directly to this email.</p>
-        <p>Selection ID: <span class="selection-id">${requestId}</span></p>
+        <p>Selection ID: <span class="email-selection-id">${requestId}</span></p>
       </div>
     </div>
   </body>

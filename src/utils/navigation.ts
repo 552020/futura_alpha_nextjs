@@ -1,4 +1,4 @@
-import { Vault, Grid, Newspaper, Share2, User, Users, Bot, LucideIcon } from 'lucide-react';
+import { Vault, Grid, User, Bot, LucideIcon } from 'lucide-react';
 import { Dictionary } from '@/utils/dictionaries';
 
 export type NavItem = {
