@@ -16,9 +16,9 @@ interface GalleryPhotoGridProps {
   error: string | null;
   isSelecting: boolean;
   selectedImages: string[];
-  // ratings: { [imageId: string]: number };
-  // hiddenImages: string[];
-  // activeTab: 'all' | 'hidden';
+  ratings: { [imageId: string]: number };
+  hiddenImages: string[];
+  activeTab: 'all' | 'hidden';
   failedImages: Set<string>;
   _maxSelection: number;
   onImageClick: (item: {
@@ -31,9 +31,9 @@ interface GalleryPhotoGridProps {
     };
   }, index: number) => void;
   onSelectionToggle: (imageId: string, checked: boolean) => void;
-  // onRate: (imageId: string, rating: number) => void;
-  // onHide: (imageId: string) => void;
-  // onUnhide: (imageId: string) => void;
+  onRate?: (imageId: string, rating: number) => void;
+  onHide?: (imageId: string) => void;
+  onUnhide?: (imageId: string) => void;
   onImageError: (url: string) => void;
   onRetry: () => void;
 }
@@ -44,16 +44,16 @@ export function GalleryPhotoGrid({
   error,
   isSelecting,
   selectedImages,
-  // ratings,
-  // hiddenImages,
-  // activeTab,
+  ratings,
+  hiddenImages,
+  activeTab,
   failedImages: _failedImages,
   _maxSelection,
   onImageClick,
   onSelectionToggle,
-  // onRate,
-  // onHide,
-  // onUnhide,
+  onRate,
+  onHide,
+  onUnhide,
   onImageError,
   onRetry,
 }: GalleryPhotoGridProps) {
@@ -112,11 +112,11 @@ export function GalleryPhotoGrid({
           selectionMode={isSelecting}
           isSelected={selectedImages.includes(item.memory.id)}
           onSelectionToggle={(checked) => onSelectionToggle(item.memory.id, checked)}
-          // rating={ratings[item.memory.id] || 0}
-          // onRate={(rating) => onRate(item.memory.id, rating)}
-          // isHidden={activeTab === 'hidden'}
-          // onHide={() => onHide(item.memory.id)}
-          // onUnhide={() => onUnhide(item.memory.id)}
+          rating={ratings[item.memory.id] || 0}
+          onRate={onRate ? (rating) => onRate(item.memory.id, rating) : undefined}
+          isHidden={activeTab === 'hidden'}
+          onHide={onHide ? () => onHide(item.memory.id) : undefined}
+          onUnhide={onUnhide ? () => onUnhide(item.memory.id) : undefined}
           onImageError={onImageError}
         />
       )}
@@ -130,12 +130,12 @@ export function GalleryPhotoGrid({
       }}
       selectionMode={isSelecting}
       selectedItems={new Set(selectedImages)}
-      // ratings={ratings}
-      // hiddenItems={new Set(hiddenImages)}
+      ratings={ratings}
+      hiddenItems={new Set(hiddenImages)}
       onSelectionToggle={onSelectionToggle}
-      // onRate={onRate}
-      // onHide={onHide}
-      // onUnhide={onUnhide}
+      onRate={onRate}
+      onHide={onHide}
+      onUnhide={onUnhide}
     />
   );
 }

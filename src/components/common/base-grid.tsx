@@ -16,12 +16,12 @@ interface BaseGridProps<T extends BaseItem> {
   };
   selectionMode?: boolean;
   selectedItems?: Set<string>;
-  // ratings?: Record<string, number>;
-  // hiddenItems?: Set<string>;
+  ratings?: Record<string, number>;
+  hiddenItems?: Set<string>;
   onSelectionToggle?: (itemId: string, checked: boolean) => void;
-  // onRate?: (itemId: string, rating: number) => void;
-  // onHide?: (itemId: string) => void;
-  // onUnhide?: (itemId: string) => void;
+  onRate?: (itemId: string, rating: number) => void;
+  onHide?: (itemId: string) => void;
+  onUnhide?: (itemId: string) => void;
 }
 
 const gapClasses = {

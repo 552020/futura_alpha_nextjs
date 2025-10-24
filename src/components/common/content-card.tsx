@@ -14,10 +14,14 @@ import {
   Loader2,
   Globe,
   Lock,
+  Eye,
+  EyeOff,
+  Star,
 } from 'lucide-react';
 import { MemoryStatus } from '../memory/memory-status';
 import { MemoryStorageBadge } from '@/components/common/memory-storage-badge';
 import { BaseCard } from '@/components/common/base-card';
+import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import { shortenTitle } from '@/lib/utils';
 import { getBlurPlaceholder, IMAGE_SIZES } from '@/utils/image-utils';
@@ -79,14 +83,14 @@ interface ContentCardProps {
   isSelected?: boolean;
   onSelectionToggle?: (checked: boolean) => void;
 
-  // Rating props (for gallery photos) - commented out
-  // rating?: number;
-  // onRate?: (rating: number) => void;
+  // Rating props (for gallery photos)
+  rating?: number;
+  onRate?: (rating: number) => void;
 
-  // Hide/Unhide props (for gallery photos) - commented out
-  // isHidden?: boolean;
-  // onHide?: () => void;
-  // onUnhide?: () => void;
+  // Hide/Unhide props (for gallery photos)
+  isHidden?: boolean;
+  onHide?: () => void;
+  onUnhide?: () => void;
 
   // Image error handling
   onImageError?: (url: string) => void;
@@ -365,11 +369,11 @@ export function ContentCard({
   selectionMode = false,
   isSelected = false,
   onSelectionToggle,
-  // rating = 0,
-  // onRate,
-  // isHidden = false,
-  // onHide,
-  // onUnhide,
+  rating = 0,
+  onRate,
+  isHidden = false,
+  onHide,
+  onUnhide,
   onImageError,
   viewMode = 'grid',
   contentType = 'memory',
@@ -493,22 +497,22 @@ export function ContentCard({
                 </div>
               )}
 
-              {/* Hidden indicator - commented out */}
-              {/* {isHidden && (
+              {/* Hidden indicator */}
+              {isHidden && (
                 <div className="bg-red-500/70 rounded-full px-2 py-1">
                   <span className="text-xs text-white">Hidden</span>
                 </div>
-              )} */}
+              )}
             </>
           )}
         />
 
-        {/* Bottom controls - only visible during selection mode - commented out */}
-        {/* {selectionMode && (
+        {/* Bottom controls - only visible during selection mode */}
+        {selectionMode && (
           <>
             <div className="absolute bottom-2 left-2 flex items-center gap-2">
               {/* Hide/Unhide button */}
-              {/* {(onHide || onUnhide) && (
+              {(onHide || onUnhide) && (
                 <Button
                   size="sm"
                   variant="secondary"
@@ -524,12 +528,12 @@ export function ContentCard({
                 >
                   {isHidden ? <Eye className="h-4 w-4 text-gray-700" /> : <EyeOff className="h-4 w-4 text-gray-700" />}
                 </Button>
-              )} */}
-            {/* </div>
+              )}
+            </div>
 
             <div className="absolute bottom-2 right-2">
               {/* Rating stars */}
-              {/* {onRate && (
+              {onRate && (
                 <div className="flex items-center gap-0.5 bg-white/90 rounded-full px-2 py-1 border border-gray-300">
                   {[1, 2, 3, 4, 5].map(star => (
                     <Button
@@ -548,10 +552,10 @@ export function ContentCard({
                     </Button>
                   ))}
                 </div>
-              )} */}
-            {/* </div>
+              )}
+            </div>
           </>
-        )} */}
+        )}
       </div>
     );
   }
