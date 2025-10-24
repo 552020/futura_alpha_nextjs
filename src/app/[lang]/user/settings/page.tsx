@@ -104,36 +104,24 @@ export default function SettingsPage() {
             isWeb2Enabled={getWeb2Enabled(preferences)}
             isWeb3Enabled={getWeb3Enabled(preferences)}
             onWeb2Toggle={checked => {
-              const currentWeb3 = getWeb3Enabled(preferences);
-
               if (checked) {
-                // Enable Web2 stack
-                const newPreferences = createHostingPreferencesFromStacks(true, currentWeb3);
+                // Enable Web2 stack and disable Web3
+                const newPreferences = createHostingPreferencesFromStacks(true, false);
                 updatePreferences.mutate(newPreferences);
               } else {
-                // Disable Web2 stack - but prevent disabling both
-                if (!currentWeb3) {
-                  alert('At least one hosting stack must be enabled. Please enable Web3 stack first.');
-                  return;
-                }
-                const newPreferences = createHostingPreferencesFromStacks(false, currentWeb3);
+                // Disable Web2 stack and enable Web3
+                const newPreferences = createHostingPreferencesFromStacks(false, true);
                 updatePreferences.mutate(newPreferences);
               }
             }}
             onWeb3Toggle={checked => {
-              const currentWeb2 = getWeb2Enabled(preferences);
-
               if (checked) {
-                // Enable Web3 stack
-                const newPreferences = createHostingPreferencesFromStacks(currentWeb2, true);
+                // Enable Web3 stack and disable Web2
+                const newPreferences = createHostingPreferencesFromStacks(false, true);
                 updatePreferences.mutate(newPreferences);
               } else {
-                // Disable Web3 stack - but prevent disabling both
-                if (!currentWeb2) {
-                  alert('At least one hosting stack must be enabled. Please enable Web2 stack first.');
-                  return;
-                }
-                const newPreferences = createHostingPreferencesFromStacks(currentWeb2, false);
+                // Disable Web3 stack and enable Web2
+                const newPreferences = createHostingPreferencesFromStacks(true, false);
                 updatePreferences.mutate(newPreferences);
               }
             }}
@@ -177,19 +165,13 @@ export default function SettingsPage() {
                   description: 'Vercel',
                   checked: getWeb2Enabled(preferences),
                   onCheckedChange: checked => {
-                    const currentWeb3 = getWeb3Enabled(preferences);
-
                     if (checked) {
-                      // Enable Web2 stack (backend + database)
-                      const newPreferences = createHostingPreferencesFromStacks(true, currentWeb3);
+                      // Enable Web2 stack and disable Web3
+                      const newPreferences = createHostingPreferencesFromStacks(true, false);
                       updatePreferences.mutate(newPreferences);
                     } else {
-                      // Disable Web2 stack - but prevent disabling both
-                      if (!currentWeb3) {
-                        alert('At least one hosting stack must be enabled. Please enable Web3 stack first.');
-                        return;
-                      }
-                      const newPreferences = createHostingPreferencesFromStacks(false, currentWeb3);
+                      // Disable Web2 stack and enable Web3
+                      const newPreferences = createHostingPreferencesFromStacks(false, true);
                       updatePreferences.mutate(newPreferences);
                     }
                   },
@@ -200,19 +182,13 @@ export default function SettingsPage() {
                   description: 'ICP',
                   checked: getWeb3Enabled(preferences),
                   onCheckedChange: checked => {
-                    const currentWeb2 = getWeb2Enabled(preferences);
-
                     if (checked) {
-                      // Enable Web3 stack (backend + database)
-                      const newPreferences = createHostingPreferencesFromStacks(currentWeb2, true);
+                      // Enable Web3 stack and disable Web2
+                      const newPreferences = createHostingPreferencesFromStacks(false, true);
                       updatePreferences.mutate(newPreferences);
                     } else {
-                      // Disable Web3 stack - but prevent disabling both
-                      if (!currentWeb2) {
-                        alert('At least one hosting stack must be enabled. Please enable Web2 stack first.');
-                        return;
-                      }
-                      const newPreferences = createHostingPreferencesFromStacks(currentWeb2, false);
+                      // Disable Web3 stack and enable Web2
+                      const newPreferences = createHostingPreferencesFromStacks(true, false);
                       updatePreferences.mutate(newPreferences);
                     }
                   },
@@ -230,19 +206,13 @@ export default function SettingsPage() {
                   description: 'Neon',
                   checked: getWeb2Enabled(preferences),
                   onCheckedChange: checked => {
-                    const currentWeb3 = getWeb3Enabled(preferences);
-
                     if (checked) {
-                      // Enable Web2 stack (backend + database)
-                      const newPreferences = createHostingPreferencesFromStacks(true, currentWeb3);
+                      // Enable Web2 stack and disable Web3
+                      const newPreferences = createHostingPreferencesFromStacks(true, false);
                       updatePreferences.mutate(newPreferences);
                     } else {
-                      // Disable Web2 stack - but prevent disabling both
-                      if (!currentWeb3) {
-                        alert('At least one hosting stack must be enabled. Please enable Web3 stack first.');
-                        return;
-                      }
-                      const newPreferences = createHostingPreferencesFromStacks(false, currentWeb3);
+                      // Disable Web2 stack and enable Web3
+                      const newPreferences = createHostingPreferencesFromStacks(false, true);
                       updatePreferences.mutate(newPreferences);
                     }
                   },
@@ -253,19 +223,13 @@ export default function SettingsPage() {
                   description: 'ICP',
                   checked: getWeb3Enabled(preferences),
                   onCheckedChange: checked => {
-                    const currentWeb2 = getWeb2Enabled(preferences);
-
                     if (checked) {
-                      // Enable Web3 stack (backend + database)
-                      const newPreferences = createHostingPreferencesFromStacks(currentWeb2, true);
+                      // Enable Web3 stack and disable Web2
+                      const newPreferences = createHostingPreferencesFromStacks(false, true);
                       updatePreferences.mutate(newPreferences);
                     } else {
-                      // Disable Web3 stack - but prevent disabling both
-                      if (!currentWeb2) {
-                        alert('At least one hosting stack must be enabled. Please enable Web2 stack first.');
-                        return;
-                      }
-                      const newPreferences = createHostingPreferencesFromStacks(currentWeb2, false);
+                      // Disable Web3 stack and enable Web2
+                      const newPreferences = createHostingPreferencesFromStacks(true, false);
                       updatePreferences.mutate(newPreferences);
                     }
                   },

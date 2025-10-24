@@ -30,6 +30,7 @@ import { SendSelectionModal } from '@/components/galleries/share-modals/send-sel
 import { GalleryShareDialog } from '@/components/galleries/share-modals/gallery-share';
 import { toast } from '@/components/ui/use-toast';
 import { ToastContainer } from '@/components/ui/toast-container';
+import { useFeatureFlags } from '@/hooks/useFeatureFlags';
 
 import { fatLogger } from '@/lib/logger';
 // Mock data flag for development - same pattern as dashboard
@@ -46,6 +47,10 @@ function GalleryViewContent() {
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Feature flags
+  const { flags } = useFeatureFlags();
+  const showRatingAndHide = flags.showRatingAndHideFeatures;
 
   // Selection state
   const [isSelecting, setIsSelecting] = useState(false);
@@ -159,26 +164,31 @@ function GalleryViewContent() {
     } else {
       // Exiting selection mode
       setSelectedImages([]);
-      setActiveTab('all');
+      if (showRatingAndHide) {
+        setActiveTab('all');
+      }
     }
 
     setIsSelecting(newIsSelecting);
   };
 
   // Filter items based on active tab and hidden state
-  const filteredItems =
-    gallery?.items.filter(item => {
-      if (activeTab === 'hidden') {
-        return hiddenImages.includes(item.memory.id);
-      }
-      // Always hide images that are in the hidden list when viewing 'all' tab
-      if (hiddenImages.includes(item.memory.id)) {
-        return false;
-      }
-      return true;
-    }) || [];
+  const filteredItems = showRatingAndHide
+    ? gallery?.items.filter(item => {
+        if (activeTab === 'hidden') {
+          return hiddenImages.includes(item.memory.id);
+        }
+        // Always hide images that are in the hidden list when viewing 'all' tab
+        if (hiddenImages.includes(item.memory.id)) {
+          return false;
+        }
+        return true;
+      }) || []
+    : gallery?.items || [];
 
+  // Rating and hiding handlers
   const handleRateImage = (imageId: string, rating: number) => {
+    if (!showRatingAndHide) return;
     setRatings(prev => ({ ...prev, [imageId]: rating }));
 
     // Auto-select the image when rating it
@@ -188,6 +198,7 @@ function GalleryViewContent() {
   };
 
   const handleHideImage = (imageId: string) => {
+    if (!showRatingAndHide) return;
     fatLogger.info('Hiding image', 'fe', { imageId });
     setHiddenImages(prev => {
       const newHidden = [...prev, imageId];
@@ -206,6 +217,7 @@ function GalleryViewContent() {
   };
 
   const handleUnhideImage = (imageId: string) => {
+    if (!showRatingAndHide) return;
     fatLogger.info('Unhiding image', 'fe', { imageId });
     setHiddenImages(prev => {
       const newHidden = prev.filter(id => id !== imageId);
@@ -237,7 +249,7 @@ function GalleryViewContent() {
         .map(item => ({
           url: item.memory.url!, // We know it's defined due to the filter above
           name: item.memory.title || `Photo ${item.memory.id}`,
-          rating: ratings[item.memory.id] || 0,
+          rating: showRatingAndHide ? ratings[item.memory.id] || 0 : 0,
         })) || [];
 
     try {
@@ -300,7 +312,7 @@ function GalleryViewContent() {
             galleryId: id,
             images: selectedItems.map(img => ({
               ...img,
-              ratingStars: '★'.repeat(Math.round(img.rating || 0)) + '☆'.repeat(5 - Math.round(img.rating || 0)),
+              ratingStars: showRatingAndHide ? '★'.repeat(Math.round(img.rating || 0)) + '☆'.repeat(5 - Math.round(img.rating || 0)) : '',
             })),
             appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://futura.now',
           },
@@ -696,10 +708,11 @@ function GalleryViewContent() {
         isSelecting={isSelecting}
         selectedCount={selectedImages.length}
         maxSelection={MAX_SELECTION}
-        hiddenCount={hiddenImages.length}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
+        hiddenCount={showRatingAndHide ? hiddenImages.length : 0}
+        activeTab={showRatingAndHide ? activeTab : 'all'}
+        onTabChange={showRatingAndHide ? setActiveTab : () => {}}
         onSendPhotos={handleSendClick}
+        showHiddenTabs={showRatingAndHide}
       />
 
       {/* Main content area with side panel */}
@@ -727,9 +740,9 @@ function GalleryViewContent() {
                     setSelectedImages(prev => prev.filter(id => id !== imageId));
                   }
                 }}
-                onRate={handleRateImage}
-                onHide={handleHideImage}
-                onUnhide={handleUnhideImage}
+                onRate={showRatingAndHide ? handleRateImage : undefined}
+                onHide={showRatingAndHide ? handleHideImage : undefined}
+                onUnhide={showRatingAndHide ? handleUnhideImage : undefined}
                 onImageError={handleImageError}
                 onRetry={loadGallery}
               />

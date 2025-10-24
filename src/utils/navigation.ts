@@ -1,4 +1,4 @@
-import { Vault, Grid, Newspaper, Share2, User, Users, Bot, LucideIcon } from 'lucide-react';
+import { Vault, Grid, User, Bot, LucideIcon } from 'lucide-react';
 import { Dictionary } from '@/utils/dictionaries';
 
 export type NavItem = {
@@ -17,13 +17,13 @@ export function getTranslatedLabel(item: NavItem, dict: Dictionary): string {
 export const mainNavItems: NavItem[] = [
   { href: '/dashboard', icon: Vault, label: 'Dashboard', translationKey: 'dashboard' },
   { href: '/gallery', icon: Grid, label: 'Galleries', translationKey: 'gallery' },
-  { href: '/feed', icon: Newspaper, label: 'Feed', translationKey: 'feed' },
-  { href: '/shared', icon: Share2, label: 'Shared', translationKey: 'shared' },
+  // { href: '/feed', icon: Newspaper, label: 'Feed', translationKey: 'feed' },
+  // { href: '/shared', icon: Share2, label: 'Shared', translationKey: 'shared' },
   { href: '/transcendance-ai', icon: Bot, label: 'Transcendance AI', translationKey: 'transcendance-ai' },
 ];
 
 export const secondaryNavItems: NavItem[] = [
-  { href: '/contacts', icon: Users, label: 'Contacts', translationKey: 'contacts' },
+  // { href: '/contacts', icon: Users, label: 'Contacts', translationKey: 'contacts' },
   { href: '/user/profile', icon: User, label: 'Profile', translationKey: 'profile' },
 ];
 

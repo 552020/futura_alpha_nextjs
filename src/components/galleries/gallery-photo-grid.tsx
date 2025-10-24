@@ -31,9 +31,9 @@ interface GalleryPhotoGridProps {
     };
   }, index: number) => void;
   onSelectionToggle: (imageId: string, checked: boolean) => void;
-  onRate: (imageId: string, rating: number) => void;
-  onHide: (imageId: string) => void;
-  onUnhide: (imageId: string) => void;
+  onRate?: (imageId: string, rating: number) => void;
+  onHide?: (imageId: string) => void;
+  onUnhide?: (imageId: string) => void;
   onImageError: (url: string) => void;
   onRetry: () => void;
 }
@@ -113,10 +113,10 @@ export function GalleryPhotoGrid({
           isSelected={selectedImages.includes(item.memory.id)}
           onSelectionToggle={(checked) => onSelectionToggle(item.memory.id, checked)}
           rating={ratings[item.memory.id] || 0}
-          onRate={(rating) => onRate(item.memory.id, rating)}
+          onRate={onRate ? (rating) => onRate(item.memory.id, rating) : undefined}
           isHidden={activeTab === 'hidden'}
-          onHide={() => onHide(item.memory.id)}
-          onUnhide={() => onUnhide(item.memory.id)}
+          onHide={onHide ? () => onHide(item.memory.id) : undefined}
+          onUnhide={onUnhide ? () => onUnhide(item.memory.id) : undefined}
           onImageError={onImageError}
         />
       )}

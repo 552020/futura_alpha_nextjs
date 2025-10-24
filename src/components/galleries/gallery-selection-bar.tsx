@@ -9,6 +9,7 @@ interface GallerySelectionBarProps {
   activeTab: 'all' | 'hidden';
   onTabChange: (tab: 'all' | 'hidden') => void;
   onSendPhotos: () => void;
+  showHiddenTabs?: boolean;
 }
 
 export function GallerySelectionBar({
@@ -19,6 +20,7 @@ export function GallerySelectionBar({
   activeTab,
   onTabChange,
   onSendPhotos,
+  showHiddenTabs = false,
 }: GallerySelectionBarProps) {
   if (!isSelecting) return null;
 
@@ -29,22 +31,27 @@ export function GallerySelectionBar({
           {selectedCount} of {maxSelection} photos selected
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onTabChange('all')}
-            className={activeTab === 'all' ? 'bg-blue-100 dark:bg-blue-900' : ''}
-          >
-            All Photos
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onTabChange('hidden')}
-            className={activeTab === 'hidden' ? 'bg-blue-100 dark:bg-blue-900' : ''}
-          >
-            Hidden ({hiddenCount})
-          </Button>
+          {/* Hidden tab functionality - only shown when feature is enabled */}
+          {showHiddenTabs && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onTabChange('all')}
+                className={activeTab === 'all' ? 'bg-blue-100 dark:bg-blue-900' : ''}
+              >
+                All Photos
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onTabChange('hidden')}
+                className={activeTab === 'hidden' ? 'bg-blue-100 dark:bg-blue-900' : ''}
+              >
+                Hidden ({hiddenCount})
+              </Button>
+            </>
+          )}
           <Button variant="default" size="sm" onClick={onSendPhotos} disabled={selectedCount === 0}>
             <Check className="h-4 w-4 mr-2" />
             Send {selectedCount} Photos
