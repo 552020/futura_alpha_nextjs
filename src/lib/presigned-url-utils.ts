@@ -59,15 +59,47 @@ export async function generatePresignedUrlDirect(key: string, bucket?: string, r
 export async function generatePresignedUrl(key: string): Promise<string> {
   fatLogger.info('Requesting presigned URL for key', 'be', { key });
   try {
+    // Comprehensive debugging logs
+    fatLogger.info('🔍 [Presigned URL Debug] Environment values:', 'be', {
+      NEXTAUTH_URL: process.env.NEXTAUTH_URL,
+      VERCEL_URL: process.env.VERCEL_URL,
+      NODE_ENV: process.env.NODE_ENV,
+      VERCEL_ENV: process.env.VERCEL_ENV,
+      AWS_ACCESS_KEY_ID: !!process.env.AWS_ACCESS_KEY_ID,
+      AWS_SECRET_ACCESS_KEY: !!process.env.AWS_SECRET_ACCESS_KEY,
+      AWS_S3_BUCKET: process.env.AWS_S3_BUCKET,
+      AWS_S3_REGION: process.env.AWS_S3_REGION,
+    });
+
     // Use absolute URL for server-side fetch
-    const baseUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL || 'http://localhost:3000';
+    const baseUrl =
+      process.env.NEXTAUTH_URL ||
+      process.env.VERCEL_URL ||
+      (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : '');
+
+    fatLogger.info('🔍 [Presigned URL Debug] Calculated baseUrl:', 'be', { baseUrl });
+
+    if (!baseUrl) {
+      fatLogger.error('❌ [Presigned URL Debug] No base URL available for server-side fetch', 'be', {
+        NEXTAUTH_URL: process.env.NEXTAUTH_URL,
+        VERCEL_URL: process.env.VERCEL_URL,
+        NODE_ENV: process.env.NODE_ENV,
+      });
+      throw new Error(
+        'No base URL available for server-side fetch. Set NEXTAUTH_URL or VERCEL_URL environment variable.'
+      );
+    }
+
     const apiUrl = `${baseUrl}/api/upload/s3/download`;
+    fatLogger.info('🔍 [Presigned URL Debug] Fetch URL:', 'be', { apiUrl });
     fatLogger.info('Using API URL', 'be', { apiUrl });
     fatLogger.info('Environment check', 'be', {
       hasNextAuthUrl: !!process.env.NEXTAUTH_URL,
       hasVercelUrl: !!process.env.VERCEL_URL,
       baseUrl,
     });
+
+    fatLogger.info('🔍 [Presigned URL Debug] Making fetch request...', 'be', { apiUrl, keyLength: key.length });
 
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -77,11 +109,24 @@ export async function generatePresignedUrl(key: string): Promise<string> {
       body: JSON.stringify({ key }),
     });
 
+    fatLogger.info('🔍 [Presigned URL Debug] Response received:', 'be', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok,
+      url: response.url,
+    });
     fatLogger.info('📡 Presigned URL response status:', 'be', { status: response.status });
     fatLogger.info('📡 Presigned URL response headers:', 'be', Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
       const errorText = await response.text();
+      fatLogger.error('❌ [Presigned URL Debug] Fetch failed:', 'be', {
+        status: response.status,
+        statusText: response.statusText,
+        errorText,
+        apiUrl,
+        responseUrl: response.url,
+      });
       fatLogger.error('Failed to generate presigned URL', 'be', {
         status: response.status,
         statusText: response.statusText,
@@ -92,6 +137,12 @@ export async function generatePresignedUrl(key: string): Promise<string> {
     }
 
     const data = await response.json();
+    fatLogger.info('🔍 [Presigned URL Debug] Parsed response data:', 'be', {
+      hasUrl: !!data.url,
+      urlLength: data.url?.length || 0,
+      urlPreview: data.url ? data.url.substring(0, 100) + '...' : 'No URL',
+      dataKeys: Object.keys(data),
+    });
     fatLogger.info('✅ Received presigned URL response:', 'be', {
       hasUrl: !!data.url,
       urlLength: data.url?.length || 0,
@@ -99,11 +150,21 @@ export async function generatePresignedUrl(key: string): Promise<string> {
     });
 
     if (!data.url) {
+      fatLogger.error('❌ [Presigned URL Debug] No URL in response data:', 'be', { data });
       throw new Error('No URL returned from presigned URL endpoint');
     }
 
+    fatLogger.info('✅ [Presigned URL Debug] Successfully generated presigned URL via server-side fetch', 'be', {
+      urlLength: data.url.length,
+      urlPreview: data.url.substring(0, 100) + '...',
+    });
     return data.url;
   } catch (error) {
+    fatLogger.error('❌ [Presigned URL Debug] Error in generatePresignedUrl:', 'be', {
+      error: error instanceof Error ? error.message : String(error),
+      errorName: error instanceof Error ? error.name : 'Unknown',
+      errorStack: error instanceof Error ? error.stack : undefined,
+    });
     fatLogger.error('Error in generatePresignedUrl', 'be', { error });
     throw error;
   }
@@ -160,41 +221,87 @@ export async function generatePresignedUrlFromStorageKey(
     region,
     envBucket: process.env.NEXT_PUBLIC_AWS_S3_BUCKET || process.env.AWS_S3_BUCKET,
     envRegion: process.env.NEXT_PUBLIC_AWS_S3_REGION,
+    nodeEnv: process.env.NODE_ENV,
   });
 
-  try {
-    fatLogger.info('Attempting to get presigned URL', 'be', { storageKey });
-    const presignedUrl = await generatePresignedUrl(storageKey);
-    fatLogger.info('Successfully generated presigned URL', 'be', {
-      urlLength: presignedUrl.length,
-      urlPreview: presignedUrl.substring(0, 100) + '...',
-    });
-    return presignedUrl;
-  } catch (error) {
-    fatLogger.warn('Server-side fetch failed, trying direct AWS SDK method', 'be', {
-      storageKey,
-      error: error instanceof Error ? error.message : String(error),
-    });
+  // In production, prefer direct AWS SDK method (similar to II fix)
+  // In development, try server-side fetch first for easier debugging
+  const isProduction = process.env.NODE_ENV === 'production';
 
+  if (isProduction) {
+    fatLogger.info('🔍 [Production Mode] Using direct AWS SDK method first', 'be', { storageKey });
     try {
-      // Try direct AWS SDK method as fallback
       const directPresignedUrl = await generatePresignedUrlDirect(storageKey, bucket, region);
-      fatLogger.info('Successfully generated presigned URL using direct method', 'be');
+      fatLogger.info('✅ [Production Mode] Direct AWS SDK method succeeded', 'be', {
+        urlLength: directPresignedUrl.length,
+        urlPreview: directPresignedUrl.substring(0, 100) + '...',
+      });
       return directPresignedUrl;
     } catch (directError) {
-      fatLogger.error('Both presigned URL methods failed', 'be', {
-        serverError: error instanceof Error ? error.message : String(error),
-        directError: directError instanceof Error ? directError.message : String(directError),
+      fatLogger.warn('⚠️ [Production Mode] Direct AWS SDK failed, trying server-side fetch', 'be', {
+        storageKey,
+        error: directError instanceof Error ? directError.message : String(directError),
       });
 
-      // Final fallback to direct URL (will likely fail for private buckets)
-      const bucketName = bucket || process.env.NEXT_PUBLIC_AWS_S3_BUCKET || process.env.AWS_S3_BUCKET || 'futura0';
-      const regionName = region || process.env.NEXT_PUBLIC_AWS_S3_REGION || 'eu-central-1';
-      const directUrl = `https://${bucketName}.s3.${regionName}.amazonaws.com/${storageKey}`;
+      try {
+        const presignedUrl = await generatePresignedUrl(storageKey);
+        fatLogger.info('✅ [Production Mode] Server-side fetch succeeded as fallback', 'be', {
+          urlLength: presignedUrl.length,
+          urlPreview: presignedUrl.substring(0, 100) + '...',
+        });
+        return presignedUrl;
+      } catch (serverError) {
+        fatLogger.error('❌ [Production Mode] Both methods failed', 'be', {
+          directError: directError instanceof Error ? directError.message : String(directError),
+          serverError: serverError instanceof Error ? serverError.message : String(serverError),
+        });
 
-      fatLogger.info('Using direct URL as final fallback', 'be', { directUrl });
-      fatLogger.warn('Direct S3 URLs may not work for private buckets - all presigning methods failed', 'be');
-      return directUrl;
+        // Final fallback to direct URL
+        const bucketName = bucket || process.env.NEXT_PUBLIC_AWS_S3_BUCKET || process.env.AWS_S3_BUCKET || 'futura0';
+        const regionName = region || process.env.NEXT_PUBLIC_AWS_S3_REGION || 'eu-central-1';
+        const directUrl = `https://${bucketName}.s3.${regionName}.amazonaws.com/${storageKey}`;
+
+        fatLogger.warn('⚠️ [Production Mode] Using direct URL as final fallback', 'be', { directUrl });
+        return directUrl;
+      }
+    }
+  } else {
+    // Development mode: try server-side fetch first for easier debugging
+    fatLogger.info('🔍 [Development Mode] Attempting server-side fetch method first', 'be', { storageKey });
+    try {
+      const presignedUrl = await generatePresignedUrl(storageKey);
+      fatLogger.info('✅ [Development Mode] Server-side fetch succeeded', 'be', {
+        urlLength: presignedUrl.length,
+        urlPreview: presignedUrl.substring(0, 100) + '...',
+      });
+      return presignedUrl;
+    } catch (error) {
+      fatLogger.warn('⚠️ [Development Mode] Server-side fetch failed, trying direct AWS SDK method', 'be', {
+        storageKey,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      try {
+        const directPresignedUrl = await generatePresignedUrlDirect(storageKey, bucket, region);
+        fatLogger.info('✅ [Development Mode] Direct AWS SDK method succeeded as fallback', 'be', {
+          urlLength: directPresignedUrl.length,
+          urlPreview: directPresignedUrl.substring(0, 100) + '...',
+        });
+        return directPresignedUrl;
+      } catch (directError) {
+        fatLogger.error('❌ [Development Mode] Both methods failed', 'be', {
+          serverError: error instanceof Error ? error.message : String(error),
+          directError: directError instanceof Error ? directError.message : String(directError),
+        });
+
+        // Final fallback to direct URL
+        const bucketName = bucket || process.env.NEXT_PUBLIC_AWS_S3_BUCKET || process.env.AWS_S3_BUCKET || 'futura0';
+        const regionName = region || process.env.NEXT_PUBLIC_AWS_S3_REGION || 'eu-central-1';
+        const directUrl = `https://${bucketName}.s3.${regionName}.amazonaws.com/${storageKey}`;
+
+        fatLogger.warn('⚠️ [Development Mode] Using direct URL as final fallback', 'be', { directUrl });
+        return directUrl;
+      }
     }
   }
 }

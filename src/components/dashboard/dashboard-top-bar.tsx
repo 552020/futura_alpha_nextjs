@@ -6,7 +6,6 @@ import { ItemUploadButton } from '@/components/memory/item-upload-button';
 import { BaseTopBar } from '@/components/common/base-top-bar';
 import { Switch } from '@/components/ui/switch';
 import { canSwitchDashboardDataSources, type HostingPreferences } from '@/hooks/use-hosting-preferences';
-import { useUserSettings } from '@/hooks/use-user-settings';
 
 interface SearchAndFilterBarProps {
   memories: ExtendedMemory[];
@@ -40,8 +39,6 @@ export function DashboardTopBar({
   onDataSourceChange,
   hostingPreferences,
 }: SearchAndFilterBarProps) {
-  const { data: userSettings } = useUserSettings();
-  const hasAdvancedSettings = userSettings?.hasAdvancedSettings || false;
   // Create left action buttons
   const leftActions = (
     <>
@@ -61,15 +58,15 @@ export function DashboardTopBar({
           />
         </>
       )}
-      {/* Clear All button - only show for advanced users */}
-      {hasAdvancedSettings && onClearAllMemories && (
+      {/* Clear All button - show when multiple data sources are available */}
+      {canSwitchDashboardDataSources(hostingPreferences) && onClearAllMemories && (
         <Button variant="destructive" size="sm" onClick={onClearAllMemories} className="h-9 px-4 py-1 text-sm shrink-0">
           Clear All
         </Button>
       )}
 
-      {/* Database Toggle Switch - only show for advanced users */}
-      {hasAdvancedSettings && (
+      {/* Database Toggle Switch - show when multiple data sources are available */}
+      {canSwitchDashboardDataSources(hostingPreferences) && (
         <div
           className={`flex items-center gap-2 px-3 py-1 border rounded-md ${
             !canSwitchDashboardDataSources(hostingPreferences) ? 'bg-muted' : 'bg-background'
