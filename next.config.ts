@@ -76,7 +76,10 @@ const nextConfig: NextConfig = {
     formats: ['image/webp', 'image/avif'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    domains: ['localhost'],
+    domains: ['localhost', 'futura0.s3.eu-central-1.amazonaws.com'],
+    // Add timeout and other configurations to help with 502 errors
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     remotePatterns: [
       // Local development
       {
@@ -101,13 +104,13 @@ const nextConfig: NextConfig = {
       // Dynamic canister ID for local development
       ...(process.env.NEXT_PUBLIC_CANISTER_ID_BACKEND
         ? [
-            {
-              protocol: 'http' as const,
-              hostname: `${process.env.NEXT_PUBLIC_CANISTER_ID_BACKEND}.localhost`,
-              port: '4943',
-              pathname: '/asset/**',
-            },
-          ]
+          {
+            protocol: 'http' as const,
+            hostname: `${process.env.NEXT_PUBLIC_CANISTER_ID_BACKEND}.localhost`,
+            port: '4943',
+            pathname: '/asset/**',
+          },
+        ]
         : []),
       // Generic pattern for any localhost canister ID (for local development)
       {
