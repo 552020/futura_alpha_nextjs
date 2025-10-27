@@ -80,6 +80,8 @@ const nextConfig: NextConfig = {
     // Add timeout and other configurations to help with 502 errors
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    // Disable optimization for production to avoid 502 errors
+    unoptimized: process.env.NODE_ENV === 'production',
     remotePatterns: [
       // Local development
       {
