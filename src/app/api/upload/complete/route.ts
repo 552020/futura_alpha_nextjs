@@ -8,6 +8,7 @@ import { eq, and } from 'drizzle-orm';
 import { fatLogger } from '@/lib/logger';
 import { detectMemoryType } from '@/utils/memory-type';
 import { createTemporaryUser } from '@/services/user';
+import { generatePresignedUrlFromStorageKey } from '@/lib/presigned-url-utils';
 // Drizzle ORM imports are used in the where clause
 
 interface FileMetadata {
@@ -299,7 +300,15 @@ async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserI
   // Construct the file URL based on storage backend
   let fileUrl: string;
   if (metadata.storageBackend === 's3' && metadata.storageKey) {
-    fileUrl = `https://${process.env.AWS_S3_BUCKET || 'futura0'}.s3.${process.env.AWS_S3_REGION}.amazonaws.com/${metadata.storageKey}`;
+    fatLogger.info('🔑 Generating presigned URL for S3 storage', 'be', { 
+      storageKey: metadata.storageKey,
+      storageBackend: metadata.storageBackend 
+    });
+    fileUrl = await generatePresignedUrlFromStorageKey(metadata.storageKey);
+    fatLogger.info('✅ Generated presigned URL successfully', 'be', { 
+      urlLength: fileUrl.length,
+      urlPreview: fileUrl.substring(0, 100) + '...'
+    });
   } else {
     fileUrl = requestData.url || `/${fileKey}`;
   }
