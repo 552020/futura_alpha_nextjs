@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { fatLogger } from '@/lib/logger';
+import { generatePresignedUrlFromStorageKey } from '@/lib/presigned-url-utils';
 type PresignedUrlInfo = {
   signedUrl: string;
   s3Key: string;
@@ -134,18 +135,29 @@ export function useMemoryUpload(): UseMemoryUploadResult {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          files: uploadedFiles.map((file, index) => {
-            // Construct the public URL using the s3Key from the presigned response
-            const s3Key = presignedUrls[index].s3Key;
-            const publicUrl = `https://${process.env.NEXT_PUBLIC_AWS_S3_BUCKET}.s3.${process.env.NEXT_PUBLIC_AWS_S3_REGION || 'eu-central-1'}.amazonaws.com/${s3Key}`;
+          files: await Promise.all(
+            uploadedFiles.map(async (file, index) => {
+              // Generate presigned URL using the s3Key from the presigned response
+              const s3Key = presignedUrls[index].s3Key;
+              fatLogger.info('🔑 Generating presigned URL for frontend upload', 'fe', {
+                s3Key,
+                fileName: file.name,
+              });
+              const publicUrl = await generatePresignedUrlFromStorageKey(s3Key);
+              fatLogger.info('✅ Generated presigned URL for frontend upload', 'fe', {
+                urlLength: publicUrl.length,
+                urlPreview: publicUrl.substring(0, 100) + '...',
+                fileName: file.name,
+              });
 
-            return {
-              fileName: file.name,
-              fileType: file.type,
-              fileSize: file.size,
-              s3Url: publicUrl,
-            };
-          }),
+              return {
+                fileName: file.name,
+                fileType: file.type,
+                fileSize: file.size,
+                s3Url: publicUrl,
+              };
+            })
+          ),
           parentFolderId,
         }),
       });

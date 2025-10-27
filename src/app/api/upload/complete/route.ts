@@ -300,14 +300,14 @@ async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserI
   // Construct the file URL based on storage backend
   let fileUrl: string;
   if (metadata.storageBackend === 's3' && metadata.storageKey) {
-    fatLogger.info('🔑 Generating presigned URL for S3 storage', 'be', { 
+    fatLogger.info('🔑 Generating presigned URL for S3 storage', 'be', {
       storageKey: metadata.storageKey,
-      storageBackend: metadata.storageBackend 
+      storageBackend: metadata.storageBackend,
     });
     fileUrl = await generatePresignedUrlFromStorageKey(metadata.storageKey);
-    fatLogger.info('✅ Generated presigned URL successfully', 'be', { 
+    fatLogger.info('✅ Generated presigned URL successfully', 'be', {
       urlLength: fileUrl.length,
-      urlPreview: fileUrl.substring(0, 100) + '...'
+      urlPreview: fileUrl.substring(0, 100) + '...',
     });
   } else {
     fileUrl = requestData.url || `/${fileKey}`;
