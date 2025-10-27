@@ -106,7 +106,7 @@ const getAssetUrl = async (
     console.log('🔍 [getAssetUrl] EXITING - first asset URL');
     return url;
   }
-  
+
   console.log('🔍 [getAssetUrl] EXITING - no assets found');
   return undefined;
 };
@@ -155,7 +155,7 @@ export default function MemoryDetailPage() {
     console.log('🔍 [getCachedAssetUrl] Found asset:', {
       id: asset?.id,
       type: asset?.assetType,
-      hasStorageKey: !!asset?.storageKey
+      hasStorageKey: !!asset?.storageKey,
     });
 
     if (!asset?.storageKey) {
@@ -499,6 +499,25 @@ export default function MemoryDetailPage() {
       <div className="rounded-lg border p-6">
         {memory.type === 'image' && (memory.url || memory.assets?.length) && (
           <div className="relative mx-auto h-[600px] w-full">
+            {/* DEBUG: Log the URL right before Image component renders */}
+            {(() => {
+              console.log('🔍 [IMAGE COMPONENT DEBUG] About to render image with URL:', {
+                memoryId: memory.id,
+                memoryType: memory.type,
+                memoryUrl: memory.url,
+                urlLength: memory.url?.length || 0,
+                urlPreview: memory.url ? memory.url.substring(0, 100) + '...' : 'No URL',
+                isDirectS3Url: memory.url?.includes('s3.amazonaws.com') || false,
+                isPresignedUrl: memory.url?.includes('X-Amz-') || false,
+                assetsCount: memory.assets?.length || 0,
+                assets: memory.assets?.map(a => ({
+                  type: a.assetType,
+                  url: a.url?.substring(0, 50) + '...',
+                  hasStorageKey: !!a.storageKey
+                })) || []
+              });
+              return null;
+            })()}
             <Image
               src={memory.url || ''}
               alt={memory.title || 'Memory image'}
@@ -506,12 +525,25 @@ export default function MemoryDetailPage() {
               className="rounded-lg object-contain"
               sizes={IMAGE_SIZES.lightbox}
               onLoad={() => {
-				fatLogger.info('Image loaded successfully for memory:', 'fe', {
+                console.log('✅ [IMAGE COMPONENT DEBUG] Image loaded successfully:', {
+                  memoryId: memory.id,
+                  url: memory.url,
+                  urlType: memory.url?.includes('X-Amz-') ? 'presigned' : 'direct',
+                  timestamp: new Date().toISOString()
+                });
+                fatLogger.info('Image loaded successfully for memory:', 'fe', {
                   memoryId: memory.id,
                   url: memory.url,
                 });
               }}
-              onError={() => {
+              onError={(error) => {
+                console.log('❌ [IMAGE COMPONENT DEBUG] Image failed to load:', {
+                  memoryId: memory.id,
+                  url: memory.url,
+                  urlType: memory.url?.includes('X-Amz-') ? 'presigned' : 'direct',
+                  error: error,
+                  timestamp: new Date().toISOString()
+                });
                 fatLogger.error('Image error for memory:', 'fe', {
                   memoryId: memory.id,
                   url: memory.url,
