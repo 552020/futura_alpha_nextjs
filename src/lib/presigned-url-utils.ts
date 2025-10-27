@@ -72,23 +72,8 @@ export async function generatePresignedUrl(key: string): Promise<string> {
     });
 
     // Use absolute URL for server-side fetch
-    const baseUrl =
-      process.env.NEXTAUTH_URL ||
-      process.env.VERCEL_URL ||
-      (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : '');
-
+    const baseUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL || 'http://localhost:3000';
     fatLogger.info('🔍 [Presigned URL Debug] Calculated baseUrl:', 'be', { baseUrl });
-
-    if (!baseUrl) {
-      fatLogger.error('❌ [Presigned URL Debug] No base URL available for server-side fetch', 'be', {
-        NEXTAUTH_URL: process.env.NEXTAUTH_URL,
-        VERCEL_URL: process.env.VERCEL_URL,
-        NODE_ENV: process.env.NODE_ENV,
-      });
-      throw new Error(
-        'No base URL available for server-side fetch. Set NEXTAUTH_URL or VERCEL_URL environment variable.'
-      );
-    }
 
     const apiUrl = `${baseUrl}/api/upload/s3/download`;
     fatLogger.info('🔍 [Presigned URL Debug] Fetch URL:', 'be', { apiUrl });

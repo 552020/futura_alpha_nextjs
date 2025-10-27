@@ -43,6 +43,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Debug environment variables
+  fatLogger.info('🔍 [Memory API Debug] Environment variables:', 'be', {
+    NEXTAUTH_URL: process.env.NEXTAUTH_URL,
+    VERCEL_URL: process.env.VERCEL_URL,
+    NODE_ENV: process.env.NODE_ENV,
+    VERCEL_ENV: process.env.VERCEL_ENV,
+    AWS_ACCESS_KEY_ID: !!process.env.AWS_ACCESS_KEY_ID,
+    AWS_SECRET_ACCESS_KEY: !!process.env.AWS_SECRET_ACCESS_KEY,
+    AWS_S3_BUCKET: process.env.AWS_S3_BUCKET,
+    AWS_S3_REGION: process.env.AWS_S3_REGION,
+  });
+
   try {
     // Get the allUserId for the authenticated user
     const allUserResult = await getAllUserRecord(session.user.id);
