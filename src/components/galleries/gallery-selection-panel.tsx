@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import Image from 'next/image';
+import { OptimizedImage as Image } from '@/components/ui/optimized-image';
 import { ImageIcon, X /* , Star */ } from 'lucide-react';
 
 interface GallerySelectionPanelProps {

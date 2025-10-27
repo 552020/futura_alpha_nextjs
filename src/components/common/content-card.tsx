@@ -18,7 +18,7 @@ import {
 import { MemoryStatus } from '../memory/memory-status';
 import { MemoryStorageBadge } from '@/components/common/memory-storage-badge';
 import { BaseCard } from '@/components/common/base-card';
-import Image from 'next/image';
+import { OptimizedImage as Image } from '@/components/ui/optimized-image';
 import { shortenTitle } from '@/lib/utils';
 import { getBlurPlaceholder, IMAGE_SIZES } from '@/utils/image-utils';
 import { Checkbox } from '@/components/ui/checkbox';

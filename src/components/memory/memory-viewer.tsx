@@ -1,7 +1,7 @@
 'use client';
 
 import { type MemoryWithType } from '@/app/api/memories/utils/memory';
-import Image from 'next/image';
+import { OptimizedImage as Image } from '@/components/ui/optimized-image';
 import { Button } from '@/components/ui/button';
 import { Download, Edit, Trash } from 'lucide-react';
 import { useState, useEffect } from 'react';

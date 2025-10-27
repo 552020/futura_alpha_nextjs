@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Image from 'next/image';
+import { OptimizedImage as Image } from '@/components/ui/optimized-image';
 import { MemoryActions } from '@/components/memory/memory-actions';
 import { Button } from '@/components/ui/button';
 import { Loader2, Image as ImageIcon, Video, FileText, Music, ChevronLeft } from 'lucide-react';

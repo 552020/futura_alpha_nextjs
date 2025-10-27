@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import Image from 'next/image';
+import { OptimizedImage as Image } from '@/components/ui/optimized-image';
 import { useAuthGuard } from '@/utils/authentication';
 import { Button } from '@/components/ui/button';
 import { X, ChevronLeft, ChevronRight, Download, Share2, HardDrive } from 'lucide-react';
