@@ -510,11 +510,12 @@ export default function MemoryDetailPage() {
                 isDirectS3Url: memory.url?.includes('s3.amazonaws.com') || false,
                 isPresignedUrl: memory.url?.includes('X-Amz-') || false,
                 assetsCount: memory.assets?.length || 0,
-                assets: memory.assets?.map(a => ({
-                  type: a.assetType,
-                  url: a.url?.substring(0, 50) + '...',
-                  hasStorageKey: !!a.storageKey
-                })) || []
+                assets:
+                  memory.assets?.map(a => ({
+                    type: a.assetType,
+                    url: a.url?.substring(0, 50) + '...',
+                    hasStorageKey: !!a.storageKey,
+                  })) || [],
               });
               return null;
             })()}
@@ -529,20 +530,20 @@ export default function MemoryDetailPage() {
                   memoryId: memory.id,
                   url: memory.url,
                   urlType: memory.url?.includes('X-Amz-') ? 'presigned' : 'direct',
-                  timestamp: new Date().toISOString()
+                  timestamp: new Date().toISOString(),
                 });
                 fatLogger.info('Image loaded successfully for memory:', 'fe', {
                   memoryId: memory.id,
                   url: memory.url,
                 });
               }}
-              onError={(error) => {
+              onError={error => {
                 console.log('❌ [IMAGE COMPONENT DEBUG] Image failed to load:', {
                   memoryId: memory.id,
                   url: memory.url,
                   urlType: memory.url?.includes('X-Amz-') ? 'presigned' : 'direct',
                   error: error,
-                  timestamp: new Date().toISOString()
+                  timestamp: new Date().toISOString(),
                 });
                 fatLogger.error('Image error for memory:', 'fe', {
                   memoryId: memory.id,

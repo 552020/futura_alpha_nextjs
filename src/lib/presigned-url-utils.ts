@@ -51,8 +51,9 @@ export async function generatePresignedUrlDirect(key: string, bucket?: string, r
   return url;
 }
 
+
 /**
- * Generate a presigned URL for an S3 object
+ * Generate a presigned URL for an S3 object (SERVER-SIDE ONLY)
  * @param key - The S3 object key
  * @returns Promise<string> - The presigned URL
  */
@@ -73,7 +74,27 @@ export async function generatePresignedUrl(key: string): Promise<string> {
 
     // Use absolute URL for server-side fetch
     const baseUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL || 'http://localhost:3000';
-    fatLogger.info('🔍 [Presigned URL Debug] Calculated baseUrl:', 'be', { baseUrl });
+    
+    // Log all environment variables to understand what's set
+    fatLogger.info('🔍 [Environment Variables Debug] All relevant env vars:', 'be', {
+      NEXTAUTH_URL: process.env.NEXTAUTH_URL,
+      VERCEL_URL: process.env.VERCEL_URL,
+      NODE_ENV: process.env.NODE_ENV,
+      VERCEL_ENV: process.env.VERCEL_ENV,
+      AWS_ACCESS_KEY_ID: !!process.env.AWS_ACCESS_KEY_ID,
+      AWS_SECRET_ACCESS_KEY: !!process.env.AWS_SECRET_ACCESS_KEY,
+      AWS_S3_BUCKET: process.env.AWS_S3_BUCKET,
+      AWS_S3_REGION: process.env.AWS_S3_REGION,
+      NEXT_PUBLIC_AWS_S3_BUCKET: process.env.NEXT_PUBLIC_AWS_S3_BUCKET,
+      NEXT_PUBLIC_AWS_S3_REGION: process.env.NEXT_PUBLIC_AWS_S3_REGION,
+    });
+    
+    fatLogger.info('🔍 [Presigned URL Debug] Calculated baseUrl:', 'be', { 
+      baseUrl,
+      source: process.env.NEXTAUTH_URL ? 'NEXTAUTH_URL' : 
+              process.env.VERCEL_URL ? 'VERCEL_URL' : 
+              'localhost fallback'
+    });
 
     const apiUrl = `${baseUrl}/api/upload/s3/download`;
     fatLogger.info('🔍 [Presigned URL Debug] Fetch URL:', 'be', { apiUrl });
@@ -200,6 +221,45 @@ export async function generatePresignedUrlFromStorageKey(
     throw new Error('Storage key is required');
   }
 
+  // Check if we're in a browser environment (frontend)
+  const isBrowser = typeof window !== 'undefined';
+  
+  if (isBrowser) {
+    fatLogger.info('🌐 [Frontend] Browser environment detected, using API call', 'fe', { storageKey });
+    // In browser, call the API endpoint directly
+    try {
+      const response = await fetch('/api/upload/s3/download', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ key: storageKey }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      fatLogger.info('✅ [Frontend] Successfully got presigned URL from API', 'fe', {
+        urlLength: data.url?.length || 0,
+        urlPreview: data.url ? data.url.substring(0, 100) + '...' : 'No URL',
+      });
+
+      return data.url;
+    } catch (error) {
+      fatLogger.error('❌ [Frontend] Failed to get presigned URL from API', 'fe', {
+        error: error instanceof Error ? error.message : String(error),
+        storageKey,
+      });
+      throw error;
+    }
+  }
+
+  // Server-side: Use the existing logic
+  fatLogger.info('🖥️ [Server] Server environment detected, using direct AWS SDK', 'be', { storageKey });
+
   fatLogger.info('generatePresignedUrlFromStorageKey called', 'be', {
     storageKey,
     bucket,
@@ -212,6 +272,14 @@ export async function generatePresignedUrlFromStorageKey(
   // In production, prefer direct AWS SDK method (similar to II fix)
   // In development, try server-side fetch first for easier debugging
   const isProduction = process.env.NODE_ENV === 'production';
+  
+  fatLogger.info('🔍 [Storage Key Debug] Environment and mode check:', 'be', {
+    NODE_ENV: process.env.NODE_ENV,
+    isProduction,
+    NEXTAUTH_URL: process.env.NEXTAUTH_URL,
+    VERCEL_URL: process.env.VERCEL_URL,
+    VERCEL_ENV: process.env.VERCEL_ENV,
+  });
 
   if (isProduction) {
     fatLogger.info('🔍 [Production Mode] Using direct AWS SDK method first', 'be', { storageKey });
