@@ -259,7 +259,7 @@ async function handleProcessedAssets(response: ProcessResponse, grant: GrantResp
   if (response.display && grant.display) {
     try {
       await uploadAssetToS3(response.display.blob, grant.display.uploadUrl);
-      const displayUrl = generateS3Url(grant.display.fileKey);
+      const displayUrl = await generateS3Url(grant.display.fileKey);
       results.display = {
         assetType: 'display',
         processingStatus: 'completed',
@@ -285,7 +285,7 @@ async function handleProcessedAssets(response: ProcessResponse, grant: GrantResp
   if (response.thumb && grant.thumb) {
     try {
       await uploadAssetToS3(response.thumb.blob, grant.thumb.uploadUrl);
-      const thumbUrl = generateS3Url(grant.thumb.fileKey);
+      const thumbUrl = await generateS3Url(grant.thumb.fileKey);
       results.thumb = {
         assetType: 'thumb',
         processingStatus: 'completed',
@@ -374,14 +374,14 @@ async function uploadAssetToS3(blob: Blob, uploadUrl: string): Promise<void> {
   }
 }
 
+import { generatePresignedUrlFromStorageKey } from '@/lib/presigned-url-utils';
+
 /**
- * Generate S3 public URL from file key
+ * Generate S3 presigned URL from file key
  */
-function generateS3Url(fileKey: string): string {
-  // Use hardcoded values for client-side since env vars aren't available
-  const bucket = 'futura0';
-  const region = 'eu-central-1';
-  return `https://${bucket}.s3.${region}.amazonaws.com/${fileKey}`;
+async function generateS3Url(fileKey: string): Promise<string> {
+  // Use presigned URL instead of direct URL for private bucket access
+  return await generatePresignedUrlFromStorageKey(fileKey);
 }
 
 /**
@@ -398,7 +398,7 @@ export async function uploadProcessedAssetsToS3(
   if (processedBlobs.display && grant.display) {
     try {
       await uploadAssetToS3(processedBlobs.display.blob, grant.display.uploadUrl);
-      const displayUrl = generateS3Url(grant.display.fileKey);
+      const displayUrl = await generateS3Url(grant.display.fileKey);
       results.display = {
         assetType: 'display',
         processingStatus: 'completed',
@@ -432,7 +432,7 @@ export async function uploadProcessedAssetsToS3(
   if (processedBlobs.thumb && grant.thumb) {
     try {
       await uploadAssetToS3(processedBlobs.thumb.blob, grant.thumb.uploadUrl);
-      const thumbUrl = generateS3Url(grant.thumb.fileKey);
+      const thumbUrl = await generateS3Url(grant.thumb.fileKey);
       results.thumb = {
         assetType: 'thumb',
         processingStatus: 'completed',
