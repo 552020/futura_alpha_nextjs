@@ -5,6 +5,8 @@
  * to avoid code duplication.
  */
 
+import { generatePresignedUrlFromStorageKey } from '@/lib/presigned-url-utils';
+
 /**
  * Generic file upload with progress tracking using XMLHttpRequest
  *
@@ -156,10 +158,9 @@ export async function createFolderIfNeeded(
  * @param s3Key - The S3 object key
  * @returns Public S3 URL
  */
-export function generateS3PublicUrl(s3Key: string): string {
-  const bucket = process.env.NEXT_PUBLIC_AWS_S3_BUCKET;
-  const region = process.env.NEXT_PUBLIC_AWS_S3_REGION || 'eu-central-1';
-  return `https://${bucket}.s3.${region}.amazonaws.com/${s3Key}`;
+export async function generateS3PublicUrl(s3Key: string): Promise<string> {
+  // Use presigned URL instead of direct URL for private bucket access
+  return await generatePresignedUrlFromStorageKey(s3Key);
 }
 
 // Common error handling for upload services
