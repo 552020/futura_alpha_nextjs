@@ -115,9 +115,9 @@ function Hero({ dict, lang, subdomain }: HeroProps) {
           <div className="pb-15 lg:pb-8">
             <p
               className="font-normal text-foreground"
-              style={{ fontSize: `calc(80vw / ${'Your Gallery. Forever.'.length})` }}
+              style={{ fontSize: `calc(80vw / ${(dict?.hero?.galleryForever || 'Your Gallery. Forever.').length})` }}
             >
-              Your Gallery. Forever.
+              {dict?.hero?.galleryForever || 'Your Gallery. Forever.'}
             </p>
           </div>
         </div>
@@ -158,11 +158,11 @@ function Hero({ dict, lang, subdomain }: HeroProps) {
                   className="font-medium tracking-wide m-0 mt-3 leading-snug text-left ml-2 mb-[-0.5rem]"
                   style={{
                     fontSize: `calc(${(SUBTITLE_VW * SUBTITLE_SCALE).toFixed(1)}vw / ${
-                      'Your Gallery. Forever.'.length
+                      (dict?.hero?.galleryForever || 'Your Gallery. Forever.').length
                     })`,
                   }}
                 >
-                  Your Gallery. Forever.
+                  {dict?.hero?.galleryForever || 'Your Gallery. Forever.'}
                 </p>
               </div>
             </div>
@@ -216,7 +216,7 @@ function Hero({ dict, lang, subdomain }: HeroProps) {
                     Futura
                   </div>
                   <div className="mt-2 text-white/90 w-full" style={{ fontSize: 'clamp(2rem, 3vw, 6rem)' }}>
-                    Your Gallery. Forever.
+                    {dict?.hero?.galleryForever || 'Your Gallery. Forever.'}
                   </div>
                 </div>
               </div>

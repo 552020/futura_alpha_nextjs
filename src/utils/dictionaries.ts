@@ -24,6 +24,7 @@ export type BaseDictionary = {
   hero?: {
     title?: string;
     subtitle?: string;
+    galleryForever?: string;
     learnMore?: string;
     startHere?: string;
     now?: string;
