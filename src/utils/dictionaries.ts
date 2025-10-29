@@ -220,13 +220,8 @@ export type Dictionary = BaseDictionary &
 
 const dictionaries: Record<string, () => Promise<BaseDictionary>> = {
   en: () => import('../app/[lang]/dictionaries/base/en.json').then(module => module.default),
-  fr: () => import('../app/[lang]/dictionaries/base/fr.json').then(module => module.default),
-  es: () => import('../app/[lang]/dictionaries/base/es.json').then(module => module.default),
-  pt: () => import('../app/[lang]/dictionaries/base/pt.json').then(module => module.default),
-  it: () => import('../app/[lang]/dictionaries/base/it.json').then(module => module.default),
   de: () => import('../app/[lang]/dictionaries/base/de.json').then(module => module.default),
-  pl: () => import('../app/[lang]/dictionaries/base/pl.json').then(module => module.default),
-  zh: () => import('../app/[lang]/dictionaries/base/zh.json').then(module => module.default),
+  tr: () => import('../app/[lang]/dictionaries/base/tr.json').then(module => module.default),
 };
 
 // Onboarding dictionaries
@@ -235,7 +230,8 @@ const onboardingDictionaries: Record<string, () => Promise<OnboardingDictionary>
     import('../app/[lang]/dictionaries/onboarding/en.json').then(module => module.default as OnboardingDictionary),
   de: () =>
     import('../app/[lang]/dictionaries/onboarding/de.json').then(module => module.default as OnboardingDictionary),
-  // Add other languages as needed
+  tr: () =>
+    import('../app/[lang]/dictionaries/onboarding/tr.json').then(module => module.default as OnboardingDictionary),
 };
 
 // Segment-specific dictionaries

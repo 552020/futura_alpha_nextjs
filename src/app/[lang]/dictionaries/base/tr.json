@@ -1,0 +1,50 @@
+{
+  "metadata": {
+    "title": "Futura - Sonsuza Kadar Yaşa",
+    "description": "Önemli anılarınız için dijital kasanız."
+  },
+  "hero": {
+    "title": "Futura",
+    "subtitle": "Sonsuza Kadar Yaşa. Şimdi.",
+    "learnMore": "Daha Fazla Bilgi",
+    "startHere": "Buradan Başla",
+    "startNow": "Şimdi Başla",
+    "arrowSymbol": "→"
+  },
+  "header": {
+    "signIn": "Giriş Yap"
+  },
+  "nav": {
+    "about": "Hakkında",
+    "profile": "Profil",
+    "settings": "Ayarlar",
+    "faq": "SSS",
+    "vault": "Kasa",
+    "dashboard": "Kontrol Paneli",
+    "gallery": "Galeri",
+    "shared": "Paylaşılan",
+    "signOut": "Çıkış Yap"
+  },
+  "footer": {
+    "privacy": "Gizlilik",
+    "terms": "Şartlar",
+    "contact": "İletişim"
+  },
+  "common": {
+    "loading": "Yükleniyor...",
+    "error": "Hata",
+    "success": "Başarılı",
+    "cancel": "İptal",
+    "save": "Kaydet",
+    "delete": "Sil",
+    "edit": "Düzenle",
+    "close": "Kapat",
+    "back": "Geri",
+    "next": "İleri",
+    "previous": "Önceki",
+    "submit": "Gönder",
+    "confirm": "Onayla",
+    "yes": "Evet",
+    "no": "Hayır"
+  }
+}

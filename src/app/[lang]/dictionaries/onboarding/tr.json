@@ -1,0 +1,26 @@
+{
+  "items-upload": {
+    "variations": {
+      "leave-one-item": {
+        "title": "Tek ve biricik dijital anınızı seçin.",
+        "subtitle": "Ve onu Gelecek ve en sevdiğiniz insanlarla paylaşın."
+      },
+      "single-item": {
+        "title": "Tek ve biricik dijital anınızı seçin.",
+        "subtitle": "Bu, sonsuz bir şey bırakma şansınız."
+      },
+      "three-items": {
+        "title": "Gelecek ve en sevdiğiniz insanlarla paylaşmak istediğiniz üç öğeye kadar seçebilirsiniz.",
+        "subtitle": "Sonsuza kadar korumak istediğiniz şeyi akıllıca seçin."
+      },
+      "one-photo-one-memory-forever": {
+        "title": "Bir Fotoğraf. Bir Anı. Sonsuza Kadar.",
+        "subtitle": "En önemli olan bir fotoğraf veya dijital öğe yükleyin, biz onu gelecek nesiller için güvende tutacağız."
+      },
+      "preserve-your-digital-legacy": {
+        "title": "Dijital Mirasınızı Koruyun",
+        "subtitle": "En değerli anılarınızı yükleyin ve onları sonsuza kadar güvende tutun."
+      }
+    }
+  }
+}
