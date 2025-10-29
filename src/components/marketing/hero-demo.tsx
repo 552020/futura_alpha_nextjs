@@ -8,6 +8,7 @@ import { validateTranslations } from '@/components/utils/translation-validation'
 interface HeroProps {
   dict: Dictionary;
   lang: string;
+  subdomain?: string;
 }
 
 type TitleVariant = 'transform-overflow' | 'negative-margins' | 'flow-margin';
@@ -56,9 +57,24 @@ function HeroTitle({
   );
 }
 
-function Hero({ dict, lang }: HeroProps) {
+function Hero({ dict, lang, subdomain }: HeroProps) {
   // Validate translations using the helper function
   validateTranslations(dict, lang, 'hero');
+
+  // Subdomain-specific image
+  const getHeroImage = (subdomain: string) => {
+    switch (subdomain) {
+      case 'foto-kotti-weddings':
+        return '/hero/foto-kotti-weddings.jpg';
+      default:
+        return '/hero/diana_charles.jpg';
+    }
+  };
+
+  const heroImage = getHeroImage(subdomain || 'default');
+
+  // Debug logging
+  console.log('🖼️ Hero image selected:', { subdomain, heroImage });
 
   // Controls for mobile overlay typography (adjust to taste)
   const TITLE_VW = 73.5; // base vw numerator for title
@@ -110,7 +126,7 @@ function Hero({ dict, lang }: HeroProps) {
         <div className="w-full lg:w-1/2 flex items-center justify-center p-0 lg:p-4">
           <div className="relative w-full lg:w-full lg:max-w-lg min-h-[calc(100vh-4rem)] lg:min-h-[400px] bg-gray-100 dark:bg-gray-800 rounded-none lg:rounded-lg flex items-center justify-center">
             <Image
-              src="/hero/diana_charles.jpg"
+              src={heroImage}
               alt="Futura Hero Image"
               fill
               sizes="100vw"
@@ -158,7 +174,7 @@ function Hero({ dict, lang }: HeroProps) {
       <div className="hidden min-[480px]:block lg:hidden w-full">
         <div className="relative w-full min-h-[calc(100vh-4rem)] overflow-hidden">
           <Image
-            src="/hero/diana_charles.jpg"
+            src={heroImage}
             alt="Futura Hero Image"
             fill
             sizes="100vw"
@@ -173,7 +189,7 @@ function Hero({ dict, lang }: HeroProps) {
       <div className="hidden lg:block w-full">
         <div className="relative w-full min-h-[calc(100vh-4rem)] overflow-hidden">
           <Image
-            src="/hero/diana_charles.jpg"
+            src={heroImage}
             alt="Futura Hero Image"
             fill
             sizes="100vw"
