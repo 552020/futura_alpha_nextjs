@@ -33,7 +33,7 @@ export default async function LangPage({ params }: PageProps) {
   const headersList = await headers();
   const hostname = headersList.get('host') || '';
   const subdomain = hostname.split('.')[0];
-  
+
   // Debug logging
   console.log('🔍 Subdomain detection:', { hostname, subdomain });
 
