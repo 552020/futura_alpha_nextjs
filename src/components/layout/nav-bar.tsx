@@ -29,11 +29,11 @@ export default function NavBar({ mode, lang, dict, className, closeOnClick = fal
 
   // Filter navigation items based on subdomain
   const getNavItems = (): NavItem[] => {
-    const allItems = [
+    const allItems: NavItem[] = [
       { href: '/about', label: dict.nav?.about || 'About' },
       { href: '/contact', label: dict.nav?.contact || 'Contact' },
-      { href: '/journal', label: dict.nav?.journal || 'Journal' },
-      { href: '/merch', label: dict.nav?.merch || 'Merch' },
+      { href: '/journal', label: (dict.nav as Record<string, string>)?.journal || 'Journal' },
+      { href: '/merch', label: (dict.nav as Record<string, string>)?.merch || 'Merch' },
       { href: '/faq', label: dict.nav?.faq || 'FAQ' },
     ];
 
