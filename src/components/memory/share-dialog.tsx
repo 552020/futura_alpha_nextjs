@@ -37,6 +37,7 @@ export function ShareDialog({ memoryId, onShare }: ShareDialogProps) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          shareType: 'user',
           target: {
             type: 'user',
             allUserId: email, // This should be replaced with actual user ID lookup
