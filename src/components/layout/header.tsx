@@ -15,6 +15,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader, SheetClose 
 import { Dictionary } from '@/utils/dictionaries';
 import { usePathname } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { useState, useEffect } from 'react';
 
 import { fatLogger } from '@/lib/logger';
 // Define a proper type for the dictionary with optional fields
@@ -27,6 +28,17 @@ export default function Header({ dict, lang }: { dict: HeaderDictionary; lang?: 
   const { toast } = useToast();
   // Use the passed lang prop if available, otherwise get it from params
   const currentLang = lang || 'en';
+
+  // Detect subdomain from window.location.hostname (client-side)
+  const [subdomain, setSubdomain] = useState<string>('');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const hostname = window.location.hostname;
+      const subdomain = hostname.split('.')[0];
+      setSubdomain(subdomain);
+    }
+  }, []);
 
   // Hide header on gallery preview pages
   const isGalleryPreview = pathname.includes('/gallery/') && pathname.includes('/preview');
@@ -85,7 +97,7 @@ export default function Header({ dict, lang }: { dict: HeaderDictionary; lang?: 
 
         {/* Center: Navigation - DESKTOP ONLY */}
         <nav className="navigation-section hidden md:flex flex-1 justify-center gap-6 text-xs sm:text-sm">
-          <NavBar mode={mode} lang={currentLang} dict={dict} />
+          <NavBar mode={mode} lang={currentLang} dict={dict} subdomain={subdomain} />
         </nav>
 
         {/* Right User controls */}
@@ -130,22 +142,31 @@ export default function Header({ dict, lang }: { dict: HeaderDictionary; lang?: 
                 </SheetHeader>
                 <div className="flex flex-col space-y-4">
                   <nav className="flex flex-col">
-                    <NavBar mode={mode} lang={currentLang} dict={dict} className="mobile" closeOnClick />
+                    <NavBar
+                      mode={mode}
+                      lang={currentLang}
+                      dict={dict}
+                      className="mobile"
+                      closeOnClick
+                      subdomain={subdomain}
+                    />
                   </nav>
 
                   {/* Removed sign-in from mobile menu; sign-in stays in mobile header */}
 
-                  {/* Contacts link in main navigation section */}
-                  <div className="border-t pt-4">
-                    <SheetClose asChild>
-                      <Link
-                        href={`/${currentLang}/contacts`}
-                        className="transition-all duration-200 ease-in-out px-4 py-3 hover:text-primary hover:bg-muted rounded-none focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 text-base w-full flex items-center"
-                      >
-                        Contacts
-                      </Link>
-                    </SheetClose>
-                  </div>
+                  {/* Contacts link in main navigation section - only in app mode */}
+                  {mode === 'app' && (
+                    <div className="border-t pt-4">
+                      <SheetClose asChild>
+                        <Link
+                          href={`/${currentLang}/contacts`}
+                          className="transition-all duration-200 ease-in-out px-4 py-3 hover:text-primary hover:bg-muted rounded-none focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 text-base w-full flex items-center"
+                        >
+                          Contacts
+                        </Link>
+                      </SheetClose>
+                    </div>
+                  )}
 
                   {/* Footer Links in Mobile Menu */}
                   <div className="border-t pt-4">

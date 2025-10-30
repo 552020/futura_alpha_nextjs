@@ -36,6 +36,7 @@ export type BaseDictionary = {
   };
   nav?: {
     about?: string;
+    contact?: string;
     blog?: string;
     merch?: string;
     profile?: string;

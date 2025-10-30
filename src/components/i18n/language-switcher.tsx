@@ -45,14 +45,35 @@ export function LanguageSwitcher() {
   };
 
   return (
-    <DropdownMenu>
+    <DropdownMenu
+      onOpenChange={(open) => {
+        if (open) {
+          document.body.style.overflow = 'hidden';
+        } else {
+          document.body.style.overflow = 'unset';
+        }
+      }}
+    >
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="sm" className="flex items-center gap-2" suppressHydrationWarning>
           <Globe className="h-5 w-5" />
           <span className="uppercase text-xs font-medium">{lang}</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent 
+        align="end" 
+        side="bottom" 
+        className="min-w-[80px] md:relative fixed"
+        sideOffset={5}
+        style={{ 
+          marginRight: 0, 
+          right: 0,
+          position: 'fixed',
+          zIndex: 9999
+        }}
+        onCloseAutoFocus={(e) => e.preventDefault()}
+        avoidCollisions={false}
+      >
         {locales.map(locale => (
           <DropdownMenuItem
             key={locale}

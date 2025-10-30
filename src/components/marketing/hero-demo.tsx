@@ -227,20 +227,22 @@ function Hero({ dict, lang, subdomain }: HeroProps) {
         </div>
       </div>
 
-      {/* Arrow button - positioned in the bottom-right (mobile and desktop) */}
-      <div className="absolute bottom-3 right-3 md:bottom-10 md:right-10 z-10">
-        <div className="relative">
-          <div className="absolute -inset-1 w-[104px] h-[104px] rounded-full bg-neutral-900 dark:bg-white animate-pulse-scale" />
-          <Link
-            href={`/${lang}/onboarding/items-upload`}
-            className="relative w-24 h-24 rounded-full flex items-center justify-center cursor-pointer text-neutral-900 border-2 border-transparent transition-all text-4xl font-bold"
-            style={{ backgroundColor: CTA_BG_COLOR }}
-            aria-label={dict?.hero?.startNow || 'Start Now'}
-          >
-            {dict?.hero?.arrowSymbol || '→'}
-          </Link>
+      {/* Arrow button - positioned in the bottom-right (mobile and desktop) - hidden for foto-kotti-weddings */}
+      {subdomain !== 'foto-kotti-weddings' && (
+        <div className="absolute bottom-3 right-3 md:bottom-10 md:right-10 z-10">
+          <div className="relative">
+            <div className="absolute -inset-1 w-[104px] h-[104px] rounded-full bg-neutral-900 dark:bg-white animate-pulse-scale" />
+            <Link
+              href={`/${lang}/onboarding/items-upload`}
+              className="relative w-24 h-24 rounded-full flex items-center justify-center cursor-pointer text-neutral-900 border-2 border-transparent transition-all text-4xl font-bold"
+              style={{ backgroundColor: CTA_BG_COLOR }}
+              aria-label={dict?.hero?.startNow || 'Start Now'}
+            >
+              {dict?.hero?.arrowSymbol || '→'}
+            </Link>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
