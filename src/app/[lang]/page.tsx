@@ -1,7 +1,7 @@
 import Hero from '@/components/marketing/hero';
 import HeroDemo from '@/components/marketing/hero-demo';
 import { getDictionary } from '@/utils/dictionaries';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 
@@ -29,6 +29,14 @@ export default async function LangPage({ params }: PageProps) {
   const cookieStore = await cookies();
   const segment = cookieStore.get('segment')?.value || DEFAULT_SEGMENT;
 
+  // Detect subdomain from request headers
+  const headersList = await headers();
+  const hostname = headersList.get('host') || '';
+  const subdomain = hostname.split('.')[0];
+
+  // Debug logging
+  console.log('🔍 Subdomain detection:', { hostname, subdomain });
+
   // Get dictionary for the language WITH the preferred segment
   const dict = await getDictionary(resolvedParams.lang, { segment });
 
@@ -40,7 +48,7 @@ export default async function LangPage({ params }: PageProps) {
       {showVault ? (
         <Hero dict={dict} lang={resolvedParams.lang} />
       ) : (
-        <HeroDemo dict={dict} lang={resolvedParams.lang} />
+        <HeroDemo dict={dict} lang={resolvedParams.lang} subdomain={subdomain} />
       )}
       {/* <ValueJourney dict={dict} lang={resolvedParams.lang} segment={segment} /> */}
     </main>

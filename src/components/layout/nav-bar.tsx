@@ -11,6 +11,7 @@ type NavBarProps = {
   dict: Dictionary;
   className?: string;
   closeOnClick?: boolean;
+  subdomain?: string;
 };
 
 type NavItem = {
@@ -18,7 +19,7 @@ type NavItem = {
   label: string;
 };
 
-export default function NavBar({ mode, lang, dict, className, closeOnClick = false }: NavBarProps) {
+export default function NavBar({ mode, lang, dict, className, closeOnClick = false, subdomain }: NavBarProps) {
   const pathname = usePathname();
 
   // Validate translations
@@ -26,16 +27,27 @@ export default function NavBar({ mode, lang, dict, className, closeOnClick = fal
     validateTranslations(dict, lang, 'nav');
   }
 
+  // Filter navigation items based on subdomain
+  const getNavItems = (): NavItem[] => {
+    const allItems: NavItem[] = [
+      { href: '/about', label: dict.nav?.about || 'About' },
+      { href: '/contact', label: dict.nav?.contact || 'Contact' },
+      { href: '/journal', label: (dict.nav as Record<string, string>)?.journal || 'Journal' },
+      { href: '/merch', label: (dict.nav as Record<string, string>)?.merch || 'Merch' },
+      { href: '/faq', label: dict.nav?.faq || 'FAQ' },
+    ];
+
+    // Hide journal and merch for foto-kotti-weddings subdomain
+    if (subdomain === 'foto-kotti-weddings') {
+      return allItems.filter(item => item.href !== '/journal' && item.href !== '/merch');
+    }
+
+    return allItems;
+  };
+
   return mode === 'marketing' ? (
     <>
-      {(
-        [
-          { href: '/about', label: dict.nav?.about || 'About' },
-          { href: '/journal', label: dict.nav?.journal || 'Journal' },
-          { href: '/merch', label: dict.nav?.merch || 'Merch' },
-          { href: '/faq', label: dict.nav?.faq || 'FAQ' },
-        ] as NavItem[]
-      ).map(item => {
+      {getNavItems().map(item => {
         const linkEl = (
           <Link
             key={item.href}

@@ -194,6 +194,7 @@ export function OnboardModal({ isOpen, onClose }: OnboardModalProps) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+              shareType: 'user',
               target: {
                 type: 'user',
                 allUserId: recipientAllUser.id,

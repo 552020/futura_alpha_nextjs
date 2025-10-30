@@ -8,6 +8,7 @@ import { validateTranslations } from '@/components/utils/translation-validation'
 interface HeroProps {
   dict: Dictionary;
   lang: string;
+  subdomain?: string;
 }
 
 type TitleVariant = 'transform-overflow' | 'negative-margins' | 'flow-margin';
@@ -56,9 +57,24 @@ function HeroTitle({
   );
 }
 
-function Hero({ dict, lang }: HeroProps) {
+function Hero({ dict, lang, subdomain }: HeroProps) {
   // Validate translations using the helper function
   validateTranslations(dict, lang, 'hero');
+
+  // Subdomain-specific image
+  const getHeroImage = (subdomain: string) => {
+    switch (subdomain) {
+      case 'foto-kotti-weddings':
+        return '/hero/foto-kotti-weddings.jpg';
+      default:
+        return '/hero/diana_charles.jpg';
+    }
+  };
+
+  const heroImage = getHeroImage(subdomain || 'default');
+
+  // Debug logging
+  console.log('🖼️ Hero image selected:', { subdomain, heroImage });
 
   // Controls for mobile overlay typography (adjust to taste)
   const TITLE_VW = 73.5; // base vw numerator for title
@@ -99,9 +115,9 @@ function Hero({ dict, lang }: HeroProps) {
           <div className="pb-15 lg:pb-8">
             <p
               className="font-normal text-foreground"
-              style={{ fontSize: `calc(80vw / ${'Your Gallery. Forever.'.length})` }}
+              style={{ fontSize: `calc(80vw / ${(dict?.hero?.galleryForever || 'Your Gallery. Forever.').length})` }}
             >
-              Your Gallery. Forever.
+              {dict?.hero?.galleryForever || 'Your Gallery. Forever.'}
             </p>
           </div>
         </div>
@@ -110,7 +126,7 @@ function Hero({ dict, lang }: HeroProps) {
         <div className="w-full lg:w-1/2 flex items-center justify-center p-0 lg:p-4">
           <div className="relative w-full lg:w-full lg:max-w-lg min-h-[calc(100vh-4rem)] lg:min-h-[400px] bg-gray-100 dark:bg-gray-800 rounded-none lg:rounded-lg flex items-center justify-center">
             <Image
-              src="/hero/diana_charles.jpg"
+              src={heroImage}
               alt="Futura Hero Image"
               fill
               sizes="100vw"
@@ -142,11 +158,11 @@ function Hero({ dict, lang }: HeroProps) {
                   className="font-medium tracking-wide m-0 mt-3 leading-snug text-left ml-2 mb-[-0.5rem]"
                   style={{
                     fontSize: `calc(${(SUBTITLE_VW * SUBTITLE_SCALE).toFixed(1)}vw / ${
-                      'Your Gallery. Forever.'.length
+                      (dict?.hero?.galleryForever || 'Your Gallery. Forever.').length
                     })`,
                   }}
                 >
-                  Your Gallery. Forever.
+                  {dict?.hero?.galleryForever || 'Your Gallery. Forever.'}
                 </p>
               </div>
             </div>
@@ -158,7 +174,7 @@ function Hero({ dict, lang }: HeroProps) {
       <div className="hidden min-[480px]:block lg:hidden w-full">
         <div className="relative w-full min-h-[calc(100vh-4rem)] overflow-hidden">
           <Image
-            src="/hero/diana_charles.jpg"
+            src={heroImage}
             alt="Futura Hero Image"
             fill
             sizes="100vw"
@@ -173,7 +189,7 @@ function Hero({ dict, lang }: HeroProps) {
       <div className="hidden lg:block w-full">
         <div className="relative w-full min-h-[calc(100vh-4rem)] overflow-hidden">
           <Image
-            src="/hero/diana_charles.jpg"
+            src={heroImage}
             alt="Futura Hero Image"
             fill
             sizes="100vw"
@@ -200,7 +216,7 @@ function Hero({ dict, lang }: HeroProps) {
                     Futura
                   </div>
                   <div className="mt-2 text-white/90 w-full" style={{ fontSize: 'clamp(2rem, 3vw, 6rem)' }}>
-                    Your Gallery. Forever.
+                    {dict?.hero?.galleryForever || 'Your Gallery. Forever.'}
                   </div>
                 </div>
               </div>
@@ -211,20 +227,22 @@ function Hero({ dict, lang }: HeroProps) {
         </div>
       </div>
 
-      {/* Arrow button - positioned in the bottom-right (mobile and desktop) */}
-      <div className="absolute bottom-3 right-3 md:bottom-10 md:right-10 z-10">
-        <div className="relative">
-          <div className="absolute -inset-1 w-[104px] h-[104px] rounded-full bg-neutral-900 dark:bg-white animate-pulse-scale" />
-          <Link
-            href={`/${lang}/onboarding/items-upload`}
-            className="relative w-24 h-24 rounded-full flex items-center justify-center cursor-pointer text-neutral-900 border-2 border-transparent transition-all text-4xl font-bold"
-            style={{ backgroundColor: CTA_BG_COLOR }}
-            aria-label={dict?.hero?.startNow || 'Start Now'}
-          >
-            {dict?.hero?.arrowSymbol || '→'}
-          </Link>
+      {/* Arrow button - positioned in the bottom-right (mobile and desktop) - hidden for foto-kotti-weddings */}
+      {subdomain !== 'foto-kotti-weddings' && (
+        <div className="absolute bottom-3 right-3 md:bottom-10 md:right-10 z-10">
+          <div className="relative">
+            <div className="absolute -inset-1 w-[104px] h-[104px] rounded-full bg-neutral-900 dark:bg-white animate-pulse-scale" />
+            <Link
+              href={`/${lang}/onboarding/items-upload`}
+              className="relative w-24 h-24 rounded-full flex items-center justify-center cursor-pointer text-neutral-900 border-2 border-transparent transition-all text-4xl font-bold"
+              style={{ backgroundColor: CTA_BG_COLOR }}
+              aria-label={dict?.hero?.startNow || 'Start Now'}
+            >
+              {dict?.hero?.arrowSymbol || '→'}
+            </Link>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

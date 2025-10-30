@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { match as matchLocale } from '@formatjs/intl-localematcher';
 import Negotiator from 'negotiator';
 
-export const locales = ['en', 'fr', 'es', 'pt', 'it', 'de', 'pl', 'zh'];
+export const locales = ['en', 'de', 'tr'];
 export const defaultLocale = 'en';
 
 const allowedOrigins = ['https://www.futura.now', 'https://futura.now', 'https://peek.futura.now'];
