@@ -60,54 +60,36 @@ const getAssetUrl = async (
   assets: MemoryAsset[] | undefined,
   preferredType: AssetType = 'display'
 ): Promise<string | undefined> => {
-  console.log('🔍 [getAssetUrl] ENTERING - preferredType:', preferredType, 'assets count:', assets?.length);
   if (!assets || assets.length === 0) {
-    console.log('🔍 [getAssetUrl] EXITING - no assets');
     return undefined;
   }
 
   // Helper function to construct URL from bucket and storageKey
   const constructS3Url = async (asset: MemoryAsset): Promise<string> => {
-    console.log('🔍 [constructS3Url] ENTERING - asset:', {
-      id: asset.id,
-      type: asset.assetType,
-      hasStorageKey: !!asset.storageKey,
-      hasDirectUrl: !!asset.url,
-      bucket: asset.bucket,
-    });
-
     const url = await generateBestAssetUrl(asset);
-    console.log('🔍 [constructS3Url] EXITING - generated URL:', url?.substring(0, 100) + '...');
     return url;
   };
 
   // Try to find the preferred asset type first
   const preferredAsset = assets.find(asset => asset.assetType === preferredType);
   if (preferredAsset) {
-    console.log('🔍 [getAssetUrl] Found preferred asset:', preferredAsset.assetType);
     const url = await constructS3Url(preferredAsset);
-    console.log('🔍 [getAssetUrl] EXITING - preferred asset URL');
     return url;
   }
 
   // Fallback to original if preferred type not found
   const originalAsset = assets.find(asset => asset.assetType === 'original');
   if (originalAsset) {
-    console.log('🔍 [getAssetUrl] Using original asset fallback');
     const url = await constructS3Url(originalAsset);
-    console.log('🔍 [getAssetUrl] EXITING - original asset URL');
     return url;
   }
 
   // Fallback to first available asset
   if (assets[0]) {
-    console.log('🔍 [getAssetUrl] Using first available asset fallback');
     const url = await constructS3Url(assets[0]);
-    console.log('🔍 [getAssetUrl] EXITING - first asset URL');
     return url;
   }
 
-  console.log('🔍 [getAssetUrl] EXITING - no assets found');
   return undefined;
 };
 
@@ -144,44 +126,30 @@ export default function MemoryDetailPage() {
 
   // Function to get a cached URL or generate a new one
   const getCachedAssetUrl = useCallback(async (assets: MemoryAsset[] = [], type: AssetType) => {
-    console.log('🔍 [getCachedAssetUrl] ENTERING - type:', type, 'assets count:', assets.length);
     if (!assets.length) {
-      console.log('🔍 [getCachedAssetUrl] EXITING - no assets');
       return undefined;
     }
 
     // Find the asset
     const asset = assets.find(a => a.assetType === type) || assets.find(a => a.assetType === 'original') || assets[0];
-    console.log('🔍 [getCachedAssetUrl] Found asset:', {
-      id: asset?.id,
-      type: asset?.assetType,
-      hasStorageKey: !!asset?.storageKey,
-    });
 
     if (!asset?.storageKey) {
-      console.log('🔍 [getCachedAssetUrl] EXITING - no storage key');
       return undefined;
     }
 
     // Check cache first
     if (urlCache.current.has(asset.storageKey)) {
-      console.log('🔍 [getCachedAssetUrl] EXITING - using cached URL');
       return urlCache.current.get(asset.storageKey);
     }
 
     try {
-      console.log('🔍 [getCachedAssetUrl] Generating new URL...');
       // Generate new URL if not in cache
       const url = await getAssetUrl(assets, type);
       if (url) {
         urlCache.current.set(asset.storageKey, url);
-        console.log('🔍 [getCachedAssetUrl] EXITING - generated and cached URL');
-      } else {
-        console.log('🔍 [getCachedAssetUrl] EXITING - no URL generated');
       }
       return url;
     } catch (error) {
-      console.log('🔍 [getCachedAssetUrl] EXITING - error:', error);
       fatLogger.error('Error generating asset URL:', 'fe', { data: error as Error });
       return undefined;
     }
@@ -190,19 +158,15 @@ export default function MemoryDetailPage() {
   // Function to load asset URLs
   const loadAssetUrls = useCallback(
     async (assets: MemoryAsset[] = []) => {
-      console.log('🔍 [loadAssetUrls] ENTERING - assets count:', assets.length);
       if (!assets.length) {
-        console.log('🔍 [loadAssetUrls] EXITING - no assets');
         return assetUrlsRef.current;
       }
 
       try {
-        console.log('🔍 [loadAssetUrls] Getting display and original URLs...');
         const [display, original] = await Promise.all([
           getCachedAssetUrl(assets, 'display'),
           getCachedAssetUrl(assets, 'original'),
         ]);
-        console.log('🔍 [loadAssetUrls] Got URLs - display:', !!display, 'original:', !!original);
 
         const newAssetUrls = {
           displayUrl: display,
@@ -499,26 +463,6 @@ export default function MemoryDetailPage() {
       <div className="rounded-lg border p-6">
         {memory.type === 'image' && (memory.url || memory.assets?.length) && (
           <div className="relative mx-auto h-[600px] w-full">
-            {/* DEBUG: Log the URL right before Image component renders */}
-            {(() => {
-              console.log('🔍 [IMAGE COMPONENT DEBUG] About to render image with URL:', {
-                memoryId: memory.id,
-                memoryType: memory.type,
-                memoryUrl: memory.url,
-                urlLength: memory.url?.length || 0,
-                urlPreview: memory.url ? memory.url.substring(0, 100) + '...' : 'No URL',
-                isDirectS3Url: memory.url?.includes('s3.amazonaws.com') || false,
-                isPresignedUrl: memory.url?.includes('X-Amz-') || false,
-                assetsCount: memory.assets?.length || 0,
-                assets:
-                  memory.assets?.map(a => ({
-                    type: a.assetType,
-                    url: a.url?.substring(0, 50) + '...',
-                    hasStorageKey: !!a.storageKey,
-                  })) || [],
-              });
-              return null;
-            })()}
             <Image
               src={memory.url || ''}
               alt={memory.title || 'Memory image'}
@@ -526,25 +470,12 @@ export default function MemoryDetailPage() {
               className="rounded-lg object-contain"
               sizes={IMAGE_SIZES.lightbox}
               onLoad={() => {
-                console.log('✅ [IMAGE COMPONENT DEBUG] Image loaded successfully:', {
-                  memoryId: memory.id,
-                  url: memory.url,
-                  urlType: memory.url?.includes('X-Amz-') ? 'presigned' : 'direct',
-                  timestamp: new Date().toISOString(),
-                });
                 fatLogger.info('Image loaded successfully for memory:', 'fe', {
                   memoryId: memory.id,
                   url: memory.url,
                 });
               }}
-              onError={error => {
-                console.log('❌ [IMAGE COMPONENT DEBUG] Image failed to load:', {
-                  memoryId: memory.id,
-                  url: memory.url,
-                  urlType: memory.url?.includes('X-Amz-') ? 'presigned' : 'direct',
-                  error: error,
-                  timestamp: new Date().toISOString(),
-                });
+              onError={_error => {
                 fatLogger.error('Image error for memory:', 'fe', {
                   memoryId: memory.id,
                   url: memory.url,
