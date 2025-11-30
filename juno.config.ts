@@ -19,4 +19,9 @@ export default defineConfig({
       ],
     },
   },
+  orbiter: {
+    ids: {
+      production: "cybmd-iiaaa-aaaal-asskq-cai",
+    },
+  },
 });

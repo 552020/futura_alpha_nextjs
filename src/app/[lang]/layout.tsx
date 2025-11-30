@@ -7,6 +7,7 @@ import { InterfaceProvider } from "@/contexts/interface-context";
 import { notFound } from "next/navigation";
 import { getDictionary, Dictionary } from "@/utils/dictionaries";
 import { PostHogProvider } from "@/components/posthog-provider";
+import { OrbiterProvider } from "@/components/orbiter-provider";
 import BottomNav from "@/components/bottom-nav";
 import Sidebar from "@/components/sidebar";
 import { OnboardingProvider } from "@/contexts/onboarding-context";
@@ -89,8 +90,9 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <PostHogProvider>
-          <ThemeProvider
+        <OrbiterProvider>
+          <PostHogProvider>
+            <ThemeProvider
             attribute="class"
             defaultTheme="system"
             enableSystem
@@ -110,6 +112,7 @@ export default async function RootLayout({
             </InterfaceProvider>
           </ThemeProvider>
         </PostHogProvider>
+        </OrbiterProvider>
       </body>
     </html>
   );
