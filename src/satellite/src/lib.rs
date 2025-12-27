@@ -17,6 +17,8 @@ struct EmailRequest {
     text: String,
     user_name: String,
     recipient_name: String,
+    #[serde(default)]
+    segment: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -68,9 +70,10 @@ async fn on_set_doc(context: OnSetDocContext) -> Result<(), String> {
         match decode_doc_data::<EmailRequest>(&context.data.data.after.data) {
             Ok(data) => {
                 ic_cdk::println!(
-                    "✅ Successfully decoded email data for: {} -> {}",
+                    "✅ Successfully decoded email data for: {} -> {} (segment: {:?})",
                     data.user_name,
-                    data.recipient_name
+                    data.recipient_name,
+                    data.segment.as_ref().unwrap_or(&"unknown".to_string())
                 );
                 data
             }

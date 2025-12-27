@@ -105,6 +105,12 @@ export function OnboardModal({ isOpen, onClose }: OnboardModalProps) {
         case "share":
           // Send email through Juno serverless function
           try {
+            // Get utm_source (segment) from URL search params
+            const urlParams = new URLSearchParams(
+              typeof window !== 'undefined' ? window.location.search : ''
+            );
+            const utmSource = urlParams.get('utm_source') || 'unknown';
+            
             await setDoc({
               collection: "email_requests",
               doc: {
@@ -116,17 +122,13 @@ export function OnboardModal({ isOpen, onClose }: OnboardModalProps) {
                   text: "Placeholder text - will be replaced by serverless function",
                   user_name: userData.name,
                   recipient_name: userData.recipientName,
+                  segment: utmSource,
                 }
               }
             });
             
             // Track successful memory share event
             try {
-              // Get utm_source from URL search params
-              const urlParams = new URLSearchParams(
-                typeof window !== 'undefined' ? window.location.search : ''
-              );
-              const utmSource = urlParams.get('utm_source') || 'unknown';
               
               await trackEventAsync({
                 name: "memory_shared",
