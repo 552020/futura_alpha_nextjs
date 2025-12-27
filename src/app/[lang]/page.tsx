@@ -22,7 +22,7 @@ export default async function LangPage({ params }: PageProps) {
 
   return (
     <main className="bg-white dark:bg-[#0A0A0B]">
-      <Hero dict={dict} lang={resolvedParams.lang} />
+      <Hero dict={dict} lang={resolvedParams.lang} segment={segment} />
       <ValueJourney dict={dict} lang={resolvedParams.lang} segment={segment} />
     </main>
   );

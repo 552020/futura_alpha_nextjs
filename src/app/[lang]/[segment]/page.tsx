@@ -46,7 +46,7 @@ export default async function SegmentPage({ params }: PageProps) {
 
   return (
     <main>
-      <Hero dict={dict} lang={resolvedParams.lang} />
+      <Hero dict={dict} lang={resolvedParams.lang} segment={resolvedParams.segment} />
       <ValueJourney
         dict={dict}
         lang={resolvedParams.lang}

@@ -88,6 +88,11 @@ const ValueJourney: React.FC<ValueJourneyProps> = ({
   const scenes = getScenes();
   const conclusion = dict?.valueJourney?.conclusion || "";
 
+  // Build onboarding URL with UTM parameter for segment tracking
+  const onboardingUrl = segment
+    ? `/${currentLang}/onboarding/items-upload?utm_source=${segment}`
+    : `/${currentLang}/onboarding/items-upload`;
+
   return (
     <section id="learn-more" className="py-20 bg-white dark:bg-[#0A0A0B]">
       <div className="container mx-auto px-4">
@@ -112,7 +117,7 @@ const ValueJourney: React.FC<ValueJourneyProps> = ({
                     <div className="relative">
                       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 md:w-96 2xl:w-[480px] h-48 md:h-96 2xl:h-[480px] rounded-full bg-neutral-900 dark:bg-white animate-pulse-scale-large" />
                       <Link
-                        href={`/${currentLang}/onboarding/items-upload`}
+                        href={onboardingUrl}
                         className="relative w-48 md:w-96 2xl:w-[480px] h-48 md:h-96 2xl:h-[480px] rounded-full bg-neutral-900 hover:bg-white dark:bg-white dark:hover:bg-neutral-900 flex items-center justify-center cursor-pointer text-white hover:text-neutral-900 dark:text-neutral-900 dark:hover:text-white border-2 border-transparent hover:border-neutral-900 dark:hover:border-white transition-all text-7xl md:text-9xl font-bold"
                         aria-label={dict?.hero?.startNow || "Start Now"}
                       >
