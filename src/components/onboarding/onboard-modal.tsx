@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useOnboarding } from "@/contexts/onboarding-context";
 import { useToast } from "@/hooks/use-toast";
 import { setDoc, initSatellite } from "@junobuild/core-peer";
+import { trackEventAsync } from "@junobuild/analytics";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -118,6 +119,28 @@ export function OnboardModal({ isOpen, onClose }: OnboardModalProps) {
                 }
               }
             });
+            
+            // Track successful memory share event
+            try {
+              // Get utm_source from URL search params
+              const urlParams = new URLSearchParams(
+                typeof window !== 'undefined' ? window.location.search : ''
+              );
+              const utmSource = urlParams.get('utm_source') || 'unknown';
+              
+              await trackEventAsync({
+                name: "memory_shared",
+                metadata: {
+                  segment: utmSource,
+                  files_count: files.length.toString(),
+                  relationship: userData.relationship || '',
+                  family_role: userData.familyRelationship || '',
+                }
+              });
+            } catch (trackError) {
+              // Don't block the flow if tracking fails
+              console.error("Failed to track share event:", trackError);
+            }
             
             toast({
               title: "Email Sent!",
