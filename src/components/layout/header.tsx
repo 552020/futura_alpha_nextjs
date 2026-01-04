@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Menu, Share2, Twitter, Instagram, Facebook } from 'lucide-react';
+import { Menu, Share2 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { ModeToggle } from '@/components/common/mode-toggle';
 import { SettingsButton } from '@/components/user/settings-button';
 import NavBar from '@/components/layout/nav-bar';
+import SocialLinks from '@/components/layout/social-links';
 // import UserButtonClient from "@/components/user-button-client";
 import UserButtonClientWithII from '@/components/auth/user-button-client-with-ii';
 import { useInterface } from '@/contexts/interface-context';
@@ -221,7 +222,16 @@ export default function Header({ dict, lang }: { dict: HeaderDictionary; lang?: 
                     </div>
 
                     {/* Social Links */}
-                    <div className="w-full px-4 py-3 rounded-none flex items-center gap-4 text-muted-foreground transition-colors hover:bg-muted">
+                    <div className="w-full px-4 py-3 rounded-none text-muted-foreground transition-colors hover:bg-muted">
+                      <SocialLinks
+                        iconSize="md"
+                        className="gap-4"
+                        linkClassName="transition-colors hover:text-primary"
+                        wrapInSheetClose
+                      />
+                    </div>
+                    {/* OLD CODE - Social Links (commented out) */}
+                    {/* <div className="w-full px-4 py-3 rounded-none flex items-center gap-4 text-muted-foreground transition-colors hover:bg-muted">
                       <SheetClose asChild>
                         <a
                           href="https://twitter.com/futura"
@@ -255,7 +265,7 @@ export default function Header({ dict, lang }: { dict: HeaderDictionary; lang?: 
                           <Facebook className="h-4 w-4" />
                         </a>
                       </SheetClose>
-                    </div>
+                    </div> */}
                   </div>
                 </div>
               </SheetContent>

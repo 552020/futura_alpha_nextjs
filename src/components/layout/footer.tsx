@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { Dictionary } from '@/utils/dictionaries';
-import { Share2, Twitter, Instagram, Facebook } from 'lucide-react';
+import { Share2 } from 'lucide-react';
 import { useInterface } from '@/contexts/interface-context';
+import SocialLinks from '@/components/layout/social-links';
 import { useToast } from '@/hooks/use-toast';
 
 import { fatLogger } from '@/lib/logger';
@@ -82,7 +83,12 @@ export default function Footer({ dict, lang }: { dict?: Dictionary; lang?: strin
             </button>
 
             {/* Social Media Links */}
-            <div className="flex items-center gap-3">
+            <SocialLinks
+              iconSize="sm"
+              linkClassName="hover:text-gray-900 dark:hover:text-gray-300"
+            />
+            {/* OLD CODE - Social Media Links (commented out) */}
+            {/* <div className="flex items-center gap-3">
               <a
                 href="https://twitter.com/futura"
                 target="_blank"
@@ -110,7 +116,7 @@ export default function Footer({ dict, lang }: { dict?: Dictionary; lang?: strin
               >
                 <Facebook className="h-3.5 w-3.5" />
               </a>
-            </div>
+            </div> */}
           </div>
 
           {/* Tagline - hidden on mobile */}
