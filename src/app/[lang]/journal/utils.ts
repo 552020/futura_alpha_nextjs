@@ -49,6 +49,9 @@ export async function getPostBySlug(slug: string): Promise<JournalPost | null> {
         contentHtml = processedContent.value
             ? String(processedContent.value)
             : String(processedContent);
+
+        // Remove the first h1 tag since we're already displaying the title from frontmatter
+        contentHtml = contentHtml.replace(/<h1[^>]*>.*?<\/h1>\s*/i, '');
     } catch (error) {
         console.error('Error processing markdown:', error);
         // Fallback to plain text if markdown processing fails
