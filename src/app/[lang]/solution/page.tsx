@@ -24,12 +24,9 @@ export async function generateMetadata({
   };
 }
 
-export default async function SolutionPage({ params }: SolutionPageProps) {
-  const resolvedParams = await params;
-  const dict = await getDictionary(resolvedParams.lang, {
-    includeSolution: true,
-  });
-
+export default async function SolutionPage({
+  params: _params,
+}: SolutionPageProps) {
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="max-w-none">
