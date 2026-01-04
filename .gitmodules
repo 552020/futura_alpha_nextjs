@@ -1,6 +1,6 @@
 [submodule "docs"]
-	path = docs
-	url = git@github.com:552020/futura_prealpha_docs.git
+	path = docs_internal
+	url = git@github.com:552020/futura_docs_internal.git
 [submodule "lab"]
 	path = lab
 	url = git@github.com:552020/futura_prealpha_lab.git
