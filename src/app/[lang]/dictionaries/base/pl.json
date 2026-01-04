@@ -13,7 +13,10 @@
     "signIn": "Zaloguj się"
   },
   "nav": {
+    "solution": "Rozwiązanie",
     "about": "O Nas",
+    "contact": "Kontakt",
+    "journal": "Journal",
     "profile": "Profil",
     "settings": "Ustawienia",
     "faq": "FAQ",

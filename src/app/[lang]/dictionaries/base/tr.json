@@ -16,8 +16,10 @@
     "signIn": "Giriş Yap"
   },
   "nav": {
-    "about": "Hakkında",
+    "solution": "Çözüm",
+    "about": "Hakkımızda",
     "contact": "İletişim",
+    "journal": "Journal",
     "profile": "Profil",
     "settings": "Ayarlar",
     "faq": "SSS",

@@ -1,0 +1,22 @@
+{
+  "solution": {
+    "title": "Solution",
+    "description": "Discover how our platform solves your needs.",
+    "intro": "Our solution provides a comprehensive approach to managing your digital presence and preserving your memories.",
+    "features": [
+      {
+        "title": "Digital Preservation",
+        "description": "Store and preserve your most important memories with our secure and reliable platform."
+      },
+      {
+        "title": "Easy Access",
+        "description": "Access your content from anywhere, anytime, with our intuitive interface."
+      },
+      {
+        "title": "Privacy & Security",
+        "description": "Your data is protected with industry-leading security measures and privacy controls."
+      }
+    ]
+  }
+}
+

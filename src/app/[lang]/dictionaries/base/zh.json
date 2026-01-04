@@ -13,7 +13,10 @@
     "signIn": "登录"
   },
   "nav": {
+    "solution": "解决方案",
     "about": "关于我们",
+    "contact": "联系我们",
+    "journal": "Journal",
     "profile": "个人资料",
     "settings": "设置",
     "faq": "常见问题",

@@ -13,7 +13,10 @@
     "signIn": "Iniciar Sesión"
   },
   "nav": {
-    "about": "Acerca de",
+    "solution": "Solución",
+    "about": "Acerca de Nosotros",
+    "contact": "Contacto",
+    "journal": "Journal",
     "profile": "Perfil",
     "settings": "Configuración",
     "faq": "FAQ",

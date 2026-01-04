@@ -35,8 +35,10 @@ export type BaseDictionary = {
     signIn?: string;
   };
   nav?: {
+    solution?: string;
     about?: string;
     contact?: string;
+    journal?: string;
     blog?: string;
     merch?: string;
     profile?: string;
@@ -146,6 +148,19 @@ export type FAQDictionary = {
   };
 };
 
+// Solution page dictionary type
+export type SolutionDictionary = {
+  solution?: {
+    title?: string;
+    description?: string;
+    intro?: string;
+    features?: Array<{
+      title?: string;
+      description?: string;
+    }>;
+  };
+};
+
 // Onboarding dictionary type
 export type OnboardingDictionary = {
   onboarding?: {
@@ -193,6 +208,7 @@ export type Dictionary = BaseDictionary &
   ValueJourneyDictionary &
   AboutDictionary &
   FAQDictionary &
+  SolutionDictionary &
   OnboardingDictionary & {
     'items-upload'?: {
       variations: {
@@ -265,6 +281,13 @@ const faqDictionaries: Record<string, () => Promise<FAQDictionary>> = {
   // Add other languages as needed
 };
 
+// Solution page dictionaries
+const solutionDictionaries: Record<string, () => Promise<SolutionDictionary>> = {
+  en: () => import('../app/[lang]/dictionaries/solution/en.json').then(module => module.default as SolutionDictionary),
+  de: () => import('../app/[lang]/dictionaries/solution/de.json').then(module => module.default as SolutionDictionary),
+  // Add other languages as needed
+};
+
 /**
  * Loads dictionary content for internationalization based on locale and optional parameters.
  *
@@ -278,6 +301,7 @@ const faqDictionaries: Record<string, () => Promise<FAQDictionary>> = {
  * @param options.segment - Optional segment name (e.g., "family", "black-mirror")
  * @param options.includeAbout - Whether to include About page content
  * @param options.includeFAQ - Whether to include FAQ page content
+ * @param options.includeSolution - Whether to include Solution page content
  * @param options.includeOnboarding - Whether to include Onboarding content
  * @returns A Promise resolving to a Dictionary containing all requested content
  */
@@ -287,6 +311,7 @@ export const getDictionary = async (
     segment?: string;
     includeAbout?: boolean;
     includeFAQ?: boolean;
+    includeSolution?: boolean;
     includeOnboarding?: boolean;
   }
 ): Promise<Dictionary> => {
@@ -384,6 +409,29 @@ export const getDictionary = async (
           data: error instanceof Error ? error : undefined,
         });
         // Continue without FAQ content if there's an error
+      }
+    }
+
+    // If solution content is requested, load and merge the solution dictionary
+    if (options?.includeSolution) {
+      try {
+        // Check if we have a solution dictionary for this locale
+        if (solutionDictionaries[locale]) {
+          const solutionDict = await solutionDictionaries[locale]();
+          // Merge the solution dictionary with the result
+          result = { ...result, ...solutionDict };
+        }
+        // Fall back to English solution dictionary if available
+        else if (solutionDictionaries.en) {
+          const solutionDict = await solutionDictionaries.en();
+          // Merge the English solution dictionary with the result
+          result = { ...result, ...solutionDict };
+        }
+      } catch (error) {
+        fatLogger.error(`Error loading solution dictionary for ${locale}:`, 'fe', {
+          data: error instanceof Error ? error : undefined,
+        });
+        // Continue without solution content if there's an error
       }
     }
 

@@ -14,8 +14,10 @@
     "signIn": "Anmelden"
   },
   "nav": {
+    "solution": "Lösung",
     "about": "Über Uns",
     "contact": "Kontakt",
+    "journal": "Journal",
     "profile": "Profil",
     "settings": "Einstellungen",
     "faq": "FAQ",

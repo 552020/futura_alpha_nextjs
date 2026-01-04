@@ -1,0 +1,22 @@
+{
+  "solution": {
+    "title": "Lösung",
+    "description": "Entdecken Sie, wie unsere Plattform Ihre Bedürfnisse löst.",
+    "intro": "Unsere Lösung bietet einen umfassenden Ansatz zur Verwaltung Ihrer digitalen Präsenz und zur Bewahrung Ihrer Erinnerungen.",
+    "features": [
+      {
+        "title": "Digitale Bewahrung",
+        "description": "Speichern und bewahren Sie Ihre wichtigsten Erinnerungen mit unserer sicheren und zuverlässigen Plattform."
+      },
+      {
+        "title": "Einfacher Zugang",
+        "description": "Greifen Sie von überall und jederzeit mit unserer intuitiven Benutzeroberfläche auf Ihre Inhalte zu."
+      },
+      {
+        "title": "Datenschutz & Sicherheit",
+        "description": "Ihre Daten sind durch branchenführende Sicherheitsmaßnahmen und Datenschutzkontrollen geschützt."
+      }
+    ]
+  }
+}
+

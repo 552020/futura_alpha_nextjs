@@ -14,8 +14,10 @@
     "signIn": "Sign In"
   },
   "nav": {
-    "about": "About",
+    "solution": "Solution",
+    "about": "About Us",
     "contact": "Contact",
+    "journal": "Journal",
     "profile": "Profile",
     "settings": "Settings",
     "faq": "FAQ",
