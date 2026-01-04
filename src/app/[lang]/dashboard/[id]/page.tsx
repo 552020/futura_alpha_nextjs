@@ -5,7 +5,14 @@ import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { MemoryActions } from '@/components/memory/memory-actions';
 import { Button } from '@/components/ui/button';
-import { Loader2, Image as ImageIcon, Video, FileText, Music, ChevronLeft } from 'lucide-react';
+import {
+  Loader2,
+  Image as ImageIcon,
+  Video,
+  FileText,
+  Music,
+  ChevronLeft,
+} from 'lucide-react';
 import { useAuthGuard } from '@/utils/authentication';
 import { format } from 'date-fns';
 import { shortenTitle } from '@/lib/utils';
@@ -21,7 +28,13 @@ const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_MEMORY === 'true';
 
 interface MemoryAsset {
   id: string;
-  assetType: 'original' | 'display' | 'thumb' | 'placeholder' | 'poster' | 'waveform';
+  assetType:
+    | 'original'
+    | 'display'
+    | 'thumb'
+    | 'placeholder'
+    | 'poster'
+    | 'waveform';
   url: string;
   mimeType: string;
   bytes: number;
@@ -60,7 +73,12 @@ const getAssetUrl = async (
   assets: MemoryAsset[] | undefined,
   preferredType: AssetType = 'display'
 ): Promise<string | undefined> => {
-  console.log('🔍 [getAssetUrl] ENTERING - preferredType:', preferredType, 'assets count:', assets?.length);
+  console.log(
+    '🔍 [getAssetUrl] ENTERING - preferredType:',
+    preferredType,
+    'assets count:',
+    assets?.length
+  );
   if (!assets || assets.length === 0) {
     console.log('🔍 [getAssetUrl] EXITING - no assets');
     return undefined;
@@ -77,21 +95,29 @@ const getAssetUrl = async (
     });
 
     const url = await generateBestAssetUrl(asset);
-    console.log('🔍 [constructS3Url] EXITING - generated URL:', url?.substring(0, 100) + '...');
+    console.log(
+      '🔍 [constructS3Url] EXITING - generated URL:',
+      url?.substring(0, 100) + '...'
+    );
     return url;
   };
 
   // Try to find the preferred asset type first
-  const preferredAsset = assets.find(asset => asset.assetType === preferredType);
+  const preferredAsset = assets.find(
+    (asset) => asset.assetType === preferredType
+  );
   if (preferredAsset) {
-    console.log('🔍 [getAssetUrl] Found preferred asset:', preferredAsset.assetType);
+    console.log(
+      '🔍 [getAssetUrl] Found preferred asset:',
+      preferredAsset.assetType
+    );
     const url = await constructS3Url(preferredAsset);
     console.log('🔍 [getAssetUrl] EXITING - preferred asset URL');
     return url;
   }
 
   // Fallback to original if preferred type not found
-  const originalAsset = assets.find(asset => asset.assetType === 'original');
+  const originalAsset = assets.find((asset) => asset.assetType === 'original');
   if (originalAsset) {
     console.log('🔍 [getAssetUrl] Using original asset fallback');
     const url = await constructS3Url(originalAsset);
@@ -112,14 +138,16 @@ const getAssetUrl = async (
 };
 
 // Helper function to extract MIME type from assets
-const getAssetMimeType = (assets: MemoryAsset[] | undefined): string | undefined => {
+const getAssetMimeType = (
+  assets: MemoryAsset[] | undefined
+): string | undefined => {
   if (!assets || assets.length === 0) return undefined;
 
   // Try to find display asset first, then original
-  const displayAsset = assets.find(asset => asset.assetType === 'display');
+  const displayAsset = assets.find((asset) => asset.assetType === 'display');
   if (displayAsset) return displayAsset.mimeType;
 
-  const originalAsset = assets.find(asset => asset.assetType === 'original');
+  const originalAsset = assets.find((asset) => asset.assetType === 'original');
   if (originalAsset) return originalAsset.mimeType;
 
   return assets[0]?.mimeType;
@@ -129,7 +157,8 @@ export default function MemoryDetailPage() {
   const params = useParams<{ id: string; lang: string }>();
   const { id } = params;
   const router = useRouter();
-  const { isAuthorized, isTemporaryUser, userId, redirectToSignIn } = useAuthGuard();
+  const { isAuthorized, isTemporaryUser, userId, redirectToSignIn } =
+    useAuthGuard();
   const [memory, setMemory] = useState<Memory | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   // Cache for presigned URLs to prevent duplicate requests
@@ -143,49 +172,64 @@ export default function MemoryDetailPage() {
   }>({});
 
   // Function to get a cached URL or generate a new one
-  const getCachedAssetUrl = useCallback(async (assets: MemoryAsset[] = [], type: AssetType) => {
-    console.log('🔍 [getCachedAssetUrl] ENTERING - type:', type, 'assets count:', assets.length);
-    if (!assets.length) {
-      console.log('🔍 [getCachedAssetUrl] EXITING - no assets');
-      return undefined;
-    }
-
-    // Find the asset
-    const asset = assets.find(a => a.assetType === type) || assets.find(a => a.assetType === 'original') || assets[0];
-    console.log('🔍 [getCachedAssetUrl] Found asset:', {
-      id: asset?.id,
-      type: asset?.assetType,
-      hasStorageKey: !!asset?.storageKey,
-    });
-
-    if (!asset?.storageKey) {
-      console.log('🔍 [getCachedAssetUrl] EXITING - no storage key');
-      return undefined;
-    }
-
-    // Check cache first
-    if (urlCache.current.has(asset.storageKey)) {
-      console.log('🔍 [getCachedAssetUrl] EXITING - using cached URL');
-      return urlCache.current.get(asset.storageKey);
-    }
-
-    try {
-      console.log('🔍 [getCachedAssetUrl] Generating new URL...');
-      // Generate new URL if not in cache
-      const url = await getAssetUrl(assets, type);
-      if (url) {
-        urlCache.current.set(asset.storageKey, url);
-        console.log('🔍 [getCachedAssetUrl] EXITING - generated and cached URL');
-      } else {
-        console.log('🔍 [getCachedAssetUrl] EXITING - no URL generated');
+  const getCachedAssetUrl = useCallback(
+    async (assets: MemoryAsset[] = [], type: AssetType) => {
+      console.log(
+        '🔍 [getCachedAssetUrl] ENTERING - type:',
+        type,
+        'assets count:',
+        assets.length
+      );
+      if (!assets.length) {
+        console.log('🔍 [getCachedAssetUrl] EXITING - no assets');
+        return undefined;
       }
-      return url;
-    } catch (error) {
-      console.log('🔍 [getCachedAssetUrl] EXITING - error:', error);
-      fatLogger.error('Error generating asset URL:', 'fe', { data: error as Error });
-      return undefined;
-    }
-  }, []);
+
+      // Find the asset
+      const asset =
+        assets.find((a) => a.assetType === type) ||
+        assets.find((a) => a.assetType === 'original') ||
+        assets[0];
+      console.log('🔍 [getCachedAssetUrl] Found asset:', {
+        id: asset?.id,
+        type: asset?.assetType,
+        hasStorageKey: !!asset?.storageKey,
+      });
+
+      if (!asset?.storageKey) {
+        console.log('🔍 [getCachedAssetUrl] EXITING - no storage key');
+        return undefined;
+      }
+
+      // Check cache first
+      if (urlCache.current.has(asset.storageKey)) {
+        console.log('🔍 [getCachedAssetUrl] EXITING - using cached URL');
+        return urlCache.current.get(asset.storageKey);
+      }
+
+      try {
+        console.log('🔍 [getCachedAssetUrl] Generating new URL...');
+        // Generate new URL if not in cache
+        const url = await getAssetUrl(assets, type);
+        if (url) {
+          urlCache.current.set(asset.storageKey, url);
+          console.log(
+            '🔍 [getCachedAssetUrl] EXITING - generated and cached URL'
+          );
+        } else {
+          console.log('🔍 [getCachedAssetUrl] EXITING - no URL generated');
+        }
+        return url;
+      } catch (error) {
+        console.log('🔍 [getCachedAssetUrl] EXITING - error:', error);
+        fatLogger.error('Error generating asset URL:', 'fe', {
+          data: error as Error,
+        });
+        return undefined;
+      }
+    },
+    []
+  );
 
   // Function to load asset URLs
   const loadAssetUrls = useCallback(
@@ -202,7 +246,12 @@ export default function MemoryDetailPage() {
           getCachedAssetUrl(assets, 'display'),
           getCachedAssetUrl(assets, 'original'),
         ]);
-        console.log('🔍 [loadAssetUrls] Got URLs - display:', !!display, 'original:', !!original);
+        console.log(
+          '🔍 [loadAssetUrls] Got URLs - display:',
+          !!display,
+          'original:',
+          !!original
+        );
 
         const newAssetUrls = {
           displayUrl: display,
@@ -213,7 +262,9 @@ export default function MemoryDetailPage() {
         assetUrlsRef.current = newAssetUrls;
         return newAssetUrls;
       } catch (error) {
-        fatLogger.error('Error loading asset URLs:', 'fe', { data: error as Error });
+        fatLogger.error('Error loading asset URLs:', 'fe', {
+          data: error as Error,
+        });
         return assetUrlsRef.current;
       }
     },
@@ -225,12 +276,18 @@ export default function MemoryDetailPage() {
       setIsLoading(true);
 
       if (USE_MOCK_DATA) {
-        fatLogger.info('🎭 MOCK DATA - Using sample data for memory detail', 'fe');
+        fatLogger.info(
+          '🎭 MOCK DATA - Using sample data for memory detail',
+          'fe'
+        );
         // Find the memory in the sample data
-        const mockMemory = sampleDashboardMemories.find(m => m.id === id);
+        const mockMemory = sampleDashboardMemories.find((m) => m.id === id);
 
         if (mockMemory) {
-          fatLogger.info('Found mock memory', 'fe', { memoryId: mockMemory.id, type: mockMemory.type });
+          fatLogger.info('Found mock memory', 'fe', {
+            memoryId: mockMemory.id,
+            type: mockMemory.type,
+          });
           const transformedMemory: Memory = {
             id: mockMemory.id,
             type: mockMemory.type,
@@ -240,7 +297,9 @@ export default function MemoryDetailPage() {
             url: mockMemory.url,
             thumbnail: mockMemory.thumbnail,
             content:
-              mockMemory.type === 'note' ? 'This is a sample note content for demonstration purposes.' : undefined,
+              mockMemory.type === 'note'
+                ? 'This is a sample note content for demonstration purposes.'
+                : undefined,
             mimeType:
               mockMemory.type === 'video'
                 ? 'video/mp4'
@@ -269,18 +328,25 @@ export default function MemoryDetailPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        fatLogger.error('Memory fetch error:', 'fe', { data: new Error(errorData) });
+        fatLogger.error('Memory fetch error:', 'fe', {
+          data: new Error(errorData),
+        });
         throw new Error(errorData.error || 'Failed to fetch memory');
       }
 
       const data = await response.json();
-      fatLogger.info('Memory data loaded', 'fe', { memoryId: data.id, type: data.type });
+      fatLogger.info('Memory data loaded', 'fe', {
+        memoryId: data.id,
+        type: data.type,
+      });
 
       if (data.success && data.data) {
         const memoryData = data.data;
         const assets = memoryData.assets || [];
 
-        fatLogger.info('Memory assets loaded', 'fe', { assetCount: assets.length });
+        fatLogger.info('Memory assets loaded', 'fe', {
+          assetCount: assets.length,
+        });
 
         // Load asset URLs if assets exist
         let displayUrl: string | undefined;
@@ -299,7 +365,9 @@ export default function MemoryDetailPage() {
         fatLogger.info('Extracted MIME type', 'fe', { mimeType });
 
         // Get the thumbnail URL with caching
-        const thumbnailUrl = assets ? await getCachedAssetUrl(assets, 'thumb') : undefined;
+        const thumbnailUrl = assets
+          ? await getCachedAssetUrl(assets, 'thumb')
+          : undefined;
 
         const transformedMemory: Memory = {
           id: memoryData.id,
@@ -397,7 +465,8 @@ export default function MemoryDetailPage() {
         </Button>
         <h1 className="text-2xl font-bold text-red-600">Memory not found</h1>
         <p className="mt-2">
-          The memory you&apos;re looking for doesn&apos;t exist or you don&apos;t have access to it.
+          The memory you&apos;re looking for doesn&apos;t exist or you
+          don&apos;t have access to it.
         </p>
       </div>
     );
@@ -422,7 +491,10 @@ export default function MemoryDetailPage() {
   const isOwner = memory.ownerId === userId;
 
   // Get display title
-  const displayTitle = memory.title?.trim() && memory.title !== memory.id ? memory.title : 'Untitled Memory';
+  const displayTitle =
+    memory.title?.trim() && memory.title !== memory.id
+      ? memory.title
+      : 'Untitled Memory';
   const shortTitle = shortenTitle(displayTitle, 40);
 
   return (
@@ -434,7 +506,9 @@ export default function MemoryDetailPage() {
         onClick={() => {
           // Check if the memory belongs to a folder and go back to the folder
           if (memory?.metadata?.folderName) {
-            router.push(`/${params.lang}/dashboard/folder/${memory.metadata.folderName}`);
+            router.push(
+              `/${params.lang}/dashboard/folder/${memory.metadata.folderName}`
+            );
           } else {
             router.push(`/${params.lang}/dashboard`);
           }
@@ -459,10 +533,14 @@ export default function MemoryDetailPage() {
               <h3 className="text-sm font-medium">Temporary Account</h3>
               <div className="mt-2 text-sm">
                 <p>
-                  You are currently using a temporary account. Your memories will be saved, but you need to complete the
-                  signup process within 7 days to keep your account and all your memories.
+                  You are currently using a temporary account. Your memories
+                  will be saved, but you need to complete the signup process
+                  within 7 days to keep your account and all your memories.
                 </p>
-                <p className="mt-2">After 7 days, your account and all memories will be automatically deleted.</p>
+                <p className="mt-2">
+                  After 7 days, your account and all memories will be
+                  automatically deleted.
+                </p>
               </div>
             </div>
           </div>
@@ -474,13 +552,20 @@ export default function MemoryDetailPage() {
           <div className="flex items-center gap-4">
             {getIcon()}
             <div>
-              <h1 className="text-xl font-semibold sm:text-2xl md:text-3xl truncate min-w-0" title={displayTitle}>
+              <h1
+                className="text-xl font-semibold sm:text-2xl md:text-3xl truncate min-w-0"
+                title={displayTitle}
+              >
                 {shortTitle}
               </h1>
               <div className="flex items-center gap-3">
-                <p className="text-sm text-muted-foreground">Saved on {format(new Date(memory.createdAt), 'PPP')}</p>
+                <p className="text-sm text-muted-foreground">
+                  Saved on {format(new Date(memory.createdAt), 'PPP')}
+                </p>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Storage:</span>
+                  <span className="text-xs text-muted-foreground">
+                    Storage:
+                  </span>
                   <MemoryStorageBadge
                     memoryId={memory.id}
                     memoryType={memory.type}
@@ -492,7 +577,13 @@ export default function MemoryDetailPage() {
               </div>
             </div>
           </div>
-          {isOwner && <MemoryActions id={memory.id} onDelete={handleDelete} onShare={handleShare} />}
+          {isOwner && (
+            <MemoryActions
+              id={memory.id}
+              onDelete={handleDelete}
+              onShare={handleShare}
+            />
+          )}
         </div>
       </div>
 
@@ -501,22 +592,28 @@ export default function MemoryDetailPage() {
           <div className="relative mx-auto h-[600px] w-full">
             {/* DEBUG: Log the URL right before Image component renders */}
             {(() => {
-              console.log('🔍 [IMAGE COMPONENT DEBUG] About to render image with URL:', {
-                memoryId: memory.id,
-                memoryType: memory.type,
-                memoryUrl: memory.url,
-                urlLength: memory.url?.length || 0,
-                urlPreview: memory.url ? memory.url.substring(0, 100) + '...' : 'No URL',
-                isDirectS3Url: memory.url?.includes('s3.amazonaws.com') || false,
-                isPresignedUrl: memory.url?.includes('X-Amz-') || false,
-                assetsCount: memory.assets?.length || 0,
-                assets:
-                  memory.assets?.map(a => ({
-                    type: a.assetType,
-                    url: a.url?.substring(0, 50) + '...',
-                    hasStorageKey: !!a.storageKey,
-                  })) || [],
-              });
+              console.log(
+                '🔍 [IMAGE COMPONENT DEBUG] About to render image with URL:',
+                {
+                  memoryId: memory.id,
+                  memoryType: memory.type,
+                  memoryUrl: memory.url,
+                  urlLength: memory.url?.length || 0,
+                  urlPreview: memory.url
+                    ? memory.url.substring(0, 100) + '...'
+                    : 'No URL',
+                  isDirectS3Url:
+                    memory.url?.includes('s3.amazonaws.com') || false,
+                  isPresignedUrl: memory.url?.includes('X-Amz-') || false,
+                  assetsCount: memory.assets?.length || 0,
+                  assets:
+                    memory.assets?.map((a) => ({
+                      type: a.assetType,
+                      url: a.url?.substring(0, 50) + '...',
+                      hasStorageKey: !!a.storageKey,
+                    })) || [],
+                }
+              );
               return null;
             })()}
             <Image
@@ -526,32 +623,45 @@ export default function MemoryDetailPage() {
               className="rounded-lg object-contain"
               sizes={IMAGE_SIZES.lightbox}
               onLoad={() => {
-                console.log('✅ [IMAGE COMPONENT DEBUG] Image loaded successfully:', {
-                  memoryId: memory.id,
-                  url: memory.url,
-                  urlType: memory.url?.includes('X-Amz-') ? 'presigned' : 'direct',
-                  timestamp: new Date().toISOString(),
-                });
+                console.log(
+                  '✅ [IMAGE COMPONENT DEBUG] Image loaded successfully:',
+                  {
+                    memoryId: memory.id,
+                    url: memory.url,
+                    urlType: memory.url?.includes('X-Amz-')
+                      ? 'presigned'
+                      : 'direct',
+                    timestamp: new Date().toISOString(),
+                  }
+                );
                 fatLogger.info('Image loaded successfully for memory:', 'fe', {
                   memoryId: memory.id,
                   url: memory.url,
                 });
               }}
-              onError={error => {
-                console.log('❌ [IMAGE COMPONENT DEBUG] Image failed to load:', {
-                  memoryId: memory.id,
-                  url: memory.url,
-                  urlType: memory.url?.includes('X-Amz-') ? 'presigned' : 'direct',
-                  error: error,
-                  timestamp: new Date().toISOString(),
-                });
+              onError={(error) => {
+                console.log(
+                  '❌ [IMAGE COMPONENT DEBUG] Image failed to load:',
+                  {
+                    memoryId: memory.id,
+                    url: memory.url,
+                    urlType: memory.url?.includes('X-Amz-')
+                      ? 'presigned'
+                      : 'direct',
+                    error: error,
+                    timestamp: new Date().toISOString(),
+                  }
+                );
                 fatLogger.error('Image error for memory:', 'fe', {
                   memoryId: memory.id,
                   url: memory.url,
                 });
               }}
               placeholder="blur"
-              blurDataURL={memory.assets?.find?.(a => a.assetType === 'placeholder')?.url || getBlurPlaceholder()}
+              blurDataURL={
+                memory.assets?.find?.((a) => a.assetType === 'placeholder')
+                  ?.url || getBlurPlaceholder()
+              }
             />
           </div>
         )}
@@ -568,7 +678,7 @@ export default function MemoryDetailPage() {
           </audio>
         )}
         {memory.type === 'note' && (
-          <div className="prose max-w-none">
+          <div className="max-w-none">
             <p className="whitespace-pre-wrap">{memory.content}</p>
           </div>
         )}

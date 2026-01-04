@@ -32,17 +32,35 @@ export default async function SolutionPage({ params }: SolutionPageProps) {
 
   return (
     <div className="container mx-auto px-4 py-12">
-      <h1 className="text-4xl font-bold mb-8">
-        {dict.solution?.title || 'Solution'}
-      </h1>
-
-      <div className="prose dark:prose-invert max-w-none">
-        <p className="text-lg mb-6">
-          {dict.solution?.intro ||
-            'Our solution provides a comprehensive approach to managing your digital presence and preserving your memories.'}
+      <div className="max-w-none">
+        <p className="text-5xl md:text-6xl font-black mb-6 leading-tight">
+          Futura is a digital multimedia{' '}
+          <span className="bg-black text-white px-3 py-1 hover:bg-white hover:text-black transition-colors duration-200">
+            memory
+          </span>{' '}
+          <span className="bg-black text-white px-3 py-1 hover:bg-white hover:text-black transition-colors duration-200">
+            album
+          </span>{' '}
+          for newly weds to{' '}
+          <span className="underline decoration-4 underline-offset-4 decoration-yellow-500">
+            collect
+          </span>
+          ,{' '}
+          <span className="underline decoration-4 underline-offset-4 decoration-pink-500">
+            share
+          </span>{' '}
+          and{' '}
+          <span className="underline decoration-4 underline-offset-4 decoration-sky-400">
+            store
+          </span>{' '}
+          their wedding memories.{' '}
+          <span className="bg-black text-white px-3 py-1 hover:bg-white hover:text-black transition-colors duration-200">
+            Forever.
+          </span>
         </p>
+        {/* {dict.solution?.intro || 'Our solution provides a comprehensive approach to managing your digital presence and preserving your memories.'} */}
 
-        {dict.solution?.features && dict.solution.features.length > 0 && (
+        {/* {dict.solution?.features && dict.solution.features.length > 0 && (
           <div className="mt-8">
             <h2 className="text-2xl font-semibold mb-6">Features</h2>
             <div className="grid gap-6 md:grid-cols-3">
@@ -58,7 +76,7 @@ export default async function SolutionPage({ params }: SolutionPageProps) {
               ))}
             </div>
           </div>
-        )}
+        )} */}
       </div>
     </div>
   );
