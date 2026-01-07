@@ -11,7 +11,7 @@ tags:
   - values
   - manifesto
 excerpt: "Futura's Manifesto. Vision and Mission statements."
-published: true
+published: false
 ---
 
 # Futura's Manifesto

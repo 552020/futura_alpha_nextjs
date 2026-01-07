@@ -11,7 +11,7 @@ tags:
   - self-hosting
   - storage
 excerpt: 'How we migrated from AWS S3 to self-hosted MinIO, taking control of our storage infrastructure and significantly reducing costs.'
-published: true
+published: false
 ---
 
 # We have left the cloud (too)
