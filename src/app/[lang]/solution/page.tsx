@@ -66,8 +66,8 @@ export default async function SolutionPage({
             for wedding photographers. The photographers are hosting the
             galleries on their accounts for the amount of time defined in the
             contract and the married couple is not able to redeem the gallery to
-            take ownership of it. Pixieset markets itself as "Client Photo
-            Gallery, website, CRM for photographers".
+            take ownership of it. Pixieset markets itself as &quot;Client Photo
+            Gallery, website, CRM for photographers&quot;.
           </p>
         </div>
 
