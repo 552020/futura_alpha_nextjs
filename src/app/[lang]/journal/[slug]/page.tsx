@@ -63,7 +63,12 @@ export default async function JournalPostPage({
         </Link>
         <article>
           <header className="mb-8">
-            <h1 className="text-4xl font-bold mb-4">{post.title}</h1>
+            <h1 className="text-4xl font-bold mb-2">{post.title}</h1>
+            {post.subtitle && (
+              <p className="text-xl text-muted-foreground mb-4">
+                {post.subtitle}
+              </p>
+            )}
             <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
               <time dateTime={post.date}>
                 {format(new Date(post.date), 'MMMM d, yyyy')}
@@ -99,7 +104,7 @@ export default async function JournalPostPage({
           </header>
 
           <div
-            className="max-w-none text-base leading-7 [&_p]:my-4 [&_ul]:my-4 [&_ol]:my-4 [&_li]:my-1 [&_hr]:my-8 [&_h1]:text-4xl [&_h1]:font-bold [&_h1]:tracking-tight [&_h1]:mt-10 [&_h1]:mb-4 [&_h2]:text-3xl [&_h2]:font-bold [&_h2]:tracking-tight [&_h2]:mt-10 [&_h2]:mb-4 [&_h3]:text-2xl [&_h3]:font-semibold [&_h3]:tracking-tight [&_h3]:mt-8 [&_h3]:mb-3 [&_h4]:text-xl [&_h4]:font-semibold [&_h4]:mt-6 [&_h4]:mb-2 [&>*:first-child]:mt-0 [&_a]:underline [&_a]:underline-offset-4 [&_blockquote]:border-l-4 [&_blockquote]:pl-4 [&_blockquote]:my-6 [&_blockquote]:italic [&_code]:text-sm [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_pre]:my-6 [&_pre]:p-4 [&_pre]:rounded-xl [&_pre]:overflow-x-auto [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_img]:my-6 [&_img]:rounded-xl"
+            className="max-w-none text-base leading-7 [&_p]:my-4 [&_ul]:my-4 [&_ol]:my-4 [&_li]:my-1 [&_hr]:my-8 [&_h1]:text-4xl [&_h1]:font-bold [&_h1]:tracking-tight [&_h1]:mt-10 [&_h1]:mb-4 [&_h2]:text-3xl [&_h2]:font-bold [&_h2]:tracking-tight [&_h2]:mt-10 [&_h2]:mb-4 [&_h3]:text-2xl [&_h3]:font-semibold [&_h3]:tracking-tight [&_h3]:mt-8 [&_h3]:mb-3 [&_h4]:text-xl [&_h4]:font-semibold [&_h4]:mt-6 [&_h4]:mb-2 [&>*:first-child]:mt-0 [&_a]:underline [&_a]:underline-offset-4 [&_blockquote]:border-l-4 [&_blockquote]:pl-4 [&_blockquote]:my-6 [&_blockquote]:italic [&_code]:text-sm [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_pre]:my-6 [&_pre]:p-4 [&_pre]:rounded-xl [&_pre]:overflow-x-auto [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_img]:my-6 [&_img]:rounded-xl [&_sup]:scroll-mt-20 [&_section[data-footnotes]]:text-sm [&_section[data-footnotes]]:mt-12 [&_section[data-footnotes]]:pt-8 [&_section[data-footnotes]]:border-t [&_section[data-footnotes]_ol]:list-decimal [&_section[data-footnotes]_ol]:ml-6 [&_section[data-footnotes]_ol]:pl-2 [&_section[data-footnotes]_li]:scroll-mt-20"
             dangerouslySetInnerHTML={{ __html: post.contentHtml }}
           />
         </article>

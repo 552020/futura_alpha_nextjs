@@ -58,17 +58,19 @@ export default async function JournalPage({ params }: JournalPageProps) {
                   </time>
                   <span>•</span>
                   <div className="flex items-center gap-1">
-                    {post.author.map((author, index) => (
-                      <span key={author} className="flex items-center gap-1">
-                        {index > 0 && <span>&</span>}
-                        <Link
-                          href={`/${resolvedParams.lang}/journal/author/${createAuthorSlug(author)}`}
-                          className="hover:text-primary hover:underline"
-                        >
-                          {author}
-                        </Link>
-                      </span>
-                    ))}
+                    {post.author
+                      .filter((author) => author && author.trim().length > 0)
+                      .map((author, index) => (
+                        <span key={author} className="flex items-center gap-1">
+                          {index > 0 && <span>&</span>}
+                          <Link
+                            href={`/${resolvedParams.lang}/journal/author/${createAuthorSlug(author)}`}
+                            className="hover:text-primary hover:underline"
+                          >
+                            {author}
+                          </Link>
+                        </span>
+                      ))}
                   </div>
                 </div>
                 {post.excerpt && (

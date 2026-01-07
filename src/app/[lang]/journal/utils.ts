@@ -2,13 +2,16 @@ import fs from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
 import { remark } from 'remark';
-import remarkHtml from 'remark-html';
+import remarkGfm from 'remark-gfm';
+import remarkRehype from 'remark-rehype';
+import rehypeStringify from 'rehype-stringify';
 
 const postsDirectory = path.join(process.cwd(), 'src/app/[lang]/journal/posts');
 
 export interface JournalPost {
     slug: string;
     title: string;
+    subtitle?: string;
     date: string;
     author: string[];
     tags?: string[];
@@ -42,7 +45,9 @@ export async function getPostBySlug(slug: string): Promise<JournalPost | null> {
     let contentHtml = '';
     try {
         const processedContent = await remark()
-            .use(remarkHtml)
+            .use(remarkGfm)
+            .use(remarkRehype)
+            .use(rehypeStringify)
             .process(content);
 
         // VFile result has a 'value' property with the HTML string
@@ -61,7 +66,9 @@ export async function getPostBySlug(slug: string): Promise<JournalPost | null> {
     // Handle author as array or string (for backward compatibility)
     let authors: string[] = [];
     if (Array.isArray(data.author)) {
-        authors = data.author;
+        authors = data.author.filter((author): author is string =>
+            typeof author === 'string' && author.trim().length > 0
+        );
     } else if (typeof data.author === 'string' && data.author) {
         // Backward compatibility: parse string format
         authors = [data.author];
@@ -79,6 +86,7 @@ export async function getPostBySlug(slug: string): Promise<JournalPost | null> {
     return {
         slug,
         title: data.title || slug,
+        subtitle: data.subtitle || undefined,
         date: data.date || '',
         author: authors,
         tags: tags.length > 0 ? tags : undefined,
@@ -110,7 +118,10 @@ export async function getAllPosts(): Promise<JournalPost[]> {
         });
 }
 
-export function createAuthorSlug(author: string): string {
+export function createAuthorSlug(author: string | null | undefined): string {
+    if (!author || typeof author !== 'string') {
+        return '';
+    }
     return encodeURIComponent(author.toLowerCase().trim());
 }
 
