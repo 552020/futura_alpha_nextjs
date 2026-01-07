@@ -13,7 +13,7 @@ tags:
   - beauty
   - forever
 excerpt: "Couples don't own their wedding galleries the same way they own their albums. There's no dedicated digital system designed for wedding memories—only temporary galleries and generic cloud storage. This essay explores the problem and how Futura addresses it through ownership, forever preservation, and beauty."
-published: true
+published: false
 ---
 
 # The challenges Futura solves
