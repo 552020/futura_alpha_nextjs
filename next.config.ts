@@ -122,10 +122,21 @@ const nextConfig: NextConfig = {
         hostname: 'futura0.s3.eu-central-1.amazonaws.com',
         pathname: '/**',
       },
+      // futura2 bucket in eu-north-1
+      {
+        protocol: 'https',
+        hostname: 'futura2.s3.eu-north-1.amazonaws.com',
+        pathname: '/**',
+      },
       // Generic S3 pattern for other potential buckets
       {
         protocol: 'https',
         hostname: '*.s3.eu-central-1.amazonaws.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.s3.eu-north-1.amazonaws.com',
         pathname: '/**',
       },
       {
