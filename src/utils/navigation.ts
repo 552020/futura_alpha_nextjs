@@ -19,7 +19,7 @@ export const mainNavItems: NavItem[] = [
   { href: '/gallery', icon: Grid, label: 'Galleries', translationKey: 'gallery' },
   // { href: '/feed', icon: Newspaper, label: 'Feed', translationKey: 'feed' },
   // { href: '/shared', icon: Share2, label: 'Shared', translationKey: 'shared' },
-  { href: '/transcendance-ai', icon: Bot, label: 'Transcendance AI', translationKey: 'transcendance-ai' },
+  // { href: '/transcendance-ai', icon: Bot, label: 'Transcendance AI', translationKey: 'transcendance-ai' },
 ];
 
 export const secondaryNavItems: NavItem[] = [
