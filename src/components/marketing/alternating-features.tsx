@@ -1,9 +1,10 @@
 'use client';
 
-import Image from 'next/image';
+import AlternatingFeaturesItem, {
+  type FeatureItem,
+} from './alternating-features-item';
 import { Dictionary } from '@/utils/dictionaries';
 import Link from 'next/link';
-import { useRef, useEffect, useState } from 'react';
 
 import { fatLogger } from '@/lib/logger';
 // Define valid journey types
@@ -22,7 +23,11 @@ interface AlternatingFeaturesProps {
   segment?: string; // Make segment optional with a default
 }
 
-const AlternatingFeatures: React.FC<AlternatingFeaturesProps> = ({ dict, lang, segment = 'family' }) => {
+const AlternatingFeatures: React.FC<AlternatingFeaturesProps> = ({
+  dict,
+  lang,
+  segment = 'family',
+}) => {
   // Validate that segment is a valid journey type, default to "family" if not
   const journeyType = (segment as JourneyType) || 'family';
 
@@ -34,7 +39,10 @@ const AlternatingFeatures: React.FC<AlternatingFeaturesProps> = ({ dict, lang, s
     const journeyDict = dict?.valueJourney;
 
     if (!journeyDict) {
-      fatLogger.error(`Missing valueJourney content for segment: ${segment}`, 'fe');
+      fatLogger.error(
+        `Missing valueJourney content for segment: ${segment}`,
+        'fe'
+      );
       return []; // Return empty array, component will handle this gracefully
     }
 
@@ -51,7 +59,9 @@ const AlternatingFeatures: React.FC<AlternatingFeaturesProps> = ({ dict, lang, s
       // Type guard to ensure scene is an object with the expected properties
       if (typeof scene === 'object' && scene !== null && isScene(scene)) {
         // Make sure image paths are absolute from the root, not relative to the current route
-        let imagePath = scene.image || `/images/segments/${journeyType}/scene_${sceneIndex}.webp`;
+        let imagePath =
+          scene.image ||
+          `/images/segments/${journeyType}/scene_${sceneIndex}.webp`;
 
         // Ensure the path starts with a slash and doesn't have the locale prefix
         if (!imagePath.startsWith('/')) {
@@ -62,7 +72,8 @@ const AlternatingFeatures: React.FC<AlternatingFeaturesProps> = ({ dict, lang, s
           image: imagePath,
           title: scene.title || `Scene ${sceneIndex}`,
           subtitle: scene.subtitle,
-          description: scene.description || `Description for scene ${sceneIndex}`,
+          description:
+            scene.description || `Description for scene ${sceneIndex}`,
         });
       }
 
@@ -82,7 +93,12 @@ const AlternatingFeatures: React.FC<AlternatingFeaturesProps> = ({ dict, lang, s
           {scenes.length > 0 ? (
             <>
               {scenes.map((scene, index) => (
-                <SceneItem key={index} scene={scene} index={index} isLast={index === scenes.length - 1} />
+                <AlternatingFeaturesItem
+                  key={index}
+                  item={scene}
+                  index={index}
+                  isLast={index === scenes.length - 1}
+                />
               ))}
 
               {conclusion && (
@@ -114,78 +130,7 @@ const AlternatingFeatures: React.FC<AlternatingFeaturesProps> = ({ dict, lang, s
 
 export default AlternatingFeatures;
 
-// Scene item component without animation library
-function SceneItem({
-  scene,
-  index,
-  isLast,
-}: {
-  scene: { image: string; title: string; subtitle?: string };
-  index: number;
-  isLast: boolean;
-}) {
-  const [isVisible, setIsVisible] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  // Alternate layout for even/odd scenes
-  const isEven = index % 2 === 0;
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.3 }
-    );
-
-    if (ref.current) {
-      observer.observe(ref.current);
-    }
-
-    return () => {
-      observer.disconnect();
-    };
-  }, []);
-
-  return (
-    <div
-      ref={ref}
-      className={`
-        flex flex-col md:flex-row items-center 
-        ${!isLast ? 'mb-24' : 'mb-8'} 
-        ${isEven ? '' : 'md:flex-row-reverse'}
-        transition-opacity duration-700 ease-in-out
-        ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}
-        w-full
-      `}
-    >
-      <div className="w-full md:flex-1 mb-8 md:mb-0">
-        <div className="relative w-full aspect-square">
-          <Image
-            src={scene.image}
-            alt={scene.title}
-            fill
-            className="object-cover rounded-lg transition-transform duration-500 hover:scale-105"
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 90vw"
-            priority={index === 0}
-          />
-        </div>
-      </div>
-
-      <div className={`w-full md:flex-1 ${isEven ? 'md:pl-12 lg:pl-24' : 'md:pr-12 lg:pr-24'}`}>
-        <h3 className="text-3xl md:text-4xl 2xl:text-6xl font-bold mb-4">{scene.title}</h3>
-        {scene.subtitle && (
-          <h4 className="text-xl md:text-2xl 2xl:text-4xl text-gray-600 dark:text-gray-400">{scene.subtitle}</h4>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// Add type guard function at the end of file
+// Add type guard function
 function isScene(obj: unknown): obj is Scene {
   return typeof obj === 'object' && obj !== null;
 }
