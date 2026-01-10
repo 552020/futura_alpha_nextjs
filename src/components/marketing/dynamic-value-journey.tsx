@@ -1,6 +1,6 @@
 'use client';
 
-import AlternatingFeatures, { type FeatureItem } from './alternating-features';
+import AlternatingFeatures from './alternating-features';
 import CTAConclusion from './cta-conclusion';
 import { Dictionary } from '@/utils/dictionaries';
 
