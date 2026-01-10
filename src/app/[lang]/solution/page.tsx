@@ -1,5 +1,9 @@
 import { getDictionary } from '@/utils/dictionaries';
 import { Metadata } from 'next';
+import AlternatingFeatures, {
+  type FeatureItem,
+} from '@/components/marketing/alternating-features';
+import CTAConclusion from '@/components/marketing/cta-conclusion';
 
 type SolutionPageProps = {
   params: Promise<{
@@ -27,6 +31,25 @@ export async function generateMetadata({
 export default async function SolutionPage({
   params: _params,
 }: SolutionPageProps) {
+  // Define the features for the solution page
+  const features: FeatureItem[] = [
+    {
+      image: '/solution/ownership.jpg',
+      title: 'Your Very Own',
+      subtitle: 'True ownership, full control, and safe shareability',
+    },
+    {
+      image: '/solution/beautiful.jpg',
+      title: 'Memory Chest',
+      subtitle: 'A special treasure, not just another folder on Google Drive',
+    },
+    {
+      image: '/solution/forever.jpg',
+      title: 'Beautiful & Forever',
+      subtitle: 'Stunning design preserved for generations',
+    },
+  ];
+
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="max-w-none">
@@ -56,7 +79,7 @@ export default async function SolutionPage({
           </span>
         </p>
 
-        <div className="mt-12 max-w-3xl">
+        {/* <div className="mt-12 max-w-3xl">
           <h2 className="text-3xl font-bold mb-6">Full Ownership</h2>
           <p className="text-lg leading-relaxed">
             Futura gives you full ownership.
@@ -91,7 +114,7 @@ export default async function SolutionPage({
             simple and reliable. Just as wedding photos deserve a special
             physical form, they also deserve a dedicated digital place.
           </p>
-        </div>
+        </div> */}
 
         {/* {dict.solution?.intro || 'Our solution provides a comprehensive approach to managing your digital presence and preserving your memories.'} */}
 
@@ -112,6 +135,20 @@ export default async function SolutionPage({
             </div>
           </div>
         )} */}
+
+        {/* Features Section with Alternating Layout */}
+        <div className="mt-20 max-w-[90%] 2xl:max-w-[1800px] mx-auto">
+          <AlternatingFeatures items={features} />
+          <CTAConclusion
+            conclusion="Get it now."
+            ctaHref="/onboarding/items-upload"
+            ctaLabel="Start Now"
+            ctaSymbol="→"
+            position="right"
+            textSize="large"
+            textAlign="center"
+          />
+        </div>
       </div>
     </div>
   );
