@@ -16,13 +16,13 @@ type Scene = {
   description?: string;
 };
 
-interface ValueJourneyProps {
+interface AlternatingFeaturesProps {
   dict: Dictionary;
   lang: string;
   segment?: string; // Make segment optional with a default
 }
 
-const ValueJourney: React.FC<ValueJourneyProps> = ({ dict, lang, segment = 'family' }) => {
+const AlternatingFeatures: React.FC<AlternatingFeaturesProps> = ({ dict, lang, segment = 'family' }) => {
   // Validate that segment is a valid journey type, default to "family" if not
   const journeyType = (segment as JourneyType) || 'family';
 
@@ -112,7 +112,7 @@ const ValueJourney: React.FC<ValueJourneyProps> = ({ dict, lang, segment = 'fami
   );
 };
 
-export default ValueJourney;
+export default AlternatingFeatures;
 
 // Scene item component without animation library
 function SceneItem({

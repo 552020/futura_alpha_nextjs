@@ -1,6 +1,6 @@
 // app/[lang]/[segment]/page.tsx
 import Hero from '@/components/marketing/hero';
-import ValueJourney from '@/components/marketing/value-journey';
+import AlternatingFeatures from '@/components/marketing/alternating-features';
 import { getDictionary } from '@/utils/dictionaries';
 import { notFound } from 'next/navigation';
 // Remove the import for the server action
@@ -35,7 +35,7 @@ export default async function SegmentPage({ params }: PageProps) {
   return (
     <main>
       <Hero dict={dict} lang={resolvedParams.lang} />
-      <ValueJourney dict={dict} lang={resolvedParams.lang} segment={resolvedParams.segment} />
+      <AlternatingFeatures dict={dict} lang={resolvedParams.lang} segment={resolvedParams.segment} />
     </main>
   );
 }
