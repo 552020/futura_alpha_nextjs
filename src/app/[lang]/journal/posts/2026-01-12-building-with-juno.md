@@ -21,7 +21,11 @@ published: true
 
 ## Introduction
 
-Futura is a digital memory preservation platform we are building on the Internet Computer.[^1] As part of a grant from the DFINITY Foundation, we were tasked with validating market interest across three potential verticals—Family, Wedding, and Transcendence, through an advertising campaign. The grant's core condition was to utilize Juno and its analytics capabilities to demonstrate how the platform can be used in a live environment.[^2]
+Futura aims to be a digital multimedia memory album for newlyweds—a space for couples to collect, share, and preserve their wedding memories with true ownership through Web3 technologies.[^1] More broadly, it is a digital memory preservation platform, and before we refined its focus on weddings, we explored different variations of the idea.
+
+We wanted to validate the wedding concept against the original family-oriented vision. During discussions with the DFINITY Foundation team, a third vertical—Transcendence—emerged as an additional direction to test. The validation would take the form of fake door testing: three landing pages, one for each vertical, with an advertising campaign to measure which resonated most.
+
+This validation effort became part of a grant from the DFINITY Foundation. The grant's core condition was to utilize Juno and its analytics capabilities to demonstrate how the platform can be used in a live environment.[^2]
 
 This essay documents our experience building on Juno: the implementation of staging environments, the evolution of our analytics approach, and the challenges we encountered along the way. Throughout this journey, Davide, Juno's founder and maintainer, provided exceptional support—explaining concepts, updating documentation, and implementing fixes when needed.
 
@@ -161,9 +165,9 @@ For teams considering Juno for their Internet Computer projects, our experience 
 
 ---
 
-[^1]: Futura is described in detail in our companion essay, "Futura's Solution: The Missing Memory Album for Newlyweds." The project aims to provide true ownership of digital memories through Web3 technologies.
+[^1]: Futura is described in detail in our companion essay, "Futura's Solution: The Missing Memory Album for Newlyweds." The project aims to provide true ownership of digital memories through Web3 technologies. A deeper analysis of the evolution of the idea is in progress.
 
-[^2]: The grant was a $5k award from the DFINITY Foundation, with the core condition that we utilize Juno and its analytics capabilities. See the forum discussion: https://forum.dfinity.org/
+[^2]: The grant was a $5k award from the DFINITY Foundation. See the forum discussion: https://forum.dfinity.org/t/futura-an-app-to-store-memories/62052
 
 [^3]: Fake door testing (also called "painted door" testing) involves creating the appearance of a feature or product—typically a landing page with a call-to-action—before the underlying functionality exists. User engagement with this "fake door" validates interest before significant development investment. The technique is widely used in lean startup methodology.
 
