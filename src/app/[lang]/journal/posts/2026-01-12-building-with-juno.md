@@ -23,7 +23,7 @@ published: true
 
 Futura aims to be a digital multimedia memory album for newlyweds—a space for couples to collect, share, and preserve their wedding memories with true ownership through Web3 technologies.[^1] More broadly, it is a digital memory preservation platform, and before we refined its focus on weddings, we explored different variations of the idea.
 
-We wanted to validate the wedding concept against the original family-oriented vision. During discussions with the DFINITY Foundation team, a third vertical—Transcendence—emerged as an additional direction to test. The validation would take the form of fake door testing: three landing pages, one for each vertical, with an advertising campaign to measure which resonated most.
+We wanted to validate the wedding concept against the original family-oriented vision, and during discussions with the DFINITY Foundation team, a third vertical—Transcendence—emerged as an additional direction to test. The three verticals represent different entry points into digital memory preservation: *Family* targets people wanting to leave a legacy to their heirs—photos, writings, family data spanning one or more generations. *Wedding* focuses on couples at a pivotal life moment, wanting to preserve their photos for themselves and eventually for their future family. *Transcendence* takes a high-tech approach: using accumulated personal data to create an AI clone—a form of digital survival that allows future generations to interact with and understand their elders. The validation would take the form of fake door testing: three landing pages, one for each vertical, with an advertising campaign to measure which resonated most.
 
 This validation effort became part of a grant from the DFINITY Foundation. The grant's core condition was to utilize Juno and its analytics capabilities to demonstrate how the platform can be used in a live environment.[^2]
 
@@ -33,7 +33,7 @@ This essay documents our experience building on Juno: the implementation of stag
 
 ### The Project: Fake Door Testing on the Internet Computer
 
-Fake door testing is a product validation technique where you present potential features or products to users before they are fully built, measuring their interest through engagement metrics.[^3] For Futura, this meant creating three landing pages—one for each vertical—and driving traffic to them through an ad campaign to determine which market segment showed the strongest interest.
+Fake door testing is a product validation technique where you present potential features or products to users before they are fully built (or built at all), measuring their interest through engagement metrics.[^3] For Futura, this meant creating three landing pages—one for each vertical—and driving traffic to them through an ad campaign to determine which market segment showed the strongest interest.
 
 The architecture was straightforward: each landing page lives at its own URL path (`/family`, `/wedding`, `/transcendence`), and users who express interest are directed to a shared onboarding form. The challenge was measuring not just traffic to each page, but tracking which vertical ultimately drove conversions—a user completing the onboarding flow.
 
@@ -86,7 +86,7 @@ export function OrbiterProvider({ children }) {
 }
 ```
 
-This gave us page views, performance metrics (Web Vitals), and device information—all collected without relying on third-party services, stored on the blockchain. For basic traffic analysis, this worked well.
+This gave us page views, performance metrics (Web Vitals), and device information—all collected without relying on additional third-party services, stored on the blockchain. For basic traffic analysis, this worked well.
 
 **Phase 2: The Attribution Problem**
 
@@ -139,7 +139,7 @@ Tying a Juno deployment to a custom domain proved more complex than anticipated.
 
 One of the most instructive part of our Juno experience involves a feature we built that quickly became obsolete.
 
-We wanted to send emails when users completed the onboarding form. On a traditional platform, you would call an PI such as Mailgun directly from your backend. On the Internet Computer, HTTP outcalls required IPv6 support on the target server, they had to be deterministic and idempotent, and the request/response cycle had to work within the consensus mechanism.
+We wanted to send emails when users shared their memories—not to the users themselves, but to the recipients they chose to share with. This follows a lesson from Y Combinator: shareability should be built into your product from the start, as each share becomes a potential acquisition channel. On a traditional platform, you would call an API such as Mailgun directly from your backend. On the Internet Computer, HTTP outcalls required IPv6 support on the target server, they had to be deterministic and idempotent, and the request/response cycle had to work within the consensus mechanism.
 
 Mailgun did not meet these constraints. So we built a proxy.
 
@@ -173,9 +173,9 @@ For teams considering Juno for their Internet Computer projects, our experience 
 
 [^4]: The staging versus production discussion with Davide is documented in our Discord thread: https://discord.com/channels/1076791076544847982/1408822636259053679/1408823203588997312
 
-[^5]: Juno Orbiter documentation: https://juno.build/docs/build/analytics/setup. Orbiter is a dedicated analytics satellite that collects page views, performance metrics, and custom events without relying on third-party services.
+[^5]: Juno Orbiter documentation: https://juno.build/docs/build/analytics/setup. Orbiter is a dedicated analytics satellite that collects page views, performance metrics, and custom events without relying on additional third-party services.
 
-[^6]: Juno's UTM tracking is documented at https://juno.build/docs/build/analytics/development. The `utm_source` parameter is required; if missing, campaign data will not be tracked.
+[^6]: Juno's UTM tracking is documented at https://juno.build/docs/build/analytics/development. The `utm_source` parameter is required; if missing, campaign data will not be tracked. When present, Juno also captures `utm_medium`, `utm_campaign`, `utm_term`, and `utm_content`.
 
 [^7]: The custom domain resolution required coordination with DFINITY boundary node infrastructure. The Discord discussion documenting this issue: https://discord.com/channels/1076791076544847982/1076791077308219414/1404022953448046653
 
