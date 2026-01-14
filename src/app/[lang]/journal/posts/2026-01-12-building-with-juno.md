@@ -1,9 +1,9 @@
 ---
 title: "Building with Juno"
-subtitle: 'A Developer Experience Report from Futura'
+subtitle: 'A Developer Experience Report'
 date: '2026-01-12'
 author:
-  - lmangall
+  - Léonard
 tags:
   - juno
   - icp
