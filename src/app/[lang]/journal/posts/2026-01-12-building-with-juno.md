@@ -133,21 +133,33 @@ The result is full-funnel attribution. We can now measure not just which vertica
 
 ### Custom Domain Configuration
 
-Tying a Juno deployment to a custom domain proved more complex than anticipated. The standard documentation covers the basic flow, but we encountered edge cases that required intervention from the DFINITY team to resolve (or so it was our understanding).[^7]
+Tying a Juno deployment to a custom domain proved more complex than anticipated. Our site was correctly deployed and accessible via its default `icp0.io` URL, but the custom domain setup consistently failed during registration in Juno.
+
+The first challenge was DNS record confusion. The Juno documentation indicates that an ALIAS record can be used, but real-world setups—including examples from Juno maintainers—often use CNAME instead. We tried both for our subdomain, with no change in outcome. Beyond that, we configured the required TXT record for `_canister-id` and CNAME for `_acme-challenge`, yet verification kept failing.
+
+The error messages offered little actionable feedback. The UI showed that the registration request was rejected early, but without a clear reason—making it impossible to determine whether the issue was DNS-related, configuration-related, or a backend bug. At one point, the custom domain registration appeared to time out and simply disappeared from the Juno backend.
+
+The issue was escalated to the Internet Computer Foundation's Boundary Nodes team. Davide confirmed our DNS configuration was correct, suggesting the problem lay in the registration flow rather than user misconfiguration. Progress stalled temporarily due to team availability, prolonging resolution.
+
+Then, a couple of months later, we tried again—and it worked like magic. No configuration changes on our end. Whatever was blocking registration had been quietly fixed upstream.[^7]
 
 ### The Proxy Function: A Bittersweet Story
 
 One of the most instructive part of our Juno experience involves a feature we built that quickly became obsolete.
 
-We wanted to send emails when users shared their memories—not to the users themselves, but to the recipients they chose to share with. This follows a lesson from Y Combinator: shareability should be built into your product from the start, as each share becomes a potential acquisition channel. On a traditional platform, you would call an API such as Mailgun directly from your backend. On the Internet Computer, HTTP outcalls required IPv6 support on the target server, they had to be deterministic and idempotent, and the request/response cycle had to work within the consensus mechanism.
+We wanted to send emails when users shared their memories—not to the users themselves, but to the recipients they chose to share with. This follows a lesson from Y Combinator: shareability should be built into your product from the start, as each share becomes a potential acquisition channel. On a traditional platform, you would call an API such as Mailgun directly from your backend. On the Internet Computer, things were more complicated.
+
+HTTP outcalls from canisters had strict requirements at the time. The target server needed IPv6 support—many traditional APIs, including Mailgun, only offered IPv4. The calls had to be deterministic: every replica in the subnet needed to get the same response, which is problematic when calling external APIs that might return different timestamps or request IDs. They also had to be idempotent, since the consensus mechanism might retry requests. And the entire request/response cycle had to complete within the constraints of the consensus round.
 
 Mailgun did not meet these constraints. So we built a proxy.
 
-Or rather we refactored to our need one Davide's offered in his repo.[^10] The architecture worked as follows: when a user completes the sharing flow, the email request is stored in Juno's datastore under an `email_requests` collection—capturing the sender's name, recipient's email, and the segment they came from. This triggers an `on_set_doc` hook in our Rust serverless function, which reads the request, retrieves the Mailgun API token from a separate restricted datastore document, and forwards the email to an off-chain proxy running on Cloudflare, which in turn calls Mailgun.[^8]
+Or rather, we refactored to our needs one Davide offered in his repo.[^10] The architecture worked as follows: when a user completes the sharing flow, the email request is stored in Juno's datastore under an `email_requests` collection—capturing the sender's name, recipient's email, and the segment they came from. This triggers an `on_set_doc` hook in our Rust serverless function, which reads the request, retrieves the Mailgun API token from a separate restricted datastore document, and forwards the email to an off-chain proxy running on Firebase, which in turn calls Mailgun.[^8]
+
+There was something ironic about this architecture: here we were, building a Web3 application on the Internet Computer, and yet we needed a Firebase function—a quintessentially Web2 solution—just to send an email. The proxy felt like a concession, a reminder that the decentralized web still has gaps that centralized infrastructure fills.
 
 It worked. We were rather proud of it.
 
-Then, shortly after we finished, the Internet Computer rolled out non-replicated calls for simple requests, and relaxed determinism constraints. The very limitations that made our proxy necessary were removed.
+Then, when we told Davide we had adapted his proxy, he mentioned that the Internet Computer had recently rolled out non-replicated calls for simple requests and relaxed the determinism constraints. The very limitations that made our proxy necessary had been removed.
 
 How do you feel when you have built a careful workaround for a platform limitation, only to have the platform fix the limitation right after you finish? There is a German word for this feeling, probably.[^9] But honestly, how can you not be happy about the IC fixing something? The proxy was always a bridge solution—a concession to platform immaturity. That the platform matured is good news. Our proxy can now be deprecated, the architecture ready to be simplified, and future developers will never need to solve this problem.
 
@@ -169,7 +181,7 @@ For teams considering Juno for their Internet Computer projects, our experience 
 
 [^2]: The grant was a $5k award from the DFINITY Foundation. See the forum discussion: https://forum.dfinity.org/t/futura-an-app-to-store-memories/62052
 
-[^3]: Fake door testing (also called "painted door" testing) involves creating the appearance of a feature or product—typically a landing page with a call-to-action—before the underlying functionality exists. User engagement with this "fake door" validates interest before significant development investment. The technique is widely used in lean startup methodology.
+[^3]: Fake door testing (also called "painted door" testing) involves creating the appearance of a feature or product—typically a landing page with a call-to-action—before the underlying functionality exists. User engagement with this "fake door" validates interest before significant development investment. The technique is widely used in lean startup methodology. Eric Ries tells a famous anecdote about spending six months building an app, only to realize no one wanted it. Had they built just the onboarding flow—a fake door—they would have known immediately: https://youtu.be/fEvKo90qBns?t=1598
 
 [^4]: The staging versus production discussion with Davide is documented in our Discord thread: https://discord.com/channels/1076791076544847982/1408822636259053679/1408823203588997312
 
@@ -177,7 +189,7 @@ For teams considering Juno for their Internet Computer projects, our experience 
 
 [^6]: Juno's UTM tracking is documented at https://juno.build/docs/build/analytics/development. The `utm_source` parameter is required; if missing, campaign data will not be tracked. When present, Juno also captures `utm_medium`, `utm_campaign`, `utm_term`, and `utm_content`.
 
-[^7]: The custom domain resolution required coordination with DFINITY boundary node infrastructure. The Discord discussion documenting this issue: https://discord.com/channels/1076791076544847982/1076791077308219414/1404022953448046653
+[^7]: The custom domain resolution required coordination with DFINITY boundary node infrastructure. The Discord discussion documenting this issue: https://discord.com/channels/1076791076544847982/1373721182339072101/1373721715657674895
 
 [^8]: The proxy implementation involved storing the Mailgun API token in Juno's datastore with `read: "controllers"` and `write: "controllers"` permissions, ensuring the token was accessible only to the serverless function and not exposed to frontend code.
 
