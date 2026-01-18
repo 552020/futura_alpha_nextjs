@@ -116,7 +116,7 @@ await trackEventAsync({
 });
 ```
 
-Third, we persisted the segment information in our backend. The Rust serverless function that processes form submissions now stores the originating segment alongside the user data:
+Third, we persisted the segment information in our backend. The Rust serverless function[^serverless] that processes form submissions now stores the originating segment alongside the user data:
 
 ```rust
 #[derive(Serialize, Deserialize)]
@@ -196,3 +196,5 @@ For teams considering Juno for their Internet Computer projects, our experience 
 [^9]: The German word might be *Verschlimmbesserung* (an improvement that makes things worse) or perhaps its inverse. But really, there is no word for "relief that your workaround is no longer needed, mixed with mild regret that you built it at all."
 
 [^10]: The original Juno proxy repository: https://github.com/junobuild/proxy. And yes, we know—it's 404 now. That's rather the point.
+
+[^serverless]: Juno's "serverless functions" differ from Vercel's pay-per-invoke model. They are closer to FaaS (Function as a Service): assertions and hooks executed based on predefined events within a satellite the developer fully owns. The satellite—a canister in Internet Computer terminology—runs continuously, and the developer retains 100% ownership and control. When you build serverless functions, the output is the entire container; deployment means deploying the entire satellite. Davide uses the term "serverless" deliberately: from a web developer's perspective, the server is abstracted away, and the concept is immediately recognizable without requiring blockchain-specific knowledge. See the discussion: https://discord.com/channels/1076791076544847982/1076791077308219414/1462443101074362429
