@@ -29,9 +29,7 @@ This validation effort became part of a grant from the DFINITY Foundation. The g
 
 This essay documents our experience building on Juno: the implementation of staging environments, the evolution of our analytics approach, and the challenges we encountered along the way. Throughout this journey, Davide, Juno's founder and maintainer, provided exceptional support—explaining concepts, updating documentation, and implementing fixes when needed.
 
-## What We Built
-
-### The Project: Fake Door Testing on the Internet Computer
+## The Project: Fake Door Testing with Juno
 
 Fake door testing is a product validation technique where you present potential features or products to users before they are fully built (or built at all), measuring their interest through engagement metrics.[^3] For Futura, this meant creating three landing pages—one for each vertical—and driving traffic to them through an ad campaign to determine which market segment showed the strongest interest.
 
@@ -45,7 +43,7 @@ Our landing pages are deployed on `ic.futura.now`, powered by Juno, while the fu
 
 For a fake door test with no real users yet, a staging environment was arguably overkill. But we wanted to understand how environment separation works when deploying through Juno, and setting it up early seemed like good practice.
 
-A Juno satellite is essentially a smart contract (canister) that hosts your application. The insight—and credit goes to Davide for clarifying this early—is that staging and production are simply two different satellites with different canister IDs.[^4]
+A Juno satellite is essentially a smart contract (canister) that hosts your application. Juno facilitates environment separation by allowing you to define multiple satellites in your config—the terms "staging" and "production" are just labels we chose, not reserved keywords.[^4]
 
 Our `juno.config.ts` defines both:
 
@@ -64,9 +62,9 @@ We then created separate GitHub Actions workflows: one that deploys to staging o
 
 ### Analytics: From Page Views to Conversion Attribution
 
-Our analytics implementation evolved through two distinct phases, driven by a fundamental problem we discovered only after the initial deployment.
+The core question for fake door testing is simple: which vertical converts best? But answering it required more than basic page view tracking—we needed to connect landing page visits to onboarding completions. This attribution problem shaped how we implemented analytics.
 
-**Phase 1: Juno Orbiter**
+**Setting Up Orbiter**
 
 Juno provides Orbiter, a decentralized analytics service that runs entirely on the Internet Computer.[^5] Setting it up was straightforward—add the Orbiter satellite ID to our config, install the `@junobuild/analytics` package, and wrap our application in a provider that initializes tracking:
 
@@ -88,7 +86,7 @@ export function OrbiterProvider({ children }) {
 
 This gave us page views, performance metrics (Web Vitals), and device information—all collected without relying on additional third-party services, stored on the blockchain. For basic traffic analysis, this worked well.
 
-**Phase 2: The Attribution Problem**
+**The Attribution Gap**
 
 The problem emerged when we tried to answer a simple question: which vertical is converting best?
 
