@@ -23,9 +23,9 @@ published: true
 
 Futura aims to be a digital multimedia memory album for newlyweds—a space for couples to collect, share, and preserve their wedding memories with true ownership through Web3 technologies.[^1] More broadly, it is a digital memory preservation platform, and before we refined its focus on weddings, we explored different variations of the idea.
 
-We wanted to validate the wedding concept against the original family-oriented vision, and during discussions with the DFINITY Foundation team, a third vertical—Transcendence—emerged as an additional direction to test. The three verticals represent different entry points into digital memory preservation: *Family* targets people wanting to leave a legacy to their heirs—photos, writings, family data spanning one or more generations. *Wedding* focuses on couples at a pivotal life moment, wanting to preserve their photos for themselves and eventually for their future family. *Transcendence* takes a high-tech approach: using accumulated personal data to create an AI clone—a form of digital survival that allows future generations to interact with and understand their elders. The validation would take the form of fake door testing: three landing pages, one for each vertical, with an advertising campaign to measure which resonated most.
+We wanted to validate the wedding concept against the original vision, and during discussions with the DFINITY Foundation team, a third direction emerged. The three verticals represent different entry points into digital memory preservation: *Family* targets people wanting to leave a legacy to their heirs—photos, writings, family data spanning one or more generations. *Wedding* focuses on couples at a pivotal life moment, wanting to preserve their photos for themselves and eventually for their future family. *Transcendence* takes a high-tech approach: using accumulated personal data to create an AI representation—a form of digital continuity that allows future generations to interact with and learn about their elders. The validation would take the form of fake door testing: three landing pages, one for each vertical, with an advertising campaign to measure which resonated most.
 
-This validation effort became part of a grant from the DFINITY Foundation. The grant's core condition was to utilize Juno and its analytics capabilities to demonstrate how the platform can be used in a live environment.[^2]
+This validation effort became part of a grant from the DFINITY Foundation. The grant's condition was to utilize Juno and its analytics capabilities in a live environment.[^2] We were also curious to explore Juno as an on-chain alternative to platforms like Vercel—a serverless deployment solution native to the Internet Computer.
 
 This essay documents our experience building on Juno: the implementation of staging environments, the evolution of our analytics approach, and the challenges we encountered along the way. Throughout this journey, Davide, Juno's founder and maintainer, provided exceptional support—explaining concepts, updating documentation, and implementing fixes when needed.
 
@@ -43,7 +43,7 @@ Our landing pages are deployed on `ic.futura.now`, powered by Juno, while the fu
 
 ### Staging and Production Environments
 
-One of the first requirements for any serious development workflow is environment separation. You need a staging environment where you can test changes before they affect real users. On traditional platforms, this is trivial. On the Internet Computer, it requires understanding how Juno's satellite architecture works.
+For a fake door test with no real users yet, a staging environment was arguably overkill. But we wanted to understand how environment separation works when deploying through Juno, and setting it up early seemed like good practice.
 
 A Juno satellite is essentially a smart contract (canister) that hosts your application. The insight—and credit goes to Davide for clarifying this early—is that staging and production are simply two different satellites with different canister IDs.[^4]
 
@@ -181,7 +181,7 @@ For teams considering Juno for their Internet Computer projects, our experience 
 
 [^2]: The grant was a $5k award from the DFINITY Foundation. See the forum discussion: https://forum.dfinity.org/t/futura-an-app-to-store-memories/62052
 
-[^3]: Fake door testing (also called "painted door" testing) involves creating the appearance of a feature or product—typically a landing page with a call-to-action—before the underlying functionality exists. User engagement with this "fake door" validates interest before significant development investment. The technique is widely used in lean startup methodology. Eric Ries tells a famous anecdote about spending six months building an app, only to realize no one wanted it. Had they built just the onboarding flow—a fake door—they would have known immediately: https://youtu.be/fEvKo90qBns?t=1598
+[^3]: Fake door testing (also called "painted door" testing) involves creating the appearance of a feature or product—typically a landing page with a call-to-action—before the underlying functionality exists. User engagement with this "fake door" validates interest before significant development investment. The technique is widely used in lean startup methodology. Eric Ries tells a famous anecdote about spending six months building an app, only to realize no one wanted it. Had they built just the onboarding flow—a fake door—they would have known immediately. He recounts this story in his [Talk at Google](https://youtu.be/fEvKo90qBns?t=1598).
 
 [^4]: The staging versus production discussion with Davide is documented in our Discord thread: https://discord.com/channels/1076791076544847982/1408822636259053679/1408823203588997312
 
