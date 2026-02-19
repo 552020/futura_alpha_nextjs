@@ -34,9 +34,6 @@ export default async function LangPage({ params }: PageProps) {
   const hostname = headersList.get('host') || '';
   const subdomain = hostname.split('.')[0];
 
-  // Debug logging
-  console.log('🔍 Subdomain detection:', { hostname, subdomain });
-
   // Get dictionary for the language WITH the preferred segment
   const dict = await getDictionary(resolvedParams.lang, { segment });
 

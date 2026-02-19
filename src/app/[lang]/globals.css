@@ -32,6 +32,14 @@
 
 .animate-pulse-scale {
   animation: pulse-scale 5s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* Respect user's motion preferences and reduce main thread impact */
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse-scale {
+    animation: none;
+  }
 }
 /*
   The default border color has changed to `currentColor` in Tailwind CSS v4,

@@ -177,9 +177,6 @@ export function AuthModal({
     }
   }, [isOpen, onClose]);
 
-  // Debug logging
-  console.log('🔍 [DEBUG] AuthModal render:', { isOpen, showGoogle, showEmail, showInternetIdentity, showGithub });
-
   if (!isOpen) return null;
 
   return (

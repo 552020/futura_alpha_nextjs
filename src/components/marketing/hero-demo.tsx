@@ -73,9 +73,6 @@ function Hero({ dict, lang, subdomain }: HeroProps) {
 
   const heroImage = getHeroImage(subdomain || 'default');
 
-  // Debug logging
-  console.log('🖼️ Hero image selected:', { subdomain, heroImage });
-
   // Controls for mobile overlay typography (adjust to taste)
   const TITLE_VW = 73.5; // base vw numerator for title
   const SUBTITLE_VW = 85; // base vw numerator for subtitle

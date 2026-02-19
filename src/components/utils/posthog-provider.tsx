@@ -2,28 +2,36 @@
 
 import posthog from 'posthog-js';
 import { PostHogProvider as PHProvider, usePostHog } from 'posthog-js/react';
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
   const apiHost = process.env.NEXT_PUBLIC_POSTHOG_INGEST;
+  const initAttempted = useRef(false);
 
   useEffect(() => {
-    if (!posthog.isFeatureEnabled) {
-      // icpLogger.info("Initializing PostHog with:");
-      // icpLogger.info("  Key:", process.env.NEXT_PUBLIC_POSTHOG_KEY);
-      // icpLogger.info("  Host:", apiHost);
+    // Only attempt init once
+    if (initAttempted.current) return;
+    initAttempted.current = true;
 
-      posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
-        api_host: apiHost,
-        capture_pageview: false, // We'll handle this manually
-        capture_pageleave: true,
-        disable_session_recording: true, // Disable session recording for privacy
-        opt_out_capturing_by_default: false,
-        loaded: () => {
-          // icpLogger.info("✅ Final PostHog config after init");
-        },
-      });
+    // Defer PostHog initialization to avoid blocking main thread during page load
+    const initPostHog = () => {
+      if (!posthog.isFeatureEnabled) {
+        posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
+          api_host: apiHost,
+          capture_pageview: false, // We'll handle this manually
+          capture_pageleave: true,
+          disable_session_recording: true, // Disable session recording for privacy
+          opt_out_capturing_by_default: false,
+        });
+      }
+    };
+
+    // Use requestIdleCallback if available, otherwise setTimeout
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(initPostHog, { timeout: 3000 });
+    } else {
+      setTimeout(initPostHog, 1000);
     }
   }, [apiHost]);
 

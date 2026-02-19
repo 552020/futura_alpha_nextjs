@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 
 import { fatLogger } from '@/lib/logger';
 // Add these constants at the top of the file
@@ -86,35 +86,46 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     }
   }, []);
 
-  // Save state to localStorage when it changes
+  // Debounce timer ref
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Save state to localStorage when it changes (debounced to avoid blocking main thread)
   useEffect(() => {
-    try {
-      localStorage.setItem(
-        ONBOARDING_STATE_KEY,
-        JSON.stringify({
-          userData,
-          onboardingStatus,
-        })
-      );
-      localStorage.setItem(ONBOARDING_STEP_KEY, currentStep);
-    } catch (error) {
-      fatLogger.error('Error saving onboarding state:', 'fe', { data: error instanceof Error ? error : undefined });
+    // Clear any pending save
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
     }
+
+    // Debounce localStorage writes by 500ms
+    saveTimeoutRef.current = setTimeout(() => {
+      try {
+        localStorage.setItem(
+          ONBOARDING_STATE_KEY,
+          JSON.stringify({
+            userData,
+            onboardingStatus,
+          })
+        );
+        localStorage.setItem(ONBOARDING_STEP_KEY, currentStep);
+      } catch (error) {
+        fatLogger.error('Error saving onboarding state:', 'fe', { data: error instanceof Error ? error : undefined });
+      }
+    }, 500);
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
   }, [currentStep, userData, onboardingStatus]);
 
   // Update user data - using functional update pattern
   const updateUserData = useCallback(
     (update: Partial<typeof userData> | ((prev: typeof userData) => Partial<typeof userData>)) => {
-      console.log('🔄 [DEBUG] updateUserData called with update:', JSON.stringify(update, null, 2));
-      setUserData(prev => {
-        const newData = {
-          ...prev,
-          ...(typeof update === 'function' ? update(prev) : update),
-        };
-        console.log('📋 [DEBUG] Previous userData:', JSON.stringify(prev, null, 2));
-        console.log('📋 [DEBUG] New userData:', JSON.stringify(newData, null, 2));
-        return newData;
-      });
+      setUserData(prev => ({
+        ...prev,
+        ...(typeof update === 'function' ? update(prev) : update),
+      }));
     },
     []
   );
