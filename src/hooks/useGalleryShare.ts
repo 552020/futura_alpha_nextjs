@@ -1,5 +1,4 @@
 import { useSession } from 'next-auth/react';
-import { galleryService } from '@/services/gallery';
 import { fatLogger } from '@/lib/logger';
 
 interface ShareGalleryParams {
@@ -66,62 +65,33 @@ export function useGalleryShare() {
             throw new Error('Failed to lookup user');
         }
 
-        // Step 2: Share the gallery
+        // Step 2: Share the gallery with email notification in a single call
         fatLogger.info('Sharing gallery with user', 'fe', {
-            data: { galleryId, allUserId, sharedWithType: 'user' },
+            data: { galleryId, allUserId, sharedWithType: 'user', isNewUser },
         });
 
-        await galleryService.shareGallery(galleryId, {
-            sharedWithType: 'user',
-            sharedWithId: allUserId,
+        const shareResponse = await fetch(`/api/galleries/${galleryId}/share`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                sharedWithType: 'user',
+                sharedWithId: allUserId,
+                sendEmail: true, // Enable email notification
+                isInviteeNew: isNewUser, // Indicate if this is a new user
+            }),
         });
 
-        fatLogger.info('Gallery shared successfully', 'fe', {
-            data: { galleryId, allUserId },
-        });
-
-        // Step 3: Send email notification
-        try {
-            const sharerName = session?.user?.name || 'Someone';
-            const appUrl = window.location.origin;
-            const galleryUrl = `${appUrl}/gallery/${galleryId}`;
-
-            fatLogger.debug('Sending share notification email', 'fe', {
-                data: { to: email, isNewUser, hasCustomMessage: !!message },
+        if (!shareResponse.ok) {
+            const errorData = await shareResponse.json().catch(() => ({ error: 'Unknown error' }));
+            fatLogger.error('Failed to share gallery', 'fe', {
+                data: { status: shareResponse.status, error: errorData },
             });
-
-            const emailText = `Hi ${userName},
-
-${sharerName} has shared a gallery titled "${galleryTitle}" with you.
-
-${message ? `Message from ${sharerName}:\n"${message}"\n\n` : ''}You can view the gallery here: ${galleryUrl}
-
-${isNewUser ? 'A temporary account has been created for you. You can sign in to access the gallery and all its memories.\n\n' : ''}Best regards,
-Your Gallery Team`;
-
-            const emailResponse = await fetch('/api/email/send', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    to: email,
-                    subject: `${sharerName} shared a gallery with you`,
-                    text: emailText,
-                }),
-            });
-
-            if (emailResponse.ok) {
-                fatLogger.info('Share notification email sent', 'fe', { data: { to: email } });
-            } else {
-                fatLogger.warn('Email send returned non-OK status', 'fe', {
-                    data: { status: emailResponse.status },
-                });
-            }
-        } catch (emailError) {
-            // Log email error but don't fail the share operation
-            fatLogger.error('Error sending share notification email', 'fe', {
-                data: emailError instanceof Error ? emailError : undefined,
-            });
+            throw new Error(errorData.error || 'Failed to share gallery');
         }
+
+        fatLogger.info('Gallery shared successfully with email notification', 'fe', {
+            data: { galleryId, allUserId, emailSent: true },
+        });
 
         fatLogger.info('Gallery share process completed', 'fe', {
             data: { galleryId, recipientEmail: email, isNewUser },

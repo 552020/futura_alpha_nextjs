@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { createShare, createPublicLink, generateShareableUrl } from '@/services/sharing';
 import { getFolderByIdForOwner } from '@/services/folder';
-import { getAllUserRecord, getAllUserRecordById } from '@/services/user';
-import type { allUsers } from '@/db';
+import { getAllUserRecord, getAllUserRecordById, getUserEmailByAllUserId } from '@/services/user';
+import { allUsers } from '@/db';
 import { fatLogger } from '@/lib/logger';
+import { db } from '@/db/db';
+import { eq } from 'drizzle-orm';
+import { sendEmail as sendMailgunEmail } from '@/utils/mailgun';
+import { renderFolderSharingEmail } from '@/utils/email/folderSharingTemplate';
 
 type FolderShareRequest = {
   shareType: 'user' | 'public';
@@ -15,6 +19,8 @@ type FolderShareRequest = {
     canDelete: boolean;
   };
   expiresAt?: string; // ISO string for public links
+  sendEmail?: boolean; // Whether to send email notification
+  isInviteeNew?: boolean; // Whether the invitee is a new user
 };
 
 export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
@@ -24,7 +30,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     const body = (await request.json()) as FolderShareRequest;
     fatLogger.info('📁 Folder share request:', 'be', { folderId, body });
 
-    const { shareType, targetUserId, permissions, expiresAt } = body;
+    const { shareType, targetUserId, permissions, expiresAt, sendEmail = false, isInviteeNew = false } = body;
 
     // Authentication
     const session = await auth();
@@ -124,6 +130,75 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
         targetUserId,
       });
 
+      // Send email notification if requested
+      if (sendEmail && targetUserId) {
+        try {
+          // Get recipient email using the service function
+          const emailResult = await getUserEmailByAllUserId(targetUserId);
+          if (!emailResult.success) {
+            fatLogger.error('📧 Failed to get recipient email', 'be', {
+              error: emailResult.error,
+              targetUserId,
+              folderId,
+            });
+            // Continue without email - don't fail the share operation
+          } else {
+            const recipientEmail = emailResult.data;
+
+            if (!recipientEmail) {
+              fatLogger.error('📧 No email address found for user', 'be', {
+                targetUserId,
+                folderId,
+              });
+              // Continue without email - don't fail the share operation
+            } else {
+              // Get recipient details to determine user type
+              const recipientResult = await db.query.allUsers.findFirst({
+                where: eq(allUsers.id, targetUserId),
+              });
+              const recipient = recipientResult;
+
+              // Determine if this is a new user invitation
+              const isNewUser = isInviteeNew || (recipient && recipient.type === 'temporary');
+
+              // Get sharer name
+              const sharerName = await getSharerName(allUserRecord.id);
+              const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+              const folderUrl = `${appUrl}/folders/${folderId}`;
+
+              // Generate email content using template
+              const { subject, html, text } = renderFolderSharingEmail({
+                folderName: folder.name,
+                sharerName: sharerName || 'Someone',
+                recipientEmail,
+                folderUrl,
+                isNewUser: isNewUser || false,
+              });
+
+              await sendMailgunEmail({
+                to: recipientEmail,
+                subject,
+                text,
+                html,
+              });
+
+              fatLogger.info('📧 Folder sharing email sent', 'be', {
+                recipientEmail,
+                folderId,
+                isNewUser,
+              });
+            }
+          }
+        } catch (emailError) {
+          // Log error but don't fail the share operation
+          fatLogger.error('📧 Email sending failed', 'be', {
+            error: emailError instanceof Error ? emailError.message : 'Unknown error',
+            folderId,
+            targetUserId,
+          });
+        }
+      }
+
       return NextResponse.json({
         success: true,
         data: {
@@ -193,3 +268,21 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     );
   }
 }
+
+// Helper function to get sharer name
+async function getSharerName(allUserId: string): Promise<string | undefined> {
+  const allUserRecord = await db.query.allUsers.findFirst({
+    where: eq(allUsers.id, allUserId),
+  });
+
+  if (allUserRecord?.userId) {
+    const { users } = await import('@/db');
+    const userRecord = await db.query.users.findFirst({
+      where: eq(users.id, allUserRecord.userId),
+    });
+    return userRecord?.name || undefined;
+  }
+
+  return undefined;
+}
+

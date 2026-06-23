@@ -4,8 +4,10 @@ import { db } from '@/db/db';
 import { eq, and } from 'drizzle-orm';
 import { galleries, allUsers, resourceMembership } from '@/db';
 import { randomUUID } from 'crypto';
-
+import { getUserEmailByAllUserId } from '@/services/user';
+import { sendEmail as sendMailgunEmail } from '@/utils/mailgun';
 import { fatLogger } from '@/lib/logger';
+import { renderGallerySharingEmail } from '@/utils/email/gallerySharingTemplate';
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
@@ -28,7 +30,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const galleryId = id;
     const body = await request.json();
-    const { sharedWithType, sharedWithId, groupId, sharedRelationshipType, accessLevel = 'read' } = body;
+    const { sharedWithType, sharedWithId, groupId, sharedRelationshipType, accessLevel = 'read', sendEmail = false, isInviteeNew = false } = body;
 
     // Validate required fields
     if (!sharedWithType || !['user', 'group', 'relationship'].includes(sharedWithType)) {
@@ -90,6 +92,77 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     fatLogger.info('Created gallery share:', JSON.stringify(newShare[0]));
 
+    // Send email notification if requested
+    if (sendEmail && sharedWithType === 'user' && sharedWithId) {
+      try {
+        // Get recipient email using the service function
+        const emailResult = await getUserEmailByAllUserId(sharedWithId);
+        if (!emailResult.success) {
+          fatLogger.error('📧 Failed to get recipient email', 'be', {
+            error: emailResult.error,
+            targetUserId: sharedWithId,
+            galleryId,
+          });
+          // Continue without email - don't fail the share operation
+        } else {
+          const recipientEmail = emailResult.data;
+
+          if (!recipientEmail) {
+            fatLogger.error('📧 No email address found for user', 'be', {
+              targetUserId: sharedWithId,
+              galleryId,
+            });
+            // Continue without email - don't fail the share operation
+          } else {
+            // Get recipient details to determine user type
+            const recipientResult = await db.query.allUsers.findFirst({
+              where: eq(allUsers.id, sharedWithId),
+            });
+            const recipient = recipientResult;
+
+            // Determine if this is a new user invitation
+            const isNewUser = isInviteeNew || (recipient && recipient.type === 'temporary');
+
+            // Get sharer name
+            const sharerName = await getSharerName(allUserRecord.id);
+            const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+            const galleryUrl = `${appUrl}/gallery/${galleryId}`;
+
+            // Generate email content using template
+            const { subject, html, text } = renderGallerySharingEmail({
+              galleryTitle: existingGallery.title,
+              sharerName: sharerName || 'Someone',
+              recipientEmail,
+              galleryUrl,
+              isNewUser: isNewUser || false,
+              accessLevel: accessLevel as 'read' | 'write',
+            });
+
+            await sendMailgunEmail({
+              to: recipientEmail,
+              subject,
+              text,
+              html,
+            });
+
+            fatLogger.info('📧 Gallery sharing email sent', 'be', {
+              recipientEmail,
+              galleryId,
+              isNewUser,
+              accessLevel,
+            });
+          }
+        }
+      } catch (emailError) {
+        // Log error but don't fail the share operation
+        fatLogger.error('📧 Email sending failed', 'be', {
+          error: emailError instanceof Error ? emailError.message : 'Unknown error',
+          galleryId,
+          targetUserId: sharedWithId,
+        });
+      }
+    }
+
     return NextResponse.json(
       {
         share: newShare[0],
@@ -149,3 +222,21 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: 'Failed to fetch gallery shares' }, { status: 500 });
   }
 }
+
+// Helper function to get sharer name
+async function getSharerName(allUserId: string): Promise<string | undefined> {
+  const allUserRecord = await db.query.allUsers.findFirst({
+    where: eq(allUsers.id, allUserId),
+  });
+
+  if (allUserRecord?.userId) {
+    const { users } = await import('@/db');
+    const userRecord = await db.query.users.findFirst({
+      where: eq(users.id, allUserRecord.userId),
+    });
+    return userRecord?.name || undefined;
+  }
+
+  return undefined;
+}
+

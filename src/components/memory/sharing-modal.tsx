@@ -116,9 +116,12 @@ export function SharingModal({
 
   const handleShareWithUsers = async () => {
     try {
-      // Share with each selected user
+      // Share with each selected user (existing users) with email notification
       for (const user of selectedUsers) {
-        await shareWithUser(resourceType, resourceId, user.id, permissions);
+        await shareWithUser(resourceType, resourceId, user.id, permissions, {
+          sendEmail: true, // Send email to existing users
+          isInviteeNew: false,
+        });
       }
 
       // Handle email invitations using the existing temporary user system

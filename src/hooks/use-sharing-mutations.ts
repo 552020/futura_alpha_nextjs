@@ -12,6 +12,8 @@ interface UserShareData {
   shareType: 'user';
   targetUserId: string;
   permissions: SharePermissions;
+  sendEmail?: boolean;
+  isInviteeNew?: boolean;
 }
 
 interface PublicLinkData {
@@ -115,7 +117,8 @@ export function useSharingMutations() {
     resourceType: 'memory' | 'folder',
     resourceId: string,
     targetUserId: string,
-    permissions: SharePermissions
+    permissions: SharePermissions,
+    options: { sendEmail?: boolean; isInviteeNew?: boolean } = {}
   ) => {
     return shareResourceMutation.mutateAsync({
       resourceType,
@@ -124,6 +127,8 @@ export function useSharingMutations() {
         shareType: 'user',
         targetUserId,
         permissions,
+        sendEmail: options.sendEmail ?? true, // Default to true to send email notifications
+        isInviteeNew: options.isInviteeNew ?? false,
       },
     });
   };
