@@ -67,7 +67,6 @@ Files affected by this feature flag:
 - `/src/components/galleries/gallery-photo-grid.tsx` - Grid component with optional handlers
 - `/src/components/galleries/gallery-selection-bar.tsx` - Selection bar with conditional tabs
 - `/src/components/galleries/gallery-selection-panel.tsx` - Side panel with ratings
-- `/src/contexts/SelectionContext.tsx` - Context with rating/hide state
 - `/src/components/common/base-grid.tsx` - Base grid with optional props
 
 ### Adding More Feature Flags

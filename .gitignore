@@ -67,3 +67,6 @@ e2e/debug/
 
 # ignore small images folder
 public/images/segments/small/
+
+# local pnpm content-addressable store
+.pnpm-store/
