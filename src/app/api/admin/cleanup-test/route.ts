@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { fatLogger } from '@/lib/logger';
 import { auth } from '@/auth';
 import { isAdmin } from '@/config/admin';
 import { db } from '@/db/db';
@@ -13,10 +14,16 @@ export async function POST() {
   }
 
   // Check if user is admin
-  const userIsAdmin = isAdmin(session.user?.email ?? undefined, session.user?.role);
+  const userIsAdmin = isAdmin(
+    session.user?.email ?? undefined,
+    session.user?.role
+  );
 
   if (!userIsAdmin) {
-    return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
+    return NextResponse.json(
+      { error: 'Forbidden - Admin access required' },
+      { status: 403 }
+    );
   }
 
   try {
@@ -42,7 +49,7 @@ export async function POST() {
       deleted: deletedCount,
     });
   } catch (error) {
-    console.error('❌ Test users cleanup failed:', error);
+    fatLogger.error('Test users cleanup failed', 'be', { error });
     return NextResponse.json(
       {
         success: false,

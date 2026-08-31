@@ -4,6 +4,7 @@ import { isAdmin } from '@/config/admin';
 import { db } from '@/db/db';
 import { allUsers, users, temporaryUsers } from '@/db';
 import { eq, desc } from 'drizzle-orm';
+import { fatLogger } from '@/lib/logger';
 
 export async function GET() {
   // Check authentication
@@ -13,10 +14,16 @@ export async function GET() {
   }
 
   // Check if user is admin
-  const userIsAdmin = isAdmin(session.user?.email ?? undefined, session.user?.role);
+  const userIsAdmin = isAdmin(
+    session.user?.email ?? undefined,
+    session.user?.role
+  );
 
   if (!userIsAdmin) {
-    return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
+    return NextResponse.json(
+      { error: 'Forbidden - Admin access required' },
+      { status: 403 }
+    );
   }
 
   try {
@@ -72,7 +79,9 @@ export async function GET() {
     }
 
     // Deduplicate users by ID to prevent React key conflicts
-    const uniqueUsers = usersList.filter((user, index, self) => index === self.findIndex(u => u.id === user.id));
+    const uniqueUsers = usersList.filter(
+      (user, index, self) => index === self.findIndex((u) => u.id === user.id)
+    );
 
     return NextResponse.json({
       totalUsers: uniqueUsers.length,
@@ -81,7 +90,7 @@ export async function GET() {
       users: uniqueUsers,
     });
   } catch (error) {
-    console.error('❌ Admin users fetch failed:', error);
+    fatLogger.error('Admin users fetch failed', 'be', { error });
     return NextResponse.json(
       {
         success: false,

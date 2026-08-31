@@ -9,7 +9,12 @@ import { useRef } from 'react';
 type FlexibleItem = Parameters<typeof ContentCard>[0]['item'];
 
 interface MemoryGridProps {
-  memories: DashboardItem[] | (Memory & { status: 'private' | 'shared' | 'public'; sharedWithCount?: number })[];
+  memories:
+    | DashboardItem[]
+    | (Memory & {
+        status: 'private' | 'shared' | 'public';
+        sharedWithCount?: number;
+      })[];
   onDelete?: (id: string) => void;
   onShare?: (item: Memory | DashboardItem) => void;
   onEdit?: (id: string) => void;
@@ -29,12 +34,6 @@ export function MemoryGrid({
   viewMode = 'grid',
   useReactQuery = false,
 }: MemoryGridProps) {
-  console.log('🔄 [MEMORY GRID] Component rendering with memories:', memories.length);
-  console.log(
-    '🔄 [MEMORY GRID] Memory IDs:',
-    memories.map(m => m.id)
-  );
-
   const deleteMemoryMutation = useDeleteMemory();
   const deletingIdsRef = useRef<Set<string>>(new Set());
 
@@ -56,16 +55,20 @@ export function MemoryGrid({
       items={memories}
       gap="md"
       gridCols={{ sm: 1, md: 2, lg: 3, xl: 4 }}
-      renderItem={memory => (
+      renderItem={(memory) => (
         <ContentCard
           key={memory.id}
           item={memory}
-          onClick={item => onClick?.(item as Memory | DashboardItem)}
+          onClick={(item) => onClick?.(item as Memory | DashboardItem)}
           onDelete={handleDelete}
-          onShare={onShare ? (item) => onShare(item as Memory | DashboardItem) : undefined}
+          onShare={
+            onShare
+              ? (item) => onShare(item as Memory | DashboardItem)
+              : undefined
+          }
           onEdit={
             onEditItem
-              ? item => onEditItem(item as Memory | DashboardItem)
+              ? (item) => onEditItem(item as Memory | DashboardItem)
               : onEdit
                 ? () => onEdit(memory.id)
                 : undefined

@@ -2,7 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { fatLogger } from '@/lib/logger/fat-logger';
-import { tinyLogger, setLoggerFilter, toggleLogger } from '@/lib/logger/tiny-logger';
+import {
+  tinyLogger,
+  setLoggerFilter,
+  toggleLogger,
+} from '@/lib/logger/tiny-logger';
 
 // Three-state toggle values
 type ToggleState = 'not-set' | 'enabled' | 'disabled';
@@ -37,7 +41,9 @@ function demonstrateTinyLogger() {
   tinyLogger('low disk space', { tags: ['warn', 'backend', 'server:api'] });
 
   // explicit debug
-  tinyLogger('rendered dashboard', { tags: ['debug', 'frontend', 'dashboard'] });
+  tinyLogger('rendered dashboard', {
+    tags: ['debug', 'frontend', 'dashboard'],
+  });
 
   // structured data
   tinyLogger('user uploaded file', {
@@ -92,9 +98,9 @@ export default function LoggerTestPage() {
     if (savedConfig) {
       try {
         const parsed = JSON.parse(savedConfig);
-        setLoggerConfig(prev => ({ ...prev, ...parsed }));
+        setLoggerConfig((prev) => ({ ...prev, ...parsed }));
       } catch (error) {
-        console.warn('Failed to parse saved logger config:', error);
+        fatLogger.warn('Failed to parse saved logger config', 'fe', { error });
       }
     }
   }, []);
@@ -105,13 +111,17 @@ export default function LoggerTestPage() {
   }, [loggerConfig]);
 
   const updateConfig = (key: keyof LoggerConfig, value: ToggleState) => {
-    setLoggerConfig(prev => ({ ...prev, [key]: value }));
+    setLoggerConfig((prev) => ({ ...prev, [key]: value }));
   };
 
   const cycleToggleState = (key: keyof LoggerConfig) => {
     const currentState = loggerConfig[key];
     const nextState: ToggleState =
-      currentState === 'not-set' ? 'enabled' : currentState === 'enabled' ? 'disabled' : 'not-set';
+      currentState === 'not-set'
+        ? 'enabled'
+        : currentState === 'enabled'
+          ? 'disabled'
+          : 'not-set';
     updateConfig(key, nextState);
   };
 
@@ -173,7 +183,10 @@ export default function LoggerTestPage() {
   };
 
   const addResult = (message: string) => {
-    setTestResults(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
+    setTestResults((prev) => [
+      ...prev,
+      `${new Date().toLocaleTimeString()}: ${message}`,
+    ]);
   };
 
   const testBasicLogging = () => {
@@ -214,7 +227,9 @@ export default function LoggerTestPage() {
     uploadLog.debug('Upload debug message', { file: 'test.jpg' });
     dbLog.info('Database info message', { query: 'SELECT * FROM users' });
     authLog.warn('Auth warning message', { userId: '123' });
-    fatLogger.error('App error message', 'fe', { error: 'Something went wrong' });
+    fatLogger.error('App error message', 'fe', {
+      error: 'Something went wrong',
+    });
 
     addResult('Specialized logger tests completed - check console');
   };
@@ -272,7 +287,11 @@ export default function LoggerTestPage() {
     try {
       throw new Error('Test error for logging');
     } catch (error) {
-      fatLogger.error('Caught test error', 'fe', error instanceof Error ? error : new Error(String(error)));
+      fatLogger.error(
+        'Caught test error',
+        'fe',
+        error instanceof Error ? error : new Error(String(error))
+      );
     }
 
     fatLogger.error('Manual error test', 'fe', new Error('Manual test error'));
@@ -306,7 +325,9 @@ export default function LoggerTestPage() {
 
   return (
     <div className="container mx-auto p-6 max-w-6xl">
-      <h1 className="text-3xl font-bold mb-6">Logger Configuration & Test Page</h1>
+      <h1 className="text-3xl font-bold mb-6">
+        Logger Configuration & Test Page
+      </h1>
 
       <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
         <h2 className="text-lg font-semibold mb-2">Instructions:</h2>
@@ -314,7 +335,8 @@ export default function LoggerTestPage() {
           <li>Click the toggle buttons to cycle through three states:</li>
           <ul className="list-disc list-inside ml-4 mt-1 space-y-1">
             <li>
-              <strong>⚪ Default</strong> - Uses hardcoded value from fat-fatLogger.ts
+              <strong>⚪ Default</strong> - Uses hardcoded value from
+              fat-fatLogger.ts
             </li>
             <li>
               <strong>🟢 ON</strong> - Override to enable logging
@@ -337,7 +359,9 @@ export default function LoggerTestPage() {
         {/* Master Switch */}
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
           <h3 className="font-semibold text-red-800 mb-3">Master Switch</h3>
-          <p className="text-sm text-red-600 mb-4">Controls all logging - when OFF, no logs will appear</p>
+          <p className="text-sm text-red-600 mb-4">
+            Controls all logging - when OFF, no logs will appear
+          </p>
           <ThreeStepToggle
             state={loggerConfig.ENABLE_LOGGING}
             onChange={() => cycleToggleState('ENABLE_LOGGING')}
@@ -351,14 +375,46 @@ export default function LoggerTestPage() {
           <h3 className="text-lg font-semibold mb-3">Core Services</h3>
           <div className="grid grid-cols-1 gap-4">
             {[
-              { key: 'ENABLE_FRONTEND_LOGGING', label: 'Frontend Components', desc: 'Frontend component interactions' },
-              { key: 'ENABLE_BACKEND_LOGGING', label: 'Backend API', desc: 'Backend API and processing' },
-              { key: 'ENABLE_UPLOAD_LOGGING', label: 'Upload Process', desc: 'File upload routing and processing' },
-              { key: 'ENABLE_DATABASE_LOGGING', label: 'Database', desc: 'Database operations' },
-              { key: 'ENABLE_AUTH_LOGGING', label: 'Authentication', desc: 'Authentication flows' },
-              { key: 'ENABLE_ASSET_LOGGING', label: 'Asset Processing', desc: 'Asset processing and thumbnails' },
-              { key: 'ENABLE_S3_LOGGING', label: 'S3 Storage', desc: 'S3 presigned URLs and storage' },
-              { key: 'ENABLE_ICP_UPLOAD_LOGGING', label: 'ICP Upload', desc: 'ICP upload and canister interactions' },
+              {
+                key: 'ENABLE_FRONTEND_LOGGING',
+                label: 'Frontend Components',
+                desc: 'Frontend component interactions',
+              },
+              {
+                key: 'ENABLE_BACKEND_LOGGING',
+                label: 'Backend API',
+                desc: 'Backend API and processing',
+              },
+              {
+                key: 'ENABLE_UPLOAD_LOGGING',
+                label: 'Upload Process',
+                desc: 'File upload routing and processing',
+              },
+              {
+                key: 'ENABLE_DATABASE_LOGGING',
+                label: 'Database',
+                desc: 'Database operations',
+              },
+              {
+                key: 'ENABLE_AUTH_LOGGING',
+                label: 'Authentication',
+                desc: 'Authentication flows',
+              },
+              {
+                key: 'ENABLE_ASSET_LOGGING',
+                label: 'Asset Processing',
+                desc: 'Asset processing and thumbnails',
+              },
+              {
+                key: 'ENABLE_S3_LOGGING',
+                label: 'S3 Storage',
+                desc: 'S3 presigned URLs and storage',
+              },
+              {
+                key: 'ENABLE_ICP_UPLOAD_LOGGING',
+                label: 'ICP Upload',
+                desc: 'ICP upload and canister interactions',
+              },
             ].map(({ key, label, desc }) => (
               <ThreeStepToggle
                 key={key}
@@ -381,21 +437,41 @@ export default function LoggerTestPage() {
                 label: 'Hosting Preferences',
                 desc: 'Hosting preference changes and routing',
               },
-              { key: 'ENABLE_DASHBOARD_LOGGING', label: 'Dashboard', desc: 'Dashboard state and API calls' },
+              {
+                key: 'ENABLE_DASHBOARD_LOGGING',
+                label: 'Dashboard',
+                desc: 'Dashboard state and API calls',
+              },
               {
                 key: 'ENABLE_MEMORY_PROCESSING_LOGGING',
                 label: 'Memory Processing',
                 desc: 'Memory processing and folder grouping',
               },
-              { key: 'ENABLE_RENDERING_LOGGING', label: 'Component Rendering', desc: 'Component rendering logs' },
-              { key: 'ENABLE_API_RESPONSE_LOGGING', label: 'API Responses', desc: 'API response status and data logs' },
+              {
+                key: 'ENABLE_RENDERING_LOGGING',
+                label: 'Component Rendering',
+                desc: 'Component rendering logs',
+              },
+              {
+                key: 'ENABLE_API_RESPONSE_LOGGING',
+                label: 'API Responses',
+                desc: 'API response status and data logs',
+              },
               {
                 key: 'ENABLE_FOLDER_GROUPING_LOGGING',
                 label: 'Folder Grouping',
                 desc: 'Folder grouping and memory processing',
               },
-              { key: 'ENABLE_MEMORY_GRID_LOGGING', label: 'Memory Grid', desc: 'MemoryGrid component rendering' },
-              { key: 'ENABLE_USE_EFFECT_LOGGING', label: 'useEffect Hooks', desc: 'useEffect hook logs' },
+              {
+                key: 'ENABLE_MEMORY_GRID_LOGGING',
+                label: 'Memory Grid',
+                desc: 'MemoryGrid component rendering',
+              },
+              {
+                key: 'ENABLE_USE_EFFECT_LOGGING',
+                label: 'useEffect Hooks',
+                desc: 'useEffect hook logs',
+              },
             ].map(({ key, label, desc }) => (
               <ThreeStepToggle
                 key={key}
@@ -495,7 +571,9 @@ export default function LoggerTestPage() {
 
         {/* TinyLogger Test Actions */}
         <div className="mt-6 p-4 border rounded-lg bg-blue-50">
-          <h3 className="text-lg font-semibold mb-3 text-blue-800">TinyLogger Tests</h3>
+          <h3 className="text-lg font-semibold mb-3 text-blue-800">
+            TinyLogger Tests
+          </h3>
           <div className="flex gap-2 flex-wrap">
             <button
               onClick={() => {
@@ -562,11 +640,17 @@ export default function LoggerTestPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-4 mb-6">
-        <button onClick={testBasicLogging} className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+        <button
+          onClick={testBasicLogging}
+          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
           Test Basic Logging
         </button>
 
-        <button onClick={testServiceLogging} className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
+        <button
+          onClick={testServiceLogging}
+          className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+        >
           Test Service Logging
         </button>
 
@@ -584,11 +668,17 @@ export default function LoggerTestPage() {
           Test Hosting Preferences Logger
         </button>
 
-        <button onClick={testComplexObjects} className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600">
+        <button
+          onClick={testComplexObjects}
+          className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600"
+        >
           Test Complex Objects
         </button>
 
-        <button onClick={testErrorLogging} className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+        <button
+          onClick={testErrorLogging}
+          className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+        >
           Test Error Logging
         </button>
 
@@ -601,7 +691,10 @@ export default function LoggerTestPage() {
       </div>
 
       <div className="mb-4">
-        <button onClick={clearResults} className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
+        <button
+          onClick={clearResults}
+          className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+        >
           Clear Results
         </button>
       </div>
@@ -610,10 +703,15 @@ export default function LoggerTestPage() {
         <h2 className="text-lg font-semibold mb-2">Test Results:</h2>
         <div className="space-y-1 max-h-64 overflow-y-auto">
           {testResults.length === 0 ? (
-            <p className="text-gray-500 italic">No tests run yet. Click a test button above.</p>
+            <p className="text-gray-500 italic">
+              No tests run yet. Click a test button above.
+            </p>
           ) : (
             testResults.map((result, index) => (
-              <div key={index} className="text-sm font-mono bg-white p-2 rounded border">
+              <div
+                key={index}
+                className="text-sm font-mono bg-white p-2 rounded border"
+              >
                 {result}
               </div>
             ))
@@ -625,20 +723,24 @@ export default function LoggerTestPage() {
         <h2 className="text-lg font-semibold mb-2">How It Works:</h2>
         <div className="text-sm space-y-2">
           <p>
-            <strong>Runtime Configuration:</strong> The logger now reads settings from localStorage instead of hardcoded
-            values. Changes in this UI take effect immediately without code changes.
+            <strong>Runtime Configuration:</strong> The logger now reads
+            settings from localStorage instead of hardcoded values. Changes in
+            this UI take effect immediately without code changes.
           </p>
           <p>
-            <strong>Persistence:</strong> Your settings are automatically saved to localStorage and restored when you
-            reload the page.
+            <strong>Persistence:</strong> Your settings are automatically saved
+            to localStorage and restored when you reload the page.
           </p>
           <p>
-            <strong>Fallback:</strong> If localStorage is unavailable or corrupted, the logger falls back to default
-            values defined in <code className="bg-gray-100 px-1 rounded">src/nextjs/src/lib/logger/fat-fatLogger.ts</code>
+            <strong>Fallback:</strong> If localStorage is unavailable or
+            corrupted, the logger falls back to default values defined in{' '}
+            <code className="bg-gray-100 px-1 rounded">
+              src/nextjs/src/lib/logger/fat-fatLogger.ts
+            </code>
           </p>
           <p>
-            <strong>Server-Side:</strong> On the server (SSR), the logger always uses default values since localStorage
-            is not available.
+            <strong>Server-Side:</strong> On the server (SSR), the logger always
+            uses default values since localStorage is not available.
           </p>
         </div>
       </div>

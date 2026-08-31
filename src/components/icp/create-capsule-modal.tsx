@@ -18,6 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuthenticatedActor } from '@/hooks/use-authenticated-actor';
 import { createCapsule } from '@/services/capsule';
 import type { PersonRef } from '@/types/capsule';
+import { fatLogger } from '@/lib/logger';
 
 export interface CreateCapsuleFormData {
   subjectType: 'self' | 'opaque';
@@ -50,7 +51,7 @@ export function CreateCapsuleModal({
   const { toast } = useToast();
 
   const handleSubjectTypeChange = (value: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       subjectType: value as CreateCapsuleFormData['subjectType'],
       subjectValue: '', // Clear subject value when type changes
@@ -59,7 +60,7 @@ export function CreateCapsuleModal({
   };
 
   const handleSubjectValueChange = (value: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       subjectValue: value,
     }));
@@ -67,7 +68,7 @@ export function CreateCapsuleModal({
   };
 
   const handleDescriptionChange = (value: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       description: value,
     }));
@@ -77,10 +78,18 @@ export function CreateCapsuleModal({
     if (formData.subjectType === 'opaque' && !formData.subjectValue?.trim()) {
       return 'Subject value is required for opaque type';
     }
-    if (formData.subjectType === 'opaque' && formData.subjectValue && formData.subjectValue.length > 100) {
+    if (
+      formData.subjectType === 'opaque' &&
+      formData.subjectValue &&
+      formData.subjectValue.length > 100
+    ) {
       return 'Subject value must be 100 characters or less';
     }
-    if (formData.subjectType === 'opaque' && formData.subjectValue && formData.subjectValue.length < 1) {
+    if (
+      formData.subjectType === 'opaque' &&
+      formData.subjectValue &&
+      formData.subjectValue.length < 1
+    ) {
       return 'Subject value must be at least 1 character';
     }
     return null;
@@ -125,8 +134,9 @@ export function CreateCapsuleModal({
       onCapsuleCreated?.();
       onClose();
     } catch (error) {
-      console.error('Failed to create capsule:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create capsule';
+      fatLogger.error('Failed to create capsule', 'fe', { error });
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to create capsule';
       setError(errorMessage);
       toast({
         title: 'Error',
@@ -156,8 +166,8 @@ export function CreateCapsuleModal({
         <DialogHeader>
           <DialogTitle>Create New Capsule</DialogTitle>
           <DialogDescription>
-            Create a capsule for yourself or someone else. Choose the subject type and provide the necessary
-            information.
+            Create a capsule for yourself or someone else. Choose the subject
+            type and provide the necessary information.
           </DialogDescription>
         </DialogHeader>
 
@@ -165,10 +175,21 @@ export function CreateCapsuleModal({
           {/* Subject Type Selection */}
           <div className="space-y-3">
             <Label className="text-sm font-medium">Subject Type</Label>
-            <RadioGroup value={formData.subjectType} onValueChange={handleSubjectTypeChange} className="space-y-2">
+            <RadioGroup
+              value={formData.subjectType}
+              onValueChange={handleSubjectTypeChange}
+              className="space-y-2"
+            >
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="self" id="self" disabled={hasSelfCapsule} />
-                <Label htmlFor="self" className={`text-sm ${hasSelfCapsule ? 'text-muted-foreground' : ''}`}>
+                <RadioGroupItem
+                  value="self"
+                  id="self"
+                  disabled={hasSelfCapsule}
+                />
+                <Label
+                  htmlFor="self"
+                  className={`text-sm ${hasSelfCapsule ? 'text-muted-foreground' : ''}`}
+                >
                   Self (Your own capsule) {hasSelfCapsule && '(Already exists)'}
                 </Label>
               </div>
@@ -181,7 +202,8 @@ export function CreateCapsuleModal({
             </RadioGroup>
             {hasSelfCapsule && (
               <p className="text-sm text-muted-foreground">
-                You already have a self-capsule. You can only create capsules for other subjects.
+                You already have a self-capsule. You can only create capsules
+                for other subjects.
               </p>
             )}
           </div>
@@ -195,7 +217,7 @@ export function CreateCapsuleModal({
               <Input
                 id="subjectValue"
                 value={formData.subjectValue}
-                onChange={e => handleSubjectValueChange(e.target.value)}
+                onChange={(e) => handleSubjectValueChange(e.target.value)}
                 placeholder="Enter custom identifier (1-100 characters)"
                 disabled={isLoading}
               />
@@ -215,7 +237,7 @@ export function CreateCapsuleModal({
             <Textarea
               id="description"
               value={formData.description}
-              onChange={e => handleDescriptionChange(e.target.value)}
+              onChange={(e) => handleDescriptionChange(e.target.value)}
               placeholder="What is this capsule for? (e.g., 'My grandmother's memories')"
               disabled={isLoading}
               rows={3}
@@ -223,7 +245,11 @@ export function CreateCapsuleModal({
           </div>
 
           {/* Error Display */}
-          {error && <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">{error}</div>}
+          {error && (
+            <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
+              {error}
+            </div>
+          )}
         </div>
 
         <DialogFooter>

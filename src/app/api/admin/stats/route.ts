@@ -4,6 +4,7 @@ import { isAdmin } from '@/config/admin';
 import { db } from '@/db/db';
 import { allUsers, memories, memoryAssets } from '@/db';
 import { eq, desc, sql } from 'drizzle-orm';
+import { fatLogger } from '@/lib/logger';
 
 export async function GET() {
   // Check authentication
@@ -13,22 +14,22 @@ export async function GET() {
   }
 
   // Check if user is admin
-  console.log('🔍 [DEBUG] API Admin check:', {
-    email: session.user?.email,
-    role: session.user?.role,
-    user: session.user,
-  });
-
-  const userIsAdmin = isAdmin(session.user?.email ?? undefined, session.user?.role);
-
-  console.log('🔍 [DEBUG] API Is admin:', userIsAdmin);
+  const userIsAdmin = isAdmin(
+    session.user?.email ?? undefined,
+    session.user?.role
+  );
 
   if (!userIsAdmin) {
-    return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
+    return NextResponse.json(
+      { error: 'Forbidden - Admin access required' },
+      { status: 403 }
+    );
   }
   try {
     // Get user counts
-    const [allUsersCount] = await db.select({ count: sql<number>`count(*)` }).from(allUsers);
+    const [allUsersCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(allUsers);
     const [temporaryUsersCount] = await db
       .select({ count: sql<number>`count(*)` })
       .from(allUsers)
@@ -39,8 +40,12 @@ export async function GET() {
       .where(eq(allUsers.type, 'user'));
 
     // Get memory and asset counts
-    const [memoriesCount] = await db.select({ count: sql<number>`count(*)` }).from(memories);
-    const [assetsCount] = await db.select({ count: sql<number>`count(*)` }).from(memoryAssets);
+    const [memoriesCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(memories);
+    const [assetsCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(memoryAssets);
 
     // Get recent uploads
     const recentUploads = await db.query.memories.findMany({
@@ -61,7 +66,7 @@ export async function GET() {
       permanentUsers: permanentUsersCount.count,
       totalMemories: memoriesCount.count,
       totalAssets: assetsCount.count,
-      recentUploads: recentUploads.map(upload => ({
+      recentUploads: recentUploads.map((upload) => ({
         id: upload.id,
         title: upload.title,
         type: upload.type,
@@ -70,7 +75,10 @@ export async function GET() {
       })),
     });
   } catch (error) {
-    console.error('Error fetching admin stats:', error);
-    return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 });
+    fatLogger.error('Error fetching admin stats', 'be', { error });
+    return NextResponse.json(
+      { error: 'Failed to fetch stats' },
+      { status: 500 }
+    );
   }
 }

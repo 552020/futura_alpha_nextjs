@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { fatLogger } from '@/lib/logger';
 
 const FEATURE_FLAGS_KEY = 'futura_feature_flags';
 
@@ -18,7 +19,7 @@ export function useFeatureFlags() {
 
   useEffect(() => {
     setIsClient(true);
-    
+
     // Load flags from localStorage on mount
     try {
       const stored = localStorage.getItem(FEATURE_FLAGS_KEY);
@@ -27,19 +28,23 @@ export function useFeatureFlags() {
         setFlags({ ...DEFAULT_FLAGS, ...parsed });
       }
     } catch (error) {
-      console.error('Failed to load feature flags from localStorage:', error);
+      fatLogger.error('Failed to load feature flags from localStorage', 'fe', {
+        error,
+      });
     }
   }, []);
 
   const updateFlag = (key: keyof FeatureFlags, value: boolean) => {
     const newFlags = { ...flags, [key]: value };
     setFlags(newFlags);
-    
+
     if (isClient) {
       try {
         localStorage.setItem(FEATURE_FLAGS_KEY, JSON.stringify(newFlags));
       } catch (error) {
-        console.error('Failed to save feature flags to localStorage:', error);
+        fatLogger.error('Failed to save feature flags to localStorage', 'fe', {
+          error,
+        });
       }
     }
   };

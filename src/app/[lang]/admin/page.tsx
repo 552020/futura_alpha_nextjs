@@ -4,7 +4,13 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useParams } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -17,6 +23,7 @@ import {
 } from '@/components/ui/breadcrumb';
 import { RefreshCw, Users, Database, Upload } from 'lucide-react';
 import Link from 'next/link';
+import { fatLogger } from '@/lib/logger';
 
 interface AdminStats {
   totalUsers: number;
@@ -52,15 +59,9 @@ export default function AdminPage() {
     }
 
     // Check if user is admin (server-side check will be done in API calls)
-    console.log('🔍 [DEBUG] Admin check:', {
-      email: session.user?.email,
-      role: session.user?.role,
-      user: session.user,
-    });
-
-    const isAdmin = session.user?.role === 'admin' || session.user?.email?.includes('@futura.now');
-
-    console.log('🔍 [DEBUG] Is admin:', isAdmin);
+    const isAdmin =
+      session.user?.role === 'admin' ||
+      session.user?.email?.includes('@futura.now');
 
     if (!isAdmin) {
       router.push(`/${lang}`);
@@ -74,7 +75,7 @@ export default function AdminPage() {
       const data = await response.json();
       setStats(data);
     } catch (error) {
-      console.error('Failed to fetch admin stats:', error);
+      fatLogger.error('Failed to fetch admin stats', 'fe', { error });
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -96,7 +97,11 @@ export default function AdminPage() {
       <div className="container mx-auto p-6">
         <div className="flex items-center justify-center h-64">
           <RefreshCw className="h-8 w-8 animate-spin" />
-          <span className="ml-2">{status === 'loading' ? 'Checking authentication...' : 'Loading admin data...'}</span>
+          <span className="ml-2">
+            {status === 'loading'
+              ? 'Checking authentication...'
+              : 'Loading admin data...'}
+          </span>
         </div>
       </div>
     );
@@ -109,7 +114,9 @@ export default function AdminPage() {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-red-600">Access Denied</h1>
-            <p className="text-muted-foreground">You need to be logged in to access this page.</p>
+            <p className="text-muted-foreground">
+              You need to be logged in to access this page.
+            </p>
           </div>
         </div>
       </div>
@@ -134,8 +141,14 @@ export default function AdminPage() {
             </BreadcrumbList>
           </Breadcrumb>
           <div className="flex gap-2">
-            <Button onClick={handleRefresh} disabled={refreshing} variant="outline">
-              <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            <Button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              variant="outline"
+            >
+              <RefreshCw
+                className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`}
+              />
               Refresh
             </Button>
           </div>
@@ -148,13 +161,16 @@ export default function AdminPage() {
               <Link href={`/${lang}/admin/users`}>
                 <Card className="w-full max-w-full overflow-x-hidden cursor-pointer hover:bg-muted/50 transition-colors">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 min-w-0">
-                    <CardTitle className="text-sm font-medium truncate">Total Users</CardTitle>
+                    <CardTitle className="text-sm font-medium truncate">
+                      Total Users
+                    </CardTitle>
                     <Users className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">{stats.totalUsers}</div>
                     <p className="text-xs text-muted-foreground">
-                      {stats.temporaryUsers} temporary, {stats.permanentUsers} permanent
+                      {stats.temporaryUsers} temporary, {stats.permanentUsers}{' '}
+                      permanent
                     </p>
                   </CardContent>
                 </Card>
@@ -162,34 +178,50 @@ export default function AdminPage() {
 
               <Card className="w-full max-w-full overflow-x-hidden">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 min-w-0">
-                  <CardTitle className="text-sm font-medium truncate">Memories</CardTitle>
+                  <CardTitle className="text-sm font-medium truncate">
+                    Memories
+                  </CardTitle>
                   <Database className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.totalMemories}</div>
-                  <p className="text-xs text-muted-foreground">Total memories in database</p>
+                  <div className="text-2xl font-bold">
+                    {stats.totalMemories}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Total memories in database
+                  </p>
                 </CardContent>
               </Card>
 
               <Card className="w-full max-w-full overflow-x-hidden">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 min-w-0">
-                  <CardTitle className="text-sm font-medium truncate">Assets</CardTitle>
+                  <CardTitle className="text-sm font-medium truncate">
+                    Assets
+                  </CardTitle>
                   <Upload className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{stats.totalAssets}</div>
-                  <p className="text-xs text-muted-foreground">Total assets stored</p>
+                  <p className="text-xs text-muted-foreground">
+                    Total assets stored
+                  </p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Recent Uploads</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Recent Uploads
+                  </CardTitle>
                   <Upload className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.recentUploads.length}</div>
-                  <p className="text-xs text-muted-foreground">Last 10 uploads</p>
+                  <div className="text-2xl font-bold">
+                    {stats.recentUploads.length}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Last 10 uploads
+                  </p>
                 </CardContent>
               </Card>
             </div>
@@ -198,23 +230,30 @@ export default function AdminPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Recent Uploads</CardTitle>
-                <CardDescription>Latest memory uploads in the system</CardDescription>
+                <CardDescription>
+                  Latest memory uploads in the system
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   {stats.recentUploads.length === 0 ? (
                     <p className="text-muted-foreground">No recent uploads</p>
                   ) : (
-                    stats.recentUploads.map(upload => (
+                    stats.recentUploads.map((upload) => (
                       <div
                         key={upload.id}
                         className="flex flex-col sm:flex-row sm:items-center justify-between p-2 sm:p-3 border rounded-lg w-full max-w-full overflow-x-hidden"
                       >
                         <div className="flex items-center space-x-2 min-w-0 flex-1">
-                          <Badge variant="outline" className="text-xs flex-shrink-0">
+                          <Badge
+                            variant="outline"
+                            className="text-xs flex-shrink-0"
+                          >
                             {upload.type}
                           </Badge>
-                          <span className="font-medium text-sm truncate">{upload.title}</span>
+                          <span className="font-medium text-sm truncate">
+                            {upload.title}
+                          </span>
                         </div>
                         <div className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-0 flex-shrink-0">
                           {new Date(upload.createdAt).toLocaleDateString()}

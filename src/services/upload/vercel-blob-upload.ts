@@ -12,7 +12,10 @@
 // import { type StorageBackend } from '@/lib/storage';
 import { upload as blobUpload } from '@vercel/blob/client';
 import { type UploadServiceResult } from './shared-utils';
-import { processImageDerivativesPure, type ProcessedBlobs } from './image-derivatives';
+import {
+  processImageDerivativesPure,
+  type ProcessedBlobs,
+} from './image-derivatives';
 
 import { fatLogger } from '@/lib/logger';
 // Import image processing functions (we'll need to create these)
@@ -74,7 +77,7 @@ export async function uploadFileToVercelBlob(
     handleUploadUrl: uploadEndpoint,
     multipart: true, // chunked + parallel + retries for large files
     clientPayload: JSON.stringify(clientPayloadData),
-    onUploadProgress: _ev => {
+    onUploadProgress: (_ev) => {
       // Hook into UI progress tracking
       if (typeof window !== 'undefined') {
         // TODO: Dispatch progress to a store or UI component
@@ -86,20 +89,23 @@ export async function uploadFileToVercelBlob(
   if (isOnboarding) {
     // For onboarding users, we need to create the memory separately using the complete endpoint
     try {
-      const commitResponse = await fetch('/api/upload/complete?onboarding=true', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          blobUrl: blob.url,
-          metadata: {
-            title: file.name,
-            mimeType: file.type,
-            size: file.size,
-            width: undefined, // TODO: Extract from image if needed
-            height: undefined, // TODO: Extract from image if needed
-          },
-        }),
-      });
+      const commitResponse = await fetch(
+        '/api/upload/complete?onboarding=true',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            blobUrl: blob.url,
+            metadata: {
+              title: file.name,
+              mimeType: file.type,
+              size: file.size,
+              width: undefined, // TODO: Extract from image if needed
+              height: undefined, // TODO: Extract from image if needed
+            },
+          }),
+        }
+      );
 
       if (!commitResponse.ok) {
         const error = await commitResponse.json();
@@ -107,7 +113,6 @@ export async function uploadFileToVercelBlob(
       }
 
       const commitResult = await commitResponse.json();
-      console.log('🔍 [DEBUG] commitResult from /api/upload/complete:', JSON.stringify(commitResult, null, 2));
 
       // Return result in expected format with allUserId for onboarding context
       const result = {
@@ -140,7 +145,6 @@ export async function uploadFileToVercelBlob(
         },
       };
 
-      console.log('🔍 [DEBUG] Final upload result:', JSON.stringify(result, null, 2));
       return result;
     } catch (error) {
       throw new Error(
@@ -230,8 +234,13 @@ export async function uploadToVercelBlob(
   const results: UploadServiceResult[] = [];
 
   // Upload all files in parallel
-  const uploadPromises = files.map(async file => {
-    const uploadResult = await uploadFileToVercelBlob(file, isOnboarding, existingUserId, mode);
+  const uploadPromises = files.map(async (file) => {
+    const uploadResult = await uploadFileToVercelBlob(
+      file,
+      isOnboarding,
+      existingUserId,
+      mode
+    );
     return { file, uploadResult };
   });
 
@@ -246,14 +255,15 @@ export async function uploadToVercelBlob(
       const { uploadResult } = result.value;
 
       // Convert to expected format
-      const memory = Array.isArray(uploadResult.data) ? uploadResult.data[0] : uploadResult.data;
+      const memory = Array.isArray(uploadResult.data)
+        ? uploadResult.data[0]
+        : uploadResult.data;
 
       if (!memory || !memory.id) {
-        throw new Error(`Upload failed for file ${file.name}: Invalid response from server`);
+        throw new Error(
+          `Upload failed for file ${file.name}: Invalid response from server`
+        );
       }
-
-      console.log('🔍 [DEBUG] uploadToVercelBlob: memory object:', JSON.stringify(memory, null, 2));
-      console.log('🔍 [DEBUG] uploadToVercelBlob: memory.ownerId:', memory.ownerId);
 
       results.push({
         data: {
@@ -280,8 +290,12 @@ export async function uploadToVercelBlob(
       });
     } else {
       // Handle failed uploads - continue with other files
-      fatLogger.error(`Upload failed for file ${file.name}:`, 'be', { data: result.reason });
-      throw new Error(`Upload failed for file ${file.name}: ${result.reason.message}`);
+      fatLogger.error(`Upload failed for file ${file.name}:`, 'be', {
+        data: result.reason,
+      });
+      throw new Error(
+        `Upload failed for file ${file.name}: ${result.reason.message}`
+      );
     }
   }
 
@@ -307,7 +321,13 @@ export async function uploadToVercelBlobWithProcessing(
     // 1. NO GRANTS NEEDED - Vercel Blob doesn't use presigned URLs
 
     // 2. Start both lanes simultaneously
-    const laneAPromise = uploadOriginalToVercelBlob(file, isOnboarding, existingUserId, mode, onProgress);
+    const laneAPromise = uploadOriginalToVercelBlob(
+      file,
+      isOnboarding,
+      existingUserId,
+      mode,
+      onProgress
+    );
 
     let laneBPromise: Promise<ProcessedBlobs> | null = null;
     if (file.type.startsWith('image/')) {
@@ -316,12 +336,18 @@ export async function uploadToVercelBlobWithProcessing(
     }
 
     // 3. Wait for both lanes to complete
-    const laneAResult = await Promise.allSettled([laneAPromise]).then(results => results[0]);
-    const laneBResult = laneBPromise ? await Promise.allSettled([laneBPromise]).then(results => results[0]) : null;
+    const laneAResult = await Promise.allSettled([laneAPromise]).then(
+      (results) => results[0]
+    );
+    const laneBResult = laneBPromise
+      ? await Promise.allSettled([laneBPromise]).then((results) => results[0])
+      : null;
 
     // 4. Upload processed assets to Vercel Blob if they exist
-    let processedAssetUrls: { display?: { url: string; pathname: string }; thumb?: { url: string; pathname: string } } =
-      {};
+    let processedAssetUrls: {
+      display?: { url: string; pathname: string };
+      thumb?: { url: string; pathname: string };
+    } = {};
     if (laneBResult?.status === 'fulfilled' && laneBResult.value) {
       processedAssetUrls = await uploadProcessedAssetsToVercelBlob(
         laneBResult.value,
@@ -363,7 +389,7 @@ async function uploadOriginalToVercelBlob(
     access: 'public',
     handleUploadUrl: '/api/upload/vercel-blob', // ← Use existing endpoint
     multipart: true,
-    onUploadProgress: ev => {
+    onUploadProgress: (ev) => {
       onProgress?.(ev.percentage);
     },
   });
@@ -374,7 +400,9 @@ async function uploadOriginalToVercelBlob(
 /**
  * Lane B: Process image derivatives for Vercel Blob using pure processing
  */
-async function processImageDerivativesForVercelBlob(file: File): Promise<ProcessedBlobs> {
+async function processImageDerivativesForVercelBlob(
+  file: File
+): Promise<ProcessedBlobs> {
   // Use the same pure processing function as S3
   return await processImageDerivativesPure(file);
 }
@@ -408,7 +436,7 @@ async function uploadProcessedAssetsToVercelBlob(
         isOnboarding,
         existingUserId,
         mode
-      ).then(result => {
+      ).then((result) => {
         results.display = result;
       })
     );
@@ -417,11 +445,15 @@ async function uploadProcessedAssetsToVercelBlob(
   // Upload thumb asset
   if (processedBlobs.thumb) {
     uploadPromises.push(
-      uploadAssetToVercelBlob(processedBlobs.thumb, `${baseFileName}_thumb`, isOnboarding, existingUserId, mode).then(
-        result => {
-          results.thumb = result;
-        }
-      )
+      uploadAssetToVercelBlob(
+        processedBlobs.thumb,
+        `${baseFileName}_thumb`,
+        isOnboarding,
+        existingUserId,
+        mode
+      ).then((result) => {
+        results.thumb = result;
+      })
     );
   }
 
@@ -435,7 +467,13 @@ async function uploadProcessedAssetsToVercelBlob(
  * Upload a single processed asset to Vercel Blob
  */
 async function uploadAssetToVercelBlob(
-  asset: { blob: Blob; width: number; height: number; mimeType: string; bytes: number },
+  asset: {
+    blob: Blob;
+    width: number;
+    height: number;
+    mimeType: string;
+    bytes: number;
+  },
   fileName: string,
   isOnboarding: boolean,
   existingUserId?: string,
@@ -466,9 +504,15 @@ async function uploadAssetToVercelBlob(
  * Create memory with all assets using unified completion endpoint
  */
 async function createMemoryWithUnifiedCompletion(
-  laneAResult: PromiseSettledResult<{ blob: { url: string; pathname: string }; file: File }>,
+  laneAResult: PromiseSettledResult<{
+    blob: { url: string; pathname: string };
+    file: File;
+  }>,
   laneBResult: ProcessedBlobs | null,
-  processedAssetUrls: { display?: { url: string; pathname: string }; thumb?: { url: string; pathname: string } },
+  processedAssetUrls: {
+    display?: { url: string; pathname: string };
+    thumb?: { url: string; pathname: string };
+  },
   file: File,
   isOnboarding: boolean,
   _existingUserId?: string
@@ -602,7 +646,7 @@ async function createMemoryWithUnifiedCompletion(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         memoryId: 'temp-memory-id', // Will be generated by the endpoint
-        assets: assets.map(asset => ({
+        assets: assets.map((asset) => ({
           assetType: asset.assetType,
           assetLocation: asset.assetLocation,
           storageKey: asset.storageKey,

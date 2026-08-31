@@ -7,7 +7,12 @@ import { useToast } from '@/hooks/use-toast';
 import { getAuthClient } from '@/ic/ii';
 import { useAuthenticatedActor } from '@/hooks/use-authenticated-actor';
 import { useState, useEffect, useCallback } from 'react';
-import type { CapsuleInfo, CapsuleState, CapsuleError, Capsule } from '@/types/capsule';
+import type {
+  CapsuleInfo,
+  CapsuleState,
+  CapsuleError,
+  Capsule,
+} from '@/types/capsule';
 import { getCapsuleFull } from '@/services/capsule';
 import { fatLogger } from '@/lib/logger/fat-logger';
 
@@ -62,30 +67,34 @@ export function CapsuleInfo() {
     ): Promise<unknown | null> => {
       if (state.isLoading) return null;
 
-      setState(s => ({ ...s, isLoading: true, error: undefined }));
+      setState((s) => ({ ...s, isLoading: true, error: undefined }));
 
       try {
         if (!(await checkAuthentication())) {
-          setState(s => ({ ...s, isLoading: false }));
+          setState((s) => ({ ...s, isLoading: false }));
           return null;
         }
 
         const result = await operation();
 
         if (result) {
-          setState(s => ({ ...s, capsule: result as Capsule, isLoading: false }));
+          setState((s) => ({
+            ...s,
+            capsule: result as Capsule,
+            isLoading: false,
+          }));
           toast({
             title: successTitle,
             description: successMessage,
           });
           return result;
         } else {
-          setState(s => ({ ...s, capsule: null, isLoading: false }));
+          setState((s) => ({ ...s, capsule: null, isLoading: false }));
           return null;
         }
       } catch (error) {
         const capsuleError = error as CapsuleError;
-        setState(s => ({ ...s, error: capsuleError, isLoading: false }));
+        setState((s) => ({ ...s, error: capsuleError, isLoading: false }));
 
         // Handle different error types
         if (capsuleError.kind === 'connection') {
@@ -141,7 +150,8 @@ export function CapsuleInfo() {
       setHasSelfCapsule(false);
       toast({
         title: 'No Capsule Found',
-        description: "You don't have a capsule yet. Click 'Create Capsule' to create one.",
+        description:
+          "You don't have a capsule yet. Click 'Create Capsule' to create one.",
         variant: 'destructive',
       });
     }
@@ -159,7 +169,7 @@ export function CapsuleInfo() {
           await handleGetCapsuleInfo();
         }
       } catch (error) {
-        console.error('Failed to auto-load capsule:', error);
+        fatLogger.error('Failed to auto-load capsule', 'fe', { error });
         // Don't show toast for auto-load failures - user can manually click "Get Capsule Info"
       }
     };
@@ -172,7 +182,11 @@ export function CapsuleInfo() {
       {/* Basic Capsule Info Section */}
       <div className="space-y-4">
         <div className="flex gap-4">
-          <Button onClick={() => setIsCreateModalOpen(true)} variant="outline" className="w-40">
+          <Button
+            onClick={() => setIsCreateModalOpen(true)}
+            variant="outline"
+            className="w-40"
+          >
             Create Capsule
           </Button>
           <CreateCapsuleModal
@@ -181,7 +195,7 @@ export function CapsuleInfo() {
             onCapsuleCreated={() => {
               setIsCreateModalOpen(false);
               setHasSelfCapsule(true); // Update state after creation
-              setRefreshTrigger(prev => prev + 1); // Trigger refresh of capsule list
+              setRefreshTrigger((prev) => prev + 1); // Trigger refresh of capsule list
             }}
             hasSelfCapsule={hasSelfCapsule}
           />

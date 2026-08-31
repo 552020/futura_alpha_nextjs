@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createUserWithPassword } from '@/services/user/user-operations';
 import type { DBUser } from '@/db/types';
+import { fatLogger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,18 +9,27 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (!email || !password) {
-      return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Email and password are required' },
+        { status: 400 }
+      );
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid email format' },
+        { status: 400 }
+      );
     }
 
     // Validate password strength
     if (password.length < 6) {
-      return NextResponse.json({ error: 'Password must be at least 6 characters long' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Password must be at least 6 characters long' },
+        { status: 400 }
+      );
     }
 
     // Use service function to create user
@@ -41,7 +51,10 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Signup error:', error);
-    return NextResponse.json({ error: 'Failed to create account' }, { status: 500 });
+    fatLogger.error('Signup error', 'be', { error });
+    return NextResponse.json(
+      { error: 'Failed to create account' },
+      { status: 500 }
+    );
   }
 }

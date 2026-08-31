@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { handleUpload } from '@vercel/blob/client';
+import { fatLogger } from '@/lib/logger';
 
 /**
  * Vercel Blob Upload URL Endpoint
@@ -28,14 +29,12 @@ export async function POST(req: Request) {
           addRandomSuffix: true,
         };
       },
-      onUploadCompleted: async ({ blob }) => {
-        console.log('✅ Vercel Blob upload completed:', blob.url);
-      },
+      onUploadCompleted: async () => {},
     });
 
     return NextResponse.json(res);
   } catch (error) {
-    console.error('Error uploading to Vercel Blob:', error);
+    fatLogger.error('Error uploading to Vercel Blob', 'be', { error });
     return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
   }
 }

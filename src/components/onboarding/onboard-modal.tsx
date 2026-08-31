@@ -16,7 +16,14 @@ interface OnboardModalProps {
 }
 
 export function OnboardModal({ isOpen, onClose }: OnboardModalProps) {
-  const { currentStep, setCurrentStep, userData, setOnboardingStatus, files, updateUserData } = useOnboarding();
+  const {
+    currentStep,
+    setCurrentStep,
+    userData,
+    setOnboardingStatus,
+    files,
+    updateUserData,
+  } = useOnboarding();
   const { toast } = useToast();
   const { data: session, status } = useSession();
 
@@ -26,9 +33,17 @@ export function OnboardModal({ isOpen, onClose }: OnboardModalProps) {
 
   // Pre-fill user data with session data when authenticated
   useEffect(() => {
-    if (status === 'authenticated' && session?.user?.name && session?.user?.email) {
+    if (
+      status === 'authenticated' &&
+      session?.user?.name &&
+      session?.user?.email
+    ) {
       // Only update if the data has actually changed
-      if (userData.name !== session.user.name || userData.email !== session.user.email || userData.isTemporary) {
+      if (
+        userData.name !== session.user.name ||
+        userData.email !== session.user.email ||
+        userData.isTemporary
+      ) {
         updateUserData({
           name: session.user.name,
           email: session.user.email,
@@ -53,19 +68,9 @@ export function OnboardModal({ isOpen, onClose }: OnboardModalProps) {
 
       case 'user-info':
         try {
-          console.log('🔍 [DEBUG] Starting user-info step update');
-          console.log('📋 [DEBUG] userData:', JSON.stringify(userData, null, 2));
-          console.log('📋 [DEBUG] allUserId:', userData.allUserId);
-          console.log('📋 [DEBUG] name:', userData.name);
-          console.log('📋 [DEBUG] email:', userData.email);
-
           if (!userData.allUserId) {
-            console.log('❌ [DEBUG] No allUserId found in userData');
-            console.log('📋 [DEBUG] userData structure:', JSON.stringify(userData, null, 2));
-
             // Temporary fix: generate a temporary allUserId if none exists
             const tempAllUserId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-            console.log('🔄 [DEBUG] Generating temporary allUserId:', tempAllUserId);
 
             // Update the context with the temporary ID
             updateUserData({ allUserId: tempAllUserId });
@@ -82,28 +87,23 @@ export function OnboardModal({ isOpen, onClose }: OnboardModalProps) {
               }),
             });
 
-            console.log('📋 [DEBUG] Response status:', response.status);
-            console.log('📋 [DEBUG] Response ok:', response.ok);
-
             if (!response.ok) {
               const errorText = await response.text();
-              console.log('❌ [DEBUG] Response error:', errorText);
-              throw new Error(`Failed to update user information: ${response.status} ${errorText}`);
+              throw new Error(
+                `Failed to update user information: ${response.status} ${errorText}`
+              );
             }
 
-            const responseData = await response.json();
-            console.log('✅ [DEBUG] Response data:', JSON.stringify(responseData, null, 2));
+            await response.json();
 
             setCurrentStep('share');
             return;
           }
 
-          console.log('🔄 [DEBUG] Making PATCH request to:', `/api/users/${userData.allUserId}`);
           const requestBody = {
             name: userData.name,
             email: userData.email,
           };
-          console.log('📋 [DEBUG] Request body:', JSON.stringify(requestBody, null, 2));
 
           const response = await fetch(`/api/users/${userData.allUserId}`, {
             method: 'PATCH',
@@ -113,21 +113,17 @@ export function OnboardModal({ isOpen, onClose }: OnboardModalProps) {
             body: JSON.stringify(requestBody),
           });
 
-          console.log('📋 [DEBUG] Response status:', response.status);
-          console.log('📋 [DEBUG] Response ok:', response.ok);
-
           if (!response.ok) {
             const errorText = await response.text();
-            console.log('❌ [DEBUG] Response error:', errorText);
-            throw new Error(`Failed to update user information: ${response.status} ${errorText}`);
+            throw new Error(
+              `Failed to update user information: ${response.status} ${errorText}`
+            );
           }
 
-          const responseData = await response.json();
-          console.log('✅ [DEBUG] Response data:', JSON.stringify(responseData, null, 2));
+          await response.json();
 
           setCurrentStep('share');
         } catch (error) {
-          console.log('❌ [DEBUG] Error in user-info step:', error);
           fatLogger.error('Error updating user information:', 'fe', {
             data: error instanceof Error ? error : undefined,
           });
@@ -168,7 +164,10 @@ export function OnboardModal({ isOpen, onClose }: OnboardModalProps) {
               invitedByAllUserId: userData.allUserId,
               relationship: {
                 type: userData.relationship,
-                familyRole: userData.relationship === 'family' ? userData.familyRelationship : undefined,
+                familyRole:
+                  userData.relationship === 'family'
+                    ? userData.familyRelationship
+                    : undefined,
                 note: 'Invited during onboarding',
               },
               metadata: {
@@ -184,34 +183,39 @@ export function OnboardModal({ isOpen, onClose }: OnboardModalProps) {
               status: createUserResponse.status,
               error: errorData,
             });
-            throw new Error(`Failed to create recipient user: ${errorData.error || 'Unknown error'}`);
+            throw new Error(
+              `Failed to create recipient user: ${errorData.error || 'Unknown error'}`
+            );
           }
 
           const { allUser: recipientAllUser } = await createUserResponse.json();
 
           // Now share the memory with the recipient
-          const shareResponse = await fetch(`/api/memories/${lastUploadedFile.memoryId}/share`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              shareType: 'user',
-              target: {
-                type: 'user',
-                allUserId: recipientAllUser.id,
-              },
-              relationship: {
-                type: userData.relationship,
-                ...(userData.relationship === 'family' && {
-                  familyRole: userData.familyRelationship,
-                }),
-                note: 'Invited during onboarding',
-              },
-              sendEmail: true,
-              isInviteeNew: true,
-              isOnboarding: true,
-              ownerAllUserId: userData.allUserId,
-            }),
-          });
+          const shareResponse = await fetch(
+            `/api/memories/${lastUploadedFile.memoryId}/share`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                shareType: 'user',
+                target: {
+                  type: 'user',
+                  allUserId: recipientAllUser.id,
+                },
+                relationship: {
+                  type: userData.relationship,
+                  ...(userData.relationship === 'family' && {
+                    familyRole: userData.familyRelationship,
+                  }),
+                  note: 'Invited during onboarding',
+                },
+                sendEmail: true,
+                isInviteeNew: true,
+                isOnboarding: true,
+                ownerAllUserId: userData.allUserId,
+              }),
+            }
+          );
 
           if (!shareResponse.ok) {
             const errorData = await shareResponse.json();
@@ -220,7 +224,9 @@ export function OnboardModal({ isOpen, onClose }: OnboardModalProps) {
               statusText: shareResponse.statusText,
               errorData,
             });
-            throw new Error(errorData.error || errorData.details || 'Failed to share memory');
+            throw new Error(
+              errorData.error || errorData.details || 'Failed to share memory'
+            );
           }
 
           // If authenticated, we're done. If not, go to sign-up
@@ -239,7 +245,8 @@ export function OnboardModal({ isOpen, onClose }: OnboardModalProps) {
           toast({
             variant: 'destructive',
             title: 'Error',
-            description: error instanceof Error ? error.message : 'Something went wrong',
+            description:
+              error instanceof Error ? error.message : 'Something went wrong',
           });
         }
         break;
@@ -276,7 +283,7 @@ export function OnboardModal({ isOpen, onClose }: OnboardModalProps) {
   };
 
   return (
-    <Dialog open={showModal} onOpenChange={open => !open && onClose()}>
+    <Dialog open={showModal} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto overflow-x-hidden sm:max-h-[85vh]">
         <VisuallyHidden asChild>
           <DialogTitle>
@@ -294,8 +301,12 @@ export function OnboardModal({ isOpen, onClose }: OnboardModalProps) {
             isReadOnly={status === 'authenticated'}
           />
         )}
-        {currentStep === 'share' && <ShareStep onNext={handleNext} onBack={handleBack} />}
-        {currentStep === 'sign-up' && status !== 'authenticated' && <SignUpStep onBack={handleBack} />}
+        {currentStep === 'share' && (
+          <ShareStep onNext={handleNext} onBack={handleBack} />
+        )}
+        {currentStep === 'sign-up' && status !== 'authenticated' && (
+          <SignUpStep onBack={handleBack} />
+        )}
       </DialogContent>
     </Dialog>
   );

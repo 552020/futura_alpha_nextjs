@@ -2,19 +2,35 @@
 
 import { useState } from 'react';
 import { useSharingMutations } from '@/hooks/use-sharing-mutations';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { CalendarIcon, Copy, Share2, Users, Link, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { fatLogger } from '@/lib/logger';
 
 interface User {
   id: string;
@@ -76,17 +92,18 @@ export function SharingModal({
   const [generatedLink, setGeneratedLink] = useState<string>('');
 
   // Use sharing mutations
-  const { shareWithUser, createLink, isSharing, isCreatingLink } = useSharingMutations();
+  const { shareWithUser, createLink, isSharing, isCreatingLink } =
+    useSharingMutations();
 
   const handleUserSearch = async (query: string) => {
     if (query.length < 2) return;
 
     // TODO: Implement user search API
-    console.log('Searching users:', query);
+    fatLogger.debug('Searching users', 'fe', { query });
   };
 
   const handleUserRemove = (userId: string) => {
-    setSelectedUsers(selectedUsers.filter(u => u.id !== userId));
+    setSelectedUsers(selectedUsers.filter((u) => u.id !== userId));
   };
 
   const handleEmailAdd = () => {
@@ -96,7 +113,7 @@ export function SharingModal({
         name: emailInput.split('@')[0], // Use email prefix as name
       };
 
-      if (!selectedEmails.find(e => e.email === newEmail.email)) {
+      if (!selectedEmails.find((e) => e.email === newEmail.email)) {
         setSelectedEmails([...selectedEmails, newEmail]);
       }
       setEmailInput('');
@@ -104,7 +121,7 @@ export function SharingModal({
   };
 
   const handleEmailRemove = (email: string) => {
-    setSelectedEmails(selectedEmails.filter(e => e.email !== email));
+    setSelectedEmails(selectedEmails.filter((e) => e.email !== email));
   };
 
   const handleEmailKeyPress = (e: React.KeyboardEvent) => {
@@ -123,13 +140,18 @@ export function SharingModal({
 
       // Handle email invitations using the existing temporary user system
       for (const emailInvite of selectedEmails) {
-        await shareWithEmailInvite(resourceType, resourceId, emailInvite, permissions);
+        await shareWithEmailInvite(
+          resourceType,
+          resourceId,
+          emailInvite,
+          permissions
+        );
       }
 
       onShareSuccess?.();
       onClose();
     } catch (error) {
-      console.error('Failed to share with users:', error);
+      fatLogger.error('Failed to share with users', 'fe', { error });
     }
   };
 
@@ -156,25 +178,30 @@ export function SharingModal({
 
     if (!createUserResponse.ok) {
       const errorData = await createUserResponse.json().catch(() => ({}));
-      console.error('Failed to create temporary user:', errorData);
-      throw new Error(`Failed to create temporary user for email invitation: ${errorData.error || 'Unknown error'}`);
+      fatLogger.error('Failed to create temporary user', 'fe', { errorData });
+      throw new Error(
+        `Failed to create temporary user for email invitation: ${errorData.error || 'Unknown error'}`
+      );
     }
 
     const { allUser: recipientAllUser } = await createUserResponse.json();
 
     // Step 2: Share with the temporary user (same as onboarding process)
-    const shareResponse = await fetch(`/api/${resourceType}s/${resourceId}/share`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        shareType: 'user',
-        targetUserId: recipientAllUser.id,
-        permissions,
-        isOnboarding: false, // Regular sharing, not onboarding
-        sendEmail: true, // ✅ Now enabled!
-        isInviteeNew: true, // This is a new user invitation
-      }),
-    });
+    const shareResponse = await fetch(
+      `/api/${resourceType}s/${resourceId}/share`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shareType: 'user',
+          targetUserId: recipientAllUser.id,
+          permissions,
+          isOnboarding: false, // Regular sharing, not onboarding
+          sendEmail: true, // ✅ Now enabled!
+          isInviteeNew: true, // This is a new user invitation
+        }),
+      }
+    );
 
     if (!shareResponse.ok) {
       throw new Error('Failed to share with temporary user');
@@ -197,7 +224,7 @@ export function SharingModal({
         setGeneratedLink(result.data.shareUrl);
       }
     } catch (error) {
-      console.error('Failed to create public link:', error);
+      fatLogger.error('Failed to create public link', 'fe', { error });
     }
   };
 
@@ -205,9 +232,9 @@ export function SharingModal({
     try {
       await navigator.clipboard.writeText(generatedLink);
       // TODO: Show toast notification
-      console.log('Link copied to clipboard');
+      fatLogger.debug('Link copied to clipboard', 'fe');
     } catch (error) {
-      console.error('Failed to copy link:', error);
+      fatLogger.error('Failed to copy link', 'fe', { error });
     }
   };
 
@@ -217,11 +244,15 @@ export function SharingModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Share2 className="h-5 w-5" />
-            Share {resourceType === 'memory' ? 'Memory' : 'Folder'}: {resourceTitle}
+            Share {resourceType === 'memory' ? 'Memory' : 'Folder'}:{' '}
+            {resourceTitle}
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={value => setActiveTab(value as 'user' | 'public')}>
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) => setActiveTab(value as 'user' | 'public')}
+        >
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="user" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
@@ -238,7 +269,10 @@ export function SharingModal({
             <Card>
               <CardHeader>
                 <CardTitle>Share with Specific Users</CardTitle>
-                <CardDescription>Invite specific users to view and collaborate on this {resourceType}.</CardDescription>
+                <CardDescription>
+                  Invite specific users to view and collaborate on this{' '}
+                  {resourceType}.
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* User Search */}
@@ -248,7 +282,7 @@ export function SharingModal({
                     id="user-search"
                     placeholder="Search by name or email..."
                     value={userSearch}
-                    onChange={e => {
+                    onChange={(e) => {
                       setUserSearch(e.target.value);
                       handleUserSearch(e.target.value);
                     }}
@@ -264,11 +298,14 @@ export function SharingModal({
                       type="email"
                       placeholder="Enter email address..."
                       value={emailInput}
-                      onChange={e => setEmailInput(e.target.value)}
+                      onChange={(e) => setEmailInput(e.target.value)}
                       onKeyPress={handleEmailKeyPress}
                       className="flex-1"
                     />
-                    <Button onClick={handleEmailAdd} disabled={!emailInput || !emailInput.includes('@')}>
+                    <Button
+                      onClick={handleEmailAdd}
+                      disabled={!emailInput || !emailInput.includes('@')}
+                    >
                       Add
                     </Button>
                   </div>
@@ -279,8 +316,12 @@ export function SharingModal({
                   <div className="space-y-2">
                     <Label>Selected Users</Label>
                     <div className="flex flex-wrap gap-2">
-                      {selectedUsers.map(user => (
-                        <Badge key={user.id} variant="secondary" className="flex items-center gap-1">
+                      {selectedUsers.map((user) => (
+                        <Badge
+                          key={user.id}
+                          variant="secondary"
+                          className="flex items-center gap-1"
+                        >
                           {user.name}
                           <button
                             onClick={() => handleUserRemove(user.id)}
@@ -299,8 +340,12 @@ export function SharingModal({
                   <div className="space-y-2">
                     <Label>Email Invitations</Label>
                     <div className="flex flex-wrap gap-2">
-                      {selectedEmails.map(email => (
-                        <Badge key={email.email} variant="outline" className="flex items-center gap-1">
+                      {selectedEmails.map((email) => (
+                        <Badge
+                          key={email.email}
+                          variant="outline"
+                          className="flex items-center gap-1"
+                        >
                           📧 {email.email}
                           <button
                             onClick={() => handleEmailRemove(email.email)}
@@ -322,7 +367,9 @@ export function SharingModal({
                       <Switch
                         id="can-view"
                         checked={permissions.canView}
-                        onCheckedChange={checked => setPermissions({ ...permissions, canView: checked })}
+                        onCheckedChange={(checked) =>
+                          setPermissions({ ...permissions, canView: checked })
+                        }
                       />
                       <Label htmlFor="can-view">Can view</Label>
                     </div>
@@ -330,7 +377,9 @@ export function SharingModal({
                       <Switch
                         id="can-edit"
                         checked={permissions.canEdit}
-                        onCheckedChange={checked => setPermissions({ ...permissions, canEdit: checked })}
+                        onCheckedChange={(checked) =>
+                          setPermissions({ ...permissions, canEdit: checked })
+                        }
                       />
                       <Label htmlFor="can-edit">Can edit</Label>
                     </div>
@@ -338,7 +387,9 @@ export function SharingModal({
                       <Switch
                         id="can-delete"
                         checked={permissions.canDelete}
-                        onCheckedChange={checked => setPermissions({ ...permissions, canDelete: checked })}
+                        onCheckedChange={(checked) =>
+                          setPermissions({ ...permissions, canDelete: checked })
+                        }
                       />
                       <Label htmlFor="can-delete">Can delete</Label>
                     </div>
@@ -347,7 +398,11 @@ export function SharingModal({
 
                 <Button
                   onClick={handleShareWithUsers}
-                  disabled={(selectedUsers.length === 0 && selectedEmails.length === 0) || isSharing}
+                  disabled={
+                    (selectedUsers.length === 0 &&
+                      selectedEmails.length === 0) ||
+                    isSharing
+                  }
                   className="w-full"
                 >
                   {isSharing
@@ -364,7 +419,8 @@ export function SharingModal({
               <CardHeader>
                 <CardTitle>Create Public Link</CardTitle>
                 <CardDescription>
-                  Generate a shareable link that can be accessed by anyone with the URL.
+                  Generate a shareable link that can be accessed by anyone with
+                  the URL.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -374,7 +430,12 @@ export function SharingModal({
                     <Switch
                       id="require-auth"
                       checked={accessControl.requireAuth}
-                      onCheckedChange={checked => setAccessControl({ ...accessControl, requireAuth: checked })}
+                      onCheckedChange={(checked) =>
+                        setAccessControl({
+                          ...accessControl,
+                          requireAuth: checked,
+                        })
+                      }
                     />
                     <Label htmlFor="require-auth">Require authentication</Label>
                   </div>
@@ -383,14 +444,18 @@ export function SharingModal({
                     <Switch
                       id="restrict-users"
                       checked={accessControl.allowedUsers.length > 0}
-                      onCheckedChange={checked =>
+                      onCheckedChange={(checked) =>
                         setAccessControl({
                           ...accessControl,
-                          allowedUsers: checked ? [] : accessControl.allowedUsers,
+                          allowedUsers: checked
+                            ? []
+                            : accessControl.allowedUsers,
                         })
                       }
                     />
-                    <Label htmlFor="restrict-users">Restrict to specific users</Label>
+                    <Label htmlFor="restrict-users">
+                      Restrict to specific users
+                    </Label>
                   </div>
 
                   {/* Expiration Date */}
@@ -406,14 +471,23 @@ export function SharingModal({
                           )}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {accessControl.expiresAt ? format(accessControl.expiresAt, 'PPP') : <span>Pick a date</span>}
+                          {accessControl.expiresAt ? (
+                            format(accessControl.expiresAt, 'PPP')
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0">
                         <Calendar
                           mode="single"
                           selected={accessControl.expiresAt}
-                          onSelect={date => setAccessControl({ ...accessControl, expiresAt: date })}
+                          onSelect={(date) =>
+                            setAccessControl({
+                              ...accessControl,
+                              expiresAt: date,
+                            })
+                          }
                           initialFocus
                         />
                       </PopoverContent>
@@ -426,7 +500,11 @@ export function SharingModal({
                   <div className="space-y-2">
                     <Label>Generated Link</Label>
                     <div className="flex items-center space-x-2">
-                      <Input value={generatedLink} readOnly className="flex-1" />
+                      <Input
+                        value={generatedLink}
+                        readOnly
+                        className="flex-1"
+                      />
                       <Button onClick={handleCopyLink} size="sm">
                         <Copy className="h-4 w-4" />
                       </Button>
@@ -434,7 +512,11 @@ export function SharingModal({
                   </div>
                 )}
 
-                <Button onClick={handleCreatePublicLink} disabled={isCreatingLink} className="w-full">
+                <Button
+                  onClick={handleCreatePublicLink}
+                  disabled={isCreatingLink}
+                  className="w-full"
+                >
                   {isCreatingLink ? 'Creating Link...' : 'Create Public Link'}
                 </Button>
               </CardContent>

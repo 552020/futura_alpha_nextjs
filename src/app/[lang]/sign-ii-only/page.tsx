@@ -50,14 +50,18 @@ function SignIIOnlyContent() {
       const { identity } = await loginWithII();
 
       // 1.5) Start non-blocking capsule auto-creation
-      const { ensureSelfCapsuleWithIdentity } = await import('@/services/capsule');
-      ensureSelfCapsuleWithIdentity(identity).catch(error => {
-        console.error('Capsule auto-creation failed:', error);
+      const { ensureSelfCapsuleWithIdentity } = await import(
+        '@/services/capsule'
+      );
+      ensureSelfCapsuleWithIdentity(identity).catch((error) => {
+        fatLogger.error('Capsule auto-creation failed', 'fe', { error });
         // Could show a toast: "Auto-creation failed, please create manually"
       });
 
       // 2) Fetch challenge and register (create proof/nonce)
-      const { fetchChallenge, registerWithNonce } = await import('@/lib/ii-client');
+      const { fetchChallenge, registerWithNonce } = await import(
+        '@/lib/ii-client'
+      );
       const challenge = await fetchChallenge(safeCallbackUrl);
       await registerWithNonce(challenge.nonce, identity);
 
@@ -80,7 +84,9 @@ function SignIIOnlyContent() {
             );
           }
 
-          throw new Error(data.error || data.message || 'Failed to link Internet Identity');
+          throw new Error(
+            data.error || data.message || 'Failed to link Internet Identity'
+          );
         }
 
         // Get the principal and linked principals from the response
@@ -138,7 +144,7 @@ function SignIIOnlyContent() {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm p-4"
-      onClick={e => {
+      onClick={(e) => {
         if (e.target === e.currentTarget) {
           closeModal(); // Close when clicking backdrop
         }
@@ -147,7 +153,9 @@ function SignIIOnlyContent() {
       <div className="w-full max-w-md rounded-lg bg-white dark:bg-slate-950 p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex-1 text-center">
-            <h1 className="text-xl font-semibold">Sign in with Internet Identity</h1>
+            <h1 className="text-xl font-semibold">
+              Sign in with Internet Identity
+            </h1>
           </div>
           <Button variant="ghost" size="sm" onClick={closeModal}>
             <X className="h-4 w-4" />
@@ -156,7 +164,8 @@ function SignIIOnlyContent() {
 
         <div className="mb-6">
           <p className="text-sm text-muted-foreground text-center">
-            Sign in or sign up with your Internet Identity to use all extended functionalities.
+            Sign in or sign up with your Internet Identity to use all extended
+            functionalities.
           </p>
         </div>
 

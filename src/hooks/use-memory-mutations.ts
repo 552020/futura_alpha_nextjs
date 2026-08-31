@@ -22,41 +22,44 @@ export function useDeleteMemory() {
       await deleteMemory(memoryId);
       return memoryId;
     },
-    onMutate: async memoryId => {
-      console.log('🔍 [DELETE MUTATION] Starting deletion for memory:', memoryId);
-      console.log('🔍 [DELETE MUTATION] Current time:', new Date().toISOString());
-
+    onMutate: async (memoryId) => {
       // Cancel any outgoing refetches - use partial matching for dashboard queries
       await queryClient.cancelQueries({ queryKey: ['memories', 'dashboard'] });
-      await queryClient.cancelQueries({ queryKey: qk.memories.detail(memoryId) });
+      await queryClient.cancelQueries({
+        queryKey: qk.memories.detail(memoryId),
+      });
 
       // Snapshot the previous value
-      const previousDashboardData = queryClient.getQueryData(['memories', 'dashboard']);
-      const previousMemoryData = queryClient.getQueryData(qk.memories.detail(memoryId));
-
-      console.log('🔍 [DELETE MUTATION] Previous dashboard data:', previousDashboardData);
-      console.log('🔍 [DELETE MUTATION] Previous memory data:', previousMemoryData);
+      const previousDashboardData = queryClient.getQueryData([
+        'memories',
+        'dashboard',
+      ]);
+      const previousMemoryData = queryClient.getQueryData(
+        qk.memories.detail(memoryId)
+      );
 
       // Instead of complex optimistic updates, let's just invalidate and refetch
       // This is simpler and more reliable
-      console.log('🔍 [DELETE MUTATION] Invalidating queries...');
       queryClient.invalidateQueries({ queryKey: ['memories', 'dashboard'] });
-      console.log('🔍 [DELETE MUTATION] Queries invalidated');
 
       // Force refetch as backup
-      console.log('🔍 [DELETE MUTATION] Force refetching queries...');
       queryClient.refetchQueries({ queryKey: ['memories', 'dashboard'] });
-      console.log('🔍 [DELETE MUTATION] Force refetch completed');
 
       return { previousDashboardData, previousMemoryData };
     },
     onError: (error, memoryId, context) => {
       // Rollback on error
       if (context?.previousDashboardData) {
-        queryClient.setQueryData(qk.memories.dashboard(), context.previousDashboardData);
+        queryClient.setQueryData(
+          qk.memories.dashboard(),
+          context.previousDashboardData
+        );
       }
       if (context?.previousMemoryData) {
-        queryClient.setQueryData(qk.memories.detail(memoryId), context.previousMemoryData);
+        queryClient.setQueryData(
+          qk.memories.detail(memoryId),
+          context.previousMemoryData
+        );
       }
 
       toast({
@@ -65,9 +68,7 @@ export function useDeleteMemory() {
         variant: 'destructive',
       });
     },
-    onSuccess: memoryId => {
-      console.log('🔍 [DELETE MUTATION] Successfully deleted memory:', memoryId);
-
+    onSuccess: (memoryId) => {
       // Remove the memory detail from cache
       queryClient.removeQueries({ queryKey: qk.memories.detail(memoryId) });
 
@@ -77,7 +78,6 @@ export function useDeleteMemory() {
       });
     },
     onSettled: () => {
-      console.log('🔍 [DELETE MUTATION] Mutation settled, ensuring fresh data');
       // The invalidation in onMutate should handle the refetch
       // But let's make sure it happens
       queryClient.invalidateQueries({ queryKey: ['memories', 'dashboard'] });
@@ -101,7 +101,7 @@ export function useDeleteAllMemories() {
     }) => {
       return await deleteAllMemories(options);
     },
-    onSuccess: result => {
+    onSuccess: (result) => {
       // Invalidate all memory-related queries
       queryClient.invalidateQueries({ queryKey: qk.memories.dashboard() });
       queryClient.invalidateQueries({ queryKey: ['memories'] });
@@ -111,7 +111,7 @@ export function useDeleteAllMemories() {
         description: `Deleted ${result.deletedCount} memories`,
       });
     },
-    onError: error => {
+    onError: (error) => {
       toast({
         title: 'Error',
         description: `Failed to delete memories: ${error.message}`,
@@ -129,7 +129,13 @@ export function useUpdateMemory() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Record<string, unknown>> }) => {
+    mutationFn: async ({
+      id,
+      updates,
+    }: {
+      id: string;
+      updates: Partial<Record<string, unknown>>;
+    }) => {
       const response = await fetch(`/api/memories/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -149,7 +155,10 @@ export function useUpdateMemory() {
 
       // Snapshot previous values
       const previousMemory = queryClient.getQueryData(qk.memories.detail(id));
-      const previousDashboard = queryClient.getQueryData(['memories', 'dashboard']);
+      const previousDashboard = queryClient.getQueryData([
+        'memories',
+        'dashboard',
+      ]);
 
       // Optimistically update memory detail
       queryClient.setQueryData(qk.memories.detail(id), (old: unknown) => ({
@@ -161,15 +170,20 @@ export function useUpdateMemory() {
       queryClient.setQueryData(['memories', 'dashboard'], (old: unknown) => {
         if (!old) return old;
 
-        const oldData = old as { pages?: Array<{ memories?: Array<{ id: string }> }> };
+        const oldData = old as {
+          pages?: Array<{ memories?: Array<{ id: string }> }>;
+        };
 
         if (oldData.pages) {
           // Infinite query structure (dashboard uses useInfiniteQuery)
           return {
             ...oldData,
-            pages: oldData.pages.map(page => ({
+            pages: oldData.pages.map((page) => ({
               ...page,
-              memories: page.memories?.map(memory => (memory.id === id ? { ...memory, ...updates } : memory)) || [],
+              memories:
+                page.memories?.map((memory) =>
+                  memory.id === id ? { ...memory, ...updates } : memory
+                ) || [],
             })),
           };
         }
@@ -182,10 +196,16 @@ export function useUpdateMemory() {
     onError: (error, { id }, context) => {
       // Rollback on error
       if (context?.previousMemory) {
-        queryClient.setQueryData(qk.memories.detail(id), context.previousMemory);
+        queryClient.setQueryData(
+          qk.memories.detail(id),
+          context.previousMemory
+        );
       }
       if (context?.previousDashboard) {
-        queryClient.setQueryData(['memories', 'dashboard'], context.previousDashboard);
+        queryClient.setQueryData(
+          ['memories', 'dashboard'],
+          context.previousDashboard
+        );
       }
 
       toast({

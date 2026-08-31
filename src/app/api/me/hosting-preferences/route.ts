@@ -19,7 +19,11 @@ export async function GET(): Promise<NextResponse> {
     }
 
     // Get user's hosting preferences - using direct query for debugging
-    const preferences = await db.select().from(userHostingPreferences).where(eq(userHostingPreferences.userId, session.user.id)).limit(1);
+    const preferences = await db
+      .select()
+      .from(userHostingPreferences)
+      .where(eq(userHostingPreferences.userId, session.user.id))
+      .limit(1);
     const preference = preferences[0];
 
     // If no preferences exist, return defaults
@@ -44,7 +48,7 @@ export async function GET(): Promise<NextResponse> {
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error('Detailed error fetching hosting preferences:', {
+    fatLogger.error('Detailed error fetching hosting preferences', 'be', {
       error,
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
@@ -53,10 +57,13 @@ export async function GET(): Promise<NextResponse> {
       data: error instanceof Error ? error : undefined,
       message: error instanceof Error ? error.message : 'Unknown error',
     });
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    );
   }
 }
 
@@ -77,17 +84,29 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     const updates: Partial<HostingPreferences> = body;
 
     // Validate that at least one field is being updated
-    const validFields = ['frontendHosting', 'backendHosting', 'databaseHosting', 'blobHosting'];
-    const hasValidUpdates = Object.keys(updates).some(key => validFields.includes(key));
+    const validFields = [
+      'frontendHosting',
+      'backendHosting',
+      'databaseHosting',
+      'blobHosting',
+    ];
+    const hasValidUpdates = Object.keys(updates).some((key) =>
+      validFields.includes(key)
+    );
 
     if (!hasValidUpdates) {
-      return NextResponse.json({ error: 'No valid hosting preference fields provided' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'No valid hosting preference fields provided' },
+        { status: 400 }
+      );
     }
 
     // Check if preferences already exist
-    const existingPreferences = await db.query.userHostingPreferences.findFirst({
-      where: eq(userHostingPreferences.userId, session.user.id),
-    });
+    const existingPreferences = await db.query.userHostingPreferences.findFirst(
+      {
+        where: eq(userHostingPreferences.userId, session.user.id),
+      }
+    );
 
     let updatedPreferences;
 
@@ -147,6 +166,9 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     fatLogger.error('Error updating hosting preferences:', 'be', {
       data: error instanceof Error ? error : undefined,
     });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }

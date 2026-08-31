@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
+import { fatLogger } from '@/lib/logger';
 
 /**
  * GET /api/auth/ii/linked
@@ -20,21 +21,27 @@ export async function GET(_request: NextRequest) {
 
     return NextResponse.json({ linkedIcPrincipals });
   } catch (error) {
-    console.error('Failed to fetch linked principals:', error);
-    return NextResponse.json({ error: 'Failed to fetch linked principals' }, { status: 500 });
+    fatLogger.error('Failed to fetch linked principals', 'be', { error });
+    return NextResponse.json(
+      { error: 'Failed to fetch linked principals' },
+      { status: 500 }
+    );
   }
 }
 
 async function getLinkedPrincipalsFromDB(userId: string): Promise<string[]> {
   try {
     const iiAccounts = await db.query.accounts.findMany({
-      where: (a, { and, eq }) => and(eq(a.userId, userId), eq(a.provider, 'internet-identity')),
+      where: (a, { and, eq }) =>
+        and(eq(a.userId, userId), eq(a.provider, 'internet-identity')),
       columns: { providerAccountId: true },
     });
 
-    return iiAccounts.map(account => account.providerAccountId);
+    return iiAccounts.map((account) => account.providerAccountId);
   } catch (error) {
-    console.warn('Failed to fetch linked principals from DB:', error);
+    fatLogger.warn('Failed to fetch linked principals from DB', 'be', {
+      error,
+    });
     return [];
   }
 }

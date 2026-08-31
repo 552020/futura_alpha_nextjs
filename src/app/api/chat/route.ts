@@ -1,22 +1,23 @@
 import { openai } from '@ai-sdk/openai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { streamText } from 'ai';
+import { fatLogger } from '@/lib/logger';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-    const body = await req.json();
-    const messages = body.messages || [];
+  const body = await req.json();
+  const messages = body.messages || [];
 
-    if (!Array.isArray(messages)) {
-        return new Response('Invalid messages format', { status: 400 });
-    }
+  if (!Array.isArray(messages)) {
+    return new Response('Invalid messages format', { status: 400 });
+  }
 
-    // Filter out assistant messages from the welcome (only keep user messages for the API)
-    const userMessages = messages.filter(m => m.role === 'user');
+  // Filter out assistant messages from the welcome (only keep user messages for the API)
+  const userMessages = messages.filter((m) => m.role === 'user');
 
-    const systemPrompt = `You are Transcendance AI, a compassionate biographer and interviewer whose mission is to help preserve life stories for future generations.
+  const systemPrompt = `You are Transcendance AI, a compassionate biographer and interviewer whose mission is to help preserve life stories for future generations.
 
 Your role is to:
 - Conduct thoughtful, empathetic interviews to learn about the user's life, experiences, memories, and values
@@ -28,43 +29,46 @@ Your role is to:
 
 Remember: You're helping create a legacy - a gift for their family and descendants. Every story matters.`;
 
-    const messagePayload = userMessages.map(m => ({
-        role: m.role,
-        content: m.content,
-    }));
+  const messagePayload = userMessages.map((m) => ({
+    role: m.role,
+    content: m.content,
+  }));
 
-    // Try OpenAI first, fallback to Gemini if it fails
+  // Try OpenAI first, fallback to Gemini if it fails
+  try {
+    fatLogger.debug('Attempting OpenAI...', 'be');
+    const result = streamText({
+      model: openai('gpt-4o-mini'),
+      system: systemPrompt,
+      messages: messagePayload,
+    });
+
+    return result.toTextStreamResponse();
+  } catch (error) {
+    fatLogger.debug('OpenAI failed, falling back to Gemini', 'be', { error });
+
+    // Fallback to Gemini
     try {
-        console.log('Attempting OpenAI...');
-        const result = streamText({
-            model: openai('gpt-4o-mini'),
-            system: systemPrompt,
-            messages: messagePayload,
-        });
+      const geminiApiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+      if (!geminiApiKey) {
+        throw new Error('GOOGLE_GENERATIVE_AI_API_KEY is not set');
+      }
 
-        return result.toTextStreamResponse();
-    } catch (error) {
-        console.log('OpenAI failed, falling back to Gemini:', error);
+      fatLogger.debug('Using Gemini as fallback...', 'be');
+      const google = createGoogleGenerativeAI({ apiKey: geminiApiKey });
+      const fallbackResult = streamText({
+        model: google('gemini-2.0-flash-exp'),
+        system: systemPrompt,
+        messages: messagePayload,
+      });
 
-        // Fallback to Gemini
-        try {
-            const geminiApiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-            if (!geminiApiKey) {
-                throw new Error('GOOGLE_GENERATIVE_AI_API_KEY is not set');
-            }
-
-            console.log('Using Gemini as fallback...');
-            const google = createGoogleGenerativeAI({ apiKey: geminiApiKey });
-            const fallbackResult = streamText({
-                model: google('gemini-2.0-flash-exp'),
-                system: systemPrompt,
-                messages: messagePayload,
-            });
-
-            return fallbackResult.toTextStreamResponse();
-        } catch (fallbackError) {
-            console.error('Both models failed:', fallbackError);
-            return new Response('AI service temporarily unavailable. Please try again later.', { status: 503 });
-        }
+      return fallbackResult.toTextStreamResponse();
+    } catch (fallbackError) {
+      fatLogger.error('Both models failed', 'be', { error: fallbackError });
+      return new Response(
+        'AI service temporarily unavailable. Please try again later.',
+        { status: 503 }
+      );
     }
+  }
 }

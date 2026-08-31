@@ -25,12 +25,21 @@ export interface ProcessSingleFileOptions {
   preferences?: HostingPreferences;
   onSuccess?: () => void;
   onError?: (error: Error) => void;
-  updateOnboardingContext?: (data: { data: { ownerId: string; id: string } }, files: File[]) => void;
-  showToast: (toast: { variant: 'destructive'; title: string; description: string }) => void;
+  updateOnboardingContext?: (
+    data: { data: { ownerId: string; id: string } },
+    files: File[]
+  ) => void;
+  showToast: (toast: {
+    variant: 'destructive';
+    title: string;
+    description: string;
+  }) => void;
   onProgress?: (progress: number) => void;
 }
 
-export async function processSingleFile(options: ProcessSingleFileOptions): Promise<void> {
+export async function processSingleFile(
+  options: ProcessSingleFileOptions
+): Promise<void> {
   fatLogger.info('🚀 ENTERING: processSingleFile', 'be', {
     timestamp: new Date().toISOString(),
     fileName: options.file.name,
@@ -73,7 +82,11 @@ export async function processSingleFile(options: ProcessSingleFileOptions): Prom
 
     let data: {
       data: { id: string };
-      results: Array<{ memoryId: string; size: number; checksum_sha256: string | null }>;
+      results: Array<{
+        memoryId: string;
+        size: number;
+        checksum_sha256: string | null;
+      }>;
       userId: string;
     };
 
@@ -94,56 +107,50 @@ export async function processSingleFile(options: ProcessSingleFileOptions): Prom
       // ICP upload with parallel processing (Lane A + Lane B + finalizeAllAssets)
       // NOTE: For ICP users, isOnboarding is ignored because ICP always requires Internet Identity auth
       // Even "onboarding" users must authenticate with II to interact with ICP canister
-      const { uploadFileAndCreateMemoryWithDerivatives } = await import('./icp-with-processing');
-      const uploadResult = await uploadFileAndCreateMemoryWithDerivatives(file, onProgress);
+      const { uploadFileAndCreateMemoryWithDerivatives } = await import(
+        './icp-with-processing'
+      );
+      const uploadResult = await uploadFileAndCreateMemoryWithDerivatives(
+        file,
+        onProgress
+      );
       data = {
         data: uploadResult.data,
-        results: uploadResult.results.map(result => ({
+        results: uploadResult.results.map((result) => ({
           memoryId: result.memoryId,
           size: Number(result.size),
           checksum_sha256: result.checksumSha256
             ? Array.from(result.checksumSha256)
-                .map(b => b.toString(16).padStart(2, '0'))
+                .map((b) => b.toString(16).padStart(2, '0'))
                 .join('')
             : null,
         })),
         userId: uploadResult.userId,
       };
     } else if (userBlobHostingPreferences.includes('vercel_blob')) {
-      console.log('🔍 [DEBUG] processSingleFile: Using Vercel Blob upload');
       try {
-        console.log('🔍 [DEBUG] processSingleFile: Importing uploadToVercelBlob...');
         const { uploadToVercelBlob } = await import('./vercel-blob-upload');
-        console.log('🔍 [DEBUG] processSingleFile: Calling uploadToVercelBlob...');
-        const results = await uploadToVercelBlob([file], isOnboarding, existingUserId, mode);
-        console.log(
-          '🔍 [DEBUG] processSingleFile: Vercel Blob results:',
-          JSON.stringify(results, (key, value) => (typeof value === 'bigint' ? value.toString() : value), 2)
+        const results = await uploadToVercelBlob(
+          [file],
+          isOnboarding,
+          existingUserId,
+          mode
         );
         const vercelResult = results[0]; // Get first (and only) result
-        console.log(
-          '🔍 [DEBUG] processSingleFile: Vercel result data:',
-          JSON.stringify(vercelResult.data, (key, value) => (typeof value === 'bigint' ? value.toString() : value), 2)
-        );
         data = {
           data: vercelResult.data,
-          results: vercelResult.results.map(result => ({
+          results: vercelResult.results.map((result) => ({
             memoryId: result.memoryId,
             size: Number(result.size),
             checksum_sha256: result.checksumSha256
               ? Array.from(result.checksumSha256)
-                  .map(b => b.toString(16).padStart(2, '0'))
+                  .map((b) => b.toString(16).padStart(2, '0'))
                   .join('')
               : null,
           })),
           userId: vercelResult.userId,
         };
-        console.log(
-          '🔍 [DEBUG] processSingleFile: Final data structure:',
-          JSON.stringify(data, (key, value) => (typeof value === 'bigint' ? value.toString() : value), 2)
-        );
       } catch (error) {
-        console.log('❌ [DEBUG] processSingleFile: Vercel Blob upload failed:', error);
         throw error;
       }
     } else if (userBlobHostingPreferences.includes('s3')) {
@@ -151,12 +158,12 @@ export async function processSingleFile(options: ProcessSingleFileOptions): Prom
       const uploadResult = await uploadToS3WithProcessing(file, onProgress);
       data = {
         data: uploadResult.data,
-        results: uploadResult.results.map(result => ({
+        results: uploadResult.results.map((result) => ({
           memoryId: result.memoryId,
           size: Number(result.size),
           checksum_sha256: result.checksumSha256
             ? Array.from(result.checksumSha256)
-                .map(b => b.toString(16).padStart(2, '0'))
+                .map((b) => b.toString(16).padStart(2, '0'))
                 .join('')
             : null,
         })),
@@ -167,12 +174,12 @@ export async function processSingleFile(options: ProcessSingleFileOptions): Prom
       const uploadResult = await uploadToS3WithProcessing(file, onProgress);
       data = {
         data: uploadResult.data,
-        results: uploadResult.results.map(result => ({
+        results: uploadResult.results.map((result) => ({
           memoryId: result.memoryId,
           size: Number(result.size),
           checksum_sha256: result.checksumSha256
             ? Array.from(result.checksumSha256)
-                .map(b => b.toString(16).padStart(2, '0'))
+                .map((b) => b.toString(16).padStart(2, '0'))
                 .join('')
             : null,
         })),
@@ -184,9 +191,11 @@ export async function processSingleFile(options: ProcessSingleFileOptions): Prom
     data.userId = existingUserId || '';
     if (isOnboarding && data && updateOnboardingContext) {
       // For onboarding, use the ownerId from the upload response (which contains the allUserId)
-      const ownerId = (data.data as { ownerId?: string })?.ownerId || data.userId || '';
-      console.log('🔍 [DEBUG] processSingleFile: Calling updateOnboardingContext with ownerId:', ownerId);
-      updateOnboardingContext({ data: { ownerId, id: data.data?.id ?? '' } }, [file]);
+      const ownerId =
+        (data.data as { ownerId?: string })?.ownerId || data.userId || '';
+      updateOnboardingContext({ data: { ownerId, id: data.data?.id ?? '' } }, [
+        file,
+      ]);
     }
 
     onSuccess?.();

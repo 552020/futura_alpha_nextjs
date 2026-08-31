@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { fatLogger } from '@/lib/logger';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
 import { accounts } from '@/db';
@@ -44,21 +45,27 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ linkedIcPrincipals });
   } catch (error) {
-    console.error('Failed to unlink principal:', error);
-    return NextResponse.json({ error: 'Failed to unlink principal' }, { status: 500 });
+    fatLogger.error('Failed to unlink principal', 'be', { error });
+    return NextResponse.json(
+      { error: 'Failed to unlink principal' },
+      { status: 500 }
+    );
   }
 }
 
 async function getLinkedPrincipalsFromDB(userId: string): Promise<string[]> {
   try {
     const iiAccounts = await db.query.accounts.findMany({
-      where: (a, { and, eq }) => and(eq(a.userId, userId), eq(a.provider, 'internet-identity')),
+      where: (a, { and, eq }) =>
+        and(eq(a.userId, userId), eq(a.provider, 'internet-identity')),
       columns: { providerAccountId: true },
     });
 
-    return iiAccounts.map(account => account.providerAccountId);
+    return iiAccounts.map((account) => account.providerAccountId);
   } catch (error) {
-    console.warn('Failed to fetch linked principals from DB:', error);
+    fatLogger.warn('Failed to fetch linked principals from DB', 'be', {
+      error,
+    });
     return [];
   }
 }

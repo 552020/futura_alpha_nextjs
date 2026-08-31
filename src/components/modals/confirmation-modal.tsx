@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { fatLogger } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -44,7 +45,7 @@ export function ConfirmationModal({
       await onConfirm();
     } catch (error) {
       // Error handling is done in the parent component
-      console.error('Confirmation action failed:', error);
+      fatLogger.error('Confirmation action failed', 'fe', { error });
     } finally {
       setIsProcessing(false);
     }
@@ -61,7 +62,11 @@ export function ConfirmationModal({
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         <DialogFooter className="flex gap-2">
-          <Button variant="outline" onClick={onClose} disabled={isButtonDisabled}>
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={isButtonDisabled}
+          >
             {cancelText}
           </Button>
           <Button

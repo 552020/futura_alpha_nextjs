@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
 import { accounts } from '@/db';
+import { fatLogger } from '@/lib/logger';
 // import { eq } from 'drizzle-orm'; // Not needed - using query builder
 
 /**
@@ -26,11 +27,18 @@ export async function POST(request: NextRequest) {
 
     // Check if this principal is already linked to another user
     const existingAccount = await db.query.accounts.findFirst({
-      where: (a, { and, eq }) => and(eq(a.provider, 'internet-identity'), eq(a.providerAccountId, principal)),
+      where: (a, { and, eq }) =>
+        and(
+          eq(a.provider, 'internet-identity'),
+          eq(a.providerAccountId, principal)
+        ),
     });
 
     if (existingAccount && existingAccount.userId !== session.user.id) {
-      return NextResponse.json({ error: 'Principal already linked to another account' }, { status: 409 });
+      return NextResponse.json(
+        { error: 'Principal already linked to another account' },
+        { status: 409 }
+      );
     }
 
     // Link the principal to the current user
@@ -56,21 +64,27 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ linkedIcPrincipals });
   } catch (error) {
-    console.error('Failed to link principal:', error);
-    return NextResponse.json({ error: 'Failed to link principal' }, { status: 500 });
+    fatLogger.error('Failed to link principal', 'be', { error });
+    return NextResponse.json(
+      { error: 'Failed to link principal' },
+      { status: 500 }
+    );
   }
 }
 
 async function getLinkedPrincipalsFromDB(userId: string): Promise<string[]> {
   try {
     const iiAccounts = await db.query.accounts.findMany({
-      where: (a, { and, eq }) => and(eq(a.userId, userId), eq(a.provider, 'internet-identity')),
+      where: (a, { and, eq }) =>
+        and(eq(a.userId, userId), eq(a.provider, 'internet-identity')),
       columns: { providerAccountId: true },
     });
 
-    return iiAccounts.map(account => account.providerAccountId);
+    return iiAccounts.map((account) => account.providerAccountId);
   } catch (error) {
-    console.warn('Failed to fetch linked principals from DB:', error);
+    fatLogger.warn('Failed to fetch linked principals from DB', 'be', {
+      error,
+    });
     return [];
   }
 }

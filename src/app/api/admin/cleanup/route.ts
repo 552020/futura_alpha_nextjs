@@ -4,6 +4,7 @@ import { isAdmin } from '@/config/admin';
 import { db } from '@/db/db';
 import { allUsers, temporaryUsers, memories, memoryAssets } from '@/db';
 import { eq, inArray as drizzleInArray } from 'drizzle-orm';
+import { fatLogger } from '@/lib/logger';
 
 export async function POST() {
   // Check authentication
@@ -13,14 +14,18 @@ export async function POST() {
   }
 
   // Check if user is admin
-  const userIsAdmin = isAdmin(session.user?.email ?? undefined, session.user?.role);
+  const userIsAdmin = isAdmin(
+    session.user?.email ?? undefined,
+    session.user?.role
+  );
 
   if (!userIsAdmin) {
-    return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
+    return NextResponse.json(
+      { error: 'Forbidden - Admin access required' },
+      { status: 403 }
+    );
   }
   try {
-    console.log('🧹 Starting admin cleanup...');
-
     // 1. Find all temporary allUsers records
     const temporaryAllUsers = await db.query.allUsers.findMany({
       where: eq(allUsers.type, 'temporary'),
@@ -34,20 +39,21 @@ export async function POST() {
       });
     }
 
-    const allUserIds = temporaryAllUsers.map(au => au.id);
+    const allUserIds = temporaryAllUsers.map((au) => au.id);
 
     // 2. Find memories owned by these temporary users
     const memoriesToDelete = await db.query.memories.findMany({
       where: (memories, { inArray }) => inArray(memories.ownerId, allUserIds),
     });
 
-    const memoryIds = memoriesToDelete.map(m => m.id);
+    const memoryIds = memoriesToDelete.map((m) => m.id);
 
     // 3. Find assets for these memories
-    let assetsToDelete: typeof memoryAssets.$inferSelect[] = [];
+    let assetsToDelete: (typeof memoryAssets.$inferSelect)[] = [];
     if (memoryIds.length > 0) {
       assetsToDelete = await db.query.memoryAssets.findMany({
-        where: (memoryAssets, { inArray: _inArray }) => drizzleInArray(memoryAssets.memoryId, memoryIds),
+        where: (memoryAssets, { inArray: _inArray }) =>
+          drizzleInArray(memoryAssets.memoryId, memoryIds),
       });
     }
 
@@ -72,7 +78,9 @@ export async function POST() {
     // Delete temporary users
     for (const allUser of temporaryAllUsers) {
       if (allUser.temporaryUserId) {
-        await db.delete(temporaryUsers).where(eq(temporaryUsers.id, allUser.temporaryUserId));
+        await db
+          .delete(temporaryUsers)
+          .where(eq(temporaryUsers.id, allUser.temporaryUserId));
         deletedTemporaryUsers++;
       }
     }
@@ -82,8 +90,6 @@ export async function POST() {
       await db.delete(allUsers).where(eq(allUsers.id, allUser.id));
       deletedAllUsers++;
     }
-
-    console.log('✅ Admin cleanup completed successfully');
 
     return NextResponse.json({
       success: true,
@@ -96,7 +102,7 @@ export async function POST() {
       message: 'Cleanup completed successfully',
     });
   } catch (error) {
-    console.error('❌ Admin cleanup failed:', error);
+    fatLogger.error('Admin cleanup failed', 'be', { error });
     return NextResponse.json(
       {
         success: false,

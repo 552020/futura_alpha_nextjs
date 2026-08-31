@@ -3,10 +3,23 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -17,6 +30,7 @@ import {
 } from '@/components/ui/breadcrumb';
 import { RefreshCw, Users, User, Trash2 } from 'lucide-react';
 import Link from 'next/link';
+import { fatLogger } from '@/lib/logger';
 
 interface User {
   id: string;
@@ -55,15 +69,9 @@ export default function AdminUsersPage() {
     }
 
     // Check if user is admin (server-side check will be done in API calls)
-    console.log('🔍 [DEBUG] Admin check:', {
-      email: session.user?.email,
-      role: session.user?.role,
-      user: session.user,
-    });
-
-    const isAdmin = session.user?.role === 'admin' || session.user?.email?.includes('@futura.now');
-
-    console.log('🔍 [DEBUG] Is admin:', isAdmin);
+    const isAdmin =
+      session.user?.role === 'admin' ||
+      session.user?.email?.includes('@futura.now');
 
     if (!isAdmin) {
       router.push(`/${lang}`);
@@ -77,7 +85,7 @@ export default function AdminUsersPage() {
       const data = await response.json();
       setStats(data);
     } catch (error) {
-      console.error('Failed to fetch users:', error);
+      fatLogger.error('Failed to fetch users', 'fe', { error });
     } finally {
       setLoading(false);
     }
@@ -90,8 +98,12 @@ export default function AdminUsersPage() {
   };
 
   const handleCleanupTempUsers = async () => {
-    console.log('Cleanup temp users clicked');
-    if (!confirm('Are you sure you want to clean up all temporary users? This action cannot be undone.')) {
+    fatLogger.debug('Cleanup temp users clicked', 'fe');
+    if (
+      !confirm(
+        'Are you sure you want to clean up all temporary users? This action cannot be undone.'
+      )
+    ) {
       return;
     }
 
@@ -108,29 +120,37 @@ export default function AdminUsersPage() {
         alert('Cleanup failed: ' + result.error);
       }
     } catch (error) {
-      console.error('Cleanup failed:', error);
+      fatLogger.error('Cleanup failed', 'fe', { error });
       alert('Cleanup failed: ' + error);
     }
   };
 
   const handleCleanupTestUsers = async () => {
-    console.log('Cleanup test users clicked');
-    if (!confirm('Are you sure you want to clean up all test users? This action cannot be undone.')) {
+    fatLogger.debug('Cleanup test users clicked', 'fe');
+    if (
+      !confirm(
+        'Are you sure you want to clean up all test users? This action cannot be undone.'
+      )
+    ) {
       return;
     }
 
     try {
-      const response = await fetch('/api/admin/cleanup-test', { method: 'POST' });
+      const response = await fetch('/api/admin/cleanup-test', {
+        method: 'POST',
+      });
       const result = await response.json();
 
       if (result.success) {
-        alert(`Test users cleanup completed! Deleted ${result.deleted} test users`);
+        alert(
+          `Test users cleanup completed! Deleted ${result.deleted} test users`
+        );
         await fetchUsers();
       } else {
         alert('Test users cleanup failed: ' + result.error);
       }
     } catch (error) {
-      console.error('Test users cleanup failed:', error);
+      fatLogger.error('Test users cleanup failed', 'fe', { error });
       alert('Test users cleanup failed: ' + error);
     }
   };
@@ -146,7 +166,11 @@ export default function AdminUsersPage() {
         <div className="container mx-auto p-6">
           <div className="flex items-center justify-center h-64">
             <RefreshCw className="h-8 w-8 animate-spin" />
-            <span className="ml-2">{status === 'loading' ? 'Checking authentication...' : 'Loading users...'}</span>
+            <span className="ml-2">
+              {status === 'loading'
+                ? 'Checking authentication...'
+                : 'Loading users...'}
+            </span>
           </div>
         </div>
       </div>
@@ -161,7 +185,9 @@ export default function AdminUsersPage() {
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
               <h1 className="text-2xl font-bold text-red-600">Access Denied</h1>
-              <p className="text-muted-foreground">You need to be logged in to access this page.</p>
+              <p className="text-muted-foreground">
+                You need to be logged in to access this page.
+              </p>
             </div>
           </div>
         </div>
@@ -194,15 +220,31 @@ export default function AdminUsersPage() {
             </BreadcrumbList>
           </Breadcrumb>
           <div className="flex gap-2">
-            <Button onClick={handleRefresh} disabled={refreshing} variant="outline">
-              <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            <Button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              variant="outline"
+            >
+              <RefreshCw
+                className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`}
+              />
               Refresh
             </Button>
-            <Button onClick={handleCleanupTempUsers} variant="outline" size="sm" className="cursor-pointer">
+            <Button
+              onClick={handleCleanupTempUsers}
+              variant="outline"
+              size="sm"
+              className="cursor-pointer"
+            >
               <Trash2 className="h-4 w-4 mr-1" />
               Clean Temp
             </Button>
-            <Button onClick={handleCleanupTestUsers} variant="outline" size="sm" className="cursor-pointer">
+            <Button
+              onClick={handleCleanupTestUsers}
+              variant="outline"
+              size="sm"
+              className="cursor-pointer"
+            >
               <Trash2 className="h-4 w-4 mr-1" />
               Clean Test
             </Button>
@@ -215,34 +257,50 @@ export default function AdminUsersPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-full overflow-x-hidden">
               <Card className="w-full max-w-full overflow-x-hidden">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 min-w-0">
-                  <CardTitle className="text-sm font-medium truncate">Total Users</CardTitle>
+                  <CardTitle className="text-sm font-medium truncate">
+                    Total Users
+                  </CardTitle>
                   <Users className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{stats.totalUsers}</div>
-                  <p className="text-xs text-muted-foreground">All users in system</p>
+                  <p className="text-xs text-muted-foreground">
+                    All users in system
+                  </p>
                 </CardContent>
               </Card>
 
               <Card className="w-full max-w-full overflow-x-hidden">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 min-w-0">
-                  <CardTitle className="text-sm font-medium truncate">Permanent Users</CardTitle>
+                  <CardTitle className="text-sm font-medium truncate">
+                    Permanent Users
+                  </CardTitle>
                   <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.permanentUsers}</div>
-                  <p className="text-xs text-muted-foreground">Registered users</p>
+                  <div className="text-2xl font-bold">
+                    {stats.permanentUsers}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Registered users
+                  </p>
                 </CardContent>
               </Card>
 
               <Card className="w-full max-w-full overflow-x-hidden">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 min-w-0">
-                  <CardTitle className="text-sm font-medium truncate">Temporary Users</CardTitle>
+                  <CardTitle className="text-sm font-medium truncate">
+                    Temporary Users
+                  </CardTitle>
                   <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.temporaryUsers}</div>
-                  <p className="text-xs text-muted-foreground">Onboarding users</p>
+                  <div className="text-2xl font-bold">
+                    {stats.temporaryUsers}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Onboarding users
+                  </p>
                 </CardContent>
               </Card>
             </div>
@@ -254,7 +312,9 @@ export default function AdminUsersPage() {
                   <Users className="h-5 w-5 mr-2" />
                   All Users
                 </CardTitle>
-                <CardDescription>Click on a user to view details</CardDescription>
+                <CardDescription>
+                  Click on a user to view details
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 {stats.users.length === 0 ? (
@@ -273,23 +333,40 @@ export default function AdminUsersPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {stats.users.map(user => (
+                      {stats.users.map((user) => (
                         <TableRow
                           key={user.id}
                           className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => (window.location.href = `/${lang}/admin/users/${user.id}`)}
+                          onClick={() =>
+                            (window.location.href = `/${lang}/admin/users/${user.id}`)
+                          }
                         >
-                          <TableCell className="font-medium">{user.name}</TableCell>
+                          <TableCell className="font-medium">
+                            {user.name}
+                          </TableCell>
                           <TableCell>{user.email}</TableCell>
-                          <TableCell className="font-mono text-xs">{user.id}</TableCell>
-                          <TableCell className="font-mono text-xs">{user.allUserId}</TableCell>
+                          <TableCell className="font-mono text-xs">
+                            {user.id}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs">
+                            {user.allUserId}
+                          </TableCell>
                           <TableCell>
-                            <Badge variant={user.type === 'temporary' ? 'secondary' : 'default'} className="text-xs">
+                            <Badge
+                              variant={
+                                user.type === 'temporary'
+                                  ? 'secondary'
+                                  : 'default'
+                              }
+                              className="text-xs"
+                            >
                               {user.type}
                             </Badge>
                           </TableCell>
                           <TableCell>{user.role}</TableCell>
-                          <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
+                          <TableCell>
+                            {new Date(user.createdAt).toLocaleDateString()}
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

@@ -16,7 +16,11 @@
  */
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { useInfiniteQuery, keepPreviousData, useQueryClient } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  keepPreviousData,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { qk } from '@/lib/query-keys';
 import { MemoryGrid } from '@/components/memory/memory-grid';
 import { Loader2 } from 'lucide-react';
@@ -41,13 +45,17 @@ import { ExtendedMemory } from '@/types/dashboard';
 // import { TawkChat } from '@/components/chat/tawk-chat';
 import { DashboardTopBar } from '@/components/dashboard/dashboard-top-bar';
 import { sampleDashboardMemories } from '../../../../scripts/mock-data/create-dashboard-sample-data';
-import { useHostingPreferences, getRecommendedDashboardDataSource } from '@/hooks/use-hosting-preferences';
+import {
+  useHostingPreferences,
+  getRecommendedDashboardDataSource,
+} from '@/hooks/use-hosting-preferences';
 import { MemoryQuickEditModal } from '@/components/memory/memory-quick-edit-modal';
 import { SharingModal } from '@/components/memory/sharing-modal';
 
 // Demo flag - set to true to use mock data for demo
 // 📝 Sample data generation script: scripts/mock-data/create-dashboard-sample-data.ts
-const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA_DASHBOARD === 'true';
+const USE_MOCK_DATA =
+  process.env.NEXT_PUBLIC_USE_MOCK_DATA_DASHBOARD === 'true';
 
 export default function VaultPage() {
   const { isAuthorized, isTemporaryUser, userId, isLoading } = useAuthGuard();
@@ -58,12 +66,18 @@ export default function VaultPage() {
   const [filteredMemories, setFilteredMemories] = useState<DashboardItem[]>([]);
   const [quickEditOpen, setQuickEditOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [selectedTitle, setSelectedTitle] = useState<string | undefined>(undefined);
-  const [selectedDescription, setSelectedDescription] = useState<string | undefined>(undefined);
+  const [selectedTitle, setSelectedTitle] = useState<string | undefined>(
+    undefined
+  );
+  const [selectedDescription, setSelectedDescription] = useState<
+    string | undefined
+  >(undefined);
 
   // Sharing modal state
   const [sharingOpen, setSharingOpen] = useState(false);
-  const [sharingResourceType, setSharingResourceType] = useState<'memory' | 'folder'>('memory');
+  const [sharingResourceType, setSharingResourceType] = useState<
+    'memory' | 'folder'
+  >('memory');
   const [sharingResourceId, setSharingResourceId] = useState<string>('');
   const [sharingResourceTitle, setSharingResourceTitle] = useState<string>('');
   const params = useParams();
@@ -79,17 +93,21 @@ export default function VaultPage() {
   // Update data source when hosting preferences change
   useEffect(() => {
     if (hostingPreferences) {
-      const recommendedDataSource = getRecommendedDashboardDataSource(hostingPreferences);
+      const recommendedDataSource =
+        getRecommendedDashboardDataSource(hostingPreferences);
       setDataSource(recommendedDataSource);
       setIsAutoSelected(true); // Mark as auto-selected when preferences change
     }
   }, [hostingPreferences]);
 
   // Handle manual data source changes
-  const handleDataSourceChange = useCallback((newDataSource: 'neon' | 'icp') => {
-    setDataSource(newDataSource);
-    setIsAutoSelected(false); // Mark as manually selected
-  }, []);
+  const handleDataSourceChange = useCallback(
+    (newDataSource: 'neon' | 'icp') => {
+      setDataSource(newDataSource);
+      setIsAutoSelected(false); // Mark as manually selected
+    },
+    []
+  );
 
   // React Query for dashboard data
   const {
@@ -104,7 +122,9 @@ export default function VaultPage() {
     queryFn: ({ pageParam = 1 }) => {
       return fetchMemories(pageParam as number, dataSource!);
     },
-    enabled: dataSource !== null && Boolean(!USE_MOCK_DATA && isAuthorized && !isLoading && userId), // Only run when dataSource is determined AND user is authorized
+    enabled:
+      dataSource !== null &&
+      Boolean(!USE_MOCK_DATA && isAuthorized && !isLoading && userId), // Only run when dataSource is determined AND user is authorized
     initialPageParam: 1,
     getNextPageParam: () => undefined, // No pagination for now
     placeholderData: keepPreviousData,
@@ -124,10 +144,12 @@ export default function VaultPage() {
   // Process items from React Query or mock data
   const items = useMemo(() => {
     if (USE_MOCK_DATA) {
-      return processDashboardItems(sampleDashboardMemories as MemoryWithFolder[]);
+      return processDashboardItems(
+        sampleDashboardMemories as MemoryWithFolder[]
+      );
     }
 
-    const processedItems = (data?.pages ?? []).flatMap(p => {
+    const processedItems = (data?.pages ?? []).flatMap((p) => {
       return processDashboardItems(p.memories ?? []);
     });
     return processedItems;
@@ -139,7 +161,9 @@ export default function VaultPage() {
   // Mock data handling for demo mode
   useEffect(() => {
     if (USE_MOCK_DATA && isAuthorized && !isLoading) {
-      const processedItems = processDashboardItems(sampleDashboardMemories as MemoryWithFolder[]);
+      const processedItems = processDashboardItems(
+        sampleDashboardMemories as MemoryWithFolder[]
+      );
       setFilteredMemories(processedItems);
     }
   }, [isAuthorized, isLoading]);
@@ -149,7 +173,10 @@ export default function VaultPage() {
   // Handle infinite scroll for React Query
   useEffect(() => {
     const handleScroll = () => {
-      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 100) {
+      if (
+        window.innerHeight + window.scrollY >=
+        document.documentElement.scrollHeight - 100
+      ) {
         if (!isFetchingNextPage && hasNextPage && !USE_MOCK_DATA) {
           fetchNextPage();
         }
@@ -189,7 +216,7 @@ export default function VaultPage() {
 
   const handleEdit = (id: string) => {
     // Prefill from current list
-    const item = (filteredMemories || []).find(m => m.id === id);
+    const item = (filteredMemories || []).find((m) => m.id === id);
     setSelectedId(id);
     setSelectedTitle(item?.title);
     // DashboardItem may not always have description; leave undefined if absent
@@ -204,16 +231,22 @@ export default function VaultPage() {
     setQuickEditOpen(true);
   };
 
-  const handleQuickEditSave = async ({ data }: { data: { title?: string; description?: string } }) => {
+  const handleQuickEditSave = async ({
+    data,
+  }: {
+    data: { title?: string; description?: string };
+  }) => {
     if (!selectedId) return;
-    const selected = (filteredMemories || []).find(m => m.id === selectedId);
-    console.log('📝 [DASHBOARD] QuickEdit save', { selectedId, type: selected?.type, data });
+    const selected = (filteredMemories || []).find((m) => m.id === selectedId);
     if (selected?.type === 'folder') {
-      const cleanId = selectedId.startsWith('folder-') ? selectedId.replace('folder-', '') : selectedId;
-      console.log('📝 [DASHBOARD] Updating folder', { cleanId });
-      await updateFolderMutation.mutateAsync({ id: cleanId, updates: { title: data.title } });
+      const cleanId = selectedId.startsWith('folder-')
+        ? selectedId.replace('folder-', '')
+        : selectedId;
+      await updateFolderMutation.mutateAsync({
+        id: cleanId,
+        updates: { title: data.title },
+      });
     } else {
-      console.log('📝 [DASHBOARD] Updating memory', { id: selectedId });
       await updateMemoryMutation.mutateAsync({
         id: selectedId,
         updates: { title: data.title, description: data.description },
@@ -225,7 +258,8 @@ export default function VaultPage() {
     // Check if it's a folder item
     if (memory.type === 'folder') {
       // For folders, use the folderId property (new structure) or fallback to extracting from ID (old structure)
-      const folderId = (memory as FolderItem).folderId || memory.id.replace('folder-', '');
+      const folderId =
+        (memory as FolderItem).folderId || memory.id.replace('folder-', '');
       router.push(`/${params.lang}/dashboard/folder/${folderId}`);
     } else {
       // For individual memories, navigate to the memory detail page
@@ -246,12 +280,19 @@ export default function VaultPage() {
     });
   };
 
-  const handleFilteredMemoriesChange = useCallback((filtered: ExtendedMemory[]) => {
-    setFilteredMemories(filtered as MemoryWithFolder[]);
-  }, []);
+  const handleFilteredMemoriesChange = useCallback(
+    (filtered: ExtendedMemory[]) => {
+      setFilteredMemories(filtered as MemoryWithFolder[]);
+    },
+    []
+  );
 
   const handleClearAllMemories = async () => {
-    if (!confirm('Are you sure you want to delete ALL memories? This action cannot be undone.')) {
+    if (
+      !confirm(
+        'Are you sure you want to delete ALL memories? This action cannot be undone.'
+      )
+    ) {
       return;
     }
 
@@ -308,10 +349,14 @@ export default function VaultPage() {
               <h3 className="text-sm font-medium">Temporary Account</h3>
               <div className="mt-2 text-sm">
                 <p>
-                  You are currently using a temporary account. Your memories will be saved, but you need to complete the
-                  signup process within 7 days to keep your account and all your memories.
+                  You are currently using a temporary account. Your memories
+                  will be saved, but you need to complete the signup process
+                  within 7 days to keep your account and all your memories.
                 </p>
-                <p className="mt-2">After 7 days, your account and all memories will be automatically deleted.</p>
+                <p className="mt-2">
+                  After 7 days, your account and all memories will be
+                  automatically deleted.
+                </p>
               </div>
             </div>
           </div>
@@ -344,11 +389,18 @@ export default function VaultPage() {
       ) : /* Show empty state if no memories */
       dashboardItems.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border-2 border-gray-300 p-16 text-center bg-gray-50 shadow-lg">
-          <h3 className="text-4xl font-bold text-gray-800 mb-4">No memories yet</h3>
+          <h3 className="text-4xl font-bold text-gray-800 mb-4">
+            No memories yet
+          </h3>
           <p className="mt-2 text-base text-gray-600 mb-6 max-w-md">
-            Start by uploading your first memory. You can add images, videos, audio files, or write notes.
+            Start by uploading your first memory. You can add images, videos,
+            audio files, or write notes.
           </p>
-          <ItemUploadButton variant="large-icon" onSuccess={handleUploadSuccess} onError={handleUploadError} />
+          <ItemUploadButton
+            variant="large-icon"
+            onSuccess={handleUploadSuccess}
+            onError={handleUploadError}
+          />
         </div>
       ) : (
         /* Show memories grid */
@@ -391,7 +443,7 @@ export default function VaultPage() {
           resourceId={selectedId}
           initialTitle={selectedTitle}
           initialDescription={selectedDescription}
-          onSave={async params => {
+          onSave={async (params) => {
             await handleQuickEditSave({ data: params.data });
           }}
           isSaving={updateMemoryMutation.isPending}

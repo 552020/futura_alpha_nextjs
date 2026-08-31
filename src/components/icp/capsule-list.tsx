@@ -5,12 +5,24 @@ import { useSession } from 'next-auth/react';
 import { useAuthenticatedActor } from '@/hooks/use-authenticated-actor';
 import { useICPIdentity } from '@/hooks/use-icp-identity';
 import { getAuthClient } from '@/ic/ii';
-import { CapsuleInfo, Capsule, CapsuleListItem, adaptCapsuleHeader } from '@/types/capsule';
+import {
+  CapsuleInfo,
+  Capsule,
+  CapsuleListItem,
+  adaptCapsuleHeader,
+} from '@/types/capsule';
 import CapsuleDisplay from '@/components/icp/capsule-display';
 import { readCapsule } from '@/services/capsule';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Eye, Edit, Trash2 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
@@ -32,7 +44,8 @@ interface CapsuleListProps {
 export default function CapsuleList({ refreshTrigger }: CapsuleListProps = {}) {
   const { data: session } = useSession();
   const { getActor, clearActor } = useAuthenticatedActor();
-  const { isAuthenticated: isICPAuthenticated, isLoading: isICPLoading } = useICPIdentity();
+  const { isAuthenticated: isICPAuthenticated, isLoading: isICPLoading } =
+    useICPIdentity();
 
   const [state, setState] = useState<CapsuleListState>({
     capsules: [],
@@ -47,7 +60,7 @@ export default function CapsuleList({ refreshTrigger }: CapsuleListProps = {}) {
     if (!session?.user || !isICPAuthenticated) return;
 
     try {
-      setState(prev => ({ ...prev, isLoading: true, error: null }));
+      setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
       const actor = await getActor();
       const capsuleHeaders = await actor.capsules_list();
@@ -59,30 +72,38 @@ export default function CapsuleList({ refreshTrigger }: CapsuleListProps = {}) {
         const identity = await authClient.getIdentity();
         currentUserPrincipal = identity.getPrincipal().toString();
       } catch (error) {
-        console.warn('Could not get current user principal:', error);
+        fatLogger.warn('Could not get current user principal', 'fe', { error });
       }
 
       // Convert CapsuleHeader[] to CapsuleListItem[] using adapter
-      const capsules = capsuleHeaders.map(header => adaptCapsuleHeader(header, currentUserPrincipal));
+      const capsules = capsuleHeaders.map((header) =>
+        adaptCapsuleHeader(header, currentUserPrincipal)
+      );
 
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         capsules: capsules,
         isLoading: false,
       }));
     } catch (error) {
-      console.error('Failed to load capsules:', error);
+      fatLogger.error('Failed to load capsules', 'fe', { error });
 
       // Provide user-friendly error message based on error type
       let userMessage = 'Failed to load capsules';
       let toastMessage = 'Failed to load capsules';
 
       if (error instanceof Error) {
-        if (error.message.includes('ERR_CONNECTION_REFUSED') || error.message.includes('Failed to fetch')) {
-          userMessage = 'Unable to connect to ICP. Please check if the local development environment is running.';
-          toastMessage = 'ICP connection failed. Please start the local development environment.';
+        if (
+          error.message.includes('ERR_CONNECTION_REFUSED') ||
+          error.message.includes('Failed to fetch')
+        ) {
+          userMessage =
+            'Unable to connect to ICP. Please check if the local development environment is running.';
+          toastMessage =
+            'ICP connection failed. Please start the local development environment.';
         } else if (error.message.includes('TransportError')) {
-          userMessage = 'Network connection error. Please check your internet connection and try again.';
+          userMessage =
+            'Network connection error. Please check your internet connection and try again.';
           toastMessage = 'Network error. Please check your connection.';
         } else {
           userMessage = `Error: ${error.message}`;
@@ -90,12 +111,16 @@ export default function CapsuleList({ refreshTrigger }: CapsuleListProps = {}) {
         }
       }
 
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         isLoading: false,
         error: userMessage,
       }));
-      toast({ title: 'Error', description: toastMessage, variant: 'destructive' });
+      toast({
+        title: 'Error',
+        description: toastMessage,
+        variant: 'destructive',
+      });
     }
   }, [session, getActor, isICPAuthenticated]);
 
@@ -108,7 +133,12 @@ export default function CapsuleList({ refreshTrigger }: CapsuleListProps = {}) {
 
   // Refresh when refreshTrigger changes
   useEffect(() => {
-    if (refreshTrigger && session?.user && !isICPLoading && isICPAuthenticated) {
+    if (
+      refreshTrigger &&
+      session?.user &&
+      !isICPLoading &&
+      isICPAuthenticated
+    ) {
       loadCapsules();
     }
   }, [refreshTrigger, session, loadCapsules, isICPAuthenticated, isICPLoading]);
@@ -117,7 +147,7 @@ export default function CapsuleList({ refreshTrigger }: CapsuleListProps = {}) {
     try {
       if (state.selectedCapsuleId === capsuleId && state.isViewingCapsule) {
         // Toggle off - hide the capsule view
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           selectedCapsuleId: null,
           selectedCapsule: null,
@@ -125,11 +155,11 @@ export default function CapsuleList({ refreshTrigger }: CapsuleListProps = {}) {
         }));
       } else {
         // Toggle on - show the capsule view
-        setState(prev => ({ ...prev, isLoading: true }));
+        setState((prev) => ({ ...prev, isLoading: true }));
 
         const result = await readCapsule(capsuleId, getActor, clearActor);
 
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           selectedCapsuleId: capsuleId,
           selectedCapsule: result,
@@ -138,34 +168,48 @@ export default function CapsuleList({ refreshTrigger }: CapsuleListProps = {}) {
         }));
       }
     } catch (error) {
-      console.error('Failed to load capsule details:', error);
+      fatLogger.error('Failed to load capsule details', 'fe', { error });
 
       // Provide user-friendly error message based on error type
       let toastMessage = 'Failed to load capsule details';
 
       if (error instanceof Error) {
-        if (error.message.includes('ERR_CONNECTION_REFUSED') || error.message.includes('Failed to fetch')) {
-          toastMessage = 'ICP connection failed. Please start the local development environment.';
+        if (
+          error.message.includes('ERR_CONNECTION_REFUSED') ||
+          error.message.includes('Failed to fetch')
+        ) {
+          toastMessage =
+            'ICP connection failed. Please start the local development environment.';
         } else if (error.message.includes('TransportError')) {
           toastMessage = 'Network error. Please check your connection.';
         }
       }
 
-      setState(prev => ({ ...prev, isLoading: false }));
-      toast({ title: 'Error', description: toastMessage, variant: 'destructive' });
+      setState((prev) => ({ ...prev, isLoading: false }));
+      toast({
+        title: 'Error',
+        description: toastMessage,
+        variant: 'destructive',
+      });
     }
   };
 
   const handleEditCapsule = (capsuleId: string) => {
     // TODO: Navigate to capsule edit view
     fatLogger.info('Edit capsule:', 'be', { capsuleId });
-    toast({ title: 'Info', description: 'Edit capsule functionality coming soon' });
+    toast({
+      title: 'Info',
+      description: 'Edit capsule functionality coming soon',
+    });
   };
 
   const handleDeleteCapsule = (capsuleId: string) => {
     // TODO: Implement delete functionality
     fatLogger.info('Delete capsule:', 'be', { capsuleId });
-    toast({ title: 'Info', description: 'Delete capsule functionality coming soon' });
+    toast({
+      title: 'Info',
+      description: 'Delete capsule functionality coming soon',
+    });
   };
 
   const formatStorage = (_used: bigint, _limit: bigint) => {
@@ -201,7 +245,9 @@ export default function CapsuleList({ refreshTrigger }: CapsuleListProps = {}) {
     return (
       <Card>
         <CardContent className="p-6">
-          <p className="text-center text-muted-foreground">Please sign in to view your capsules.</p>
+          <p className="text-center text-muted-foreground">
+            Please sign in to view your capsules.
+          </p>
         </CardContent>
       </Card>
     );
@@ -227,7 +273,9 @@ export default function CapsuleList({ refreshTrigger }: CapsuleListProps = {}) {
       <Card>
         <CardContent className="p-6">
           <div className="text-center">
-            <p className="text-muted-foreground">Please connect your Internet Identity to view capsules.</p>
+            <p className="text-muted-foreground">
+              Please connect your Internet Identity to view capsules.
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -296,7 +344,7 @@ export default function CapsuleList({ refreshTrigger }: CapsuleListProps = {}) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {state.capsules.map(capsule => (
+            {state.capsules.map((capsule) => (
               <TableRow key={capsule.id}>
                 <TableCell>
                   {capsule.isSelfCapsule
@@ -305,7 +353,11 @@ export default function CapsuleList({ refreshTrigger }: CapsuleListProps = {}) {
                 </TableCell>
                 <TableCell>
                   <Badge variant="secondary">
-                    {capsule.isOwner ? 'Owner' : capsule.isController ? 'Controller' : 'None'}
+                    {capsule.isOwner
+                      ? 'Owner'
+                      : capsule.isController
+                        ? 'Controller'
+                        : 'None'}
                   </Badge>
                 </TableCell>
                 <TableCell>
@@ -323,15 +375,28 @@ export default function CapsuleList({ refreshTrigger }: CapsuleListProps = {}) {
                   <div className="flex gap-2">
                     <Button
                       size="sm"
-                      variant={state.selectedCapsuleId === capsule.id && state.isViewingCapsule ? 'default' : 'outline'}
+                      variant={
+                        state.selectedCapsuleId === capsule.id &&
+                        state.isViewingCapsule
+                          ? 'default'
+                          : 'outline'
+                      }
                       onClick={() => handleViewCapsule(capsule.id)}
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => handleEditCapsule(capsule.id)}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleEditCapsule(capsule.id)}
+                    >
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => handleDeleteCapsule(capsule.id)}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDeleteCapsule(capsule.id)}
+                    >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
