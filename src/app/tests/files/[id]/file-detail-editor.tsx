@@ -83,7 +83,11 @@ type FileDetailsType =
       data: TestMemoryData;
     };
 
-export default function FileDetailEditor({ fileDetails }: { fileDetails: FileDetailsType }) {
+export default function FileDetailEditor({
+  fileDetails,
+}: {
+  fileDetails: FileDetailsType;
+}) {
   const router = useRouter();
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -91,11 +95,21 @@ export default function FileDetailEditor({ fileDetails }: { fileDetails: FileDet
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form fields
-  const [caption, setCaption] = useState(fileDetails.type === 'image' ? fileDetails.data.description || '' : '');
-  const [filename, setFilename] = useState(fileDetails.type === 'document' ? fileDetails.data.title || '' : '');
-  const [isPublic, setIsPublic] = useState(fileDetails.data.sharingStatus === 'public');
-  const [title, setTitle] = useState(fileDetails.type === 'note' ? fileDetails.data.title || '' : '');
-  const [content, setContent] = useState(fileDetails.type === 'note' ? fileDetails.data.content || '' : '');
+  const [caption, setCaption] = useState(
+    fileDetails.type === 'image' ? fileDetails.data.description || '' : ''
+  );
+  const [filename, setFilename] = useState(
+    fileDetails.type === 'document' ? fileDetails.data.title || '' : ''
+  );
+  const [isPublic, setIsPublic] = useState(
+    fileDetails.data.sharingStatus === 'public'
+  );
+  const [title, setTitle] = useState(
+    fileDetails.type === 'note' ? fileDetails.data.title || '' : ''
+  );
+  const [content, setContent] = useState(
+    fileDetails.type === 'note' ? fileDetails.data.content || '' : ''
+  );
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -159,7 +173,10 @@ export default function FileDetailEditor({ fileDetails }: { fileDetails: FileDet
         requestOptions.body = JSON.stringify(updateData);
       }
 
-      const response = await fetch(`/api/files/${fileDetails.data.id}`, requestOptions);
+      const response = await fetch(
+        `/api/files/${fileDetails.data.id}`,
+        requestOptions
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -189,11 +206,15 @@ export default function FileDetailEditor({ fileDetails }: { fileDetails: FileDet
   return (
     <div className="p-8 max-w-4xl mx-auto">
       <div className="flex items-center mb-6">
-        <button onClick={() => router.push('/tests/files')} className="text-blue-600 hover:text-blue-800 mr-4">
+        <button
+          onClick={() => router.push('/tests/files')}
+          className="text-blue-600 hover:text-blue-800 mr-4"
+        >
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="text-2xl font-bold">
-          Edit {fileDetails.type.charAt(0).toUpperCase() + fileDetails.type.slice(1)}
+          Edit{' '}
+          {fileDetails.type.charAt(0).toUpperCase() + fileDetails.type.slice(1)}
         </h1>
       </div>
 
@@ -219,7 +240,8 @@ export default function FileDetailEditor({ fileDetails }: { fileDetails: FileDet
             <Tabs defaultValue="metadata" className="w-full">
               <TabsList className="mb-4">
                 <TabsTrigger value="metadata">Metadata</TabsTrigger>
-                {(fileDetails.type === 'image' || fileDetails.type === 'document') && (
+                {(fileDetails.type === 'image' ||
+                  fileDetails.type === 'document') && (
                   <TabsTrigger value="replace">Replace File</TabsTrigger>
                 )}
               </TabsList>
@@ -231,7 +253,7 @@ export default function FileDetailEditor({ fileDetails }: { fileDetails: FileDet
                     <Input
                       id="caption"
                       value={caption}
-                      onChange={e => setCaption(e.target.value)}
+                      onChange={(e) => setCaption(e.target.value)}
                       placeholder="Add a caption for this photo"
                     />
                   </div>
@@ -243,7 +265,7 @@ export default function FileDetailEditor({ fileDetails }: { fileDetails: FileDet
                     <Input
                       id="filename"
                       value={filename}
-                      onChange={e => setFilename(e.target.value)}
+                      onChange={(e) => setFilename(e.target.value)}
                       placeholder="Filename"
                     />
                   </div>
@@ -253,14 +275,19 @@ export default function FileDetailEditor({ fileDetails }: { fileDetails: FileDet
                   <>
                     <div className="space-y-2">
                       <Label htmlFor="title">Title</Label>
-                      <Input id="title" value={title} onChange={e => setTitle(e.target.value)} placeholder="Title" />
+                      <Input
+                        id="title"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="Title"
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="content">Content</Label>
                       <Textarea
                         id="content"
                         value={content}
-                        onChange={e => setContent(e.target.value)}
+                        onChange={(e) => setContent(e.target.value)}
                         rows={8}
                         placeholder="Text content"
                         className="resize-y"
@@ -270,13 +297,18 @@ export default function FileDetailEditor({ fileDetails }: { fileDetails: FileDet
                 )}
 
                 <div className="flex items-center space-x-2">
-                  <Switch id="isPublic" checked={isPublic} onCheckedChange={setIsPublic} />
+                  <Switch
+                    id="isPublic"
+                    checked={isPublic}
+                    onCheckedChange={setIsPublic}
+                  />
                   <Label htmlFor="isPublic">Make this file public</Label>
                 </div>
               </TabsContent>
 
               <TabsContent value="replace" className="space-y-4">
-                {(fileDetails.type === 'image' || fileDetails.type === 'document') && (
+                {(fileDetails.type === 'image' ||
+                  fileDetails.type === 'document') && (
                   <div className="space-y-2">
                     <Label htmlFor="file">Upload new file</Label>
                     <Input
@@ -288,7 +320,8 @@ export default function FileDetailEditor({ fileDetails }: { fileDetails: FileDet
                     />
                     {selectedFile && (
                       <p className="text-sm text-gray-500 mt-1">
-                        Selected: {selectedFile.name} ({Math.round(selectedFile.size / 1024)} KB)
+                        Selected: {selectedFile.name} (
+                        {Math.round(selectedFile.size / 1024)} KB)
                       </p>
                     )}
                   </div>
@@ -296,14 +329,19 @@ export default function FileDetailEditor({ fileDetails }: { fileDetails: FileDet
 
                 {fileDetails.type === 'note' && (
                   <p className="text-sm text-gray-500 italic">
-                    Text content cannot be replaced with a file. Use the metadata tab to update content.
+                    Text content cannot be replaced with a file. Use the
+                    metadata tab to update content.
                   </p>
                 )}
               </TabsContent>
             </Tabs>
 
             {/* Success/error messages */}
-            {success && <div className="mt-4 p-3 bg-green-50 text-green-800 rounded">{success}</div>}
+            {success && (
+              <div className="mt-4 p-3 bg-green-50 text-green-800 rounded">
+                {success}
+              </div>
+            )}
 
             {error && (
               <div className="mt-4 p-3 bg-red-50 text-red-800 rounded flex items-center">
@@ -333,7 +371,9 @@ export default function FileDetailEditor({ fileDetails }: { fileDetails: FileDet
             <div className="space-y-2 text-sm">
               <div className="grid grid-cols-3">
                 <span className="font-medium">ID:</span>
-                <span className="col-span-2 font-mono text-gray-700 break-all">{fileDetails.data.id}</span>
+                <span className="col-span-2 font-mono text-gray-700 break-all">
+                  {fileDetails.data.id}
+                </span>
               </div>
               <div className="grid grid-cols-3">
                 <span className="font-medium">Type:</span>
@@ -341,13 +381,17 @@ export default function FileDetailEditor({ fileDetails }: { fileDetails: FileDet
               </div>
               <div className="grid grid-cols-3">
                 <span className="font-medium">Created:</span>
-                <span className="col-span-2">{new Date(fileDetails.data.createdAt).toLocaleString('en-US')}</span>
+                <span className="col-span-2">
+                  {new Date(fileDetails.data.createdAt).toLocaleString('en-US')}
+                </span>
               </div>
               {fileDetails.data.metadata?.dateOfMemory && (
                 <div className="grid grid-cols-3">
                   <span className="font-medium">Date of Memory:</span>
                   <span className="col-span-2">
-                    {new Date(fileDetails.data.metadata.dateOfMemory).toLocaleString('en-US')}
+                    {new Date(
+                      fileDetails.data.metadata.dateOfMemory
+                    ).toLocaleString('en-US')}
                   </span>
                 </div>
               )}
@@ -362,13 +406,17 @@ export default function FileDetailEditor({ fileDetails }: { fileDetails: FileDet
                   {fileDetails.data.metadata?.size && (
                     <div className="grid grid-cols-3">
                       <span className="font-medium">Size:</span>
-                      <span className="col-span-2">{fileDetails.data.metadata.size} bytes</span>
+                      <span className="col-span-2">
+                        {fileDetails.data.metadata.size} bytes
+                      </span>
                     </div>
                   )}
                   {fileDetails.data.metadata?.format && (
                     <div className="grid grid-cols-3">
                       <span className="font-medium">Format:</span>
-                      <span className="col-span-2">{fileDetails.data.metadata.format}</span>
+                      <span className="col-span-2">
+                        {fileDetails.data.metadata.format}
+                      </span>
                     </div>
                   )}
                 </>
@@ -383,11 +431,15 @@ export default function FileDetailEditor({ fileDetails }: { fileDetails: FileDet
                   </div>
                   <div className="grid grid-cols-3">
                     <span className="font-medium">Size:</span>
-                    <span className="col-span-2">{fileDetails.data.size || 'N/A'} bytes</span>
+                    <span className="col-span-2">
+                      {fileDetails.data.size || 'N/A'} bytes
+                    </span>
                   </div>
                   <div className="grid grid-cols-3">
                     <span className="font-medium">MIME Type:</span>
-                    <span className="col-span-2">{fileDetails.data.mimeType || 'N/A'}</span>
+                    <span className="col-span-2">
+                      {fileDetails.data.mimeType || 'N/A'}
+                    </span>
                   </div>
                 </>
               )}

@@ -24,7 +24,9 @@ config({ path: '.env.local' });
 
 // Ensure DATABASE_URL is set
 if (!process.env.DATABASE_URL_UNPOOLED) {
-  throw new Error("❌ DATABASE_URL_UNPOOLED is missing! Make sure it's set in .env.local");
+  throw new Error(
+    "❌ DATABASE_URL_UNPOOLED is missing! Make sure it's set in .env.local"
+  );
 }
 
 // Create database connection
@@ -67,7 +69,9 @@ async function checkStorageEdges(memoryId: string) {
       console.log('❌ No storage edges found - this explains "UNKNOWN" status');
       console.log('\n💡 This means:');
       console.log('   - No storage location has been recorded for this memory');
-      console.log('   - The memory may not have been properly uploaded to any storage');
+      console.log(
+        '   - The memory may not have been properly uploaded to any storage'
+      );
       console.log('   - Storage edges should be created during upload process');
     } else {
       edges.forEach((edge, index) => {
@@ -90,7 +94,7 @@ async function checkStorageEdges(memoryId: string) {
 
       // Analyze the storage locations
       const storageLocations = new Set<string>();
-      edges.forEach(edge => {
+      edges.forEach((edge) => {
         if (edge.locationMetadata) {
           storageLocations.add(edge.locationMetadata);
         }
@@ -104,7 +108,7 @@ async function checkStorageEdges(memoryId: string) {
       if (storageLocations.size === 0) {
         console.log('❌ No storage locations found');
       } else {
-        Array.from(storageLocations).forEach(location => {
+        Array.from(storageLocations).forEach((location) => {
           console.log(`✅ ${location}`);
         });
       }
@@ -114,10 +118,10 @@ async function checkStorageEdges(memoryId: string) {
     console.log('\n🔧 API SIMULATION:');
     console.log('─'.repeat(40));
 
-    const presentEdges = edges.filter(edge => edge.present);
+    const presentEdges = edges.filter((edge) => edge.present);
     const storageLocations = new Set<string>();
 
-    presentEdges.forEach(edge => {
+    presentEdges.forEach((edge) => {
       if (edge.locationMetadata) {
         storageLocations.add(edge.locationMetadata);
       }
@@ -133,7 +137,9 @@ async function checkStorageEdges(memoryId: string) {
     if (finalLocations.length === 0) {
       console.log('❌ This would result in "UNKNOWN" storage status');
     } else {
-      console.log(`✅ This would show storage as: ${finalLocations.join(', ')}`);
+      console.log(
+        `✅ This would show storage as: ${finalLocations.join(', ')}`
+      );
     }
   } catch (error) {
     console.error('❌ Error checking storage edges:', error);
@@ -146,8 +152,12 @@ async function main() {
 
   if (!memoryId) {
     console.error('❌ Error: Memory ID is required');
-    console.log('\nUsage: npx tsx scripts/db/memories/check-storage-edges.ts <memoryId>');
-    console.log('Example: npx tsx scripts/db/memories/check-storage-edges.ts 123e4567-e89b-12d3-a456-426614174000');
+    console.log(
+      '\nUsage: npx tsx scripts/db/memories/check-storage-edges.ts <memoryId>'
+    );
+    console.log(
+      'Example: npx tsx scripts/db/memories/check-storage-edges.ts 123e4567-e89b-12d3-a456-426614174000'
+    );
     process.exit(1);
   }
 

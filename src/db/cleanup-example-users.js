@@ -11,14 +11,16 @@ async function cleanupExampleUsers() {
       where: like(users.email, '%@example.com'),
     });
 
-    console.log(`📋 Found ${exampleUsers.length} users with @example.com emails`);
+    console.log(
+      `📋 Found ${exampleUsers.length} users with @example.com emails`
+    );
 
     if (exampleUsers.length === 0) {
       console.log('✅ No @example.com users to clean up');
       return;
     }
 
-    const userIds = exampleUsers.map(user => user.id);
+    const userIds = exampleUsers.map((user) => user.id);
     console.log('🔍 User IDs to delete:', userIds);
 
     // Find allUsers records for these users
@@ -26,9 +28,11 @@ async function cleanupExampleUsers() {
       where: (allUsers, { inArray }) => inArray(allUsers.userId, userIds),
     });
 
-    console.log(`📋 Found ${allUsersToDelete.length} allUsers records to delete`);
+    console.log(
+      `📋 Found ${allUsersToDelete.length} allUsers records to delete`
+    );
 
-    const allUserIds = allUsersToDelete.map(au => au.id);
+    const allUserIds = allUsersToDelete.map((au) => au.id);
 
     // Find memories owned by these users
     const memoriesToDelete = await db.query.memories.findMany({
@@ -36,13 +40,14 @@ async function cleanupExampleUsers() {
     });
 
     console.log(`📋 Found ${memoriesToDelete.length} memories to delete`);
-    const memoryIds = memoriesToDelete.map(m => m.id);
+    const memoryIds = memoriesToDelete.map((m) => m.id);
 
     // Find assets for these memories
     let assetsToDelete = [];
     if (memoryIds.length > 0) {
       assetsToDelete = await db.query.memoryAssets.findMany({
-        where: (memoryAssets, { inArray }) => inArray(memoryAssets.memoryId, memoryIds),
+        where: (memoryAssets, { inArray }) =>
+          inArray(memoryAssets.memoryId, memoryIds),
       });
     }
 
@@ -71,7 +76,9 @@ async function cleanupExampleUsers() {
 
     console.log('✅ Cleanup completed successfully!');
     console.log(`📊 Summary:`);
-    console.log(`   - Deleted ${exampleUsers.length} users with @example.com emails`);
+    console.log(
+      `   - Deleted ${exampleUsers.length} users with @example.com emails`
+    );
     console.log(`   - Deleted ${allUsersToDelete.length} allUsers records`);
     console.log(`   - Deleted ${memoriesToDelete.length} memories`);
     console.log(`   - Deleted ${assetsToDelete.length} assets`);

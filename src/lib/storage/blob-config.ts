@@ -15,7 +15,10 @@ export function getBlobFolderName(): string {
 /**
  * Generate a unique filename with timestamp and folder prefix
  */
-export function generateBlobFilename(originalFilename: string, addRandomSuffix = false): string {
+export function generateBlobFilename(
+  originalFilename: string,
+  addRandomSuffix = false
+): string {
   const folderName = getBlobFolderName();
   const timestamp = Date.now();
   const extension = originalFilename.split('.').pop() || '';

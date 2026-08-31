@@ -23,7 +23,9 @@ describe('Database Views (Hybrid Approach)', () => {
   afterAll(async () => {
     // Clean up test data
     if (testEdgeIds.length > 0) {
-      await db.delete(storageEdges).where(eq(storageEdges.memoryId, TEST_MEMORY_ID));
+      await db
+        .delete(storageEdges)
+        .where(eq(storageEdges.memoryId, TEST_MEMORY_ID));
     }
   });
 
@@ -59,7 +61,10 @@ describe('Database Views (Hybrid Approach)', () => {
       },
     ];
 
-    const inserted = await db.insert(storageEdges).values(testEdges).returning();
+    const inserted = await db
+      .insert(storageEdges)
+      .values(testEdges)
+      .returning();
     testEdgeIds = inserted.map((edge: any) => edge.id);
 
     expect(inserted).toHaveLength(3);
@@ -74,7 +79,9 @@ describe('Database Views (Hybrid Approach)', () => {
 
   it('should find test memory in memory_presence view', async () => {
     // This test verifies our test data appears in the view
-    const result = await db.execute(sql`SELECT * FROM memory_presence WHERE memory_id = ${TEST_MEMORY_ID}`);
+    const result = await db.execute(
+      sql`SELECT * FROM memory_presence WHERE memory_id = ${TEST_MEMORY_ID}`
+    );
     expect(result).toBeDefined();
     console.log('✅ Test memory found in memory_presence view');
   });
@@ -105,7 +112,9 @@ describe('Database Views (Hybrid Approach)', () => {
 
   it('should find test data in sync_status view', async () => {
     // This test verifies our test data appears in the sync_status view
-    const result = await db.execute(sql`SELECT * FROM sync_status WHERE memory_id = ${TEST_MEMORY_ID}`);
+    const result = await db.execute(
+      sql`SELECT * FROM sync_status WHERE memory_id = ${TEST_MEMORY_ID}`
+    );
     expect(result).toBeDefined();
     console.log('✅ Test data found in sync_status view');
   });

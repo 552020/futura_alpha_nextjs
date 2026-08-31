@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { deleteAccount, softDeleteAccount } from '@/services/user/user-operations';
+import {
+  deleteAccount,
+  softDeleteAccount,
+} from '@/services/user/user-operations';
 import { fatLogger } from '@/lib/logger';
 
 /**
@@ -27,7 +30,10 @@ export async function GET(_request: NextRequest) {
     fatLogger.error('Get account info error', 'be', {
       error: error instanceof Error ? error : undefined,
     });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
 
@@ -60,7 +66,10 @@ export async function PATCH(request: NextRequest) {
     fatLogger.error('Update account error', 'be', {
       error: error instanceof Error ? error : undefined,
     });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
 
@@ -133,6 +142,9 @@ export async function DELETE(request: NextRequest) {
       error: error instanceof Error ? error : undefined,
       operation: 'delete_account_api',
     });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }

@@ -5,7 +5,10 @@ import { getAllUserRecord } from '@/services/user';
 import type { allUsers } from '@/db';
 import { fatLogger } from '@/lib/logger';
 
-export async function DELETE(request: NextRequest, context: { params: Promise<{ tokenId: string }> }) {
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ tokenId: string }> }
+) {
   const { tokenId } = await context.params;
 
   try {
@@ -37,7 +40,10 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
     const allUserRecord = userResult.data as typeof allUsers.$inferSelect;
 
     // Deactivate the public link using service function
-    const deactivateResult = await deactivatePublicLink(tokenId, allUserRecord.id);
+    const deactivateResult = await deactivatePublicLink(
+      tokenId,
+      allUserRecord.id
+    );
 
     if (!deactivateResult.success) {
       fatLogger.error('Failed to deactivate public link', 'be', {
@@ -83,5 +89,3 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
     );
   }
 }
-
-

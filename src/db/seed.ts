@@ -11,7 +11,9 @@ export async function seed() {
     // fatLogger.info("✅ Database seeding completed successfully");
     process.exit(0);
   } catch (error) {
-    fatLogger.error('❌ Error seeding database:', 'be', { data: error instanceof Error ? error : undefined });
+    fatLogger.error('❌ Error seeding database:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
     process.exit(1);
   }
 }

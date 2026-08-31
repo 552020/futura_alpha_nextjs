@@ -40,7 +40,11 @@ interface CreatePublicLinkParams {
 }
 
 // API functions
-const shareResource = async ({ resourceType, resourceId, data }: ShareMemoryParams) => {
+const shareResource = async ({
+  resourceType,
+  resourceId,
+  data,
+}: ShareMemoryParams) => {
   const response = await fetch(`/api/${resourceType}s/${resourceId}/share`, {
     method: 'POST',
     headers: {
@@ -57,14 +61,21 @@ const shareResource = async ({ resourceType, resourceId, data }: ShareMemoryPara
   return response.json();
 };
 
-const createPublicLink = async ({ resourceType, resourceId, ...params }: CreatePublicLinkParams) => {
-  const response = await fetch(`/api/${resourceType}s/${resourceId}/public-link`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(params),
-  });
+const createPublicLink = async ({
+  resourceType,
+  resourceId,
+  ...params
+}: CreatePublicLinkParams) => {
+  const response = await fetch(
+    `/api/${resourceType}s/${resourceId}/public-link`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(params),
+    }
+  );
 
   if (!response.ok) {
     const error = await response.json();
@@ -98,7 +109,7 @@ export function useCreatePublicLink() {
       if (data.data?.shareUrl) {
         navigator.clipboard.writeText(data.data.shareUrl);
       }
-      
+
       // Invalidate dashboard queries
       queryClient.invalidateQueries({ queryKey: ['memories', 'dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['folders', 'dashboard'] });

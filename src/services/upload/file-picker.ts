@@ -13,7 +13,10 @@ import type { FileInputAttributeMode } from '@/types/upload';
  * @param el - The HTML input element to configure
  * @param mode - The file selection mode
  */
-export function configureFileInput(el: HTMLInputElement, mode: FileInputAttributeMode) {
+export function configureFileInput(
+  el: HTMLInputElement,
+  mode: FileInputAttributeMode
+) {
   // Reset to single file mode first
   el.removeAttribute('webkitdirectory');
   el.removeAttribute('directory');
@@ -38,7 +41,10 @@ export function configureFileInput(el: HTMLInputElement, mode: FileInputAttribut
  * @param el - The HTML input element to trigger
  * @param mode - The file selection mode
  */
-export function triggerFileInput(el: HTMLInputElement, mode: FileInputAttributeMode) {
+export function triggerFileInput(
+  el: HTMLInputElement,
+  mode: FileInputAttributeMode
+) {
   configureFileInput(el, mode);
 
   // Reset value so selecting the same files triggers onChange again

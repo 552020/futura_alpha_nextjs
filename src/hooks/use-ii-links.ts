@@ -68,7 +68,12 @@ export function useIILinks() {
  */
 export function useIILinksRequired(action: string) {
   const { hasLinkedII } = useIILinks();
-  const requires = ['create-gallery-forever', 'upload-to-icp', 'sync-to-icp', 'icp-storage-operation'].includes(action);
+  const requires = [
+    'create-gallery-forever',
+    'upload-to-icp',
+    'sync-to-icp',
+    'icp-storage-operation',
+  ].includes(action);
   return {
     requires,
     canProceed: !requires || hasLinkedII,

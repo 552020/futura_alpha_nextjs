@@ -1,6 +1,12 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useOnboarding } from '@/contexts/onboarding-context';
 import { useEffect, useRef, useState } from 'react';
 import { StepContainer } from '../common/step-container';
@@ -14,8 +20,12 @@ interface ShareStepProps {
 export function ShareStep({ onNext, onBack }: ShareStepProps) {
   const { userData, updateUserData, currentStep } = useOnboarding();
 
-  const [localRecipientName, setLocalRecipientName] = useState(userData.recipientName);
-  const [localRecipientEmail, setLocalRecipientEmail] = useState(userData.recipientEmail);
+  const [localRecipientName, setLocalRecipientName] = useState(
+    userData.recipientName
+  );
+  const [localRecipientEmail, setLocalRecipientEmail] = useState(
+    userData.recipientEmail
+  );
   const [lastFocusedField, setLastFocusedField] = useState<string | null>(null);
 
   const recipientNameRef = useRef<HTMLInputElement>(null);
@@ -26,7 +36,10 @@ export function ShareStep({ onNext, onBack }: ShareStepProps) {
     if (currentStep === 'share' && lastFocusedField) {
       if (lastFocusedField === 'recipientName' && recipientNameRef.current) {
         recipientNameRef.current.focus();
-      } else if (lastFocusedField === 'recipientEmail' && recipientEmailRef.current) {
+      } else if (
+        lastFocusedField === 'recipientEmail' &&
+        recipientEmailRef.current
+      ) {
         recipientEmailRef.current.focus();
       }
     }
@@ -39,13 +52,17 @@ export function ShareStep({ onNext, onBack }: ShareStepProps) {
     return isValid;
   };
 
-  const handleRecipientNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleRecipientNameChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const newValue = e.target.value;
     setLocalRecipientName(newValue);
     updateUserData({ recipientName: newValue });
   };
 
-  const handleRecipientEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleRecipientEmailChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const newValue = e.target.value;
     // icpLogger.info("Recipient email changed:", newValue);
     setLocalRecipientEmail(newValue);
@@ -70,7 +87,9 @@ export function ShareStep({ onNext, onBack }: ShareStepProps) {
   return (
     <StepContainer>
       <div className="pt-1 sm:pt-4">
-        <p className="text-lg sm:text-4xl font-bold mb-2 sm:mb-8">Let&apos;s share your memory with someone special!</p>
+        <p className="text-lg sm:text-4xl font-bold mb-2 sm:mb-8">
+          Let&apos;s share your memory with someone special!
+        </p>
         <p className="text-sm sm:text-xl text-muted-foreground mb-3 sm:mb-8 italic">
           Tell us about the person you want to share this memory with.
         </p>
@@ -103,7 +122,9 @@ export function ShareStep({ onNext, onBack }: ShareStepProps) {
             placeholder="Enter their email"
           />
           {!validateEmail(localRecipientEmail) && (
-            <p className="text-sm text-red-500">Please enter a valid email address</p>
+            <p className="text-sm text-red-500">
+              Please enter a valid email address
+            </p>
           )}
         </div>
 
@@ -111,7 +132,7 @@ export function ShareStep({ onNext, onBack }: ShareStepProps) {
           <Label htmlFor="relationship">Your Relationship</Label>
           <Select
             value={userData.relationship}
-            onValueChange={value => {
+            onValueChange={(value) => {
               // If changing away from family, clear the family relationship
               if (value !== 'family' && userData.familyRelationship) {
                 updateUserData({
@@ -143,7 +164,9 @@ export function ShareStep({ onNext, onBack }: ShareStepProps) {
             <Label htmlFor="familyRelationship">Family Relationship</Label>
             <Select
               value={userData.familyRelationship}
-              onValueChange={value => updateUserData({ familyRelationship: value })}
+              onValueChange={(value) =>
+                updateUserData({ familyRelationship: value })
+              }
             >
               <SelectTrigger id="familyRelationship">
                 <SelectValue placeholder="What is your family relationship?" />
@@ -157,14 +180,21 @@ export function ShareStep({ onNext, onBack }: ShareStepProps) {
                 <SelectItem value="aunt-uncle">Aunt/Uncle</SelectItem>
                 <SelectItem value="niece-nephew">Niece/Nephew</SelectItem>
                 <SelectItem value="cousin">Cousin</SelectItem>
-                <SelectItem value="other-family">Other Family Member</SelectItem>
+                <SelectItem value="other-family">
+                  Other Family Member
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
         )}
       </div>
 
-      <StepNavigation currentStep={currentStep} onNext={handleNext} onBack={onBack} isNextDisabled={isNextDisabled} />
+      <StepNavigation
+        currentStep={currentStep}
+        onNext={handleNext}
+        onBack={onBack}
+        isNextDisabled={isNextDisabled}
+      />
     </StepContainer>
   );
 }

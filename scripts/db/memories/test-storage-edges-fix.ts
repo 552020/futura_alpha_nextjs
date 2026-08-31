@@ -24,12 +24,16 @@ config({ path: '.env.local' });
 
 // Ensure DATABASE_URL is set
 if (!process.env.DATABASE_URL_UNPOOLED) {
-  throw new Error("❌ DATABASE_URL_UNPOOLED is missing! Make sure it's set in .env.local");
+  throw new Error(
+    "❌ DATABASE_URL_UNPOOLED is missing! Make sure it's set in .env.local"
+  );
 }
 
 // Create database connection
 const sql = neon(process.env.DATABASE_URL_UNPOOLED!);
-const db = drizzle(sql, { schema: { users, allUsers, memories, storageEdges } });
+const db = drizzle(sql, {
+  schema: { users, allUsers, memories, storageEdges },
+});
 
 async function testStorageEdgesFix(email: string) {
   console.log(`🧪 Testing storage edges fix for user: ${email}`);
@@ -92,14 +96,18 @@ async function testStorageEdgesFix(email: string) {
       console.log(`Storage Edges Found: ${edges.length}`);
 
       if (edges.length === 0) {
-        console.log('❌ NO STORAGE EDGES - This memory will show "Storage: UNKNOWN"');
+        console.log(
+          '❌ NO STORAGE EDGES - This memory will show "Storage: UNKNOWN"'
+        );
         memoriesWithoutStorageEdges++;
       } else {
         console.log('✅ HAS STORAGE EDGES:');
         edges.forEach((edge, index) => {
           console.log(`  Edge ${index + 1}:`);
           console.log(`    Artifact: ${edge.artifact}`);
-          console.log(`    Location Metadata: ${edge.locationMetadata || 'N/A'}`);
+          console.log(
+            `    Location Metadata: ${edge.locationMetadata || 'N/A'}`
+          );
           console.log(`    Location Asset: ${edge.locationAsset || 'N/A'}`);
           console.log(`    Present: ${edge.present}`);
           console.log(`    URL: ${edge.locationUrl || 'N/A'}`);
@@ -126,10 +134,16 @@ async function testStorageEdgesFix(email: string) {
 
     console.log('\n💡 NEXT STEPS:');
     if (memoriesWithoutStorageEdges > 0) {
-      console.log('   1. Create a new memory to test if the fix works for new uploads');
-      console.log('   2. Run the fix script to add storage edges to existing memories');
+      console.log(
+        '   1. Create a new memory to test if the fix works for new uploads'
+      );
+      console.log(
+        '   2. Run the fix script to add storage edges to existing memories'
+      );
     } else {
-      console.log('   1. Create a new memory to verify the fix works for new uploads');
+      console.log(
+        '   1. Create a new memory to verify the fix works for new uploads'
+      );
       console.log('   2. Test adding assets to existing memories');
     }
 
@@ -145,8 +159,12 @@ async function main() {
 
   if (!email) {
     console.error('❌ Error: Email address is required');
-    console.log('\nUsage: npx tsx scripts/db/memories/test-storage-edges-fix.ts <email>');
-    console.log('Example: npx tsx scripts/db/memories/test-storage-edges-fix.ts user@example.com');
+    console.log(
+      '\nUsage: npx tsx scripts/db/memories/test-storage-edges-fix.ts <email>'
+    );
+    console.log(
+      'Example: npx tsx scripts/db/memories/test-storage-edges-fix.ts user@example.com'
+    );
     process.exit(1);
   }
 

@@ -66,7 +66,8 @@ function patchDeclarationFile(filePath) {
   }
 
   // Replace the original fetchRootKey call with safe version
-  const originalFetchRootKey = /\/\/ Fetch root key for certificate validation during development[\s\S]*?}\);/;
+  const originalFetchRootKey =
+    /\/\/ Fetch root key for certificate validation during development[\s\S]*?}\);/;
   if (originalFetchRootKey.test(content)) {
     content = content.replace(originalFetchRootKey, safeFetchRootKeyCode);
   }

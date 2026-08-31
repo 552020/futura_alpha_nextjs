@@ -64,11 +64,15 @@ export function MemoryActions({ id, onDelete, onShare }: MemoryActionsProps) {
           <DialogHeader>
             <DialogTitle>Delete Memory</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this memory? This action cannot be undone.
+              Are you sure you want to delete this memory? This action cannot be
+              undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteDialogOpen(false)}
+            >
               Cancel
             </Button>
             <Button variant="destructive" onClick={handleDelete}>

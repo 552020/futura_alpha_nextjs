@@ -35,10 +35,20 @@ async function processImageForMultipleAssetsBackend(file) {
   console.log(`📐 Original dimensions: ${originalWidth}x${originalHeight}`);
 
   // Calculate resize dimensions
-  const displaySize = calculateResizeDimensions(originalWidth, originalHeight, 2048);
-  const thumbSize = calculateResizeDimensions(originalWidth, originalHeight, 512);
+  const displaySize = calculateResizeDimensions(
+    originalWidth,
+    originalHeight,
+    2048
+  );
+  const thumbSize = calculateResizeDimensions(
+    originalWidth,
+    originalHeight,
+    512
+  );
 
-  console.log(`📐 Display dimensions: ${displaySize.width}x${displaySize.height}`);
+  console.log(
+    `📐 Display dimensions: ${displaySize.width}x${displaySize.height}`
+  );
   console.log(`📐 Thumb dimensions: ${thumbSize.width}x${thumbSize.height}`);
 
   // Process images in parallel
@@ -66,9 +76,19 @@ async function processImageForMultipleAssetsBackend(file) {
   ]);
 
   // Create File objects for each processed image
-  const originalBlob = new File([new Uint8Array(originalBuffer)], file.name, { type: 'image/webp' });
-  const displayBlob = new File([new Uint8Array(displayBuffer)], `display_${file.name}`, { type: 'image/webp' });
-  const thumbBlob = new File([new Uint8Array(thumbBuffer)], `thumb_${file.name}`, { type: 'image/webp' });
+  const originalBlob = new File([new Uint8Array(originalBuffer)], file.name, {
+    type: 'image/webp',
+  });
+  const displayBlob = new File(
+    [new Uint8Array(displayBuffer)],
+    `display_${file.name}`,
+    { type: 'image/webp' }
+  );
+  const thumbBlob = new File(
+    [new Uint8Array(thumbBuffer)],
+    `thumb_${file.name}`,
+    { type: 'image/webp' }
+  );
 
   return {
     original: {
@@ -148,14 +168,19 @@ async function testRealImageProcessing() {
   try {
     // Check if token is available
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      throw new Error('BLOB_READ_WRITE_TOKEN not found in environment variables');
+      throw new Error(
+        'BLOB_READ_WRITE_TOKEN not found in environment variables'
+      );
     }
     console.log('✅ BLOB_READ_WRITE_TOKEN found');
 
     // Test with a real image file
     const testImages = [
       { path: '../../public/small/abstract-1.jpg', name: 'abstract-1.jpg' },
-      { path: '../../public/small/diana_charles.jpg', name: 'diana_charles.jpg' },
+      {
+        path: '../../public/small/diana_charles.jpg',
+        name: 'diana_charles.jpg',
+      },
     ];
 
     for (const imageInfo of testImages) {
@@ -172,11 +197,14 @@ async function testRealImageProcessing() {
 
         // Read the image file
         const fileBuffer = fs.readFileSync(fullPath);
-        const file = new File([fileBuffer], imageInfo.name, { type: 'image/jpeg' });
+        const file = new File([fileBuffer], imageInfo.name, {
+          type: 'image/jpeg',
+        });
 
         // Process the image (real backend processing with Sharp)
         console.log('🔄 Processing image derivatives with Sharp...');
-        const processedAssets = await processImageForMultipleAssetsBackend(file);
+        const processedAssets =
+          await processImageForMultipleAssetsBackend(file);
 
         console.log('✅ Image processing complete:');
         console.log(
@@ -205,17 +233,33 @@ async function testRealImageProcessing() {
         // Test the uploaded files
         console.log('🔍 Testing uploaded files...');
         const [originalTest, displayTest, thumbTest] = await Promise.all([
-          fetch(originalResult.url).then(r => ({ ok: r.ok, status: r.status, size: r.headers.get('content-length') })),
-          fetch(displayResult.url).then(r => ({ ok: r.ok, status: r.status, size: r.headers.get('content-length') })),
-          fetch(thumbResult.url).then(r => ({ ok: r.ok, status: r.status, size: r.headers.get('content-length') })),
+          fetch(originalResult.url).then((r) => ({
+            ok: r.ok,
+            status: r.status,
+            size: r.headers.get('content-length'),
+          })),
+          fetch(displayResult.url).then((r) => ({
+            ok: r.ok,
+            status: r.status,
+            size: r.headers.get('content-length'),
+          })),
+          fetch(thumbResult.url).then((r) => ({
+            ok: r.ok,
+            status: r.status,
+            size: r.headers.get('content-length'),
+          })),
         ]);
 
         console.log('✅ File accessibility test:');
         console.log(
           `  Original: ${originalTest.ok ? '✅' : '❌'} (${originalTest.status}) - ${originalTest.size} bytes`
         );
-        console.log(`  Display: ${displayTest.ok ? '✅' : '❌'} (${displayTest.status}) - ${displayTest.size} bytes`);
-        console.log(`  Thumb: ${thumbTest.ok ? '✅' : '❌'} (${thumbTest.status}) - ${thumbTest.size} bytes`);
+        console.log(
+          `  Display: ${displayTest.ok ? '✅' : '❌'} (${displayTest.status}) - ${displayTest.size} bytes`
+        );
+        console.log(
+          `  Thumb: ${thumbTest.ok ? '✅' : '❌'} (${thumbTest.status}) - ${thumbTest.size} bytes`
+        );
       } catch (error) {
         console.log(`❌ Failed to process ${imageInfo.name}: ${error.message}`);
       }

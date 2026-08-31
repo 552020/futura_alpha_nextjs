@@ -11,7 +11,11 @@ import { eq, and, or, isNull, gt } from 'drizzle-orm';
 import { fatLogger } from '@/lib/logger';
 import crypto from 'node:crypto';
 import type { OperationResult } from '../shared/types';
-import type { CreatePublicLinkParams, PublicLinkRecord, PublicLinkAccess } from './types';
+import type {
+  CreatePublicLinkParams,
+  PublicLinkRecord,
+  PublicLinkAccess,
+} from './types';
 
 /**
  * Generate a secure random token
@@ -23,7 +27,9 @@ function generateSecureToken(): string {
 /**
  * Create a public share token
  */
-export async function createPublicLink(params: CreatePublicLinkParams): Promise<OperationResult<PublicLinkRecord>> {
+export async function createPublicLink(
+  params: CreatePublicLinkParams
+): Promise<OperationResult<PublicLinkRecord>> {
   try {
     const {
       resourceType,
@@ -54,7 +60,9 @@ export async function createPublicLink(params: CreatePublicLinkParams): Promise<
         allowedUsers: allowedUsers ? JSON.stringify(allowedUsers) : null,
         allowedRoles: allowedRoles ? JSON.stringify(allowedRoles) : null,
         requireAuth,
-        accessRestrictions: accessRestrictions ? JSON.stringify(accessRestrictions) : null,
+        accessRestrictions: accessRestrictions
+          ? JSON.stringify(accessRestrictions)
+          : null,
       })
       .returning();
 
@@ -87,7 +95,10 @@ export async function createPublicLink(params: CreatePublicLinkParams): Promise<
 /**
  * Validate a public share token
  */
-export async function validatePublicToken(token: string, userId?: string): Promise<OperationResult<PublicLinkAccess>> {
+export async function validatePublicToken(
+  token: string,
+  userId?: string
+): Promise<OperationResult<PublicLinkAccess>> {
   try {
     const linkRecord = await db.query.resourceShareTokens.findFirst({
       where: eq(resourceShareTokens.token, token),
@@ -204,7 +215,10 @@ export async function validatePublicToken(token: string, userId?: string): Promi
 /**
  * Grant access via public token (creates resourceMembership)
  */
-export async function grantAccessViaToken(token: string, userId: string): Promise<OperationResult<boolean>> {
+export async function grantAccessViaToken(
+  token: string,
+  userId: string
+): Promise<OperationResult<boolean>> {
   try {
     // Validate the token first with user context
     const validation = await validatePublicToken(token, userId);
@@ -276,7 +290,10 @@ export async function grantAccessViaToken(token: string, userId: string): Promis
 /**
  * Deactivate a public link
  */
-export async function deactivatePublicLink(tokenId: string, deactivatedBy: string): Promise<OperationResult<boolean>> {
+export async function deactivatePublicLink(
+  tokenId: string,
+  deactivatedBy: string
+): Promise<OperationResult<boolean>> {
   try {
     await db
       .update(resourceShareTokens)
@@ -319,10 +336,15 @@ export async function getResourcePublicLinks(
   try {
     const links = await db.query.resourceShareTokens.findMany({
       where: and(
-        eq(resourceShareTokens.resourceType, resourceType as 'memory' | 'folder' | 'gallery'),
+        eq(
+          resourceShareTokens.resourceType,
+          resourceType as 'memory' | 'folder' | 'gallery'
+        ),
         eq(resourceShareTokens.resourceId, resourceId)
       ),
-      orderBy: (resourceShareTokens, { desc }) => [desc(resourceShareTokens.createdAt)],
+      orderBy: (resourceShareTokens, { desc }) => [
+        desc(resourceShareTokens.createdAt),
+      ],
     });
 
     return {
@@ -354,7 +376,10 @@ export async function cleanupExpiredTokens(): Promise<OperationResult<number>> {
     const expiredTokens = await db.query.resourceShareTokens.findMany({
       where: and(
         eq(resourceShareTokens.isActive, true),
-        or(isNull(resourceShareTokens.expiresAt), gt(resourceShareTokens.expiresAt, now))
+        or(
+          isNull(resourceShareTokens.expiresAt),
+          gt(resourceShareTokens.expiresAt, now)
+        )
       ),
     });
 
@@ -367,7 +392,10 @@ export async function cleanupExpiredTokens(): Promise<OperationResult<number>> {
       .where(
         and(
           eq(resourceShareTokens.isActive, true),
-          or(isNull(resourceShareTokens.expiresAt), gt(resourceShareTokens.expiresAt, now))
+          or(
+            isNull(resourceShareTokens.expiresAt),
+            gt(resourceShareTokens.expiresAt, now)
+          )
         )
       );
 
@@ -397,6 +425,7 @@ export async function cleanupExpiredTokens(): Promise<OperationResult<number>> {
  * Generate a shareable URL from a token
  */
 export function generateShareableUrl(token: string, baseUrl?: string): string {
-  const base = baseUrl || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const base =
+    baseUrl || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   return `${base}/shared/${token}`;
 }

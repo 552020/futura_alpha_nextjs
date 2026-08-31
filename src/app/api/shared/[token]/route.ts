@@ -5,11 +5,16 @@ import { getAllUserRecord } from '@/services/user';
 import type { allUsers } from '@/db';
 import { fatLogger } from '@/lib/logger';
 
-export async function GET(request: NextRequest, context: { params: Promise<{ token: string }> }) {
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ token: string }> }
+) {
   const { token } = await context.params;
 
   try {
-    fatLogger.info('🔗 Validate public token request:', 'be', { token: token.substring(0, 8) + '...' });
+    fatLogger.info('🔗 Validate public token request:', 'be', {
+      token: token.substring(0, 8) + '...',
+    });
 
     // Check if user is authenticated
     let userId: string | undefined;
@@ -67,7 +72,10 @@ export async function GET(request: NextRequest, context: { params: Promise<{ tok
           const allUserRecord = userResult.data as typeof allUsers.$inferSelect;
 
           // Grant access via token
-          const accessResult = await grantAccessViaToken(token, allUserRecord.id);
+          const accessResult = await grantAccessViaToken(
+            token,
+            allUserRecord.id
+          );
           if (accessResult.success) {
             accessGranted = true;
             fatLogger.info('✅ Access granted via token:', 'be', {
@@ -84,9 +92,13 @@ export async function GET(request: NextRequest, context: { params: Promise<{ tok
       }
     } catch (_authError) {
       // User might not be authenticated, that's okay for public links
-      fatLogger.info('ℹ️ No authenticated user, providing public access:', 'be', {
-        token: token.substring(0, 8) + '...',
-      });
+      fatLogger.info(
+        'ℹ️ No authenticated user, providing public access:',
+        'be',
+        {
+          token: token.substring(0, 8) + '...',
+        }
+      );
     }
 
     return NextResponse.json({

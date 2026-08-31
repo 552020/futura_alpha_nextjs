@@ -36,7 +36,9 @@ interface UserData {
   memories: Memory[];
 }
 
-async function uploadAsset(filename: string): Promise<{ url: string; size: number; mimeType: string }> {
+async function uploadAsset(
+  filename: string
+): Promise<{ url: string; size: number; mimeType: string }> {
   const assetPath = join(__dirname, '..', 'assets', 'tenenbaum', filename);
   try {
     const buffer = readFileSync(assetPath);
@@ -62,7 +64,8 @@ async function uploadAsset(filename: string): Promise<{ url: string; size: numbe
                         ? 'application/epub+zip'
                         : filename.endsWith('.md')
                           ? 'text/markdown'
-                          : filename.endsWith('.jpg') || filename.endsWith('.jpeg')
+                          : filename.endsWith('.jpg') ||
+                              filename.endsWith('.jpeg')
                             ? 'image/jpeg'
                             : filename.endsWith('.png')
                               ? 'image/png'
@@ -73,7 +76,9 @@ async function uploadAsset(filename: string): Promise<{ url: string; size: numbe
                                   : filename.endsWith('.tiff')
                                     ? 'image/tiff'
                                     : 'application/octet-stream';
-    const file = new File([new Uint8Array(buffer)], filename, { type: mimeType });
+    const file = new File([new Uint8Array(buffer)], filename, {
+      type: mimeType,
+    });
     const validationResult = await validateFile(file);
     if (!validationResult.isValid) {
       throw new Error(`Invalid file: ${validationResult.error}`);
@@ -81,7 +86,9 @@ async function uploadAsset(filename: string): Promise<{ url: string; size: numbe
     const url = await uploadFileToStorage(file, validationResult.buffer);
     return { url, size: buffer.length, mimeType };
   } catch (error) {
-    fatLogger.error(`Failed to upload asset ${filename}:`, 'be', { data: error instanceof Error ? error : undefined });
+    fatLogger.error(`Failed to upload asset ${filename}:`, 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
     throw error;
   }
 }
@@ -90,7 +97,7 @@ async function createUser(userData: UserData) {
   // Upload profile image if exists
   let imageUrl = userData.user.image;
   if (imageUrl) {
-    imageUrl = await uploadAsset(imageUrl).then(asset => asset.url);
+    imageUrl = await uploadAsset(imageUrl).then((asset) => asset.url);
   }
 
   // Hash the password
@@ -229,7 +236,12 @@ async function createMemory(memory: Memory, ownerId: string) {
   }
 }
 
-async function shareMemory(memoryId: string, memoryType: MemoryType, ownerId: string, sharedWithId: string) {
+async function shareMemory(
+  memoryId: string,
+  memoryType: MemoryType,
+  ownerId: string,
+  sharedWithId: string
+) {
   // TODO: Update to use new universal resource sharing system
   // await db.insert(resourceMembership).values({
   //   id: faker.string.uuid(),
@@ -239,9 +251,11 @@ async function shareMemory(memoryId: string, memoryType: MemoryType, ownerId: st
   //   accessLevel: 'read',
   //   createdAt: new Date(),
   // });
-  
+
   // Temporarily skip sharing until migration is complete
-  console.log(`Skipping share for memory ${memoryId} with user ${sharedWithId}`);
+  console.log(
+    `Skipping share for memory ${memoryId} with user ${sharedWithId}`
+  );
 }
 
 export async function seedTenenbaum() {
@@ -261,14 +275,20 @@ export async function seedTenenbaum() {
     fatLogger.info('🧹 Cleaning up existing Tenenbaum test data...', 'be');
 
     // First get the user IDs
-    const existingUsers = await db.select().from(users).where(inArray(users.email, tenenBaumEmails));
+    const existingUsers = await db
+      .select()
+      .from(users)
+      .where(inArray(users.email, tenenBaumEmails));
 
-    const userIds = existingUsers.map(user => user.id);
+    const userIds = existingUsers.map((user) => user.id);
 
     // Get allUsers records for these users
-    const existingAllUsers = await db.select().from(allUsers).where(inArray(allUsers.userId, userIds));
+    const existingAllUsers = await db
+      .select()
+      .from(allUsers)
+      .where(inArray(allUsers.userId, userIds));
 
-    const allUserIds = existingAllUsers.map(user => user.id);
+    const allUserIds = existingAllUsers.map((user) => user.id);
 
     // Delete related data in correct order
     if (allUserIds.length > 0) {
@@ -295,40 +315,88 @@ export async function seedTenenbaum() {
 
     // Create memories for each user
     const margotMemories = await Promise.all(
-      margotData.memories.map(memory => createMemory(memory as Memory, margot.allUser.id))
+      margotData.memories.map((memory) =>
+        createMemory(memory as Memory, margot.allUser.id)
+      )
     );
 
     const richieMemories = await Promise.all(
-      richieData.memories.map(memory => createMemory(memory as Memory, richie.allUser.id))
+      richieData.memories.map((memory) =>
+        createMemory(memory as Memory, richie.allUser.id)
+      )
     );
 
     const wesMemories = await Promise.all(
-      wesData.memories.map(memory => createMemory(memory as Memory, wes.allUser.id))
+      wesData.memories.map((memory) =>
+        createMemory(memory as Memory, wes.allUser.id)
+      )
     );
 
     const eliMemories = await Promise.all(
-      eliData.memories.map(memory => createMemory(memory as Memory, eli.allUser.id))
+      eliData.memories.map((memory) =>
+        createMemory(memory as Memory, eli.allUser.id)
+      )
     );
 
     // Share memories according to the new relationships
 
     // Richard's tent photo shared with Margot
-    await shareMemory(richieMemories[0].id, richieMemories[0].type, richie.allUser.id, margot.allUser.id);
+    await shareMemory(
+      richieMemories[0].id,
+      richieMemories[0].type,
+      richie.allUser.id,
+      margot.allUser.id
+    );
 
     // Wes's mp4 shared with Richard and Margot
-    await shareMemory(wesMemories[0].id, wesMemories[0].type, wes.allUser.id, richie.allUser.id);
-    await shareMemory(wesMemories[0].id, wesMemories[0].type, wes.allUser.id, margot.allUser.id);
+    await shareMemory(
+      wesMemories[0].id,
+      wesMemories[0].type,
+      wes.allUser.id,
+      richie.allUser.id
+    );
+    await shareMemory(
+      wesMemories[0].id,
+      wesMemories[0].type,
+      wes.allUser.id,
+      margot.allUser.id
+    );
 
     // Richard's meltdown photo shared with Margot
-    await shareMemory(richieMemories[1].id, richieMemories[1].type, richie.allUser.id, margot.allUser.id);
+    await shareMemory(
+      richieMemories[1].id,
+      richieMemories[1].type,
+      richie.allUser.id,
+      margot.allUser.id
+    );
 
     // Margot's secret umbrellas shared with Eli and Richard
-    await shareMemory(margotMemories[0].id, margotMemories[0].type, margot.allUser.id, eli.allUser.id);
-    await shareMemory(margotMemories[0].id, margotMemories[0].type, margot.allUser.id, richie.allUser.id);
+    await shareMemory(
+      margotMemories[0].id,
+      margotMemories[0].type,
+      margot.allUser.id,
+      eli.allUser.id
+    );
+    await shareMemory(
+      margotMemories[0].id,
+      margotMemories[0].type,
+      margot.allUser.id,
+      richie.allUser.id
+    );
 
     // Eli's Custer reviews shared with Margot
-    await shareMemory(eliMemories[0].id, eliMemories[0].type, eli.allUser.id, margot.allUser.id);
-    await shareMemory(eliMemories[1].id, eliMemories[1].type, eli.allUser.id, margot.allUser.id);
+    await shareMemory(
+      eliMemories[0].id,
+      eliMemories[0].type,
+      eli.allUser.id,
+      margot.allUser.id
+    );
+    await shareMemory(
+      eliMemories[1].id,
+      eliMemories[1].type,
+      eli.allUser.id,
+      margot.allUser.id
+    );
 
     fatLogger.info('✅ Tenenbaum family data seeded successfully', 'be');
   } catch (error) {

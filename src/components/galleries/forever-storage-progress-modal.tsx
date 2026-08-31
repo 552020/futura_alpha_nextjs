@@ -3,12 +3,26 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useParams } from 'next/navigation';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, AlertCircle, Loader2, Shield, Database, CheckSquare, XCircle } from 'lucide-react';
+import {
+  CheckCircle,
+  AlertCircle,
+  Loader2,
+  Shield,
+  Database,
+  CheckSquare,
+  XCircle,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { GalleryWithItems } from '@/types/gallery';
 import { ICPGalleryService } from '@/services/icp-gallery';
@@ -21,11 +35,23 @@ interface ForeverStorageProgressModalProps {
   isOpen: boolean;
   onClose: () => void;
   gallery: GalleryWithItems;
-  onSuccess: (result: { success: boolean; galleryId: string; icpGalleryId: string; timestamp: string }) => void;
+  onSuccess: (result: {
+    success: boolean;
+    galleryId: string;
+    icpGalleryId: string;
+    timestamp: string;
+  }) => void;
   onError: (error: Error) => void;
 }
 
-type StorageStep = 'idle' | 'auth' | 'prepare' | 'store' | 'verify' | 'success' | 'error';
+type StorageStep =
+  | 'idle'
+  | 'auth'
+  | 'prepare'
+  | 'store'
+  | 'verify'
+  | 'success'
+  | 'error';
 
 interface StepConfig {
   title: string;
@@ -61,7 +87,8 @@ const STEPS: Record<StorageStep, StepConfig> = {
   },
   success: {
     title: 'Success!',
-    description: 'Your gallery has been stored forever on the Internet Computer',
+    description:
+      'Your gallery has been stored forever on the Internet Computer',
     icon: CheckCircle,
   },
   error: {
@@ -99,10 +126,14 @@ export function ForeverStorageProgressModal({
       setMessage('Checking your Internet Identity...');
 
       // Check if user has II access (either linked II account or direct II sign-in)
-      const hasIIAccess = hasLinkedII || Boolean((session?.user as { icpPrincipal?: string })?.icpPrincipal);
+      const hasIIAccess =
+        hasLinkedII ||
+        Boolean((session?.user as { icpPrincipal?: string })?.icpPrincipal);
 
       if (!hasIIAccess) {
-        setMessage('You need to sign in with Internet Identity to store galleries forever');
+        setMessage(
+          'You need to sign in with Internet Identity to store galleries forever'
+        );
         setDetails('This ensures you own your data and can access it securely');
         setError('II Authentication Required');
         return;
@@ -125,7 +156,7 @@ export function ForeverStorageProgressModal({
       setDetails(`Processing ${gallery.items?.length || 0} memories`);
 
       // Simulate data preparation
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // Step 3: Store on ICP
       setCurrentStep('store');
@@ -153,7 +184,7 @@ export function ForeverStorageProgressModal({
       setDetails('Confirming your gallery is safely stored');
 
       // Simulate verification
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       // Check if storage was successful
       if (!result.success) {
@@ -164,7 +195,9 @@ export function ForeverStorageProgressModal({
       setCurrentStep('success');
       setProgress(100);
       setMessage(`Gallery "${gallery.title}" stored forever! 🎉`);
-      setDetails('Your gallery is now permanently stored on the Internet Computer');
+      setDetails(
+        'Your gallery is now permanently stored on the Internet Computer'
+      );
 
       onSuccess({
         success: result.success,
@@ -176,11 +209,20 @@ export function ForeverStorageProgressModal({
       setCurrentStep('error');
       setProgress(0);
       setMessage('Storage failed');
-      setDetails(err instanceof Error ? err.message : 'An unexpected error occurred');
+      setDetails(
+        err instanceof Error ? err.message : 'An unexpected error occurred'
+      );
       setError(err instanceof Error ? err.message : 'Unknown error');
       onError(err instanceof Error ? err : new Error('Unknown error'));
     }
-  }, [hasLinkedII, session?.user, gallery, onSuccess, onError, authStatus.isSignedInWithII]);
+  }, [
+    hasLinkedII,
+    session?.user,
+    gallery,
+    onSuccess,
+    onError,
+    authStatus.isSignedInWithII,
+  ]);
 
   // Reset state when modal opens
   useEffect(() => {
@@ -230,16 +272,30 @@ export function ForeverStorageProgressModal({
 
   // If user returns with II linked while modal is at auth, auto-resume
   useEffect(() => {
-    const hasIIAccess = hasLinkedII || Boolean((session?.user as { icpPrincipal?: string })?.icpPrincipal);
+    const hasIIAccess =
+      hasLinkedII ||
+      Boolean((session?.user as { icpPrincipal?: string })?.icpPrincipal);
     const isIIFirstUser = authStatus.isSignedInWithII;
     const canProceed = hasIIAccess && (isIIFirstUser || hasLinkedII);
 
-    if (isOpen && currentStep === 'auth' && canProceed && !authResumedRef.current) {
+    if (
+      isOpen &&
+      currentStep === 'auth' &&
+      canProceed &&
+      !authResumedRef.current
+    ) {
       authResumedRef.current = true;
       // Continue the flow from the beginning; it will pass auth now
       handleStartStorage();
     }
-  }, [isOpen, currentStep, hasLinkedII, session?.user, handleStartStorage, authStatus.isSignedInWithII]);
+  }, [
+    isOpen,
+    currentStep,
+    hasLinkedII,
+    session?.user,
+    handleStartStorage,
+    authStatus.isSignedInWithII,
+  ]);
 
   const handleClose = () => {
     if (currentStep === 'success') {
@@ -248,7 +304,11 @@ export function ForeverStorageProgressModal({
       onClose();
     } else {
       // Ask for confirmation if in progress
-      if (confirm("Are you sure you want to cancel? Your gallery won't be stored.")) {
+      if (
+        confirm(
+          "Are you sure you want to cancel? Your gallery won't be stored."
+        )
+      ) {
         onClose();
       }
     }
@@ -277,7 +337,9 @@ export function ForeverStorageProgressModal({
           disabled: false,
         };
       case 'auth':
-        const hasIIAccess = hasLinkedII || Boolean((session?.user as { icpPrincipal?: string })?.icpPrincipal);
+        const hasIIAccess =
+          hasLinkedII ||
+          Boolean((session?.user as { icpPrincipal?: string })?.icpPrincipal);
         const isIIFirstUser = authStatus.isSignedInWithII;
 
         if (!hasIIAccess) {
@@ -332,7 +394,9 @@ export function ForeverStorageProgressModal({
   const primaryButton = getPrimaryButton();
 
   const getAuthIcon = () => {
-    const hasIIAccess = hasLinkedII || Boolean((session?.user as { icpPrincipal?: string })?.icpPrincipal);
+    const hasIIAccess =
+      hasLinkedII ||
+      Boolean((session?.user as { icpPrincipal?: string })?.icpPrincipal);
     const isIIFirstUser = authStatus.isSignedInWithII;
 
     if (!hasIIAccess) {
@@ -369,14 +433,22 @@ export function ForeverStorageProgressModal({
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               {currentStep === 'auth' && getAuthIcon()}
-              {currentStep === 'error' && <XCircle className="h-4 w-4 text-destructive" />}
-              {currentStep === 'success' && <CheckCircle className="h-4 w-4 text-green-600" />}
-              {currentStep !== 'auth' && currentStep !== 'error' && currentStep !== 'success' && (
-                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              {currentStep === 'error' && (
+                <XCircle className="h-4 w-4 text-destructive" />
               )}
+              {currentStep === 'success' && (
+                <CheckCircle className="h-4 w-4 text-green-600" />
+              )}
+              {currentStep !== 'auth' &&
+                currentStep !== 'error' &&
+                currentStep !== 'success' && (
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                )}
               <span className="font-medium">{STEPS[currentStep].title}</span>
             </div>
-            <p className="text-sm text-muted-foreground">{STEPS[currentStep].description}</p>
+            <p className="text-sm text-muted-foreground">
+              {STEPS[currentStep].description}
+            </p>
           </div>
 
           {/* Status Message */}
@@ -387,7 +459,9 @@ export function ForeverStorageProgressModal({
           )}
 
           {/* Details */}
-          {details && <p className="text-xs text-muted-foreground">{details}</p>}
+          {details && (
+            <p className="text-xs text-muted-foreground">{details}</p>
+          )}
 
           {/* Error Details */}
           {error && currentStep === 'error' && (
@@ -401,14 +475,21 @@ export function ForeverStorageProgressModal({
           {currentStep === 'auth' && (
             <div className="space-y-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Internet Identity Status</span>
-                <Badge variant={hasLinkedII ? 'default' : 'secondary'}>{hasLinkedII ? 'Linked' : 'Not Linked'}</Badge>
+                <span className="text-sm font-medium">
+                  Internet Identity Status
+                </span>
+                <Badge variant={hasLinkedII ? 'default' : 'secondary'}>
+                  {hasLinkedII ? 'Linked' : 'Not Linked'}
+                </Badge>
               </div>
 
               {hasLinkedII && (
                 <>
                   <div className="text-xs text-muted-foreground">
-                    Principals: {linkedIcPrincipals.length > 0 ? linkedIcPrincipals.join(', ') : 'None'}
+                    Principals:{' '}
+                    {linkedIcPrincipals.length > 0
+                      ? linkedIcPrincipals.join(', ')
+                      : 'None'}
                   </div>
 
                   {authStatus.isSignedInWithII ? (
@@ -419,12 +500,16 @@ export function ForeverStorageProgressModal({
                       >
                         Direct II Sign-in
                       </Badge>
-                      <span className="text-xs text-muted-foreground">Ready to proceed</span>
+                      <span className="text-xs text-muted-foreground">
+                        Ready to proceed
+                      </span>
                     </div>
                   ) : (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">II Status:</span>
+                        <span className="text-xs text-muted-foreground">
+                          II Status:
+                        </span>
                         <Badge variant={hasLinkedII ? 'default' : 'secondary'}>
                           {hasLinkedII ? 'Linked' : 'Not Linked'}
                         </Badge>
@@ -447,10 +532,13 @@ export function ForeverStorageProgressModal({
             <div className="rounded-lg bg-green-50 p-3">
               <div className="flex items-center gap-2 text-green-800">
                 <CheckCircle className="h-4 w-4" />
-                <span className="text-sm font-medium">Gallery stored successfully!</span>
+                <span className="text-sm font-medium">
+                  Gallery stored successfully!
+                </span>
               </div>
               <p className="mt-1 text-xs text-green-600">
-                Your gallery is now permanently stored on the Internet Computer blockchain.
+                Your gallery is now permanently stored on the Internet Computer
+                blockchain.
               </p>
             </div>
           )}
@@ -458,8 +546,14 @@ export function ForeverStorageProgressModal({
 
         {/* Actions */}
         <div className="flex gap-2">
-          <Button onClick={primaryButton.action} disabled={primaryButton.disabled} className="flex-1">
-            {primaryButton.disabled && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          <Button
+            onClick={primaryButton.action}
+            disabled={primaryButton.disabled}
+            className="flex-1"
+          >
+            {primaryButton.disabled && (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            )}
             {primaryButton.text}
           </Button>
 

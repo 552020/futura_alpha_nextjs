@@ -1,4 +1,8 @@
-import { S3Client, PutObjectCommand, PutObjectCommandInput } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  PutObjectCommandInput,
+} from '@aws-sdk/client-s3';
 import { generateS3Key } from './s3-service';
 
 import { fatLogger } from '@/lib/logger';
@@ -34,9 +38,15 @@ export function isS3Configured(): boolean {
 }
 
 // Upload file to S3
-export async function uploadToS3(file: File, buffer?: Buffer, userId?: string): Promise<string> {
+export async function uploadToS3(
+  file: File,
+  buffer?: Buffer,
+  userId?: string
+): Promise<string> {
   if (!isS3Configured()) {
-    throw new Error('S3 is not properly configured. Please check your environment variables.');
+    throw new Error(
+      'S3 is not properly configured. Please check your environment variables.'
+    );
   }
 
   const fileBuffer = buffer || Buffer.from(await file.arrayBuffer());
@@ -63,7 +73,9 @@ export async function uploadToS3(file: File, buffer?: Buffer, userId?: string): 
     fatLogger.info('Uploaded file public URL:', 'be', { publicUrl });
     return publicUrl;
   } catch (error) {
-    fatLogger.error('Error uploading to S3:', 'be', { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Error uploading to S3:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
     throw new Error('Failed to upload file to S3');
   }
 }
@@ -72,7 +84,10 @@ export async function uploadToS3(file: File, buffer?: Buffer, userId?: string): 
 export function extractS3KeyFromUrl(url: string): string | null {
   try {
     const urlObj = new URL(url);
-    if (urlObj.hostname.includes('s3') || urlObj.hostname.includes('amazonaws.com')) {
+    if (
+      urlObj.hostname.includes('s3') ||
+      urlObj.hostname.includes('amazonaws.com')
+    ) {
       const key = urlObj.pathname.slice(1);
       fatLogger.info('Extracted S3 key from URL:', 'be', { key });
       return key;

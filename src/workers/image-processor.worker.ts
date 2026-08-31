@@ -21,7 +21,12 @@ interface ProcessResponse {
   ok: boolean;
   display?: ProcessedAsset;
   thumb?: ProcessedAsset;
-  placeholder?: { dataUrl: string; width: number; height: number; bytes: number };
+  placeholder?: {
+    dataUrl: string;
+    width: number;
+    height: number;
+    bytes: number;
+  };
   error?: string;
 }
 
@@ -38,7 +43,13 @@ const SUPPORTED_FORMATS = ['image/jpeg', 'image/png', 'image/webp'];
 
 // Main worker message handler
 self.onmessage = async (e: MessageEvent<ProcessMessage>) => {
-  const { kind, file, maxDisplaySize = 2048, maxThumbSize = 512, maxPlaceholderSize = 32 } = e.data || {};
+  const {
+    kind,
+    file,
+    maxDisplaySize = 2048,
+    maxThumbSize = 512,
+    maxPlaceholderSize = 32,
+  } = e.data || {};
 
   fatLogger.info('🚀 [WebWorker] Starting image processing', 'webworker', {
     fileName: file.name,
@@ -69,10 +80,14 @@ self.onmessage = async (e: MessageEvent<ProcessMessage>) => {
       return;
     }
 
-    fatLogger.info('✅ [WebWorker] Format check passed', 'webworker', { fileType: file.type });
+    fatLogger.info('✅ [WebWorker] Format check passed', 'webworker', {
+      fileType: file.type,
+    });
 
     // Create image from file
-    fatLogger.info('🖼️ [WebWorker] Creating image from file', 'webworker', { fileName: file.name });
+    fatLogger.info('🖼️ [WebWorker] Creating image from file', 'webworker', {
+      fileName: file.name,
+    });
     const image = await createImageFromFile(file);
     fatLogger.info('✅ [WebWorker] Image created successfully', 'webworker', {
       originalWidth: image.width,
@@ -80,7 +95,9 @@ self.onmessage = async (e: MessageEvent<ProcessMessage>) => {
     });
 
     // Process display version (2048px max)
-    fatLogger.info('🔄 [WebWorker] Processing display version', 'webworker', { maxDisplaySize });
+    fatLogger.info('🔄 [WebWorker] Processing display version', 'webworker', {
+      maxDisplaySize,
+    });
     const display = await processToDisplay(image, maxDisplaySize);
     fatLogger.info('✅ [WebWorker] Display processing completed', 'webworker', {
       displayWidth: display.width,
@@ -89,7 +106,9 @@ self.onmessage = async (e: MessageEvent<ProcessMessage>) => {
     });
 
     // Process thumb from display (512px max)
-    fatLogger.info('🔄 [WebWorker] Processing thumb version', 'webworker', { maxThumbSize });
+    fatLogger.info('🔄 [WebWorker] Processing thumb version', 'webworker', {
+      maxThumbSize,
+    });
     const thumb = await processToThumb(display.blob, maxThumbSize);
     fatLogger.info('✅ [WebWorker] Thumb processing completed', 'webworker', {
       thumbWidth: thumb.width,
@@ -98,22 +117,37 @@ self.onmessage = async (e: MessageEvent<ProcessMessage>) => {
     });
 
     // Process placeholder from thumb (32px max, data URL)
-    fatLogger.info('🔄 [WebWorker] Processing placeholder version', 'webworker', { maxPlaceholderSize });
-    const placeholder = await processToPlaceholder(thumb.blob, maxPlaceholderSize);
-    fatLogger.info('✅ [WebWorker] Placeholder processing completed', 'webworker', {
-      placeholderWidth: placeholder.width,
-      placeholderHeight: placeholder.height,
-      placeholderSize: placeholder.bytes,
-    });
+    fatLogger.info(
+      '🔄 [WebWorker] Processing placeholder version',
+      'webworker',
+      { maxPlaceholderSize }
+    );
+    const placeholder = await processToPlaceholder(
+      thumb.blob,
+      maxPlaceholderSize
+    );
+    fatLogger.info(
+      '✅ [WebWorker] Placeholder processing completed',
+      'webworker',
+      {
+        placeholderWidth: placeholder.width,
+        placeholderHeight: placeholder.height,
+        placeholderSize: placeholder.bytes,
+      }
+    );
 
     // Log final processing results
-    fatLogger.info('🎉 [WebWorker] All processing completed successfully', 'webworker', {
-      fileName: file.name,
-      originalSize: file.size,
-      displaySize: display.blob.size,
-      thumbSize: thumb.blob.size,
-      placeholderSize: placeholder.bytes,
-    });
+    fatLogger.info(
+      '🎉 [WebWorker] All processing completed successfully',
+      'webworker',
+      {
+        fileName: file.name,
+        originalSize: file.size,
+        displaySize: display.blob.size,
+        thumbSize: thumb.blob.size,
+        placeholderSize: placeholder.bytes,
+      }
+    );
 
     const response: ProcessResponse = {
       kind: 'process',
@@ -123,7 +157,9 @@ self.onmessage = async (e: MessageEvent<ProcessMessage>) => {
       placeholder,
     };
 
-    fatLogger.info('📤 [WebWorker] Sending success response', 'webworker', { fileName: file.name });
+    fatLogger.info('📤 [WebWorker] Sending success response', 'webworker', {
+      fileName: file.name,
+    });
     self.postMessage(response);
   } catch (error) {
     fatLogger.error('❌ [WebWorker] Processing failed', 'webworker', {
@@ -136,7 +172,9 @@ self.onmessage = async (e: MessageEvent<ProcessMessage>) => {
       ok: false,
       error: error instanceof Error ? error.message : String(error),
     };
-    fatLogger.info('📤 [WebWorker] Sending error response', 'webworker', { fileName: file.name });
+    fatLogger.info('📤 [WebWorker] Sending error response', 'webworker', {
+      fileName: file.name,
+    });
     self.postMessage(response);
   }
 };
@@ -151,19 +189,30 @@ function createImageFromFile(file: File): Promise<ImageBitmap> {
 /**
  * Process image to display size (max 2048px)
  */
-async function processToDisplay(image: ImageBitmap, maxSize: number): Promise<ProcessedAsset> {
+async function processToDisplay(
+  image: ImageBitmap,
+  maxSize: number
+): Promise<ProcessedAsset> {
   fatLogger.info('🔄 [WebWorker] processToDisplay: Starting', 'webworker', {
     originalWidth: image.width,
     originalHeight: image.height,
     maxSize,
   });
 
-  const { width, height } = calculateDimensions(image.width, image.height, maxSize);
+  const { width, height } = calculateDimensions(
+    image.width,
+    image.height,
+    maxSize
+  );
 
-  fatLogger.info('📐 [WebWorker] processToDisplay: Calculated dimensions', 'webworker', {
-    calculatedWidth: width,
-    calculatedHeight: height,
-  });
+  fatLogger.info(
+    '📐 [WebWorker] processToDisplay: Calculated dimensions',
+    'webworker',
+    {
+      calculatedWidth: width,
+      calculatedHeight: height,
+    }
+  );
 
   const canvas = new OffscreenCanvas(width, height);
   const ctx = canvas.getContext('2d');
@@ -176,7 +225,10 @@ async function processToDisplay(image: ImageBitmap, maxSize: number): Promise<Pr
   ctx.drawImage(image, 0, 0, width, height);
 
   // Convert to blob
-  const blob = await canvas.convertToBlob({ type: 'image/webp', quality: 0.82 });
+  const blob = await canvas.convertToBlob({
+    type: 'image/webp',
+    quality: 0.82,
+  });
 
   fatLogger.info('✅ [WebWorker] processToDisplay: Completed', 'webworker', {
     finalWidth: width,
@@ -196,7 +248,10 @@ async function processToDisplay(image: ImageBitmap, maxSize: number): Promise<Pr
 /**
  * Process blob to thumb size (max 512px)
  */
-async function processToThumb(displayBlob: Blob, maxSize: number): Promise<ProcessedAsset> {
+async function processToThumb(
+  displayBlob: Blob,
+  maxSize: number
+): Promise<ProcessedAsset> {
   fatLogger.info('🔄 [WebWorker] processToThumb: Starting', 'webworker', {
     displayBlobSize: displayBlob.size,
     maxSize,
@@ -205,17 +260,29 @@ async function processToThumb(displayBlob: Blob, maxSize: number): Promise<Proce
   // Create image from display blob
   const image = await createImageFromBlob(displayBlob);
 
-  fatLogger.info('🖼️ [WebWorker] processToThumb: Image created from blob', 'webworker', {
-    imageWidth: image.width,
-    imageHeight: image.height,
-  });
+  fatLogger.info(
+    '🖼️ [WebWorker] processToThumb: Image created from blob',
+    'webworker',
+    {
+      imageWidth: image.width,
+      imageHeight: image.height,
+    }
+  );
 
-  const { width, height } = calculateDimensions(image.width, image.height, maxSize);
+  const { width, height } = calculateDimensions(
+    image.width,
+    image.height,
+    maxSize
+  );
 
-  fatLogger.info('📐 [WebWorker] processToThumb: Calculated dimensions', 'webworker', {
-    calculatedWidth: width,
-    calculatedHeight: height,
-  });
+  fatLogger.info(
+    '📐 [WebWorker] processToThumb: Calculated dimensions',
+    'webworker',
+    {
+      calculatedWidth: width,
+      calculatedHeight: height,
+    }
+  );
 
   const canvas = new OffscreenCanvas(width, height);
   const ctx = canvas.getContext('2d');
@@ -228,7 +295,10 @@ async function processToThumb(displayBlob: Blob, maxSize: number): Promise<Proce
   ctx.drawImage(image, 0, 0, width, height);
 
   // Convert to blob
-  const blob = await canvas.convertToBlob({ type: 'image/webp', quality: 0.82 });
+  const blob = await canvas.convertToBlob({
+    type: 'image/webp',
+    quality: 0.82,
+  });
 
   fatLogger.info('✅ [WebWorker] processToThumb: Completed', 'webworker', {
     finalWidth: width,
@@ -260,17 +330,29 @@ async function processToPlaceholder(
   // Create image from thumb blob
   const image = await createImageFromBlob(thumbBlob);
 
-  fatLogger.info('🖼️ [WebWorker] processToPlaceholder: Image created from blob', 'webworker', {
-    imageWidth: image.width,
-    imageHeight: image.height,
-  });
+  fatLogger.info(
+    '🖼️ [WebWorker] processToPlaceholder: Image created from blob',
+    'webworker',
+    {
+      imageWidth: image.width,
+      imageHeight: image.height,
+    }
+  );
 
-  const { width, height } = calculateDimensions(image.width, image.height, maxSize);
+  const { width, height } = calculateDimensions(
+    image.width,
+    image.height,
+    maxSize
+  );
 
-  fatLogger.info('📐 [WebWorker] processToPlaceholder: Calculated dimensions', 'webworker', {
-    calculatedWidth: width,
-    calculatedHeight: height,
-  });
+  fatLogger.info(
+    '📐 [WebWorker] processToPlaceholder: Calculated dimensions',
+    'webworker',
+    {
+      calculatedWidth: width,
+      calculatedHeight: height,
+    }
+  );
 
   const canvas = new OffscreenCanvas(width, height);
   const ctx = canvas.getContext('2d');
@@ -285,9 +367,13 @@ async function processToPlaceholder(
   // Convert to data URL
   const blob = await canvas.convertToBlob({ type: 'image/webp', quality: 0.6 });
 
-  fatLogger.info('🔄 [WebWorker] processToPlaceholder: Converting to data URL', 'webworker', {
-    blobSize: blob.size,
-  });
+  fatLogger.info(
+    '🔄 [WebWorker] processToPlaceholder: Converting to data URL',
+    'webworker',
+    {
+      blobSize: blob.size,
+    }
+  );
 
   const dataUrl = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
@@ -296,12 +382,16 @@ async function processToPlaceholder(
     reader.readAsDataURL(blob);
   });
 
-  fatLogger.info('✅ [WebWorker] processToPlaceholder: Completed', 'webworker', {
-    finalWidth: width,
-    finalHeight: height,
-    dataUrlLength: dataUrl.length,
-    blobSize: blob.size,
-  });
+  fatLogger.info(
+    '✅ [WebWorker] processToPlaceholder: Completed',
+    'webworker',
+    {
+      finalWidth: width,
+      finalHeight: height,
+      dataUrlLength: dataUrl.length,
+      blobSize: blob.size,
+    }
+  );
 
   return {
     dataUrl,

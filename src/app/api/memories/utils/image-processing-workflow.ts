@@ -26,15 +26,22 @@ export interface ImageProcessingWorkflowInput {
  * This function is called from the grant route's onUploadCompleted callback
  * for image files to create display and thumbnail versions
  */
-export async function processImageDerivatives(input: ImageProcessingWorkflowInput): Promise<void> {
+export async function processImageDerivatives(
+  input: ImageProcessingWorkflowInput
+): Promise<void> {
   try {
-    fatLogger.info(`Starting image processing workflow for memory ${input.memoryId}`, 'be');
+    fatLogger.info(
+      `Starting image processing workflow for memory ${input.memoryId}`,
+      'be'
+    );
     fatLogger.info('Original blob URL', 'be', { url: input.originalBlobUrl });
 
     // Download the original image from blob storage
     const originalResponse = await fetch(input.originalBlobUrl);
     if (!originalResponse.ok) {
-      throw new Error(`Failed to download original image: ${originalResponse.status} ${originalResponse.statusText}`);
+      throw new Error(
+        `Failed to download original image: ${originalResponse.status} ${originalResponse.statusText}`
+      );
     }
 
     const originalBuffer = await originalResponse.arrayBuffer();
@@ -48,7 +55,8 @@ export async function processImageDerivatives(input: ImageProcessingWorkflowInpu
 
     // Process the image to create derivatives
     fatLogger.info('Processing image derivatives', 'be');
-    const processedAssets = await processImageForMultipleAssetsBackend(originalFile);
+    const processedAssets =
+      await processImageForMultipleAssetsBackend(originalFile);
     fatLogger.info('Image processing complete', 'be', {
       display: `${processedAssets.display.width}x${processedAssets.display.height} (${processedAssets.display.size} bytes)`,
       thumb: `${processedAssets.thumb.width}x${processedAssets.thumb.height} (${processedAssets.thumb.size} bytes)`,
@@ -101,11 +109,18 @@ export async function processImageDerivatives(input: ImageProcessingWorkflowInpu
     ];
 
     await db.insert(memoryAssets).values(assetData);
-    fatLogger.info(`Created ${assetData.length} derivative asset records for memory ${input.memoryId}`, 'be');
+    fatLogger.info(
+      `Created ${assetData.length} derivative asset records for memory ${input.memoryId}`,
+      'be'
+    );
   } catch (error) {
-    fatLogger.error(`Image processing workflow failed for memory ${input.memoryId}`, 'be', {
-      error: error instanceof Error ? error : undefined,
-    });
+    fatLogger.error(
+      `Image processing workflow failed for memory ${input.memoryId}`,
+      'be',
+      {
+        error: error instanceof Error ? error : undefined,
+      }
+    );
 
     // Update the original asset with processing error
     try {
@@ -113,10 +128,14 @@ export async function processImageDerivatives(input: ImageProcessingWorkflowInpu
         .update(memoryAssets)
         .set({
           processingStatus: 'failed',
-          processingError: error instanceof Error ? error.message : 'Unknown error',
+          processingError:
+            error instanceof Error ? error.message : 'Unknown error',
         })
         .where(eq(memoryAssets.memoryId, input.memoryId));
-      fatLogger.info(`Updated original asset with processing error for memory ${input.memoryId}`, 'be');
+      fatLogger.info(
+        `Updated original asset with processing error for memory ${input.memoryId}`,
+        'be'
+      );
     } catch (updateError) {
       fatLogger.error('Failed to update asset with processing error', 'be', {
         error: updateError,
@@ -151,18 +170,30 @@ async function uploadDerivativeToBlob(
  * This function is called from the grant route's onUploadCompleted callback
  * and runs asynchronously without blocking the upload response
  */
-export function enqueueImageProcessing(input: ImageProcessingWorkflowInput): void {
+export function enqueueImageProcessing(
+  input: ImageProcessingWorkflowInput
+): void {
   // Use setTimeout with 0 delay to ensure it runs after the current event loop
   // This is more reliable than process.nextTick for serverless environments
   setTimeout(async () => {
     try {
-      fatLogger.info(`Starting async image processing for memory ${input.memoryId}`, 'be');
+      fatLogger.info(
+        `Starting async image processing for memory ${input.memoryId}`,
+        'be'
+      );
       await processImageDerivatives(input);
-      fatLogger.info(`Completed async image processing for memory ${input.memoryId}`, 'be');
+      fatLogger.info(
+        `Completed async image processing for memory ${input.memoryId}`,
+        'be'
+      );
     } catch (error) {
-      fatLogger.error(`Async image processing failed for memory ${input.memoryId}`, 'be', {
-        error: error instanceof Error ? error : undefined,
-      });
+      fatLogger.error(
+        `Async image processing failed for memory ${input.memoryId}`,
+        'be',
+        {
+          error: error instanceof Error ? error : undefined,
+        }
+      );
     }
   }, 0);
 }

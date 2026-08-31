@@ -4,7 +4,10 @@ export async function handleInternetIdentityAuth(
   callbackUrl: string = '/en/dashboard',
   onSuccess?: (principal: string) => void,
   onError?: (error: string) => void,
-  sessionUpdate?: (data: { activeIcPrincipal: string; icpPrincipalAssertedAt: number }) => Promise<unknown>
+  sessionUpdate?: (data: {
+    activeIcPrincipal: string;
+    icpPrincipalAssertedAt: number;
+  }) => Promise<unknown>
 ) {
   try {
     // 1) Ensure II identity with AuthClient.login
@@ -12,7 +15,9 @@ export async function handleInternetIdentityAuth(
     const { identity } = await loginWithII();
 
     // 2) Fetch challenge and register (create proof/nonce)
-    const { fetchChallenge, registerWithNonce } = await import('@/lib/ii-client');
+    const { fetchChallenge, registerWithNonce } = await import(
+      '@/lib/ii-client'
+    );
     const challenge = await fetchChallenge(callbackUrl);
     await registerWithNonce(challenge.nonce, identity);
 

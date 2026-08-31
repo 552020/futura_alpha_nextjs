@@ -54,9 +54,14 @@ export default function PostHogTestPage() {
     },
   ];
 
-  const handleTestEvent = (eventName: string, properties: PostHogEventProperties) => {
+  const handleTestEvent = (
+    eventName: string,
+    properties: PostHogEventProperties
+  ) => {
     posthog.capture(eventName, properties);
-    setLastEvent(`Event &ldquo;${eventName}&rdquo; sent at ${new Date().toLocaleTimeString('en-US')}`);
+    setLastEvent(
+      `Event &ldquo;${eventName}&rdquo; sent at ${new Date().toLocaleTimeString('en-US')}`
+    );
     fatLogger.info('PostHog event sent:', 'fe', { eventName, properties });
   };
 
@@ -67,17 +72,27 @@ export default function PostHogTestPage() {
 
         <div className="mb-6">
           <h2 className="text-lg font-semibold mb-2">PostHog Status</h2>
-          <p className={`text-sm ${isPosthogReady ? 'text-green-600' : 'text-red-600'}`}>
+          <p
+            className={`text-sm ${isPosthogReady ? 'text-green-600' : 'text-red-600'}`}
+          >
             PostHog is {isPosthogReady ? 'ready' : 'not ready'}
           </p>
-          {isPosthogReady && <p className="text-sm text-muted-foreground mt-1">Project ID: {posthog.config.token}</p>}
+          {isPosthogReady && (
+            <p className="text-sm text-muted-foreground mt-1">
+              Project ID: {posthog.config.token}
+            </p>
+          )}
         </div>
 
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Test Events</h2>
           <div className="grid gap-3">
-            {testEvents.map(event => (
-              <Button key={event.name} onClick={() => handleTestEvent(event.name, event.properties)} variant="outline">
+            {testEvents.map((event) => (
+              <Button
+                key={event.name}
+                onClick={() => handleTestEvent(event.name, event.properties)}
+                variant="outline"
+              >
                 Send &ldquo;{event.name}&rdquo;
               </Button>
             ))}
@@ -87,14 +102,19 @@ export default function PostHogTestPage() {
         {lastEvent && (
           <div className="mt-6 p-4 bg-muted rounded-md">
             <h2 className="text-sm font-semibold mb-2">Last Event Sent</h2>
-            <p className="text-sm" dangerouslySetInnerHTML={{ __html: lastEvent }} />
+            <p
+              className="text-sm"
+              dangerouslySetInnerHTML={{ __html: lastEvent }}
+            />
           </div>
         )}
 
         {configDump && (
           <div className="mt-6">
             <h2 className="text-lg font-semibold mb-2">Debug Information</h2>
-            <pre className="text-xs bg-muted p-4 rounded-md overflow-auto">{configDump}</pre>
+            <pre className="text-xs bg-muted p-4 rounded-md overflow-auto">
+              {configDump}
+            </pre>
           </div>
         )}
       </Card>

@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
-import { allUsers, galleries, users, temporaryUsers, resourceMembership } from '@/db';
+import {
+  allUsers,
+  galleries,
+  users,
+  temporaryUsers,
+  resourceMembership,
+} from '@/db';
 import { addStorageStatusToGallery } from '../utils';
 import { eq, and, desc, sql } from 'drizzle-orm';
 
@@ -32,7 +38,10 @@ export async function GET(request: NextRequest) {
     });
 
     if (!allUserRecord) {
-      return NextResponse.json({ error: 'User record not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'User record not found' },
+        { status: 404 }
+      );
     }
 
     allUserId = allUserRecord.id;
@@ -41,7 +50,10 @@ export async function GET(request: NextRequest) {
     const body = await request.json();
     if (!body?.allUserId) {
       return NextResponse.json(
-        { error: 'For temporary users, allUserId must be provided in the request body' },
+        {
+          error:
+            'For temporary users, allUserId must be provided in the request body',
+        },
         { status: 401 }
       );
     }
@@ -52,7 +64,10 @@ export async function GET(request: NextRequest) {
     });
 
     if (!tempUserRecord) {
-      return NextResponse.json({ error: 'Invalid temporary user ID' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Invalid temporary user ID' },
+        { status: 404 }
+      );
     }
 
     allUserId = body.allUserId;
@@ -67,13 +82,16 @@ export async function GET(request: NextRequest) {
 
     // Get all gallery shares for this user using the new universal resource sharing system
     const shares = await db.query.resourceMembership.findMany({
-      where: and(eq(resourceMembership.allUserId, allUserId), eq(resourceMembership.resourceType, 'gallery')),
+      where: and(
+        eq(resourceMembership.allUserId, allUserId),
+        eq(resourceMembership.resourceType, 'gallery')
+      ),
       orderBy: desc(resourceMembership.createdAt),
     });
 
     // Fetch the actual galleries
     const sharedGalleries = await Promise.all(
-      shares.map(async share => {
+      shares.map(async (share) => {
         const gallery = await db.query.galleries.findFirst({
           where: eq(galleries.id, share.resourceId),
         });
@@ -84,7 +102,10 @@ export async function GET(request: NextRequest) {
           .select({ count: sql<number>`count(*)` })
           .from(resourceMembership)
           .where(
-            and(eq(resourceMembership.resourceId, share.resourceId), eq(resourceMembership.resourceType, 'gallery'))
+            and(
+              eq(resourceMembership.resourceId, share.resourceId),
+              eq(resourceMembership.resourceType, 'gallery')
+            )
           );
 
         // Get owner name from the gallery itself
@@ -93,13 +114,16 @@ export async function GET(request: NextRequest) {
         });
 
         // Add storage status to the gallery
-        const galleryWithStorageStatus = await addStorageStatusToGallery(gallery);
+        const galleryWithStorageStatus =
+          await addStorageStatusToGallery(gallery);
 
         return {
           ...galleryWithStorageStatus,
           sharedBy: {
             id: gallery.ownerId,
-            name: owner?.userId ? await getOwnerName(gallery.ownerId) : 'Unknown',
+            name: owner?.userId
+              ? await getOwnerName(gallery.ownerId)
+              : 'Unknown',
           },
           accessLevel: share.role === 'member' ? 'write' : 'read',
           status: 'shared' as const,
@@ -126,8 +150,13 @@ export async function GET(request: NextRequest) {
       hasMore: offset + limit < validGalleries.length,
     });
   } catch (error) {
-    fatLogger.error('Error listing shared galleries:', 'be', { data: error instanceof Error ? error : undefined });
-    return NextResponse.json({ error: 'Failed to list shared galleries' }, { status: 500 });
+    fatLogger.error('Error listing shared galleries:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
+    return NextResponse.json(
+      { error: 'Failed to list shared galleries' },
+      { status: 500 }
+    );
   }
 }
 
@@ -158,7 +187,9 @@ async function getOwnerName(ownerId: string): Promise<string> {
 
     return 'Unknown';
   } catch (error) {
-    fatLogger.error('Error getting owner name:', 'be', { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Error getting owner name:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
     return 'Unknown';
   }
 }

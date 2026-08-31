@@ -8,7 +8,9 @@ import type { Identity, ActorSubclass } from '@dfinity/agent';
 import type { _SERVICE as Backend } from '@/ic/declarations/backend/backend.did';
 
 export type BackendActor = ActorSubclass<Backend>;
-export type IcpInit = { status: 'connected'; actor: BackendActor } | { status: 'offline'; reason: string };
+export type IcpInit =
+  | { status: 'connected'; actor: BackendActor }
+  | { status: 'offline'; reason: string };
 
 /**
  * Creates a backend actor with preflight health check and lazy fetchRootKey()
@@ -37,10 +39,17 @@ export async function backendActorSafe(identity?: Identity): Promise<IcpInit> {
     }
 
     // 4) Create actor
-    const actor = makeActor(backendIDL, BACKEND_CANISTER_ID, agent) as BackendActor;
+    const actor = makeActor(
+      backendIDL,
+      BACKEND_CANISTER_ID,
+      agent
+    ) as BackendActor;
     return { status: 'connected', actor };
   } catch (e: unknown) {
-    return { status: 'offline', reason: e instanceof Error ? e.message : 'unknown' };
+    return {
+      status: 'offline',
+      reason: e instanceof Error ? e.message : 'unknown',
+    };
   }
 }
 

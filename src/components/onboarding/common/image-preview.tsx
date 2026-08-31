@@ -10,7 +10,9 @@ export function ImagePreview({ file, className = '' }: ImagePreviewProps) {
   if (!file.url) return null;
 
   return (
-    <div className={`relative aspect-square overflow-hidden rounded-lg ${className}`}>
+    <div
+      className={`relative aspect-square overflow-hidden rounded-lg ${className}`}
+    >
       <Image
         src={file.url}
         alt="Memory preview"

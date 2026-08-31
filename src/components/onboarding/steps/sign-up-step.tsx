@@ -60,7 +60,9 @@ export function SignUpStep({ onBack }: SignUpStepProps) {
         // Redirect manually after successful authentication
         window.location.href = `/${lang}/dashboard`;
       } else {
-        setError(`Authentication failed: ${signInResult?.error || 'Unknown error'}`);
+        setError(
+          `Authentication failed: ${signInResult?.error || 'Unknown error'}`
+        );
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -94,14 +96,21 @@ export function SignUpStep({ onBack }: SignUpStepProps) {
   return (
     <StepContainer>
       <div className="pt-4">
-        <p className="text-xl sm:text-4xl font-bold mb-8">Last Step: Sign Up! </p>
+        <p className="text-xl sm:text-4xl font-bold mb-8">
+          Last Step: Sign Up!{' '}
+        </p>
         <p className="text-xl text-muted-foreground">
-          If you want the real deal! Keep your memories forever by creating an account.
+          If you want the real deal! Keep your memories forever by creating an
+          account.
         </p>
       </div>
 
       <div className="grid gap-4 mt-8">
-        <Button variant="outline" className="gap-2" onClick={handleGoogleSignIn}>
+        <Button
+          variant="outline"
+          className="gap-2"
+          onClick={handleGoogleSignIn}
+        >
           <svg className="h-4 w-4" viewBox="0 0 24 24">
             <path
               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -122,7 +131,11 @@ export function SignUpStep({ onBack }: SignUpStepProps) {
           </svg>
           Continue with Google
         </Button>
-        <Button variant="outline" className="gap-2" onClick={handleInternetIdentity}>
+        <Button
+          variant="outline"
+          className="gap-2"
+          onClick={handleInternetIdentity}
+        >
           Continue with Internet Identity
         </Button>
       </div>
@@ -132,7 +145,9 @@ export function SignUpStep({ onBack }: SignUpStepProps) {
           <span className="w-full border-t" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-2 text-muted-foreground">Or continue with email</span>
+          <span className="bg-background px-2 text-muted-foreground">
+            Or continue with email
+          </span>
         </div>
       </div>
 
@@ -143,7 +158,7 @@ export function SignUpStep({ onBack }: SignUpStepProps) {
             id="email"
             type="email"
             value={email}
-            onChange={e => setEmail(e.target.value)}
+            onChange={(e) => setEmail(e.target.value)}
             placeholder="Enter your email"
             required
           />
@@ -154,7 +169,7 @@ export function SignUpStep({ onBack }: SignUpStepProps) {
             id="password"
             type="password"
             value={password}
-            onChange={e => setPassword(e.target.value)}
+            onChange={(e) => setPassword(e.target.value)}
             placeholder="Create a password"
             required
           />
@@ -165,7 +180,11 @@ export function SignUpStep({ onBack }: SignUpStepProps) {
         </Button>
       </form>
 
-      <StepNavigation currentStep={currentStep} onBack={onBack} showBackButton={true} />
+      <StepNavigation
+        currentStep={currentStep}
+        onBack={onBack}
+        showBackButton={true}
+      />
     </StepContainer>
   );
 }

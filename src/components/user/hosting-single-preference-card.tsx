@@ -2,10 +2,10 @@
 
 /**
  * HostingSinglePreferenceCard
- * 
+ *
  * NOTE: This component is an ALTERNATIVE to HostingWeb2Web3ToggleCard.
  * They do NOT work together - use one or the other.
- * 
+ *
  * This component provides detailed hosting provider selection using dropdown selects.
  * It's designed for users who want to choose specific hosting providers
  * rather than just Web2 vs Web3 paradigms.
@@ -20,7 +20,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 export function HostingSinglePreferenceCard() {
   const { data: preferences, isLoading, error } = useHostingPreferences();
@@ -44,7 +50,9 @@ export function HostingSinglePreferenceCard() {
     });
   };
 
-  const handleBlobHostingChange = (hosting: 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs' | 'neon') => {
+  const handleBlobHostingChange = (
+    hosting: 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs' | 'neon'
+  ) => {
     updatePreferences.mutate({
       blobHosting: [hosting],
     });
@@ -106,9 +114,14 @@ export function HostingSinglePreferenceCard() {
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
             <Label htmlFor="frontend-hosting">Frontend Hosting</Label>
-            <p className="text-sm text-muted-foreground">Where your frontend is hosted</p>
+            <p className="text-sm text-muted-foreground">
+              Where your frontend is hosted
+            </p>
           </div>
-          <Select value={currentPreferences.frontendHosting} onValueChange={handleFrontendHostingChange}>
+          <Select
+            value={currentPreferences.frontendHosting}
+            onValueChange={handleFrontendHostingChange}
+          >
             <SelectTrigger className="w-32">
               <SelectValue />
             </SelectTrigger>
@@ -125,9 +138,14 @@ export function HostingSinglePreferenceCard() {
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
             <Label htmlFor="backend-hosting">Backend Hosting</Label>
-            <p className="text-sm text-muted-foreground">Where your backend API is hosted</p>
+            <p className="text-sm text-muted-foreground">
+              Where your backend API is hosted
+            </p>
           </div>
-          <Select value={currentPreferences.backendHosting} onValueChange={handleBackendHostingChange}>
+          <Select
+            value={currentPreferences.backendHosting}
+            onValueChange={handleBackendHostingChange}
+          >
             <SelectTrigger className="w-32">
               <SelectValue />
             </SelectTrigger>
@@ -144,9 +162,14 @@ export function HostingSinglePreferenceCard() {
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
             <Label htmlFor="database-hosting">Database Hosting</Label>
-            <p className="text-sm text-muted-foreground">Where your database is hosted</p>
+            <p className="text-sm text-muted-foreground">
+              Where your database is hosted
+            </p>
           </div>
-          <Select value={currentPreferences.databaseHosting[0]} onValueChange={handleDatabaseHostingChange}>
+          <Select
+            value={currentPreferences.databaseHosting[0]}
+            onValueChange={handleDatabaseHostingChange}
+          >
             <SelectTrigger className="w-32">
               <SelectValue />
             </SelectTrigger>
@@ -163,9 +186,14 @@ export function HostingSinglePreferenceCard() {
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
             <Label htmlFor="blob-hosting">Blob Storage</Label>
-            <p className="text-sm text-muted-foreground">Where your files are stored</p>
+            <p className="text-sm text-muted-foreground">
+              Where your files are stored
+            </p>
           </div>
-          <Select value={currentPreferences.blobHosting[0]} onValueChange={handleBlobHostingChange}>
+          <Select
+            value={currentPreferences.blobHosting[0]}
+            onValueChange={handleBlobHostingChange}
+          >
             <SelectTrigger className="w-32">
               <SelectValue />
             </SelectTrigger>
@@ -179,7 +207,11 @@ export function HostingSinglePreferenceCard() {
           </Select>
         </div>
 
-        {error && <div className="text-sm text-red-600">Error loading preferences: {error.message}</div>}
+        {error && (
+          <div className="text-sm text-red-600">
+            Error loading preferences: {error.message}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

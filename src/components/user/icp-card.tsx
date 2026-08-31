@@ -20,7 +20,9 @@ interface ICPCardProps {
 export function ICPCard({ className = '' }: ICPCardProps) {
   // TODO: Update this component to use new hooks
   return (
-    <Card className={`border-2 border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/20 ${className}`}>
+    <Card
+      className={`border-2 border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/20 ${className}`}
+    >
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <Shield className="h-6 w-6 text-slate-600" />
@@ -29,7 +31,8 @@ export function ICPCard({ className = '' }: ICPCardProps) {
       </CardHeader>
       <CardContent>
         <p className="text-sm text-muted-foreground">
-          This component is being updated to use the new Internet Identity management system.
+          This component is being updated to use the new Internet Identity
+          management system.
         </p>
       </CardContent>
     </Card>

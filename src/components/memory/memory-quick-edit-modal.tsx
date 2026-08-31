@@ -27,7 +27,11 @@ interface MemoryQuickEditModalProps {
   resourceId: string;
   initialTitle?: string;
   initialDescription?: string;
-  onSave: (params: { resourceType: ResourceType; resourceId: string; data: QuickEditPayload }) => Promise<void> | void;
+  onSave: (params: {
+    resourceType: ResourceType;
+    resourceId: string;
+    data: QuickEditPayload;
+  }) => Promise<void> | void;
   isSaving?: boolean;
 }
 
@@ -42,7 +46,9 @@ export function MemoryQuickEditModal({
   isSaving = false,
 }: MemoryQuickEditModalProps) {
   const [title, setTitle] = useState<string>(initialTitle ?? '');
-  const [description, setDescription] = useState<string>(initialDescription ?? '');
+  const [description, setDescription] = useState<string>(
+    initialDescription ?? ''
+  );
   const [submitting, setSubmitting] = useState<boolean>(false);
 
   // Reset fields when opening for a different resource or when toggling open
@@ -54,7 +60,10 @@ export function MemoryQuickEditModal({
   }, [open, initialTitle, initialDescription, resourceId]);
 
   const isChanged = useMemo(() => {
-    return (title ?? '') !== (initialTitle ?? '') || (description ?? '') !== (initialDescription ?? '');
+    return (
+      (title ?? '') !== (initialTitle ?? '') ||
+      (description ?? '') !== (initialDescription ?? '')
+    );
   }, [title, description, initialTitle, initialDescription]);
 
   const canSubmit = useMemo(() => {
@@ -69,7 +78,10 @@ export function MemoryQuickEditModal({
       await onSave({
         resourceType,
         resourceId,
-        data: { title: title?.trim() || undefined, description: description?.trim() || undefined },
+        data: {
+          title: title?.trim() || undefined,
+          description: description?.trim() || undefined,
+        },
       });
       onOpenChange(false);
     } finally {
@@ -81,23 +93,30 @@ export function MemoryQuickEditModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Quick Edit {resourceType === 'folder' ? 'Folder' : 'Memory'}</DialogTitle>
+          <DialogTitle>
+            Quick Edit {resourceType === 'folder' ? 'Folder' : 'Memory'}
+          </DialogTitle>
           <DialogDescription>
-            Update the title and description. Advanced fields are available in the full edit view.
+            Update the title and description. Advanced fields are available in
+            the full edit view.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
           <div className="space-y-2">
             <label className="text-sm font-medium">Title</label>
-            <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Enter title" />
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Enter title"
+            />
           </div>
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Description</label>
             <Textarea
               value={description}
-              onChange={e => setDescription(e.target.value)}
+              onChange={(e) => setDescription(e.target.value)}
               placeholder="Add a short description"
               rows={4}
             />
@@ -105,7 +124,11 @@ export function MemoryQuickEditModal({
         </div>
 
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={submitting || isSaving}>
+          <Button
+            variant="ghost"
+            onClick={() => onOpenChange(false)}
+            disabled={submitting || isSaving}
+          >
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={!canSubmit}>

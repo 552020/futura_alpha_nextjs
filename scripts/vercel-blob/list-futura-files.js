@@ -20,7 +20,9 @@ async function listFuturaFiles() {
   try {
     // Check if token is available
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      throw new Error('BLOB_READ_WRITE_TOKEN not found in environment variables');
+      throw new Error(
+        'BLOB_READ_WRITE_TOKEN not found in environment variables'
+      );
     }
 
     // Get folder name from environment or use default
@@ -34,7 +36,9 @@ async function listFuturaFiles() {
     const allFiles = blobs.blobs;
 
     // Filter files in the futura folder
-    const futuraFiles = allFiles.filter(file => file.pathname.startsWith(`${folderName}/`));
+    const futuraFiles = allFiles.filter((file) =>
+      file.pathname.startsWith(`${folderName}/`)
+    );
 
     if (futuraFiles.length === 0) {
       console.log(`📭 No files found in "${folderName}" folder`);
@@ -71,7 +75,9 @@ async function listFuturaFiles() {
       });
 
     // Recent uploads (last 20)
-    const recentFiles = futuraFiles.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt)).slice(0, 20);
+    const recentFiles = futuraFiles
+      .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt))
+      .slice(0, 20);
 
     console.log('\n🕒 Recent uploads (last 20):');
     recentFiles.forEach((file, index) => {
@@ -79,11 +85,15 @@ async function listFuturaFiles() {
       const uploadedAt = new Date(file.uploadedAt).toLocaleString();
       const fileName = file.pathname.split('/').pop();
       console.log(`   ${index + 1}. ${fileName}`);
-      console.log(`      Size: ${sizeKB} KB | Type: ${file.contentType || 'unknown'} | Uploaded: ${uploadedAt}`);
+      console.log(
+        `      Size: ${sizeKB} KB | Type: ${file.contentType || 'unknown'} | Uploaded: ${uploadedAt}`
+      );
     });
 
     // Large files (> 1MB)
-    const largeFiles = futuraFiles.filter(file => file.size > 1024 * 1024).sort((a, b) => b.size - a.size);
+    const largeFiles = futuraFiles
+      .filter((file) => file.size > 1024 * 1024)
+      .sort((a, b) => b.size - a.size);
 
     if (largeFiles.length > 0) {
       console.log(`\n📦 Large files (> 1MB):`);
@@ -112,7 +122,9 @@ async function listFuturaFiles() {
     const filePatterns = futuraFiles.reduce((acc, file) => {
       const fileName = file.pathname.split('/').pop();
       // Extract base name (remove timestamp and variants)
-      const baseName = fileName.replace(/^\d+-/, '').replace(/(_display|_thumb|_original)\.webp$/, '');
+      const baseName = fileName
+        .replace(/^\d+-/, '')
+        .replace(/(_display|_thumb|_original)\.webp$/, '');
       if (!acc[baseName]) acc[baseName] = [];
       acc[baseName].push(file);
       return acc;
@@ -128,8 +140,10 @@ async function listFuturaFiles() {
       multiVariantFiles.slice(0, 10).forEach(([baseName, files]) => {
         const totalSize = files.reduce((sum, file) => sum + file.size, 0);
         const totalSizeKB = (totalSize / 1024).toFixed(2);
-        console.log(`   ${baseName}: ${files.length} variants (${totalSizeKB} KB total)`);
-        files.forEach(file => {
+        console.log(
+          `   ${baseName}: ${files.length} variants (${totalSizeKB} KB total)`
+        );
+        files.forEach((file) => {
           const fileName = file.pathname.split('/').pop();
           const sizeKB = (file.size / 1024).toFixed(2);
           console.log(`     - ${fileName} (${sizeKB} KB)`);
@@ -150,11 +164,16 @@ async function listFuturaFiles() {
           {
             count: typeFiles.length,
             size: typeFiles.reduce((sum, file) => sum + file.size, 0),
-            sizeMB: parseFloat((typeFiles.reduce((sum, file) => sum + file.size, 0) / (1024 * 1024)).toFixed(2)),
+            sizeMB: parseFloat(
+              (
+                typeFiles.reduce((sum, file) => sum + file.size, 0) /
+                (1024 * 1024)
+              ).toFixed(2)
+            ),
           },
         ])
       ),
-      files: futuraFiles.map(file => ({
+      files: futuraFiles.map((file) => ({
         pathname: file.pathname,
         fileName: file.pathname.split('/').pop(),
         size: file.size,
@@ -177,4 +196,3 @@ async function listFuturaFiles() {
 
 // Run the script
 listFuturaFiles();
-

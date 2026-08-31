@@ -9,7 +9,9 @@ const EXPERIMENT = false;
 export default async function ItemsUploadPage({ params }: PageProps) {
   // Await the params Promise first
   const resolvedParams = await params;
-  const dict = await getDictionary(resolvedParams.lang, { includeOnboarding: true });
+  const dict = await getDictionary(resolvedParams.lang, {
+    includeOnboarding: true,
+  });
 
   return EXPERIMENT ? (
     <ItemsUploadClientExperiment lang={resolvedParams.lang} dict={dict} />

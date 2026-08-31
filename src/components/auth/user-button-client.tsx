@@ -22,7 +22,11 @@ export default function UserButtonClient({ lang = 'en' }: { lang?: string }) {
 
   if (status === 'loading') {
     return (
-      <Button variant="ghost" className="relative h-8 w-8 rounded-full" disabled>
+      <Button
+        variant="ghost"
+        className="relative h-8 w-8 rounded-full"
+        disabled
+      >
         Loading...
       </Button>
     );
@@ -41,10 +45,12 @@ export default function UserButtonClient({ lang = 'en' }: { lang?: string }) {
   const name =
     session.user.name ||
     session.user.email ||
-    (showPrincipal ? `Principal ${principal!.slice(0, 8)}…${principal!.slice(-6)}` : 'User');
+    (showPrincipal
+      ? `Principal ${principal!.slice(0, 8)}…${principal!.slice(-6)}`
+      : 'User');
   const initials = name
     .split(' ')
-    .map(n => n[0])
+    .map((n) => n[0])
     .join('')
     .slice(0, 2)
     .toUpperCase();
@@ -68,7 +74,9 @@ export default function UserButtonClient({ lang = 'en' }: { lang?: string }) {
               }
               alt={name}
             />
-            <AvatarFallback className="text-xs font-medium">{initials}</AvatarFallback>
+            <AvatarFallback className="text-xs font-medium">
+              {initials}
+            </AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
@@ -76,8 +84,16 @@ export default function UserButtonClient({ lang = 'en' }: { lang?: string }) {
         <DropdownMenuLabel className="font-normal border-b pb-3">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">{name}</p>
-            {session.user.email && <p className="text-muted-foreground text-xs leading-none">{session.user.email}</p>}
-            {principal && <p className="text-muted-foreground text-xs leading-none break-all">{principal}</p>}
+            {session.user.email && (
+              <p className="text-muted-foreground text-xs leading-none">
+                {session.user.email}
+              </p>
+            )}
+            {principal && (
+              <p className="text-muted-foreground text-xs leading-none break-all">
+                {principal}
+              </p>
+            )}
           </div>
         </DropdownMenuLabel>
         <div className="p-2">

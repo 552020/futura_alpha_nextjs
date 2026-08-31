@@ -72,13 +72,18 @@ export default function AlternatingFeaturesItem({
         </div>
       </div>
 
-      <div className={`w-full md:flex-1 ${isEven ? 'md:pl-12 lg:pl-24' : 'md:pr-12 lg:pr-24'}`}>
-        <h3 className="text-3xl md:text-4xl 2xl:text-6xl font-bold mb-4">{item.title}</h3>
+      <div
+        className={`w-full md:flex-1 ${isEven ? 'md:pl-12 lg:pl-24' : 'md:pr-12 lg:pr-24'}`}
+      >
+        <h3 className="text-3xl md:text-4xl 2xl:text-6xl font-bold mb-4">
+          {item.title}
+        </h3>
         {item.subtitle && (
-          <h4 className="text-xl md:text-2xl 2xl:text-4xl text-gray-600 dark:text-gray-400">{item.subtitle}</h4>
+          <h4 className="text-xl md:text-2xl 2xl:text-4xl text-gray-600 dark:text-gray-400">
+            {item.subtitle}
+          </h4>
         )}
       </div>
     </div>
   );
 }
-

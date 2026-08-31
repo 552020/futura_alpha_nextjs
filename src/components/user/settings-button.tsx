@@ -16,7 +16,12 @@ export function SettingsButton() {
   };
 
   return (
-    <Button variant="ghost" size="icon" onClick={handleSettingsClick} className="transition-opacity hover:opacity-80">
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={handleSettingsClick}
+      className="transition-opacity hover:opacity-80"
+    >
       <Settings className="h-[1.4rem] w-[1.4rem]" />
       <span className="sr-only">Settings</span>
     </Button>

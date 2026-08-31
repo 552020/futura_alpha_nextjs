@@ -1,6 +1,9 @@
 'use client';
 
-import { StorageStatusBadge, mockStorageStatuses } from '@/components/common/storage-status-badge';
+import {
+  StorageStatusBadge,
+  mockStorageStatuses,
+} from '@/components/common/storage-status-badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function StorageBadgesDemoPage() {
@@ -8,7 +11,9 @@ export default function StorageBadgesDemoPage() {
     <div className="container mx-auto p-8 space-y-8">
       <div className="text-center">
         <h1 className="text-3xl font-bold mb-4">Storage Status Badges Demo</h1>
-        <p className="text-muted-foreground">Simple text badges showing ICP vs Neon storage status</p>
+        <p className="text-muted-foreground">
+          Simple text badges showing ICP vs Neon storage status
+        </p>
       </div>
 
       {/* Gallery Badges Demo */}
@@ -19,12 +24,16 @@ export default function StorageBadgesDemoPage() {
         <CardContent className="space-y-4">
           <div className="flex items-center gap-4">
             <span className="text-sm font-medium">Gallery stored in ICP:</span>
-            <StorageStatusBadge status={mockStorageStatuses.gallery.storedInICP.status} />
+            <StorageStatusBadge
+              status={mockStorageStatuses.gallery.storedInICP.status}
+            />
           </div>
 
           <div className="flex items-center gap-4">
             <span className="text-sm font-medium">Gallery stored in Neon:</span>
-            <StorageStatusBadge status={mockStorageStatuses.gallery.storedInNeon.status} />
+            <StorageStatusBadge
+              status={mockStorageStatuses.gallery.storedInNeon.status}
+            />
           </div>
 
           <div className="flex items-center gap-4">
@@ -43,12 +52,16 @@ export default function StorageBadgesDemoPage() {
         <CardContent className="space-y-4">
           <div className="flex items-center gap-4">
             <span className="text-sm font-medium">Memory stored in ICP:</span>
-            <StorageStatusBadge status={mockStorageStatuses.memory.storedInICP.status} />
+            <StorageStatusBadge
+              status={mockStorageStatuses.memory.storedInICP.status}
+            />
           </div>
 
           <div className="flex items-center gap-4">
             <span className="text-sm font-medium">Memory stored in Neon:</span>
-            <StorageStatusBadge status={mockStorageStatuses.memory.storedInNeon.status} />
+            <StorageStatusBadge
+              status={mockStorageStatuses.memory.storedInNeon.status}
+            />
           </div>
         </CardContent>
       </Card>
@@ -63,7 +76,9 @@ export default function StorageBadgesDemoPage() {
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="font-medium">My Wedding Photos</h3>
-                <p className="text-sm text-muted-foreground">Beautiful memories from our special day</p>
+                <p className="text-sm text-muted-foreground">
+                  Beautiful memories from our special day
+                </p>
               </div>
               <StorageStatusBadge status="icp" />
             </div>
@@ -86,7 +101,9 @@ export default function StorageBadgesDemoPage() {
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="font-medium">Wedding Ceremony</h3>
-                <p className="text-sm text-muted-foreground">The moment we said &quot;I do&quot;</p>
+                <p className="text-sm text-muted-foreground">
+                  The moment we said &quot;I do&quot;
+                </p>
               </div>
               <StorageStatusBadge status="neon" />
             </div>

@@ -30,12 +30,18 @@ export default async function SegmentPage({ params }: PageProps) {
   // await setSegmentCookie(resolvedParams.segment);
 
   // Get dictionary with segment-specific content
-  const dict = await getDictionary(resolvedParams.lang, { segment: resolvedParams.segment });
+  const dict = await getDictionary(resolvedParams.lang, {
+    segment: resolvedParams.segment,
+  });
 
   return (
     <main>
       <Hero dict={dict} lang={resolvedParams.lang} />
-      <DynamicValueJourney dict={dict} lang={resolvedParams.lang} segment={resolvedParams.segment} />
+      <DynamicValueJourney
+        dict={dict}
+        lang={resolvedParams.lang}
+        segment={resolvedParams.segment}
+      />
     </main>
   );
 }

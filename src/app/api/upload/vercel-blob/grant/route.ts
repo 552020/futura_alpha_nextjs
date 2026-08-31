@@ -38,12 +38,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const body = (await req.json()) as HandleUploadBody & { clientPayload?: string };
-  fatLogger.info('🔍 Raw request body keys:', 'be', { keys: Object.keys(body) });
-  fatLogger.info('🔍 Raw clientPayload value:', 'be', { clientPayload: body.clientPayload });
+  const body = (await req.json()) as HandleUploadBody & {
+    clientPayload?: string;
+  };
+  fatLogger.info('🔍 Raw request body keys:', 'be', {
+    keys: Object.keys(body),
+  });
+  fatLogger.info('🔍 Raw clientPayload value:', 'be', {
+    clientPayload: body.clientPayload,
+  });
 
   // Extract client payload from the request body
-  const clientPayload = body.clientPayload ? JSON.parse(body.clientPayload) : {};
+  const clientPayload = body.clientPayload
+    ? JSON.parse(body.clientPayload)
+    : {};
   fatLogger.info('📦 Client payload received:', 'be', clientPayload);
 
   // Store memory ID to return to client
@@ -66,7 +74,10 @@ export async function POST(req: NextRequest) {
       };
     },
     onUploadCompleted: async ({ blob, tokenPayload }) => {
-      fatLogger.info('🎉 onUploadCompleted callback triggered!', 'be', { blob: blob.url, tokenPayload });
+      fatLogger.info('🎉 onUploadCompleted callback triggered!', 'be', {
+        blob: blob.url,
+        tokenPayload,
+      });
       // persist in DB
       try {
         const payload = tokenPayload ? JSON.parse(tokenPayload as string) : {};
@@ -94,8 +105,16 @@ export async function POST(req: NextRequest) {
         }
 
         // If this is an image and memory creation was successful, enqueue image processing
-        if (result.success && result.memoryId && blob.contentType && detectMemoryType(blob.contentType) === 'image') {
-          fatLogger.info(`🖼️ Enqueueing image processing for memory ${result.memoryId}`, 'be');
+        if (
+          result.success &&
+          result.memoryId &&
+          blob.contentType &&
+          detectMemoryType(blob.contentType) === 'image'
+        ) {
+          fatLogger.info(
+            `🖼️ Enqueueing image processing for memory ${result.memoryId}`,
+            'be'
+          );
           enqueueImageProcessing({
             memoryId: result.memoryId,
             originalBlobUrl: blob.url,

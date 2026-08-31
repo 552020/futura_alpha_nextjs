@@ -22,13 +22,22 @@ export function LoadingSpinner({
 
   const spinner = (
     <div className={cn('text-center', className)}>
-      <Loader2 className={cn('animate-spin text-primary mx-auto mb-4', sizeClasses[size])} />
+      <Loader2
+        className={cn(
+          'animate-spin text-primary mx-auto mb-4',
+          sizeClasses[size]
+        )}
+      />
       {text && <p className="text-muted-foreground text-sm">{text}</p>}
     </div>
   );
 
   if (fullScreen) {
-    return <div className="flex items-center justify-center min-h-screen">{spinner}</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        {spinner}
+      </div>
+    );
   }
 
   return spinner;

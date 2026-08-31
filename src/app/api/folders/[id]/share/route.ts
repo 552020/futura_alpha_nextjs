@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { createShare, createPublicLink, generateShareableUrl } from '@/services/sharing';
+import {
+  createShare,
+  createPublicLink,
+  generateShareableUrl,
+} from '@/services/sharing';
 import { getFolderByIdForOwner } from '@/services/folder';
 import { getAllUserRecord, getAllUserRecordById } from '@/services/user';
 import type { allUsers } from '@/db';
@@ -17,7 +21,10 @@ type FolderShareRequest = {
   expiresAt?: string; // ISO string for public links
 };
 
-export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+export async function POST(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   const { id: folderId } = await context.params;
 
   try {
@@ -52,14 +59,20 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     const allUserRecord = userResult.data as typeof allUsers.$inferSelect;
 
     // Find the folder and check ownership using service function
-    const folderResult = await getFolderByIdForOwner(folderId, allUserRecord.id);
+    const folderResult = await getFolderByIdForOwner(
+      folderId,
+      allUserRecord.id
+    );
 
     if (!folderResult.success || !folderResult.data) {
       fatLogger.error('Folder not found or not owned by user', 'be', {
         folderId,
         ownerId: allUserRecord.id,
       });
-      return NextResponse.json({ error: 'Folder not found or access denied' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Folder not found or access denied' },
+        { status: 404 }
+      );
     }
 
     const folder = folderResult.data;
@@ -74,7 +87,10 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     if (shareType === 'user') {
       // User-to-user sharing
       if (!targetUserId) {
-        return NextResponse.json({ error: 'Target user ID is required for user sharing' }, { status: 400 });
+        return NextResponse.json(
+          { error: 'Target user ID is required for user sharing' },
+          { status: 400 }
+        );
       }
 
       // Check if target user exists using service function
@@ -99,7 +115,11 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
         resourceType: 'folder',
         resourceId: folderId,
         targetUserId,
-        permissions: permissions || { canView: true, canEdit: false, canDelete: false },
+        permissions: permissions || {
+          canView: true,
+          canEdit: false,
+          canDelete: false,
+        },
         invitedBy: allUserRecord.id,
       });
 
@@ -129,7 +149,11 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
         data: {
           shareId: shareResult.data?.id,
           shareType: 'user',
-          permissions: permissions || { canView: true, canEdit: false, canDelete: false },
+          permissions: permissions || {
+            canView: true,
+            canEdit: false,
+            canDelete: false,
+          },
         },
       });
     } else if (shareType === 'public') {
@@ -175,7 +199,10 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
         },
       });
     } else {
-      return NextResponse.json({ error: 'Invalid share type' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid share type' },
+        { status: 400 }
+      );
     }
   } catch (error) {
     fatLogger.error('🔴 Error sharing folder:', 'be', {

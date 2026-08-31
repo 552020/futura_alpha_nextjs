@@ -63,7 +63,10 @@ export class TestServerBuilder {
 
         if (method === 'GET' && endpoint.GET) {
           const result = endpoint.GET();
-          const headers = { 'Content-Type': 'application/json', ...result.headers };
+          const headers = {
+            'Content-Type': 'application/json',
+            ...result.headers,
+          };
           res.writeHead(result.status, headers);
           res.end(JSON.stringify(result.body));
           return;
@@ -88,7 +91,10 @@ export class TestServerBuilder {
 
             fatLogger.info(`🔍 Request body:`, 'be', parsedBody);
             const result = endpoint.POST!(parsedBody);
-            const headers = { 'Content-Type': 'application/json', ...result.headers };
+            const headers = {
+              'Content-Type': 'application/json',
+              ...result.headers,
+            };
             res.writeHead(result.status, headers);
             res.end(JSON.stringify(result.body));
           });
@@ -113,7 +119,10 @@ export class TestServerBuilder {
             }
 
             const result = endpoint.PUT!(parsedBody);
-            const headers = { 'Content-Type': 'application/json', ...result.headers };
+            const headers = {
+              'Content-Type': 'application/json',
+              ...result.headers,
+            };
             res.writeHead(result.status, headers);
             res.end(JSON.stringify(result.body));
           });
@@ -122,7 +131,10 @@ export class TestServerBuilder {
 
         if (method === 'DELETE' && endpoint.DELETE) {
           const result = endpoint.DELETE();
-          const headers = { 'Content-Type': 'application/json', ...result.headers };
+          const headers = {
+            'Content-Type': 'application/json',
+            ...result.headers,
+          };
           res.writeHead(result.status, headers);
           res.end(JSON.stringify(result.body));
           return;
@@ -135,7 +147,7 @@ export class TestServerBuilder {
     };
 
     this.server = createServer(app);
-    await new Promise<void>(resolve => {
+    await new Promise<void>((resolve) => {
       this.server!.listen(0, () => resolve());
     });
 
@@ -152,7 +164,7 @@ export class TestServerBuilder {
       },
       close: async () => {
         if (this.server) {
-          await new Promise<void>(resolve => {
+          await new Promise<void>((resolve) => {
             this.server!.close(() => resolve());
           });
         }
@@ -205,7 +217,10 @@ export const endpointTemplates = {
 
   // Validation endpoint with custom validation logic
   validationEndpoint: (
-    validator: (body: Record<string, unknown>) => { isValid: boolean; error?: string },
+    validator: (body: Record<string, unknown>) => {
+      isValid: boolean;
+      error?: string;
+    },
     successResponse: (body: Record<string, unknown>) => MockResponse
   ) => ({
     POST: (body: Record<string, unknown>) => {
@@ -234,7 +249,10 @@ export async function createCommonTestServer() {
     .addEndpoint('/api/hello', endpointTemplates.simpleGet('Hello, World!'))
     .addEndpoint('/api/echo', endpointTemplates.echo())
     .addEndpoint('/api/status', endpointTemplates.healthCheck())
-    .addEndpoint('/api/error-demo', endpointTemplates.errorSimulator(500, 'Internal server error'));
+    .addEndpoint(
+      '/api/error-demo',
+      endpointTemplates.errorSimulator(500, 'Internal server error')
+    );
 
   return builder.build();
 }
@@ -256,7 +274,8 @@ export async function createICPServer() {
           status: 200,
           body: {
             success: true,
-            principal: 'ffso4-hbyyy-se2mz-l7nlp-fpqbb-yn4rf-ilnen-yb3ng-izeoj-rxexn-6qe',
+            principal:
+              'ffso4-hbyyy-se2mz-l7nlp-fpqbb-yn4rf-ilnen-yb3ng-izeoj-rxexn-6qe',
           },
         };
       }

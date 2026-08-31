@@ -63,7 +63,10 @@ async function applyCustomConstraints(): Promise<void> {
       const causeMessage = error.cause?.message || '';
       const fullMessage = `${errorMessage} ${causeMessage}`;
 
-      if (fullMessage.includes('already exists') || fullMessage.includes('duplicate key')) {
+      if (
+        fullMessage.includes('already exists') ||
+        fullMessage.includes('duplicate key')
+      ) {
         console.log(`   ℹ️  Already applied: ${file}`);
       } else {
         console.error(`   ❌ Failed to apply: ${file}`);
@@ -87,7 +90,8 @@ async function verifyDatabaseIntegrity(): Promise<void> {
     {
       name: 'memory_assets_bytes_positive',
       table: 'memory_assets',
-      description: 'Ensures memory asset bytes are positive (> 0) - defined in schema.ts but Drizzle cannot verify',
+      description:
+        'Ensures memory asset bytes are positive (> 0) - defined in schema.ts but Drizzle cannot verify',
     },
     {
       name: 'memory_assets_dimensions_positive',
@@ -114,7 +118,10 @@ async function verifyDatabaseIntegrity(): Promise<void> {
         throw new Error(`Required constraint ${constraint.name} is missing`);
       }
     } catch (error: any) {
-      console.error(`   ❌ Error checking constraint ${constraint.name}:`, error.message);
+      console.error(
+        `   ❌ Error checking constraint ${constraint.name}:`,
+        error.message
+      );
       throw error;
     }
   }
@@ -137,10 +144,14 @@ async function runFullMigration(): Promise<void> {
     await verifyDatabaseIntegrity();
 
     console.log('\n✨ Migration completed successfully!');
-    console.log('Database is now in sync with Drizzle schema and all constraints are applied.');
+    console.log(
+      'Database is now in sync with Drizzle schema and all constraints are applied.'
+    );
   } catch (error: any) {
     console.error('\n❌ Migration failed:', error.message);
-    console.error('Please check the error above and fix any issues before retrying.');
+    console.error(
+      'Please check the error above and fix any issues before retrying.'
+    );
     process.exit(1);
   }
 }
@@ -150,4 +161,9 @@ if (require.main === module) {
   runFullMigration();
 }
 
-export { runFullMigration, runDrizzleMigrations, applyCustomConstraints, verifyDatabaseIntegrity };
+export {
+  runFullMigration,
+  runDrizzleMigrations,
+  applyCustomConstraints,
+  verifyDatabaseIntegrity,
+};

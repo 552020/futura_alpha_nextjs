@@ -55,7 +55,10 @@ export function ShareModalBase({
     setIsSending(true);
 
     try {
-      await onSend({ email: mode === 'gallery-share' ? email : undefined, message });
+      await onSend({
+        email: mode === 'gallery-share' ? email : undefined,
+        message,
+      });
       setEmail('');
       setMessage('');
       onClose();
@@ -119,7 +122,7 @@ export function ShareModalBase({
                 type="email"
                 placeholder="Enter email address"
                 value={email}
-                onChange={e => setEmail(e.target.value)}
+                onChange={(e) => setEmail(e.target.value)}
                 disabled={isSending}
                 required
                 className="mt-1"
@@ -128,11 +131,13 @@ export function ShareModalBase({
           )}
 
           <div>
-            <Label htmlFor="message">{mode === 'gallery-share' ? 'Message (optional)' : 'Message'}</Label>
+            <Label htmlFor="message">
+              {mode === 'gallery-share' ? 'Message (optional)' : 'Message'}
+            </Label>
             <Textarea
               id="message"
               value={message}
-              onChange={e => setMessage(e.target.value)}
+              onChange={(e) => setMessage(e.target.value)}
               placeholder={
                 mode === 'gallery-share'
                   ? 'Add an optional message to include with the share notification'
@@ -143,18 +148,27 @@ export function ShareModalBase({
               className="w-full mt-1"
               disabled={isSending}
             />
-            <p className="text-sm text-muted-foreground mt-1">{message.length}/200 characters</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {message.length}/200 characters
+            </p>
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose} disabled={isSending}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isSending}
+            >
               Cancel
             </Button>
             <Button
               type="submit"
-              disabled={isSending || (mode === 'photo-selection' && selectedCount === 0)}
+              disabled={
+                isSending || (mode === 'photo-selection' && selectedCount === 0)
+              }
             >
               {isSending ? (
                 <>

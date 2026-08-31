@@ -42,7 +42,7 @@ export async function uploadFileWithProgress(
     xhr.open('PUT', url, true);
     xhr.setRequestHeader('Content-Type', file.type);
 
-    xhr.upload.onprogress = event => {
+    xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) {
         const progress = (event.loaded / event.total) * 100;
         onProgress(progress);
@@ -91,7 +91,11 @@ export function extractFolderName(file: File): string {
   if (fileWithPath.webkitRelativePath) {
     const pathParts = fileWithPath.webkitRelativePath.split('/');
     const folderName = pathParts.length > 1 ? pathParts[0] : 'Ungrouped';
-    fatLogger.info('DEBUG: Extracted folder name from webkitRelativePath', 'be', { folderName });
+    fatLogger.info(
+      'DEBUG: Extracted folder name from webkitRelativePath',
+      'be',
+      { folderName }
+    );
     return folderName;
   }
 
@@ -165,7 +169,11 @@ export function generateS3PublicUrl(s3Key: string): string {
 // Common error handling for upload services
 export function handleUploadError(
   error: unknown,
-  showToast: (toast: { variant: 'destructive'; title: string; description: string }) => void
+  showToast: (toast: {
+    variant: 'destructive';
+    title: string;
+    description: string;
+  }) => void
 ): void {
   let title = 'Upload failed';
   let description = 'Please try again.';
@@ -222,7 +230,11 @@ type UploadLimitsWithCountAndTotal = {
 
 export function validateUploadFiles(
   files: File[],
-  showToast: (toast: { variant: 'destructive'; title: string; description: string }) => void,
+  showToast: (toast: {
+    variant: 'destructive';
+    title: string;
+    description: string;
+  }) => void,
   uploadLimits: UploadLimitsWithCountAndTotal = UPLOAD_LIMITS_S3
 ): boolean {
   // Validate file count limit
@@ -266,7 +278,11 @@ export function validateUploadFiles(
  */
 export function validateUploadFilesS3(
   files: File[],
-  showToast: (toast: { variant: 'destructive'; title: string; description: string }) => void
+  showToast: (toast: {
+    variant: 'destructive';
+    title: string;
+    description: string;
+  }) => void
 ): boolean {
   return validateUploadFiles(files, showToast, UPLOAD_LIMITS_S3);
 }
@@ -276,7 +292,11 @@ export function validateUploadFilesS3(
  */
 export function validateUploadFilesICP(
   files: File[],
-  showToast: (toast: { variant: 'destructive'; title: string; description: string }) => void
+  showToast: (toast: {
+    variant: 'destructive';
+    title: string;
+    description: string;
+  }) => void
 ): boolean {
   // ICP doesn't have file count or total size limits in the same way as S3
   // It uses chunking, so we only validate individual file sizes
@@ -299,7 +319,11 @@ export function validateUploadFilesICP(
  */
 export function validateUploadFilesVercelBlob(
   files: File[],
-  showToast: (toast: { variant: 'destructive'; title: string; description: string }) => void
+  showToast: (toast: {
+    variant: 'destructive';
+    title: string;
+    description: string;
+  }) => void
 ): boolean {
   return validateUploadFiles(files, showToast, UPLOAD_LIMITS_VERCEL_BLOB);
 }
@@ -309,7 +333,11 @@ export function validateUploadFilesVercelBlob(
  */
 export function validateUploadFilesArweave(
   files: File[],
-  showToast: (toast: { variant: 'destructive'; title: string; description: string }) => void
+  showToast: (toast: {
+    variant: 'destructive';
+    title: string;
+    description: string;
+  }) => void
 ): boolean {
   return validateUploadFiles(files, showToast, UPLOAD_LIMITS_ARWEAVE);
 }
@@ -319,7 +347,11 @@ export function validateUploadFilesArweave(
  */
 export function validateUploadFilesIPFS(
   files: File[],
-  showToast: (toast: { variant: 'destructive'; title: string; description: string }) => void
+  showToast: (toast: {
+    variant: 'destructive';
+    title: string;
+    description: string;
+  }) => void
 ): boolean {
   return validateUploadFiles(files, showToast, UPLOAD_LIMITS_IPFS);
 }

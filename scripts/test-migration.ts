@@ -25,7 +25,10 @@ async function testMigration() {
 
   try {
     // Read the migration file
-    const migrationPath = join(process.cwd(), 'src/db/migrations/0023_add_storage_backends_constraint.sql');
+    const migrationPath = join(
+      process.cwd(),
+      'src/db/migrations/0023_add_storage_backends_constraint.sql'
+    );
     const migrationSQL = readFileSync(migrationPath, 'utf8');
 
     console.log('📄 Running migration SQL...');
@@ -49,7 +52,9 @@ async function testMigration() {
 
     if (result.rows.length > 0) {
       console.log('✅ Constraint verification successful!');
-      console.log(`   Found constraint: ${result.rows[0].conname} on table: ${result.rows[0].relname}`);
+      console.log(
+        `   Found constraint: ${result.rows[0].conname} on table: ${result.rows[0].relname}`
+      );
     } else {
       console.log('❌ Constraint not found after migration!');
     }
@@ -58,7 +63,9 @@ async function testMigration() {
 
     // Run the migration again to test idempotency
     await db.execute(sql.raw(migrationSQL));
-    console.log('✅ Migration is idempotent - can be run multiple times safely!');
+    console.log(
+      '✅ Migration is idempotent - can be run multiple times safely!'
+    );
   } catch (error: any) {
     console.error('❌ Migration test failed:', error.message);
     if (error.cause) {

@@ -11,7 +11,9 @@ describe('E2E Testing with Supertest - Real Dev Server', () => {
 
   describe('/api/test/hello - Public Endpoint (No Authentication Required)', () => {
     it('should return hello message on GET request', async () => {
-      const response = await request(baseURL).get('/api/test/hello').expect(200);
+      const response = await request(baseURL)
+        .get('/api/test/hello')
+        .expect(200);
 
       expect(response.body).toMatchObject({
         message: 'Hello from test endpoint!',
@@ -25,7 +27,10 @@ describe('E2E Testing with Supertest - Real Dev Server', () => {
     it('should accept POST request with JSON data', async () => {
       const testData = { test: 'hello data', number: 42 };
 
-      const response = await request(baseURL).post('/api/test/hello').send(testData).expect(200);
+      const response = await request(baseURL)
+        .post('/api/test/hello')
+        .send(testData)
+        .expect(200);
 
       expect(response.body).toMatchObject({
         message: 'Hello from POST test endpoint!',
@@ -52,7 +57,10 @@ describe('E2E Testing with Supertest - Real Dev Server', () => {
     it('should return 401 on POST request without authentication', async () => {
       const testData = { test: 'auth data' };
 
-      const response = await request(baseURL).post('/api/test/auth').send(testData).expect(401);
+      const response = await request(baseURL)
+        .post('/api/test/auth')
+        .send(testData)
+        .expect(401);
 
       expect(response.body).toMatchObject({
         message: 'Authentication required',

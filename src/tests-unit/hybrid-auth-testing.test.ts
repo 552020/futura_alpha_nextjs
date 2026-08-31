@@ -101,7 +101,9 @@ Now let's test authentication with JWT tokens!
         'be'
       );
     } catch (error) {
-      fatLogger.error('❌ Error creating test users:', 'be', { data: error instanceof Error ? error : undefined });
+      fatLogger.error('❌ Error creating test users:', 'be', {
+        data: error instanceof Error ? error : undefined,
+      });
       throw error;
     }
   });
@@ -114,7 +116,9 @@ Now let's test authentication with JWT tokens!
       await testDb.delete(users).where(eq(users.id, testUser3Id));
       fatLogger.info('🧹 Test users cleaned up successfully', 'be');
     } catch (error) {
-      fatLogger.error('❌ Error cleaning up test users:', 'be', { data: error instanceof Error ? error : undefined });
+      fatLogger.error('❌ Error cleaning up test users:', 'be', {
+        data: error instanceof Error ? error : undefined,
+      });
     }
   });
 
@@ -262,7 +266,10 @@ Now let's test authentication with JWT tokens!
     });
 
     it('should test malformed authorization header', async () => {
-      const response = await request(baseURL).get('/api/test/auth').set('Authorization', 'InvalidToken').expect(401);
+      const response = await request(baseURL)
+        .get('/api/test/auth')
+        .set('Authorization', 'InvalidToken')
+        .expect(401);
 
       expect(response.body).toMatchObject({
         message: 'Authentication required',

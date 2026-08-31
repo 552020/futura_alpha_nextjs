@@ -44,10 +44,16 @@ export function GeneralHostingCard({
           <div className="space-y-0.5">
             <Label htmlFor="web2-stack">Web2 Stack</Label>
             <p className="text-sm text-muted-foreground">
-              Backend: Vercel, Database: Neon, Blob: S3 - Traditional cloud infrastructure
+              Backend: Vercel, Database: Neon, Blob: S3 - Traditional cloud
+              infrastructure
             </p>
           </div>
-          <Switch id="web2-stack" checked={isWeb2Enabled} onCheckedChange={onWeb2Toggle} disabled={isLoading} />
+          <Switch
+            id="web2-stack"
+            checked={isWeb2Enabled}
+            onCheckedChange={onWeb2Toggle}
+            disabled={isLoading}
+          />
         </div>
 
         <Separator />
@@ -57,10 +63,16 @@ export function GeneralHostingCard({
           <div className="space-y-0.5">
             <Label htmlFor="web3-stack">Web3 Stack</Label>
             <p className="text-sm text-muted-foreground">
-              Backend: ICP, Database: ICP, Blob: ICP - Decentralized blockchain infrastructure
+              Backend: ICP, Database: ICP, Blob: ICP - Decentralized blockchain
+              infrastructure
             </p>
           </div>
-          <Switch id="web3-stack" checked={isWeb3Enabled} onCheckedChange={onWeb3Toggle} disabled={isLoading} />
+          <Switch
+            id="web3-stack"
+            checked={isWeb3Enabled}
+            onCheckedChange={onWeb3Toggle}
+            disabled={isLoading}
+          />
         </div>
       </CardContent>
     </Card>

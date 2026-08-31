@@ -47,7 +47,10 @@ export async function GET(): Promise<NextResponse> {
     fatLogger.error('Error fetching user settings:', 'be', {
       data: error instanceof Error ? error : undefined,
     });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
 
@@ -69,10 +72,15 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
 
     // Validate that at least one field is being updated
     const validFields = ['hasAdvancedSettings'];
-    const hasValidUpdates = Object.keys(updates).some(key => validFields.includes(key));
+    const hasValidUpdates = Object.keys(updates).some((key) =>
+      validFields.includes(key)
+    );
 
     if (!hasValidUpdates) {
-      return NextResponse.json({ error: 'No valid settings fields provided' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'No valid settings fields provided' },
+        { status: 400 }
+      );
     }
 
     // Check if settings already exist
@@ -87,7 +95,8 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       const [updated] = await db
         .update(userSettings)
         .set({
-          hasAdvancedSettings: updates.hasAdvancedSettings ?? existingSettings.hasAdvancedSettings,
+          hasAdvancedSettings:
+            updates.hasAdvancedSettings ?? existingSettings.hasAdvancedSettings,
           updatedAt: new Date(),
         })
         .where(eq(userSettings.userId, session.user.id))
@@ -132,6 +141,9 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     fatLogger.error('Error updating user settings:', 'be', {
       data: error instanceof Error ? error : undefined,
     });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }

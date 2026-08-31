@@ -1,10 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { createShare, createPublicLink, generateShareableUrl } from '@/services/sharing';
-import { getAllUserRecord, getAllUserRecordById, getUserEmailByAllUserId } from '@/services/user';
+import {
+  createShare,
+  createPublicLink,
+  generateShareableUrl,
+} from '@/services/sharing';
+import {
+  getAllUserRecord,
+  getAllUserRecordById,
+  getUserEmailByAllUserId,
+} from '@/services/user';
 import { getMemoryWithRelations } from '@/services/memory';
-import type { RelationshipType, FamilyRelationshipType, allUsers, DBMemoryWithAssets } from '@/db';
-import { sendInvitationEmail, sendSharedMemoryEmail } from '@/app/api/memories/utils/email';
+import type {
+  RelationshipType,
+  FamilyRelationshipType,
+  allUsers,
+  DBMemoryWithAssets,
+} from '@/db';
+import {
+  sendInvitationEmail,
+  sendSharedMemoryEmail,
+} from '@/app/api/memories/utils/email';
 // import crypto from 'crypto';
 
 // function _generateSecureCode(): string {
@@ -42,7 +58,10 @@ type ShareRequest = {
   ownerAllUserId?: string;
 };
 
-export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+export async function POST(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   const { id: memoryId } = await context.params;
 
   try {
@@ -67,9 +86,14 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     // Handle authentication differently for onboarding vs regular flow
     let authenticatedUserId: string | undefined;
     if (isOnboarding) {
-      fatLogger.info('👤 Onboarding flow - checking owner:', 'be', { ownerAllUserId });
+      fatLogger.info('👤 Onboarding flow - checking owner:', 'be', {
+        ownerAllUserId,
+      });
       if (!ownerAllUserId) {
-        return NextResponse.json({ error: 'Owner ID required for onboarding' }, { status: 400 });
+        return NextResponse.json(
+          { error: 'Owner ID required for onboarding' },
+          { status: 400 }
+        );
       }
       // For onboarding, verify the owner exists in allUsers using service function
       const ownerResult = await getAllUserRecordById(ownerAllUserId);
@@ -89,10 +113,16 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       }
 
       const owner = ownerResult.data as typeof allUsers.$inferSelect;
-      fatLogger.info('👤 Found owner:', 'be', { exists: !!owner, type: owner?.type });
+      fatLogger.info('👤 Found owner:', 'be', {
+        exists: !!owner,
+        type: owner?.type,
+      });
 
       if (owner.type !== 'temporary') {
-        return NextResponse.json({ error: 'Invalid onboarding user type' }, { status: 401 });
+        return NextResponse.json(
+          { error: 'Invalid onboarding user type' },
+          { status: 401 }
+        );
       }
       authenticatedUserId = ownerAllUserId;
     } else {
@@ -123,7 +153,10 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     }
 
     // Find the memory and check ownership using service function
-    const memoryResult = await getMemoryWithRelations(memoryId, authenticatedUserId);
+    const memoryResult = await getMemoryWithRelations(
+      memoryId,
+      authenticatedUserId
+    );
 
     if (!memoryResult.success) {
       fatLogger.error('Memory not found or not owned by user', 'be', {
@@ -153,7 +186,10 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       // User-to-user sharing
       const finalTargetUserId = targetUserId || target?.allUserId;
       if (!finalTargetUserId) {
-        return NextResponse.json({ error: 'Target user ID is required for user sharing' }, { status: 400 });
+        return NextResponse.json(
+          { error: 'Target user ID is required for user sharing' },
+          { status: 400 }
+        );
       }
 
       // Check if target user exists using service function
@@ -178,7 +214,11 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
         resourceType: 'memory',
         resourceId: memoryId,
         targetUserId: finalTargetUserId,
-        permissions: permissions || { canView: true, canEdit: false, canDelete: false },
+        permissions: permissions || {
+          canView: true,
+          canEdit: false,
+          canDelete: false,
+        },
         invitedBy: authenticatedUserId,
       });
 
@@ -202,12 +242,16 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       if (sendEmail && finalTargetUserId) {
         try {
           // Get memory details for email
-          const memoryResult = await getMemoryWithRelations(memoryId, authenticatedUserId);
+          const memoryResult = await getMemoryWithRelations(
+            memoryId,
+            authenticatedUserId
+          );
           if (memoryResult.success) {
             const memory = memoryResult.data as DBMemoryWithAssets;
 
             // Get recipient email using the new service function
-            const emailResult = await getUserEmailByAllUserId(finalTargetUserId);
+            const emailResult =
+              await getUserEmailByAllUserId(finalTargetUserId);
             if (!emailResult.success) {
               fatLogger.error('📧 Failed to get recipient email', 'be', {
                 error: emailResult.error,
@@ -226,17 +270,25 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
                 // Continue without email - don't fail the share operation
               } else {
                 // Get recipient details to determine user type
-                const recipientResult = await getAllUserRecordById(finalTargetUserId);
+                const recipientResult =
+                  await getAllUserRecordById(finalTargetUserId);
                 const recipient = recipientResult.success
                   ? (recipientResult.data as typeof allUsers.$inferSelect)
                   : null;
 
                 // Determine if this is a new user invitation
-                const isNewUser = _isInviteeNew || (recipient && recipient.type === 'temporary');
+                const isNewUser =
+                  _isInviteeNew ||
+                  (recipient && recipient.type === 'temporary');
 
                 if (isNewUser) {
                   // Send invitation email for new users
-                  await sendInvitationEmail(recipientEmail, memory, authenticatedUserId, { useHTML: true });
+                  await sendInvitationEmail(
+                    recipientEmail,
+                    memory,
+                    authenticatedUserId,
+                    { useHTML: true }
+                  );
 
                   fatLogger.info('📧 Invitation email sent', 'be', {
                     recipientEmail,
@@ -246,7 +298,13 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
                 } else {
                   // Send notification email for existing users
                   const shareUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/memories/${memoryId}`;
-                  await sendSharedMemoryEmail(recipientEmail, memory, authenticatedUserId, shareUrl, { useHTML: true });
+                  await sendSharedMemoryEmail(
+                    recipientEmail,
+                    memory,
+                    authenticatedUserId,
+                    shareUrl,
+                    { useHTML: true }
+                  );
 
                   fatLogger.info('📧 Shared memory email sent', 'be', {
                     recipientEmail,
@@ -260,7 +318,10 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
         } catch (emailError) {
           // Log error but don't fail the share operation
           fatLogger.error('📧 Email sending failed', 'be', {
-            error: emailError instanceof Error ? emailError.message : 'Unknown error',
+            error:
+              emailError instanceof Error
+                ? emailError.message
+                : 'Unknown error',
             memoryId,
             targetUserId: finalTargetUserId,
           });
@@ -272,7 +333,11 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
         data: {
           shareId: shareResult.data?.id,
           shareType: 'user',
-          permissions: permissions || { canView: true, canEdit: false, canDelete: false },
+          permissions: permissions || {
+            canView: true,
+            canEdit: false,
+            canDelete: false,
+          },
         },
       });
     } else if (shareType === 'public') {
@@ -313,7 +378,10 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
         },
       });
     } else {
-      return NextResponse.json({ error: 'Invalid share type' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid share type' },
+        { status: 400 }
+      );
     }
   } catch (error) {
     fatLogger.error('🔴 Error sharing memory:', 'be', {

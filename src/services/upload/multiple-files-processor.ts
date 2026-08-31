@@ -24,9 +24,16 @@ export interface ProcessMultipleFilesOptions {
   preferences?: HostingPreferences;
   onSuccess?: () => void;
   onError?: (error: Error) => void;
-  updateOnboardingContext?: (data: { data: { ownerId: string; id: string } }, files: File[]) => void;
+  updateOnboardingContext?: (
+    data: { data: { ownerId: string; id: string } },
+    files: File[]
+  ) => void;
   existingUserId?: string;
-  showToast: (toast: { variant: 'destructive'; title: string; description: string }) => void;
+  showToast: (toast: {
+    variant: 'destructive';
+    title: string;
+    description: string;
+  }) => void;
   onProgress?: (file: File, progress: number) => void;
 }
 
@@ -34,7 +41,9 @@ export interface ProcessMultipleFilesOptions {
 
 // Upload multiple files to Vercel Blob (legacy fallback)
 
-export async function processMultipleFiles(options: ProcessMultipleFilesOptions): Promise<void> {
+export async function processMultipleFiles(
+  options: ProcessMultipleFilesOptions
+): Promise<void> {
   const {
     files,
     mode,
@@ -96,16 +105,22 @@ export async function processMultipleFiles(options: ProcessMultipleFilesOptions)
       // ICP upload with parallel processing (Lane A + Lane B + finalizeAllAssets)
       // NOTE: For ICP users, isOnboarding is ignored because ICP always requires Internet Identity auth
       // Even "onboarding" users must authenticate with II to interact with ICP canister
-      const { uploadMultipleToICPWithProcessing } = await import('./icp-with-processing');
-      const uploadResult = await uploadMultipleToICPWithProcessing(files, mode, (file, progress) => {
-        // Convert overall progress to per-file progress for compatibility
-        onProgress?.(file, progress);
-      });
+      const { uploadMultipleToICPWithProcessing } = await import(
+        './icp-with-processing'
+      );
+      const uploadResult = await uploadMultipleToICPWithProcessing(
+        files,
+        mode,
+        (file, progress) => {
+          // Convert overall progress to per-file progress for compatibility
+          onProgress?.(file, progress);
+        }
+      );
 
       // Convert results to expected format
       data = {
         results:
-          uploadResult.results?.map(result => ({
+          uploadResult.results?.map((result) => ({
             memoryId: result.memoryId,
             size: result.size,
             checksum_sha256: result.checksum_sha256,
@@ -114,19 +129,27 @@ export async function processMultipleFiles(options: ProcessMultipleFilesOptions)
       };
     } else if (userBlobHostingPreference === 'vercel_blob') {
       const { uploadToVercelBlob } = await import('./vercel-blob-upload');
-      const results = await uploadToVercelBlob(files, isOnboarding, existingUserId, mode, progress => {
-        // Convert overall progress to per-file progress for compatibility
-        onProgress?.(files[0], progress);
-      });
+      const results = await uploadToVercelBlob(
+        files,
+        isOnboarding,
+        existingUserId,
+        mode,
+        (progress) => {
+          // Convert overall progress to per-file progress for compatibility
+          onProgress?.(files[0], progress);
+        }
+      );
 
       // Convert results to expected format
       data = {
-        results: results.map(result => ({
+        results: results.map((result) => ({
           memoryId: result.data.id,
-          size: result.results[0]?.size ? Number(result.results[0].size) : undefined,
+          size: result.results[0]?.size
+            ? Number(result.results[0].size)
+            : undefined,
           checksum_sha256: result.results[0]?.checksumSha256
             ? Array.from(result.results[0].checksumSha256)
-                .map(b => b.toString(16).padStart(2, '0'))
+                .map((b) => b.toString(16).padStart(2, '0'))
                 .join('')
             : undefined,
         })),
@@ -140,8 +163,21 @@ export async function processMultipleFiles(options: ProcessMultipleFilesOptions)
       data = await uploadMultipleToS3WithProcessing(files, mode, onProgress);
     }
     // Update context with results (onboarding)
-    if (isOnboarding && data?.successfulUploads && data.successfulUploads > 0 && updateOnboardingContext) {
-      updateOnboardingContext({ data: { ownerId: data.userId ?? '', id: data.results?.[0]?.memoryId ?? '' } }, files);
+    if (
+      isOnboarding &&
+      data?.successfulUploads &&
+      data.successfulUploads > 0 &&
+      updateOnboardingContext
+    ) {
+      updateOnboardingContext(
+        {
+          data: {
+            ownerId: data.userId ?? '',
+            id: data.results?.[0]?.memoryId ?? '',
+          },
+        },
+        files
+      );
     }
 
     onSuccess?.();

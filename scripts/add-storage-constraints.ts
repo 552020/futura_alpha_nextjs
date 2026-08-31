@@ -32,10 +32,16 @@ async function addStorageConstraints() {
     const causeMessage = error.cause?.message || '';
     const fullMessage = `${errorMessage} ${causeMessage}`;
 
-    if (fullMessage.includes('already exists') || fullMessage.includes('duplicate key')) {
+    if (
+      fullMessage.includes('already exists') ||
+      fullMessage.includes('duplicate key')
+    ) {
       console.log('✅ Storage backend constraint already exists!');
     } else {
-      console.error('❌ Failed to add storage backend constraint:', error.message);
+      console.error(
+        '❌ Failed to add storage backend constraint:',
+        error.message
+      );
       console.error('Cause:', error.cause?.message);
       process.exit(1);
     }
@@ -74,13 +80,15 @@ async function main() {
 
   console.log('\n✨ Setup complete!');
   console.log('\nNext steps:');
-  console.log('1. Run tests: npm run test tests/db/storage-constraints.test.ts');
+  console.log(
+    '1. Run tests: npm run test tests/db/storage-constraints.test.ts'
+  );
   console.log('2. Verify constraint behavior in your application');
 }
 
 // Run the script
 if (require.main === module) {
-  main().catch(error => {
+  main().catch((error) => {
     console.error('❌ Script failed:', error);
     process.exit(1);
   });

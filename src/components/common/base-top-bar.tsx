@@ -3,7 +3,13 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { Search, Filter, Calendar, Grid3X3, List } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 
 interface BaseTopBarProps<T> {
@@ -56,13 +62,21 @@ export function BaseTopBar<T>({
     switch (sortBy) {
       case 'newest':
         return (
-          new Date((b as { createdAt?: string | Date }).createdAt || 0).getTime() -
-          new Date((a as { createdAt?: string | Date }).createdAt || 0).getTime()
+          new Date(
+            (b as { createdAt?: string | Date }).createdAt || 0
+          ).getTime() -
+          new Date(
+            (a as { createdAt?: string | Date }).createdAt || 0
+          ).getTime()
         );
       case 'oldest':
         return (
-          new Date((a as { createdAt?: string | Date }).createdAt || 0).getTime() -
-          new Date((b as { createdAt?: string | Date }).createdAt || 0).getTime()
+          new Date(
+            (a as { createdAt?: string | Date }).createdAt || 0
+          ).getTime() -
+          new Date(
+            (b as { createdAt?: string | Date }).createdAt || 0
+          ).getTime()
         );
       default:
         return 0;
@@ -85,7 +99,7 @@ export function BaseTopBar<T>({
     // Filter by search query
     if (searchQuery) {
       const searchLower = searchQuery.toLowerCase();
-      filtered = filtered.filter(item => {
+      filtered = filtered.filter((item) => {
         const searchableText = searchFields(item).join(' ').toLowerCase();
         return searchableText.includes(searchLower);
       });
@@ -93,14 +107,22 @@ export function BaseTopBar<T>({
 
     // Filter by type
     if (filterType !== 'all') {
-      filtered = filtered.filter(item => filterLogic(item, filterType));
+      filtered = filtered.filter((item) => filterLogic(item, filterType));
     }
 
     // Sort results
     filtered.sort((a, b) => sortLogic(a, b, sortBy));
 
     return filtered;
-  }, [items, searchQuery, filterType, sortBy, searchFields, filterLogic, sortLogic]);
+  }, [
+    items,
+    searchQuery,
+    filterType,
+    sortBy,
+    searchFields,
+    filterLogic,
+    sortLogic,
+  ]);
 
   // Notify parent component of filtered results
   useEffect(() => {
@@ -157,7 +179,7 @@ export function BaseTopBar<T>({
           <Input
             placeholder={searchPlaceholder}
             value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
+            onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
           />
         </div>
@@ -170,7 +192,7 @@ export function BaseTopBar<T>({
               <SelectValue placeholder="Filter by type" />
             </SelectTrigger>
             <SelectContent>
-              {filterOptions.map(option => (
+              {filterOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>
@@ -187,7 +209,7 @@ export function BaseTopBar<T>({
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
-              {sortOptions.map(option => (
+              {sortOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>

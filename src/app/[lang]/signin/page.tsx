@@ -14,7 +14,9 @@ function SignInPageInternal() {
   const callbackUrl = searchParams.get('callbackUrl') || `/${lang}/dashboard`;
 
   // Ensure callbackUrl is always a valid relative URL
-  const safeCallbackUrl = callbackUrl?.startsWith('/') ? callbackUrl : `/${lang}/dashboard`;
+  const safeCallbackUrl = callbackUrl?.startsWith('/')
+    ? callbackUrl
+    : `/${lang}/dashboard`;
 
   return (
     <AuthModal
@@ -39,7 +41,13 @@ function SignInPageInternal() {
 
 export default function SignInPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          Loading...
+        </div>
+      }
+    >
       <SignInPageInternal />
     </Suspense>
   );

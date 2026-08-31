@@ -38,7 +38,11 @@ import { useToast } from '@/hooks/use-toast';
 import RequireAuth from '@/components/auth/require-auth';
 
 import { fatLogger } from '@/lib/logger';
-export default function SharedMemoriesPage({ params }: { params: Promise<{ lang: string }> }) {
+export default function SharedMemoriesPage({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}) {
   // Unwrap params using React.use()
   const { lang } = use(params);
 
@@ -68,15 +72,21 @@ export default function SharedMemoriesPage({ params }: { params: Promise<{ lang:
         acc[sharerId].memories.push(memory);
         return acc;
       },
-      {} as Record<string, { id: string; name: string; memories: typeof memories }>
+      {} as Record<
+        string,
+        { id: string; name: string; memories: typeof memories }
+      >
     );
 
     // Sort sharers by name, then sort memories within each group by creation date
     return Object.values(grouped)
       .sort((a, b) => a.name.localeCompare(b.name))
-      .map(sharer => ({
+      .map((sharer) => ({
         ...sharer,
-        memories: sharer.memories.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+        memories: sharer.memories.sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        ),
       }));
   }, [memories]);
 
@@ -105,14 +115,16 @@ export default function SharedMemoriesPage({ params }: { params: Promise<{ lang:
       // });
 
       // Use new unified format - memories already have status and sharedWithCount from API
-      const sharedMemories: SharedMemory[] = data.data.map((memory: SharedMemory) => ({
-        ...memory,
-        status: 'shared' as const, // Override to "shared" since these are shared memories
-        sharedWithCount: memory.sharedWithCount || 1,
-        sharedBy: memory.sharedBy || { id: 'unknown', name: 'Unknown' }, // Add the sharer's info
-      }));
+      const sharedMemories: SharedMemory[] = data.data.map(
+        (memory: SharedMemory) => ({
+          ...memory,
+          status: 'shared' as const, // Override to "shared" since these are shared memories
+          sharedWithCount: memory.sharedWithCount || 1,
+          sharedBy: memory.sharedBy || { id: 'unknown', name: 'Unknown' }, // Add the sharer's info
+        })
+      );
 
-      setMemories(prev => {
+      setMemories((prev) => {
         if (currentPage === 1) return sharedMemories;
         return [...prev, ...sharedMemories];
       });
@@ -143,9 +155,12 @@ export default function SharedMemoriesPage({ params }: { params: Promise<{ lang:
 
   useEffect(() => {
     const handleScroll = () => {
-      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 100) {
+      if (
+        window.innerHeight + window.scrollY >=
+        document.documentElement.scrollHeight - 100
+      ) {
         if (!isLoadingMemories && hasMore) {
-          setCurrentPage(prev => prev + 1);
+          setCurrentPage((prev) => prev + 1);
         }
       }
     };
@@ -159,13 +174,16 @@ export default function SharedMemoriesPage({ params }: { params: Promise<{ lang:
       // Check if this is a folder item
       if (id.startsWith('folder-')) {
         const folderName = id.replace('folder-', '');
-        const response = await fetch(`/api/memories?folder=${encodeURIComponent(folderName)}`, {
-          method: 'DELETE',
-        });
+        const response = await fetch(
+          `/api/memories?folder=${encodeURIComponent(folderName)}`,
+          {
+            method: 'DELETE',
+          }
+        );
 
         if (!response.ok) throw new Error('Failed to delete folder');
 
-        setMemories(prev => prev.filter(memory => memory.id !== id));
+        setMemories((prev) => prev.filter((memory) => memory.id !== id));
         toast({
           title: 'Success',
           description: `Folder "${folderName}" and all its contents deleted successfully.`,
@@ -178,7 +196,7 @@ export default function SharedMemoriesPage({ params }: { params: Promise<{ lang:
 
         if (!response.ok) throw new Error('Failed to delete memory');
 
-        setMemories(prev => prev.filter(memory => memory.id !== id));
+        setMemories((prev) => prev.filter((memory) => memory.id !== id));
         toast({
           title: 'Success',
           description: 'Memory deleted successfully.',
@@ -237,10 +255,14 @@ export default function SharedMemoriesPage({ params }: { params: Promise<{ lang:
               <h3 className="text-sm font-medium">Temporary Account</h3>
               <div className="mt-2 text-sm">
                 <p>
-                  You are currently using a temporary account. Your memories will be saved, but you need to complete the
-                  signup process within 7 days to keep your account and all your memories.
+                  You are currently using a temporary account. Your memories
+                  will be saved, but you need to complete the signup process
+                  within 7 days to keep your account and all your memories.
                 </p>
-                <p className="mt-2">After 7 days, your account and all memories will be automatically deleted.</p>
+                <p className="mt-2">
+                  After 7 days, your account and all memories will be
+                  automatically deleted.
+                </p>
               </div>
             </div>
           </div>
@@ -256,7 +278,7 @@ export default function SharedMemoriesPage({ params }: { params: Promise<{ lang:
         </div>
       ) : (
         <div className="space-y-8">
-          {memoriesBySharer.map(sharer => (
+          {memoriesBySharer.map((sharer) => (
             <div key={sharer.id} className="space-y-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium">
@@ -265,7 +287,9 @@ export default function SharedMemoriesPage({ params }: { params: Promise<{ lang:
                 <div>
                   <h2 className="text-xl font-semibold">{sharer.name}</h2>
                   <p className="text-sm text-muted-foreground">
-                    {sharer.memories.length} {sharer.memories.length === 1 ? 'memory' : 'memories'} shared
+                    {sharer.memories.length}{' '}
+                    {sharer.memories.length === 1 ? 'memory' : 'memories'}{' '}
+                    shared
                   </p>
                 </div>
               </div>

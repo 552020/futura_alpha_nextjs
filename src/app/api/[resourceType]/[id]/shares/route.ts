@@ -7,15 +7,24 @@ import { getFolderByIdForOwner } from '@/services/folder';
 import type { allUsers } from '@/db';
 import { fatLogger } from '@/lib/logger';
 
-export async function GET(request: NextRequest, context: { params: Promise<{ resourceType: string; id: string }> }) {
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ resourceType: string; id: string }> }
+) {
   const { resourceType, id: resourceId } = await context.params;
 
   try {
-    fatLogger.info('📊 Get resource shares request:', 'be', { resourceType, resourceId });
+    fatLogger.info('📊 Get resource shares request:', 'be', {
+      resourceType,
+      resourceId,
+    });
 
     // Validate resource type
     if (!['memory', 'folder', 'gallery'].includes(resourceType)) {
-      return NextResponse.json({ error: 'Invalid resource type. Must be memory, folder, or gallery' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid resource type. Must be memory, folder, or gallery' },
+        { status: 400 }
+      );
     }
 
     // Authentication
@@ -46,7 +55,10 @@ export async function GET(request: NextRequest, context: { params: Promise<{ res
     // Verify resource ownership using appropriate service function
     let resourceExists = false;
     if (resourceType === 'memory') {
-      const memoryResult = await getMemoryWithRelations(resourceId, allUserRecord.id);
+      const memoryResult = await getMemoryWithRelations(
+        resourceId,
+        allUserRecord.id
+      );
       resourceExists = memoryResult.success;
     } else if (resourceType === 'folder') {
       const folder = await getFolderByIdForOwner(resourceId, allUserRecord.id);
@@ -63,7 +75,10 @@ export async function GET(request: NextRequest, context: { params: Promise<{ res
         resourceId,
         ownerId: allUserRecord.id,
       });
-      return NextResponse.json({ error: 'Resource not found or access denied' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Resource not found or access denied' },
+        { status: 404 }
+      );
     }
 
     fatLogger.info('✅ Resource found and owned by user:', 'be', {

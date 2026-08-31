@@ -36,7 +36,10 @@ type CleanupMemoryData = {
 // Storage status helper moved to service: attachStorageStatus
 
 // GET /api/memories/[id] - Get memory with all assets
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   // Check authentication
   const session = await auth();
   if (!session?.user?.id) {
@@ -59,15 +62,24 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     // Get the allUserId for the authenticated user
     const allUserResult = await getAllUserRecord(session.user.id);
     if (!allUserResult.success || !allUserResult.data) {
-      fatLogger.error('No allUsers record found for user:', 'be', { data: session.user.id });
-      return NextResponse.json({ error: 'User record not found' }, { status: 404 });
+      fatLogger.error('No allUsers record found for user:', 'be', {
+        data: session.user.id,
+      });
+      return NextResponse.json(
+        { error: 'User record not found' },
+        { status: 404 }
+      );
     }
     const allUserRecord = allUserResult.data as { id: string };
 
     const { id: memoryId } = await params;
 
     // Fetch memory with all assets via service
-    const memoryResult = await getMemoryWithRelations(memoryId, allUserRecord.id, { assets: true });
+    const memoryResult = await getMemoryWithRelations(
+      memoryId,
+      allUserRecord.id,
+      { assets: true }
+    );
     if (!memoryResult.success || !memoryResult.data) {
       return NextResponse.json({ error: 'Memory not found' }, { status: 404 });
     }
@@ -89,13 +101,21 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       data: memoryWithStorageStatus,
     });
   } catch (error) {
-    fatLogger.error('Error fetching memory:', 'be', { data: error instanceof Error ? error : undefined });
-    return NextResponse.json({ error: 'Failed to fetch memory' }, { status: 500 });
+    fatLogger.error('Error fetching memory:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
+    return NextResponse.json(
+      { error: 'Failed to fetch memory' },
+      { status: 500 }
+    );
   }
 }
 
 // PUT /api/memories/[id] - Update memory
-export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   // Check authentication
   const session = await auth();
   if (!session?.user?.id) {
@@ -106,19 +126,28 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     // Get the allUserId for the authenticated user
     const allUserResult = await getAllUserRecord(session.user.id);
     if (!allUserResult.success || !allUserResult.data) {
-      fatLogger.error('No allUsers record found for user:', 'be', { data: session.user.id });
-      return NextResponse.json({ error: 'User record not found' }, { status: 404 });
+      fatLogger.error('No allUsers record found for user:', 'be', {
+        data: session.user.id,
+      });
+      return NextResponse.json(
+        { error: 'User record not found' },
+        { status: 404 }
+      );
     }
     const allUserRecord = allUserResult.data as { id: string };
 
     const { id: memoryId } = await params;
 
     // Check if memory exists and belongs to user via service
-    const existingMemoryResult = await getMemoryWithRelations(memoryId, allUserRecord.id);
+    const existingMemoryResult = await getMemoryWithRelations(
+      memoryId,
+      allUserRecord.id
+    );
     if (!existingMemoryResult.success || !existingMemoryResult.data) {
       return NextResponse.json({ error: 'Memory not found' }, { status: 404 });
     }
-    const existingMemory = existingMemoryResult.data as typeof memories.$inferSelect;
+    const existingMemory =
+      existingMemoryResult.data as typeof memories.$inferSelect;
 
     // Parse request body
     const body = await request.json();
@@ -131,18 +160,36 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     };
 
     // Use service layer for update
-    const { updateMemoryRecord } = await import('@/services/memory/memory-operations');
+    const { updateMemoryRecord } = await import(
+      '@/services/memory/memory-operations'
+    );
 
     const result = await updateMemoryRecord(memoryId, {
       title: title ?? existingMemory.title ?? undefined,
-      description: description !== undefined ? description : (existingMemory.description ?? null),
-      fileCreatedAt: takenAt ? new Date(takenAt) : (existingMemory.fileCreatedAt ?? null),
-      sharingStatus: isPublic !== undefined ? (isPublic ? 'public' : 'private') : existingMemory.sharingStatus,
-      parentFolderId: parentFolderId !== undefined ? parentFolderId : (existingMemory.parentFolderId ?? null),
+      description:
+        description !== undefined
+          ? description
+          : (existingMemory.description ?? null),
+      fileCreatedAt: takenAt
+        ? new Date(takenAt)
+        : (existingMemory.fileCreatedAt ?? null),
+      sharingStatus:
+        isPublic !== undefined
+          ? isPublic
+            ? 'public'
+            : 'private'
+          : existingMemory.sharingStatus,
+      parentFolderId:
+        parentFolderId !== undefined
+          ? parentFolderId
+          : (existingMemory.parentFolderId ?? null),
     });
 
     if (!result.success) {
-      return NextResponse.json({ error: result.error || 'Failed to update memory' }, { status: 500 });
+      return NextResponse.json(
+        { error: result.error || 'Failed to update memory' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
@@ -150,13 +197,21 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       data: result.data,
     });
   } catch (error) {
-    fatLogger.error('Error updating memory:', 'be', { data: error instanceof Error ? error : undefined });
-    return NextResponse.json({ error: 'Failed to update memory' }, { status: 500 });
+    fatLogger.error('Error updating memory:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
+    return NextResponse.json(
+      { error: 'Failed to update memory' },
+      { status: 500 }
+    );
   }
 }
 
 // DELETE /api/memories/[id] - Delete memory or folder - FIXED VERSION
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   // Check authentication
   const session = await auth();
   if (!session?.user?.id) {
@@ -167,8 +222,13 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     // Get the allUserId for the authenticated user
     const allUserResult = await getAllUserRecord(session.user.id);
     if (!allUserResult.success || !allUserResult.data) {
-      fatLogger.error('No allUsers record found for user:', 'be', { data: session.user.id });
-      return NextResponse.json({ error: 'User record not found' }, { status: 404 });
+      fatLogger.error('No allUsers record found for user:', 'be', {
+        data: session.user.id,
+      });
+      return NextResponse.json(
+        { error: 'User record not found' },
+        { status: 404 }
+      );
     }
     const allUserRecord = allUserResult.data as { id: string };
 
@@ -177,20 +237,31 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     fatLogger.info(`🗑️ [Individual Route] Deleting item: ${itemId}`, 'be');
 
     // Strip 'folder-' prefix if present (frontend adds this prefix)
-    const cleanId = itemId.startsWith('folder-') ? itemId.replace('folder-', '') : itemId;
+    const cleanId = itemId.startsWith('folder-')
+      ? itemId.replace('folder-', '')
+      : itemId;
 
     fatLogger.info(`🔍 [Individual Route] Clean ID: ${cleanId}`, 'be');
 
     // First, check if this is a folder by trying to find it in the folders table
     const folderCheck = await db.query.folders.findFirst({
-      where: and(eq(folders.id, cleanId), eq(folders.ownerId, allUserRecord.id)),
+      where: and(
+        eq(folders.id, cleanId),
+        eq(folders.ownerId, allUserRecord.id)
+      ),
     });
 
     if (folderCheck) {
-      fatLogger.info(`📁 [Individual Route] Item is a folder, using folder deletion logic`, 'be');
+      fatLogger.info(
+        `📁 [Individual Route] Item is a folder, using folder deletion logic`,
+        'be'
+      );
       const result = await deleteFolderAndContents(cleanId, allUserRecord.id);
       if (!result.success) {
-        return NextResponse.json({ error: result.error || 'Failed to delete folder' }, { status: 500 });
+        return NextResponse.json(
+          { error: result.error || 'Failed to delete folder' },
+          { status: 500 }
+        );
       }
       return NextResponse.json({
         success: true,
@@ -205,11 +276,20 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     // If not a folder, treat as a memory
     const memoryId = cleanId;
-    fatLogger.info(`🖼️ [Individual Route] Item is a memory, using memory deletion logic`, 'be');
+    fatLogger.info(
+      `🖼️ [Individual Route] Item is a memory, using memory deletion logic`,
+      'be'
+    );
 
     // 1. FIRST: Get the memory data BEFORE deletion (with all relations)
-    const memoryDataResult = await getMemoryWithRelations(memoryId, allUserRecord.id, { assets: true, folder: true });
-    const memoryData = memoryDataResult.success ? (memoryDataResult.data as CleanupMemoryData) : null;
+    const memoryDataResult = await getMemoryWithRelations(
+      memoryId,
+      allUserRecord.id,
+      { assets: true, folder: true }
+    );
+    const memoryData = memoryDataResult.success
+      ? (memoryDataResult.data as CleanupMemoryData)
+      : null;
 
     // Debug: Log what we retrieved
     const typedMetadata = memoryData?.metadata as
@@ -229,7 +309,9 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       memoryId: memoryData?.id,
       type: memoryData?.type,
       hasMetadata: !!memoryData?.metadata,
-      metadataKeys: memoryData?.metadata ? Object.keys(memoryData.metadata) : 'none',
+      metadataKeys: memoryData?.metadata
+        ? Object.keys(memoryData.metadata)
+        : 'none',
       storageKey: typedMetadata?.custom?.storageKey,
       assetLocation: typedMetadata?.custom?.assetLocation,
     });
@@ -239,22 +321,29 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       return NextResponse.json({ error: 'Memory not found' }, { status: 404 });
     }
 
-    fatLogger.info(`📋 Individual route - Retrieved memory data for cleanup:`, 'be', {
-      id: memoryData.id,
-      type: memoryData.type,
-      hasMetadata: !!typedMetadata,
-      hasCustomMetadata: !!typedMetadata?.custom,
-      assetLocation: typedMetadata?.custom?.assetLocation,
-      storageKey: typedMetadata?.custom?.storageKey,
-      memoryDataExists: !!memoryData,
-    });
+    fatLogger.info(
+      `📋 Individual route - Retrieved memory data for cleanup:`,
+      'be',
+      {
+        id: memoryData.id,
+        type: memoryData.type,
+        hasMetadata: !!typedMetadata,
+        hasCustomMetadata: !!typedMetadata?.custom,
+        assetLocation: typedMetadata?.custom?.assetLocation,
+        storageKey: typedMetadata?.custom?.storageKey,
+        memoryDataExists: !!memoryData,
+      }
+    );
 
     // Use usecase to delete memory and cleanup
     const result = await deleteMemoryWithCleanup(memoryId, allUserRecord.id);
 
     if (!result.success) {
       fatLogger.error(`❌ Failed to delete memory: ${memoryId}`, 'be');
-      return NextResponse.json({ error: result.error || 'Failed to delete memory' }, { status: 500 });
+      return NextResponse.json(
+        { error: result.error || 'Failed to delete memory' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
@@ -267,7 +356,12 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       },
     });
   } catch (error) {
-    fatLogger.error('Error deleting individual memory:', 'be', { data: error instanceof Error ? error : undefined });
-    return NextResponse.json({ error: 'Failed to delete memory' }, { status: 500 });
+    fatLogger.error('Error deleting individual memory:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
+    return NextResponse.json(
+      { error: 'Failed to delete memory' },
+      { status: 500 }
+    );
   }
 }

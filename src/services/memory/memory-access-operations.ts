@@ -8,11 +8,16 @@ import { getMemoryRecords } from './memory-operations';
 /**
  * Get memories shared with a user
  */
-export const getSharedMemories = async (allUserId: string): Promise<OperationResult> => {
+export const getSharedMemories = async (
+  allUserId: string
+): Promise<OperationResult> => {
   try {
     // Get memory memberships for this user
     const memberships = await db.query.resourceMembership.findMany({
-      where: and(eq(resourceMembership.allUserId, allUserId), eq(resourceMembership.resourceType, 'memory')),
+      where: and(
+        eq(resourceMembership.allUserId, allUserId),
+        eq(resourceMembership.resourceType, 'memory')
+      ),
     });
 
     if (memberships.length === 0) {
@@ -20,7 +25,7 @@ export const getSharedMemories = async (allUserId: string): Promise<OperationRes
     }
 
     // Get the actual memory data
-    const memoryIds = memberships.map(m => m.resourceId);
+    const memoryIds = memberships.map((m) => m.resourceId);
     const sharedMemories = await db.query.memories.findMany({
       where: eq(memories.id, memoryIds[0]), // This needs to be fixed with proper inArray
       orderBy: desc(memories.createdAt),
@@ -43,7 +48,9 @@ export const getSharedMemories = async (allUserId: string): Promise<OperationRes
 /**
  * Get all memories accessible by a user (owned + shared + public)
  */
-export const getAllAccessibleMemories = async (allUserId: string): Promise<OperationResult> => {
+export const getAllAccessibleMemories = async (
+  allUserId: string
+): Promise<OperationResult> => {
   try {
     // Get owned memories
     const ownedResult = await getMemoryRecords({ ownerId: allUserId });
@@ -82,16 +89,24 @@ export const getAllAccessibleMemories = async (allUserId: string): Promise<Opera
 
     // Remove duplicates based on ID
     const uniqueMemories = allMemories.filter(
-      (memory, index, self) => index === self.findIndex(m => m.id === memory.id)
+      (memory, index, self) =>
+        index === self.findIndex((m) => m.id === memory.id)
     );
 
     // Sort by creation date
-    uniqueMemories.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    uniqueMemories.sort(
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+    );
 
     // Add access level metadata
-    const memoriesWithAccess = uniqueMemories.map(memory => ({
+    const memoriesWithAccess = uniqueMemories.map((memory) => ({
       ...memory,
-      accessLevel: memory.ownerId === allUserId ? 'owner' : memory.sharingStatus === 'public' ? 'public' : 'shared',
+      accessLevel:
+        memory.ownerId === allUserId
+          ? 'owner'
+          : memory.sharingStatus === 'public'
+            ? 'public'
+            : 'shared',
     }));
 
     return { success: true, data: memoriesWithAccess };

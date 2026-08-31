@@ -1,7 +1,10 @@
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { HardDrive, Database, Cloud } from 'lucide-react';
-import { useBatchMemoryStorageStatus, getGalleryStorageSummary } from '@/hooks/use-memory-storage-status';
+import {
+  useBatchMemoryStorageStatus,
+  getGalleryStorageSummary,
+} from '@/hooks/use-memory-storage-status';
 import type { GalleryWithItems } from '@/types/gallery';
 
 interface GalleryStorageSummaryProps {
@@ -10,14 +13,18 @@ interface GalleryStorageSummaryProps {
   className?: string;
 }
 
-export function GalleryStorageSummary({ gallery, onStoreForever, className = '' }: GalleryStorageSummaryProps) {
+export function GalleryStorageSummary({
+  gallery,
+  onStoreForever,
+  className = '',
+}: GalleryStorageSummaryProps) {
   const memories =
     gallery.items
-      ?.map(item => ({
+      ?.map((item) => ({
         id: item.memory?.id,
         type: item.memory?.type,
       }))
-      .filter(memory => memory.id && memory.type) || [];
+      .filter((memory) => memory.id && memory.type) || [];
 
   const { statusMap, isLoading } = useBatchMemoryStorageStatus(memories);
   const summary = getGalleryStorageSummary(statusMap, memories);
@@ -55,7 +62,9 @@ export function GalleryStorageSummary({ gallery, onStoreForever, className = '' 
                 </Button>
               )}
             </div>
-            <div className="text-xs text-muted-foreground">{summary.icpPercentage}% on ICP</div>
+            <div className="text-xs text-muted-foreground">
+              {summary.icpPercentage}% on ICP
+            </div>
           </div>
 
           {/* Progress Bar */}
@@ -77,7 +86,9 @@ export function GalleryStorageSummary({ gallery, onStoreForever, className = '' 
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full bg-green-500"></div>
                 <Cloud className="h-3 w-3 text-green-600" />
-                <span className="text-green-700 dark:text-green-300">{summary.hasIcp} on ICP</span>
+                <span className="text-green-700 dark:text-green-300">
+                  {summary.hasIcp} on ICP
+                </span>
               </div>
             )}
 
@@ -85,7 +96,9 @@ export function GalleryStorageSummary({ gallery, onStoreForever, className = '' 
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full bg-gray-500"></div>
                 <Database className="h-3 w-3 text-gray-600" />
-                <span className="text-gray-700 dark:text-gray-300">{summary.hasNeon} on Neon</span>
+                <span className="text-gray-700 dark:text-gray-300">
+                  {summary.hasNeon} on Neon
+                </span>
               </div>
             )}
 
@@ -93,21 +106,27 @@ export function GalleryStorageSummary({ gallery, onStoreForever, className = '' 
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full bg-purple-500"></div>
                 <Cloud className="h-3 w-3 text-purple-600" />
-                <span className="text-purple-700 dark:text-purple-300">{summary.hasOther} other</span>
+                <span className="text-purple-700 dark:text-purple-300">
+                  {summary.hasOther} other
+                </span>
               </div>
             )}
 
             {summary.loading > 0 && (
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full bg-gray-400 animate-pulse"></div>
-                <span className="text-gray-500">{summary.loading} loading...</span>
+                <span className="text-gray-500">
+                  {summary.loading} loading...
+                </span>
               </div>
             )}
 
             {summary.error > 0 && (
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                <span className="text-red-600 dark:text-red-400">{summary.error} error</span>
+                <span className="text-red-600 dark:text-red-400">
+                  {summary.error} error
+                </span>
               </div>
             )}
           </div>

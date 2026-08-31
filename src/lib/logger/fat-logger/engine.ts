@@ -5,7 +5,10 @@ import { SERVICE_FLAGS } from './config';
 const DEFAULT_SERVICE_FLAGS: ServiceFlags = SERVICE_FLAGS;
 
 // Helper function to resolve three-state toggle to boolean
-function resolveToggleState(uiState: string | undefined, defaultValue: boolean): boolean {
+function resolveToggleState(
+  uiState: string | undefined,
+  defaultValue: boolean
+): boolean {
   if (uiState === 'enabled') return true;
   if (uiState === 'disabled') return false;
   return defaultValue; // 'not-set' or undefined
@@ -24,7 +27,10 @@ function getLoggerConfig(): ServiceFlags {
     if (savedConfig) {
       const parsed = JSON.parse(savedConfig);
       return {
-        ENABLE_LOGGING: resolveToggleState(parsed.ENABLE_LOGGING, DEFAULT_SERVICE_FLAGS.ENABLE_LOGGING),
+        ENABLE_LOGGING: resolveToggleState(
+          parsed.ENABLE_LOGGING,
+          DEFAULT_SERVICE_FLAGS.ENABLE_LOGGING
+        ),
         ENABLE_FRONTEND_LOGGING: resolveToggleState(
           parsed.ENABLE_FRONTEND_LOGGING,
           DEFAULT_SERVICE_FLAGS.ENABLE_FRONTEND_LOGGING
@@ -41,12 +47,18 @@ function getLoggerConfig(): ServiceFlags {
           parsed.ENABLE_DATABASE_LOGGING,
           DEFAULT_SERVICE_FLAGS.ENABLE_DATABASE_LOGGING
         ),
-        ENABLE_AUTH_LOGGING: resolveToggleState(parsed.ENABLE_AUTH_LOGGING, DEFAULT_SERVICE_FLAGS.ENABLE_AUTH_LOGGING),
+        ENABLE_AUTH_LOGGING: resolveToggleState(
+          parsed.ENABLE_AUTH_LOGGING,
+          DEFAULT_SERVICE_FLAGS.ENABLE_AUTH_LOGGING
+        ),
         ENABLE_ASSET_LOGGING: resolveToggleState(
           parsed.ENABLE_ASSET_LOGGING,
           DEFAULT_SERVICE_FLAGS.ENABLE_ASSET_LOGGING
         ),
-        ENABLE_S3_LOGGING: resolveToggleState(parsed.ENABLE_S3_LOGGING, DEFAULT_SERVICE_FLAGS.ENABLE_S3_LOGGING),
+        ENABLE_S3_LOGGING: resolveToggleState(
+          parsed.ENABLE_S3_LOGGING,
+          DEFAULT_SERVICE_FLAGS.ENABLE_S3_LOGGING
+        ),
         ENABLE_ICP_UPLOAD_LOGGING: resolveToggleState(
           parsed.ENABLE_ICP_UPLOAD_LOGGING,
           DEFAULT_SERVICE_FLAGS.ENABLE_ICP_UPLOAD_LOGGING
@@ -112,12 +124,17 @@ export class LogEngine {
 
     // Check context (frontend/backend)
     const contextEnabled =
-      entry.ctx === 'fe' ? serviceFlags.ENABLE_FRONTEND_LOGGING : serviceFlags.ENABLE_BACKEND_LOGGING;
+      entry.ctx === 'fe'
+        ? serviceFlags.ENABLE_FRONTEND_LOGGING
+        : serviceFlags.ENABLE_BACKEND_LOGGING;
     if (!contextEnabled) return false;
 
     // Check service-specific flags if service is specified
     if (entry.service) {
-      const serviceEnabled = this.getServiceEnabled(entry.service, serviceFlags);
+      const serviceEnabled = this.getServiceEnabled(
+        entry.service,
+        serviceFlags
+      );
       if (!serviceEnabled) return false;
     }
 
@@ -125,18 +142,21 @@ export class LogEngine {
 
     // Check blacklist first
     if (this.config.excludedTags?.length) {
-      if (tags.some(t => this.config.excludedTags!.includes(t))) return false;
+      if (tags.some((t) => this.config.excludedTags!.includes(t))) return false;
     }
 
     // Check whitelist
     if (this.config.enabledTags?.length) {
-      if (!tags.some(t => this.config.enabledTags!.includes(t))) return false;
+      if (!tags.some((t) => this.config.enabledTags!.includes(t))) return false;
     }
 
     return true;
   }
 
-  private getServiceEnabled(service: string, serviceFlags: ServiceFlags): boolean {
+  private getServiceEnabled(
+    service: string,
+    serviceFlags: ServiceFlags
+  ): boolean {
     // Handle service:context format (e.g., "upload:be", "database:fe")
     if (service.includes(':')) {
       const [serviceName] = service.split(':');
@@ -147,7 +167,10 @@ export class LogEngine {
     return this.getServiceFlag(service, serviceFlags);
   }
 
-  private getServiceFlag(serviceName: string, serviceFlags: ServiceFlags): boolean {
+  private getServiceFlag(
+    serviceName: string,
+    serviceFlags: ServiceFlags
+  ): boolean {
     switch (serviceName) {
       case 'upload':
         return serviceFlags.ENABLE_UPLOAD_LOGGING;

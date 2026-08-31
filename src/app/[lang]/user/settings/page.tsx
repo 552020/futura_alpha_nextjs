@@ -29,7 +29,11 @@ import {
 export default function SettingsPage() {
   const { isAuthorized, isTemporaryUser, isLoading } = useAuthGuard();
   const { isAdmin, devMode, setDevMode, isAtLeastDeveloper } = useInterface();
-  const { data: preferences, isLoading: preferencesLoading, error: preferencesError } = useHostingPreferences();
+  const {
+    data: preferences,
+    isLoading: preferencesLoading,
+    error: preferencesError,
+  } = useHostingPreferences();
   const updatePreferences = useUpdateHostingPreferences();
   const { data: userSettings } = useUserSettings();
 
@@ -54,7 +58,9 @@ export default function SettingsPage() {
         <div className="max-w-2xl mx-auto space-y-6">
           <div>
             <h1 className="text-3xl font-bold">Settings</h1>
-            <p className="text-muted-foreground mt-2">Manage your storage, frontend, and account preferences.</p>
+            <p className="text-muted-foreground mt-2">
+              Manage your storage, frontend, and account preferences.
+            </p>
           </div>
           <div className="space-y-4">
             <Skeleton className="h-32 w-full" />
@@ -74,7 +80,9 @@ export default function SettingsPage() {
         <div className="max-w-2xl mx-auto space-y-6">
           <div>
             <h1 className="text-3xl font-bold">Settings</h1>
-            <p className="text-muted-foreground mt-2">Manage your storage, frontend, and account preferences.</p>
+            <p className="text-muted-foreground mt-2">
+              Manage your storage, frontend, and account preferences.
+            </p>
           </div>
           <Card className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950/20">
             <CardContent className="pt-6">
@@ -93,7 +101,9 @@ export default function SettingsPage() {
       <div className="max-w-2xl mx-auto space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Settings</h1>
-          <p className="text-muted-foreground mt-2">Manage your storage, frontend, and account preferences.</p>
+          <p className="text-muted-foreground mt-2">
+            Manage your storage, frontend, and account preferences.
+          </p>
         </div>
 
         {isTemporaryUser && <TemporaryUserCard />}
@@ -103,25 +113,37 @@ export default function SettingsPage() {
           <GeneralHostingCard
             isWeb2Enabled={getWeb2Enabled(preferences)}
             isWeb3Enabled={getWeb3Enabled(preferences)}
-            onWeb2Toggle={checked => {
+            onWeb2Toggle={(checked) => {
               if (checked) {
                 // Enable Web2 stack and disable Web3
-                const newPreferences = createHostingPreferencesFromStacks(true, false);
+                const newPreferences = createHostingPreferencesFromStacks(
+                  true,
+                  false
+                );
                 updatePreferences.mutate(newPreferences);
               } else {
                 // Disable Web2 stack and enable Web3
-                const newPreferences = createHostingPreferencesFromStacks(false, true);
+                const newPreferences = createHostingPreferencesFromStacks(
+                  false,
+                  true
+                );
                 updatePreferences.mutate(newPreferences);
               }
             }}
-            onWeb3Toggle={checked => {
+            onWeb3Toggle={(checked) => {
               if (checked) {
                 // Enable Web3 stack and disable Web2
-                const newPreferences = createHostingPreferencesFromStacks(false, true);
+                const newPreferences = createHostingPreferencesFromStacks(
+                  false,
+                  true
+                );
                 updatePreferences.mutate(newPreferences);
               } else {
                 // Disable Web3 stack and enable Web2
-                const newPreferences = createHostingPreferencesFromStacks(true, false);
+                const newPreferences = createHostingPreferencesFromStacks(
+                  true,
+                  false
+                );
                 updatePreferences.mutate(newPreferences);
               }
             }}
@@ -143,14 +165,16 @@ export default function SettingsPage() {
                   label: 'Web2',
                   description: 'Vercel',
                   checked: preferences?.frontendHosting === 'vercel',
-                  onCheckedChange: () => updatePreferences.mutate({ frontendHosting: 'vercel' }),
+                  onCheckedChange: () =>
+                    updatePreferences.mutate({ frontendHosting: 'vercel' }),
                 },
                 {
                   id: 'frontend-web3-icp',
                   label: 'Web3',
                   description: 'ICP',
                   checked: preferences?.frontendHosting === 'icp',
-                  onCheckedChange: () => updatePreferences.mutate({ frontendHosting: 'icp' }),
+                  onCheckedChange: () =>
+                    updatePreferences.mutate({ frontendHosting: 'icp' }),
                 },
               ]}
               isLoading={updatePreferences.isPending}
@@ -164,14 +188,20 @@ export default function SettingsPage() {
                   label: 'Web2',
                   description: 'Vercel',
                   checked: getWeb2Enabled(preferences),
-                  onCheckedChange: checked => {
+                  onCheckedChange: (checked) => {
                     if (checked) {
                       // Enable Web2 stack and disable Web3
-                      const newPreferences = createHostingPreferencesFromStacks(true, false);
+                      const newPreferences = createHostingPreferencesFromStacks(
+                        true,
+                        false
+                      );
                       updatePreferences.mutate(newPreferences);
                     } else {
                       // Disable Web2 stack and enable Web3
-                      const newPreferences = createHostingPreferencesFromStacks(false, true);
+                      const newPreferences = createHostingPreferencesFromStacks(
+                        false,
+                        true
+                      );
                       updatePreferences.mutate(newPreferences);
                     }
                   },
@@ -181,14 +211,20 @@ export default function SettingsPage() {
                   label: 'Web3',
                   description: 'ICP',
                   checked: getWeb3Enabled(preferences),
-                  onCheckedChange: checked => {
+                  onCheckedChange: (checked) => {
                     if (checked) {
                       // Enable Web3 stack and disable Web2
-                      const newPreferences = createHostingPreferencesFromStacks(false, true);
+                      const newPreferences = createHostingPreferencesFromStacks(
+                        false,
+                        true
+                      );
                       updatePreferences.mutate(newPreferences);
                     } else {
                       // Disable Web3 stack and enable Web2
-                      const newPreferences = createHostingPreferencesFromStacks(true, false);
+                      const newPreferences = createHostingPreferencesFromStacks(
+                        true,
+                        false
+                      );
                       updatePreferences.mutate(newPreferences);
                     }
                   },
@@ -205,14 +241,20 @@ export default function SettingsPage() {
                   label: 'Web2',
                   description: 'Neon',
                   checked: getWeb2Enabled(preferences),
-                  onCheckedChange: checked => {
+                  onCheckedChange: (checked) => {
                     if (checked) {
                       // Enable Web2 stack and disable Web3
-                      const newPreferences = createHostingPreferencesFromStacks(true, false);
+                      const newPreferences = createHostingPreferencesFromStacks(
+                        true,
+                        false
+                      );
                       updatePreferences.mutate(newPreferences);
                     } else {
                       // Disable Web2 stack and enable Web3
-                      const newPreferences = createHostingPreferencesFromStacks(false, true);
+                      const newPreferences = createHostingPreferencesFromStacks(
+                        false,
+                        true
+                      );
                       updatePreferences.mutate(newPreferences);
                     }
                   },
@@ -222,14 +264,20 @@ export default function SettingsPage() {
                   label: 'Web3',
                   description: 'ICP',
                   checked: getWeb3Enabled(preferences),
-                  onCheckedChange: checked => {
+                  onCheckedChange: (checked) => {
                     if (checked) {
                       // Enable Web3 stack and disable Web2
-                      const newPreferences = createHostingPreferencesFromStacks(false, true);
+                      const newPreferences = createHostingPreferencesFromStacks(
+                        false,
+                        true
+                      );
                       updatePreferences.mutate(newPreferences);
                     } else {
                       // Disable Web3 stack and enable Web2
-                      const newPreferences = createHostingPreferencesFromStacks(true, false);
+                      const newPreferences = createHostingPreferencesFromStacks(
+                        true,
+                        false
+                      );
                       updatePreferences.mutate(newPreferences);
                     }
                   },
@@ -246,18 +294,24 @@ export default function SettingsPage() {
                   label: 'AWS S3',
                   description: 'Amazon Web Services - Reliable cloud storage',
                   checked: preferences?.blobHosting?.includes('s3') ?? false,
-                  onCheckedChange: checked => {
+                  onCheckedChange: (checked) => {
                     const currentBlobHosting = preferences?.blobHosting || [];
                     if (checked) {
                       // Add S3 if not already present
                       if (!currentBlobHosting.includes('s3')) {
-                        updatePreferences.mutate({ blobHosting: [...currentBlobHosting, 's3'] });
+                        updatePreferences.mutate({
+                          blobHosting: [...currentBlobHosting, 's3'],
+                        });
                       }
                     } else {
                       // Remove S3, but ensure at least one provider remains
-                      const newBlobHosting = currentBlobHosting.filter(provider => provider !== 's3');
+                      const newBlobHosting = currentBlobHosting.filter(
+                        (provider) => provider !== 's3'
+                      );
                       if (newBlobHosting.length > 0) {
-                        updatePreferences.mutate({ blobHosting: newBlobHosting });
+                        updatePreferences.mutate({
+                          blobHosting: newBlobHosting,
+                        });
                       }
                     }
                   },
@@ -266,19 +320,26 @@ export default function SettingsPage() {
                   id: 'blob-vercel',
                   label: 'Vercel Blob',
                   description: 'Vercel - Fast edge storage',
-                  checked: preferences?.blobHosting?.includes('vercel_blob') ?? false,
-                  onCheckedChange: checked => {
+                  checked:
+                    preferences?.blobHosting?.includes('vercel_blob') ?? false,
+                  onCheckedChange: (checked) => {
                     const currentBlobHosting = preferences?.blobHosting || [];
                     if (checked) {
                       // Add Vercel Blob if not already present
                       if (!currentBlobHosting.includes('vercel_blob')) {
-                        updatePreferences.mutate({ blobHosting: [...currentBlobHosting, 'vercel_blob'] });
+                        updatePreferences.mutate({
+                          blobHosting: [...currentBlobHosting, 'vercel_blob'],
+                        });
                       }
                     } else {
                       // Remove Vercel Blob, but ensure at least one provider remains
-                      const newBlobHosting = currentBlobHosting.filter(provider => provider !== 'vercel_blob');
+                      const newBlobHosting = currentBlobHosting.filter(
+                        (provider) => provider !== 'vercel_blob'
+                      );
                       if (newBlobHosting.length > 0) {
-                        updatePreferences.mutate({ blobHosting: newBlobHosting });
+                        updatePreferences.mutate({
+                          blobHosting: newBlobHosting,
+                        });
                       }
                     }
                   },
@@ -288,18 +349,24 @@ export default function SettingsPage() {
                   label: 'ICP',
                   description: 'Internet Computer - Decentralized storage',
                   checked: preferences?.blobHosting?.includes('icp') ?? false,
-                  onCheckedChange: checked => {
+                  onCheckedChange: (checked) => {
                     const currentBlobHosting = preferences?.blobHosting || [];
                     if (checked) {
                       // Add ICP if not already present
                       if (!currentBlobHosting.includes('icp')) {
-                        updatePreferences.mutate({ blobHosting: [...currentBlobHosting, 'icp'] });
+                        updatePreferences.mutate({
+                          blobHosting: [...currentBlobHosting, 'icp'],
+                        });
                       }
                     } else {
                       // Remove ICP, but ensure at least one provider remains
-                      const newBlobHosting = currentBlobHosting.filter(provider => provider !== 'icp');
+                      const newBlobHosting = currentBlobHosting.filter(
+                        (provider) => provider !== 'icp'
+                      );
                       if (newBlobHosting.length > 0) {
-                        updatePreferences.mutate({ blobHosting: newBlobHosting });
+                        updatePreferences.mutate({
+                          blobHosting: newBlobHosting,
+                        });
                       }
                     }
                   },

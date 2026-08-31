@@ -39,8 +39,9 @@ function getEmailContent(
   const relationshipText = relationship ? `, your ${relationship},` : '';
 
   if (memory.type === 'document') {
-    const textContent = `${inviterName}${relationshipText} has shared a document with you: ${memory.title
-      }. Description: ${memory.description || 'No description'}.`;
+    const textContent = `${inviterName}${relationshipText} has shared a document with you: ${
+      memory.title
+    }. Description: ${memory.description || 'No description'}.`;
     const htmlContent = includeHtml
       ? `
     <html>
@@ -54,8 +55,9 @@ function getEmailContent(
       : undefined;
     return { text: textContent, html: htmlContent };
   } else if (memory.type === 'image') {
-    const textContent = `You've been invited to view an image: ${memory.title || 'Untitled'
-      }. Invited by: ${inviterName}.`;
+    const textContent = `You've been invited to view an image: ${
+      memory.title || 'Untitled'
+    }. Invited by: ${inviterName}.`;
     const htmlContent = includeHtml
       ? `
 		<html>
@@ -95,7 +97,10 @@ function getEmailContent(
  * @param inviterName The name of the inviter.
  * @returns An object of template variables.
  */
-function getTemplateVariables(memory: MemoryWithType, inviterName: string): Record<string, unknown> {
+function getTemplateVariables(
+  memory: MemoryWithType,
+  inviterName: string
+): Record<string, unknown> {
   return {
     title: memory.title || 'Untitled',
     description: memory.description || 'No description',
@@ -130,26 +135,37 @@ export async function sendInvitationEmail(
 
     if (options.useTemplate) {
       // Use Mailgun template
-      const templateVars = getTemplateVariables(memory, inviterName || 'Someone');
+      const templateVars = getTemplateVariables(
+        memory,
+        inviterName || 'Someone'
+      );
       emailPayload.templateName = 'memory-invitation';
       emailPayload.templateVars = templateVars;
       emailPayload.text = ''; // Fallback text version
     } else {
       // Use hardcoded message
-      const { text, html } = getEmailContent(memory, inviterName || 'Someone', relationship, options.useHTML ?? false);
+      const { text, html } = getEmailContent(
+        memory,
+        inviterName || 'Someone',
+        relationship,
+        options.useHTML ?? false
+      );
       emailPayload.text = text;
       if (options.useHTML && html) {
         emailPayload.html = html;
       }
     }
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/email/send`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(emailPayload),
-    });
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/email/send`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(emailPayload),
+      }
+    );
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -158,7 +174,9 @@ export async function sendInvitationEmail(
 
     return true;
   } catch (error) {
-    fatLogger.error('Error sending invitation email:', 'be', { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Error sending invitation email:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
     throw new Error(
       `Failed to send invitation email to ${email}: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
@@ -188,8 +206,9 @@ export async function sendSharedMemoryEmail(
     const emailPayload: Record<string, unknown> = {
       to: email,
       subject: 'A memory has been shared with you on Futura',
-      text: `${inviterName}${relationship ? `, your ${relationship}` : ''
-        } shared a memory with you on Futura. View it here: ${shareUrl}`,
+      text: `${inviterName}${
+        relationship ? `, your ${relationship}` : ''
+      } shared a memory with you on Futura. View it here: ${shareUrl}`,
     };
 
     if (options.useHTML) {
@@ -204,13 +223,16 @@ export async function sendSharedMemoryEmail(
       `;
     }
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/email/send`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(emailPayload),
-    });
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/email/send`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(emailPayload),
+      }
+    );
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -219,7 +241,9 @@ export async function sendSharedMemoryEmail(
 
     return true;
   } catch (error) {
-    fatLogger.error('Error sending shared memory email:', 'be', { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Error sending shared memory email:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
     throw new Error(
       `Failed to send shared memory email to ${email}: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
@@ -235,7 +259,11 @@ async function getInviterName(invitedById: string) {
 
 async function getRelationship(inviterId: string, invitedId: string) {
   const rel = await db.query.relationship.findFirst({
-    where: () => and(eq(relationship.userId, inviterId), eq(relationship.relatedUserId, invitedId)),
+    where: () =>
+      and(
+        eq(relationship.userId, inviterId),
+        eq(relationship.relatedUserId, invitedId)
+      ),
   });
 
   if (rel?.type === 'family') {

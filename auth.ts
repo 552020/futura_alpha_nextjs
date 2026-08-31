@@ -48,7 +48,10 @@ async function linkInternetIdentityToActiveSession(principal: string) {
       };
     }
   } catch (sessionError) {
-    console.warn('Failed to check active session for Internet Identity linking, creating new user:', sessionError);
+    console.warn(
+      'Failed to check active session for Internet Identity linking, creating new user:',
+      sessionError
+    );
   }
   return null;
 }
@@ -161,12 +164,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const { principal, nonceId, nonce } = credentials;
 
         // Validate inputs
-        if (!principal || typeof principal !== 'string' || principal.length < 5) {
-          throw new Error('Invalid principal provided. Please try signing in again.');
+        if (
+          !principal ||
+          typeof principal !== 'string' ||
+          principal.length < 5
+        ) {
+          throw new Error(
+            'Invalid principal provided. Please try signing in again.'
+          );
         }
 
         if (!nonceId || typeof nonceId !== 'string') {
-          throw new Error('Invalid authentication challenge. Please try signing in again.');
+          throw new Error(
+            'Invalid authentication challenge. Please try signing in again.'
+          );
         }
 
         // 5.2: Check nonce exists, unexpired, unused
@@ -176,21 +187,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         });
 
         if (!nonceRecord) {
-          throw new Error('Authentication challenge not found. Please try signing in again.');
+          throw new Error(
+            'Authentication challenge not found. Please try signing in again.'
+          );
         }
 
         if (nonceRecord.usedAt) {
-          throw new Error('Authentication challenge already used. Please try signing in again.');
+          throw new Error(
+            'Authentication challenge already used. Please try signing in again.'
+          );
         }
 
         if (nonceRecord.expiresAt < new Date()) {
-          throw new Error('Authentication challenge expired. Please try signing in again.');
+          throw new Error(
+            'Authentication challenge expired. Please try signing in again.'
+          );
         }
 
         // 5.3: Call API route to verify nonce proof
         try {
           if (!nonce) {
-            throw new Error('Authentication nonce not provided. Please try signing in again.');
+            throw new Error(
+              'Authentication nonce not provided. Please try signing in again.'
+            );
           }
 
           const nonceStr = nonce as string;
@@ -200,7 +219,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             process.env.AUTH_URL ||
             process.env.NEXTAUTH_URL ||
             process.env.NEXT_PUBLIC_SITE_URL ||
-            (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+            (process.env.VERCEL_URL
+              ? `https://${process.env.VERCEL_URL}`
+              : 'http://localhost:3000');
 
           const response = await fetch(`${baseUrl}/api/ii/verify-nonce`, {
             method: 'POST',
@@ -209,21 +230,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           });
 
           if (!response.ok) {
-            throw new Error('Authentication verification service unavailable. Please try signing in again.');
+            throw new Error(
+              'Authentication verification service unavailable. Please try signing in again.'
+            );
           }
 
           const result = await response.json();
 
           if (!result.success) {
-            throw new Error('Authentication proof verification failed. Please try signing in again.');
+            throw new Error(
+              'Authentication proof verification failed. Please try signing in again.'
+            );
           }
 
           const provedPrincipal = result.principal;
           if (provedPrincipal !== principal) {
-            throw new Error('Authentication proof mismatch. Please try signing in again.');
+            throw new Error(
+              'Authentication proof mismatch. Please try signing in again.'
+            );
           }
         } catch (_error) {
-          throw new Error('Unable to verify authentication. Please try signing in again.');
+          throw new Error(
+            'Unable to verify authentication. Please try signing in again.'
+          );
         }
 
         // 5.5: In single transaction - mark nonce used, create/link user + account, issue session
@@ -233,7 +262,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           // Try to find an existing II account mapping
           const existingAccount = await db.query.accounts.findFirst({
-            where: (a, { and, eq }) => and(eq(a.provider, 'internet-identity'), eq(a.providerAccountId, principal)),
+            where: (a, { and, eq }) =>
+              and(
+                eq(a.provider, 'internet-identity'),
+                eq(a.providerAccountId, principal)
+              ),
           });
 
           if (existingAccount) {
@@ -253,7 +286,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           }
 
           // NEW: Check for active session to link Internet Identity to existing user
-          const linkedUser = await linkInternetIdentityToActiveSession(principal);
+          const linkedUser =
+            await linkInternetIdentityToActiveSession(principal);
           if (linkedUser) {
             return linkedUser;
           }
@@ -262,7 +296,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const insertedUsers = await db
             .insert(users)
             .values({})
-            .returning({ id: users.id, email: users.email, name: users.name, role: users.role });
+            .returning({
+              id: users.id,
+              email: users.email,
+              name: users.name,
+              role: users.role,
+            });
           const newUser = insertedUsers[0];
 
           await db.insert(accounts).values({
@@ -273,7 +312,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           });
 
           // Ensure allUsers entry exists for business linkage
-          await db.insert(allUsers).values({ type: 'user', userId: newUser.id }).onConflictDoNothing?.();
+          await db
+            .insert(allUsers)
+            .values({ type: 'user', userId: newUser.id })
+            .onConflictDoNothing?.();
 
           return {
             id: newUser.id,
@@ -283,7 +325,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             icpPrincipal: principal,
           };
         } catch (_error) {
-          throw new Error('Unable to create user account. Please try signing in again.');
+          throw new Error(
+            'Unable to create user account. Please try signing in again.'
+          );
         }
       },
     }),
@@ -297,7 +341,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     //   return `${baseUrl}/user/profile`;
     // },
     redirect({ url, baseUrl }) {
-      const isLoginFlow = url.includes('/api/auth/signin') || url.includes('/api/auth/callback');
+      const isLoginFlow =
+        url.includes('/api/auth/signin') || url.includes('/api/auth/callback');
 
       if (isLoginFlow) {
         // Extract language from URL if available, default to 'en'
@@ -324,7 +369,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       // Tests route check
       if (pathname.startsWith('/tests')) {
-        return ['admin', 'superadmin', 'developer'].includes(auth?.user?.role ?? '');
+        return ['admin', 'superadmin', 'developer'].includes(
+          auth?.user?.role ?? ''
+        );
       }
 
       // Admin routes check
@@ -347,7 +394,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.loginProvider = account.provider;
 
         // On any sign-in, (re)load linked principals once from DB
-        const uid = (user?.id as string | undefined) ?? (token.sub as string | undefined);
+        const uid =
+          (user?.id as string | undefined) ?? (token.sub as string | undefined);
         if (uid) {
           token.linkedIcPrincipals = await getLinkedPrincipalsFromDB(uid);
         }
@@ -392,17 +440,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         // Add business user ID
         if (token.businessUserId && typeof token.businessUserId === 'string') {
-          (session.user as { businessUserId?: string }).businessUserId = token.businessUserId;
+          (session.user as { businessUserId?: string }).businessUserId =
+            token.businessUserId;
         }
 
         // Add login provider
         if (token.loginProvider) {
-          (session.user as { loginProvider?: string }).loginProvider = token.loginProvider;
+          (session.user as { loginProvider?: string }).loginProvider =
+            token.loginProvider;
         }
 
         // Add linked principals array
         if (token.linkedIcPrincipals) {
-          (session.user as { linkedIcPrincipals?: string[] }).linkedIcPrincipals = token.linkedIcPrincipals;
+          (
+            session.user as { linkedIcPrincipals?: string[] }
+          ).linkedIcPrincipals = token.linkedIcPrincipals;
         }
       }
 
@@ -418,13 +470,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async createUser({ user }) {
       // Check if there's a temporary user with the same email
       const temporaryUser = await db.query.temporaryUsers.findFirst({
-        where: (temporaryUsers, { eq }) => eq(temporaryUsers.email, user.email!),
+        where: (temporaryUsers, { eq }) =>
+          eq(temporaryUsers.email, user.email!),
       });
 
       // Find the corresponding allUsers entry if temporary user exists
       const allUserEntry = temporaryUser
         ? await db.query.allUsers.findFirst({
-            where: (allUsers, { eq }) => eq(allUsers.temporaryUserId, temporaryUser.id),
+            where: (allUsers, { eq }) =>
+              eq(allUsers.temporaryUserId, temporaryUser.id),
           })
         : null;
 
@@ -440,7 +494,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           .where(eq(allUsers.id, allUserEntry.id));
 
         // Delete the temporary user since we've migrated their data
-        await db.delete(temporaryUsers).where(eq(temporaryUsers.id, temporaryUser.id));
+        await db
+          .delete(temporaryUsers)
+          .where(eq(temporaryUsers.id, temporaryUser.id));
       } else {
         // No temporary user found, create a new allUsers entry
         await db.insert(allUsers).values({

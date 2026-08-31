@@ -17,14 +17,24 @@ type CreatePublicLinkRequest = {
   accessRestrictions?: Record<string, unknown>; // Custom restrictions
 };
 
-export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+export async function POST(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   const { id: memoryId } = await context.params;
 
   try {
     const body = (await request.json()) as CreatePublicLinkRequest;
     fatLogger.info('📨 Create public link request:', 'be', { memoryId, body });
 
-    const { expiresAt, isActive = true, allowedUsers, allowedRoles, requireAuth = false, accessRestrictions } = body;
+    const {
+      expiresAt,
+      isActive = true,
+      allowedUsers,
+      allowedRoles,
+      requireAuth = false,
+      accessRestrictions,
+    } = body;
 
     // Authentication
     const session = await auth();
@@ -52,7 +62,10 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     const allUserRecord = userResult.data as typeof allUsers.$inferSelect;
 
     // Find the memory and check ownership using service function
-    const memoryResult = await getMemoryWithRelations(memoryId, allUserRecord.id);
+    const memoryResult = await getMemoryWithRelations(
+      memoryId,
+      allUserRecord.id
+    );
 
     if (!memoryResult.success) {
       fatLogger.error('Memory not found or not owned by user', 'be', {

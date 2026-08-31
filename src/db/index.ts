@@ -1,10 +1,10 @@
 /**
  * Database Schema Index
- * 
+ *
  * This file serves as the main export point for the database schema.
  * It re-exports everything from the split schema files for backwards compatibility
  * and clean imports throughout the application.
- * 
+ *
  * File organization:
  * - enums.ts: PostgreSQL enums and TypeScript type definitions
  * - tables.ts: All database table definitions

@@ -9,7 +9,7 @@ export default function TailwindTestPage() {
 
     // Log all loaded stylesheets
     fatLogger.info('All loaded stylesheets:', 'fe', {
-      stylesheets: Array.from(document.styleSheets).map(sheet => ({
+      stylesheets: Array.from(document.styleSheets).map((sheet) => ({
         href: sheet.href,
         type: sheet.type,
         rules: sheet.cssRules?.length,
@@ -65,7 +65,9 @@ export default function TailwindTestPage() {
 
       {/* TRY 2: Single-line optimized version with pseudo-element */}
       <div className="relative mt-16">
-        <p className="text-gray-500 mb-4 text-sm">TRY 2: Single-line shadow with pseudo-element</p>
+        <p className="text-gray-500 mb-4 text-sm">
+          TRY 2: Single-line shadow with pseudo-element
+        </p>
         <h1
           className="text-7xl font-bold text-white relative
           [text-shadow:_0_0_7px_#fff,_0_0_10px_#fff,_0_0_21px_#fff,_0_0_42px_rgba(255,255,255,0.8),_0_0_82px_rgba(255,255,255,0.6),_0_0_92px_rgba(255,255,255,0.4),_0_0_102px_rgba(255,255,255,0.2),_0_0_151px_rgba(255,255,255,0.1)]

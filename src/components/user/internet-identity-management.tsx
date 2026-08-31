@@ -34,7 +34,9 @@ function shortenPrincipal(principal: string): string {
   return `${principal.slice(0, 5)}…${principal.slice(-5)}`;
 }
 
-export function InternetIdentityManagement({ className = '' }: InternetIdentityManagementProps) {
+export function InternetIdentityManagement({
+  className = '',
+}: InternetIdentityManagementProps) {
   const { data: session, update } = useSession();
   const { principal, isAuthenticated, isLoading: iiLoading } = useICPIdentity();
   const { linkedIcPrincipals } = useIILinks();
@@ -86,7 +88,10 @@ export function InternetIdentityManagement({ className = '' }: InternetIdentityM
         await update({
           clearActiveIc: true,
         });
-        fatLogger.info('Successfully cleared II authentication from NextAuth session', 'fe');
+        fatLogger.info(
+          'Successfully cleared II authentication from NextAuth session',
+          'fe'
+        );
       } catch (error) {
         fatLogger.warn('Failed to clear II authentication from session', 'fe', {
           error: error instanceof Error ? error.message : String(error),
@@ -102,7 +107,8 @@ export function InternetIdentityManagement({ className = '' }: InternetIdentityM
       fatLogger.error('Failed to sign out from Internet Identity:', 'fe', {
         data: error instanceof Error ? error : undefined,
       });
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       toast({
         title: 'Sign Out Failed',
         description: `Failed to sign out: ${errorMessage}`,
@@ -112,7 +118,9 @@ export function InternetIdentityManagement({ className = '' }: InternetIdentityM
   };
 
   return (
-    <Card className={`border-2 border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/20 ${className}`}>
+    <Card
+      className={`border-2 border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/20 ${className}`}
+    >
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <User className="h-6 w-6 text-slate-600" />
@@ -125,10 +133,18 @@ export function InternetIdentityManagement({ className = '' }: InternetIdentityM
         <div className="grid grid-cols-[auto_1fr] gap-4 items-start">
           {/* Left Column - Keys */}
           <div className="space-y-4">
-            <div className="text-sm font-medium min-h-[1.5rem] flex items-center">Internet Identity Connection</div>
-            <div className="text-sm font-medium min-h-[1.5rem] flex items-center">Active Principal</div>
-            <div className="text-sm font-medium min-h-[1.5rem] flex items-center">App Login</div>
-            <div className="text-sm font-medium min-h-[1.5rem] flex items-center">Linked Principals</div>
+            <div className="text-sm font-medium min-h-[1.5rem] flex items-center">
+              Internet Identity Connection
+            </div>
+            <div className="text-sm font-medium min-h-[1.5rem] flex items-center">
+              Active Principal
+            </div>
+            <div className="text-sm font-medium min-h-[1.5rem] flex items-center">
+              App Login
+            </div>
+            <div className="text-sm font-medium min-h-[1.5rem] flex items-center">
+              Linked Principals
+            </div>
           </div>
 
           {/* Right Column - Values */}
@@ -137,7 +153,11 @@ export function InternetIdentityManagement({ className = '' }: InternetIdentityM
             <div className="min-h-[1.5rem] flex items-center">
               <Badge
                 variant="outline"
-                className={isAuthenticated ? 'text-green-600 border-green-600' : 'text-gray-500'}
+                className={
+                  isAuthenticated
+                    ? 'text-green-600 border-green-600'
+                    : 'text-gray-500'
+                }
               >
                 {isAuthenticated ? 'Connected' : 'Not Connected'}
               </Badge>

@@ -5,7 +5,8 @@ const GALLERY_CONFIGS = [
   {
     id: 'portrait-gallery',
     title: 'Portrait Collection',
-    description: 'Beautiful portrait photography showcasing people and emotions',
+    description:
+      'Beautiful portrait photography showcasing people and emotions',
     isPublic: true,
     imageCount: 15,
   },
@@ -50,12 +51,17 @@ const GALLERY_CONFIGS = [
 const getRandomDate = (): string => {
   const now = new Date();
   const sixMonthsAgo = new Date(now.getTime() - 6 * 30 * 24 * 60 * 60 * 1000);
-  const randomTime = sixMonthsAgo.getTime() + Math.random() * (now.getTime() - sixMonthsAgo.getTime());
+  const randomTime =
+    sixMonthsAgo.getTime() +
+    Math.random() * (now.getTime() - sixMonthsAgo.getTime());
   return new Date(randomTime).toISOString();
 };
 
 // Generate mock memories for a gallery
-const generateGalleryMemories = (galleryId: string, imageCount: number): Memory[] => {
+const generateGalleryMemories = (
+  galleryId: string,
+  imageCount: number
+): Memory[] => {
   const memories: Memory[] = [];
 
   // Define file name patterns for each gallery
@@ -143,7 +149,13 @@ const generateGalleryMemories = (galleryId: string, imageCount: number): Memory[
       'image_21',
       'image_24',
     ],
-    'small-gallery': ['shot_01', 'photo_02', 'photo_03', 'photo_04', 'picture_05'],
+    'small-gallery': [
+      'shot_01',
+      'photo_02',
+      'photo_03',
+      'photo_04',
+      'picture_05',
+    ],
     'large-gallery': [
       'photo_01',
       'photo_04',
@@ -217,7 +229,7 @@ const generateGalleryMemories = (galleryId: string, imageCount: number): Memory[
 
 // Generate all sample galleries
 export const generateSampleGalleries = () => {
-  return GALLERY_CONFIGS.map(config => {
+  return GALLERY_CONFIGS.map((config) => {
     const memories = generateGalleryMemories(config.id, config.imageCount);
     const createdAt = getRandomDate();
 
@@ -255,7 +267,7 @@ export const generateSampleGalleries = () => {
 
 // Get a specific gallery by ID
 export const getSampleGallery = (id: string) => {
-  return generateSampleGalleries().find(gallery => gallery.id === id);
+  return generateSampleGalleries().find((gallery) => gallery.id === id);
 };
 
 // Export the sample galleries

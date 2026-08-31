@@ -20,7 +20,10 @@ export function getBlurPlaceholder(): string {
 export function isExternalImage(url: string): boolean {
   try {
     const urlObj = new URL(url);
-    return urlObj.hostname !== 'localhost' && urlObj.hostname !== window.location.hostname;
+    return (
+      urlObj.hostname !== 'localhost' &&
+      urlObj.hostname !== window.location.hostname
+    );
   } catch {
     return false;
   }
@@ -63,23 +66,25 @@ export function getOptimalAssetUrl(
   // For viewing images, prefer display over original for better performance
   if (useCase === 'display') {
     return (
-      assets.find(a => a.assetType === 'display')?.url || assets.find(a => a.assetType === 'original')?.url || null
+      assets.find((a) => a.assetType === 'display')?.url ||
+      assets.find((a) => a.assetType === 'original')?.url ||
+      null
     );
   }
 
   // For thumbnails, prefer thumb over display
   if (useCase === 'thumb') {
     return (
-      assets.find(a => a.assetType === 'thumb')?.url ||
-      assets.find(a => a.assetType === 'display')?.url ||
-      assets.find(a => a.assetType === 'original')?.url ||
+      assets.find((a) => a.assetType === 'thumb')?.url ||
+      assets.find((a) => a.assetType === 'display')?.url ||
+      assets.find((a) => a.assetType === 'original')?.url ||
       null
     );
   }
 
   // For original, only return original asset
   if (useCase === 'original') {
-    return assets.find(a => a.assetType === 'original')?.url || null;
+    return assets.find((a) => a.assetType === 'original')?.url || null;
   }
 
   return null;

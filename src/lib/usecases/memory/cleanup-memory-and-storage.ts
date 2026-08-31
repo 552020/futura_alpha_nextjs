@@ -5,7 +5,10 @@
  * Uses the memory and storage edges service layers for all database operations.
  */
 
-import { getAssetRecordsByMemory, hardDeleteAssetRecord } from '@/services/memory';
+import {
+  getAssetRecordsByMemory,
+  hardDeleteAssetRecord,
+} from '@/services/memory';
 import { getStorageEdges, deleteStorageEdges } from '@/services/storage-edges';
 import { deleteS3Object } from '@/lib/s3-utils';
 import { extractS3KeyFromUrl } from '@/lib/storage/s3';
@@ -88,7 +91,10 @@ export async function cleanupMemoryAndStorage(
 
     // If we don't have memory data, we can't do proper cleanup
     if (!memory) {
-      fatLogger.error('❌ No memory data provided for cleanup - cannot determine S3 storage key', 'be');
+      fatLogger.error(
+        '❌ No memory data provided for cleanup - cannot determine S3 storage key',
+        'be'
+      );
       return {
         success: false,
         error: 'No memory data provided for cleanup',
@@ -136,7 +142,9 @@ export async function cleanupMemoryAndStorage(
     // Get assets from memory service
     const assetsResult = await getAssetRecordsByMemory(memoryId);
     if (!assetsResult.success) {
-      fatLogger.error('❌ Failed to get assets for cleanup:', 'be', { error: assetsResult.error });
+      fatLogger.error('❌ Failed to get assets for cleanup:', 'be', {
+        error: assetsResult.error,
+      });
       return {
         success: false,
         error: `Failed to get assets: ${assetsResult.error}`,
@@ -147,7 +155,10 @@ export async function cleanupMemoryAndStorage(
       };
     }
     const dbAssets = assetsResult.data as unknown[];
-    fatLogger.info(`🔍 Found ${dbAssets.length} assets in memory_assets table`, 'be');
+    fatLogger.info(
+      `🔍 Found ${dbAssets.length} assets in memory_assets table`,
+      'be'
+    );
 
     // Get storage edges from storage edges service
     const edgesResult = await getStorageEdges({
@@ -155,7 +166,9 @@ export async function cleanupMemoryAndStorage(
       memoryType,
     });
     if (!edgesResult.success) {
-      fatLogger.error('❌ Failed to get storage edges for cleanup:', 'be', { error: edgesResult.error });
+      fatLogger.error('❌ Failed to get storage edges for cleanup:', 'be', {
+        error: edgesResult.error,
+      });
       return {
         success: false,
         error: `Failed to get storage edges: ${edgesResult.error}`,
@@ -178,7 +191,7 @@ export async function cleanupMemoryAndStorage(
     }>;
 
     // Filter and add S3 assets from database
-    const s3DbAssets = typedDbAssets.filter(asset => {
+    const s3DbAssets = typedDbAssets.filter((asset) => {
       const backend = String(asset.assetLocation || '')
         .toLowerCase()
         .trim();
@@ -186,14 +199,14 @@ export async function cleanupMemoryAndStorage(
     });
 
     // Add S3 edges - using new storage edges structure
-    const s3Edges = edges.filter(edge => {
+    const s3Edges = edges.filter((edge) => {
       return (edge as { locationAsset?: string }).locationAsset === 's3';
     });
 
     // Combine all S3 assets
     const allS3Assets = [
       ...s3Assets,
-      ...s3DbAssets.map(asset => ({
+      ...s3DbAssets.map((asset) => ({
         id: asset.id,
         memoryId: asset.memoryId,
         storageKey: asset.storageKey,
@@ -201,10 +214,12 @@ export async function cleanupMemoryAndStorage(
         bytes: asset.bytes,
         mimeType: asset.mimeType,
       })),
-      ...s3Edges.map(edge => ({
+      ...s3Edges.map((edge) => ({
         id: `edge-${(edge as { id: string }).id}`,
         memoryId,
-        storageKey: extractS3KeyFromUrl((edge as { locationUrl?: string }).locationUrl || ''),
+        storageKey: extractS3KeyFromUrl(
+          (edge as { locationUrl?: string }).locationUrl || ''
+        ),
         storageBackend: 's3',
         bytes: (edge as { sizeBytes?: number }).sizeBytes,
         mimeType: null,
@@ -214,7 +229,10 @@ export async function cleanupMemoryAndStorage(
     // Remove duplicates based on storageKey
     const uniqueS3Assets = allS3Assets.reduce(
       (unique, asset) => {
-        if (asset.storageKey && !unique.find(u => u.storageKey === asset.storageKey)) {
+        if (
+          asset.storageKey &&
+          !unique.find((u) => u.storageKey === asset.storageKey)
+        ) {
           unique.push(asset);
         }
         return unique;
@@ -222,20 +240,30 @@ export async function cleanupMemoryAndStorage(
       [] as typeof allS3Assets
     );
 
-    fatLogger.info(`🗑️ Found ${uniqueS3Assets.length} unique S3 assets to delete:`, 'be', {
-      assets: uniqueS3Assets.map(a => ({ id: a.id, key: a.storageKey })),
-    });
+    fatLogger.info(
+      `🗑️ Found ${uniqueS3Assets.length} unique S3 assets to delete:`,
+      'be',
+      {
+        assets: uniqueS3Assets.map((a) => ({ id: a.id, key: a.storageKey })),
+      }
+    );
 
     // Delete S3 objects
-    const s3DeletePromises = uniqueS3Assets.map(async asset => {
+    const s3DeletePromises = uniqueS3Assets.map(async (asset) => {
       if (!asset.storageKey) return;
 
       try {
-        fatLogger.info(`🔄 Attempting to delete S3 object: ${asset.storageKey}`, 'be');
+        fatLogger.info(
+          `🔄 Attempting to delete S3 object: ${asset.storageKey}`,
+          'be'
+        );
         const success = await deleteS3Object(asset.storageKey);
 
         if (success) {
-          fatLogger.info(`✅ Successfully deleted S3 object: ${asset.storageKey}`, 'be');
+          fatLogger.info(
+            `✅ Successfully deleted S3 object: ${asset.storageKey}`,
+            'be'
+          );
           results.deletedS3Objects.push(asset.storageKey);
         } else {
           const msg = `Failed to delete S3 object: ${asset.storageKey}`;
@@ -258,21 +286,31 @@ export async function cleanupMemoryAndStorage(
     });
 
     if (!deletedEdgesResult.success) {
-      fatLogger.error('❌ Failed to delete storage edges:', 'be', { error: deletedEdgesResult.error });
-      results.errors.push(`Failed to delete storage edges: ${deletedEdgesResult.error}`);
+      fatLogger.error('❌ Failed to delete storage edges:', 'be', {
+        error: deletedEdgesResult.error,
+      });
+      results.errors.push(
+        `Failed to delete storage edges: ${deletedEdgesResult.error}`
+      );
     } else {
       results.deletedEdges = deletedEdgesResult.data as unknown[];
     }
 
     // Delete memory assets using service layer
-    const deletedAssetsPromises = dbAssets.map(asset => hardDeleteAssetRecord((asset as { id: string }).id));
+    const deletedAssetsPromises = dbAssets.map((asset) =>
+      hardDeleteAssetRecord((asset as { id: string }).id)
+    );
     const deletedAssetsResults = await Promise.all(deletedAssetsPromises);
 
-    const deletedAssets = deletedAssetsResults.filter(result => result.success).map(result => result.data);
+    const deletedAssets = deletedAssetsResults
+      .filter((result) => result.success)
+      .map((result) => result.data);
 
-    const failedAssetDeletions = deletedAssetsResults.filter(result => !result.success);
+    const failedAssetDeletions = deletedAssetsResults.filter(
+      (result) => !result.success
+    );
     if (failedAssetDeletions.length > 0) {
-      const error = `Failed to delete ${failedAssetDeletions.length} assets: ${failedAssetDeletions.map(r => r.error).join(', ')}`;
+      const error = `Failed to delete ${failedAssetDeletions.length} assets: ${failedAssetDeletions.map((r) => r.error).join(', ')}`;
       fatLogger.error('❌ Failed to delete some assets:', 'be', { error });
       results.errors.push(error);
     }
@@ -291,7 +329,9 @@ export async function cleanupMemoryAndStorage(
       errors: results.errors.length > 0 ? results.errors : undefined,
     };
   } catch (error) {
-    fatLogger.error('❌ Error cleaning up storage:', 'be', { data: error instanceof Error ? error : undefined });
+    fatLogger.error('❌ Error cleaning up storage:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
     return {
       success: false,
       error: error instanceof Error ? error.message : String(error),

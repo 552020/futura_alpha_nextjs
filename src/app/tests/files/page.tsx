@@ -5,7 +5,14 @@ import { useSession, signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ArrowDown, Trash2, FileType, FileText } from 'lucide-react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import Image from 'next/image';
 
 import { fatLogger } from '@/lib/logger';
@@ -45,7 +52,10 @@ export default function TestFiles() {
   const [files, setFiles] = useState<FilesResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [deleteStatus, setDeleteStatus] = useState<{ id: string; status: 'deleting' | 'error' | null }>({
+  const [deleteStatus, setDeleteStatus] = useState<{
+    id: string;
+    status: 'deleting' | 'error' | null;
+  }>({
     id: '',
     status: null,
   });
@@ -71,7 +81,8 @@ export default function TestFiles() {
       const data = await response.json();
       setFiles(data);
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch files';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to fetch files';
       setError(errorMessage);
       fatLogger.error('Error fetching files:', 'fe', { data: err });
     } finally {
@@ -95,9 +106,9 @@ export default function TestFiles() {
       // If deletion was successful, remove the item from state
       if (files) {
         setFiles({
-          photos: files.photos.filter(photo => photo.id !== id),
-          files: files.files.filter(file => file.id !== id),
-          texts: files.texts.filter(text => text.id !== id),
+          photos: files.photos.filter((photo) => photo.id !== id),
+          files: files.files.filter((file) => file.id !== id),
+          texts: files.texts.filter((text) => text.id !== id),
         });
       }
 
@@ -123,7 +134,9 @@ export default function TestFiles() {
     return (
       <div className="p-8 max-w-xl mx-auto text-center">
         <h1 className="text-2xl font-bold mb-6">Files Test</h1>
-        <div className="bg-yellow-50 text-yellow-800 p-4 rounded mb-6">You must be logged in to view your files</div>
+        <div className="bg-yellow-50 text-yellow-800 p-4 rounded mb-6">
+          You must be logged in to view your files
+        </div>
         <Button onClick={() => signIn()}>Sign In</Button>
       </div>
     );
@@ -151,7 +164,11 @@ export default function TestFiles() {
 
       {loading && <div className="text-center py-12">Loading files...</div>}
 
-      {error && <div className="bg-red-50 text-red-700 p-4 rounded mb-6">Error: {error}</div>}
+      {error && (
+        <div className="bg-red-50 text-red-700 p-4 rounded mb-6">
+          Error: {error}
+        </div>
+      )}
 
       {status === 'authenticated' && (
         <div>
@@ -160,9 +177,11 @@ export default function TestFiles() {
               {/* Photos Section - COMPACT VERSION */}
               {files.photos && files.photos.length > 0 && (
                 <div>
-                  <h3 className="font-medium mb-4 text-lg">Photos ({files.photos.length})</h3>
+                  <h3 className="font-medium mb-4 text-lg">
+                    Photos ({files.photos.length})
+                  </h3>
                   <div className="flex flex-wrap gap-2">
-                    {files.photos.map(photo => (
+                    {files.photos.map((photo) => (
                       <div
                         key={photo.id}
                         className="w-20 h-20 border border-gray-200 rounded overflow-hidden bg-gray-50 flex flex-col relative group cursor-pointer"
@@ -181,14 +200,14 @@ export default function TestFiles() {
                           <a
                             href={`/api/files/${photo.id}/download`}
                             className="text-xs text-blue-600 hover:underline"
-                            onClick={e => e.stopPropagation()}
+                            onClick={(e) => e.stopPropagation()}
                             download
                           >
                             Download
                           </a>
 
                           <button
-                            onClick={e => {
+                            onClick={(e) => {
                               e.stopPropagation();
                               deleteFile(photo.id);
                             }}
@@ -198,7 +217,8 @@ export default function TestFiles() {
                             }`}
                             title="Delete"
                           >
-                            {deleteStatus.id === photo.id && deleteStatus.status === 'deleting' ? (
+                            {deleteStatus.id === photo.id &&
+                            deleteStatus.status === 'deleting' ? (
                               '...'
                             ) : (
                               <Trash2 size={10} />
@@ -214,7 +234,9 @@ export default function TestFiles() {
               {/* Files Section - Table View */}
               {files.files && files.files.length > 0 && (
                 <div>
-                  <h3 className="font-medium mb-4 text-lg">Files ({files.files.length})</h3>
+                  <h3 className="font-medium mb-4 text-lg">
+                    Files ({files.files.length})
+                  </h3>
                   <div className="rounded-md border">
                     <Table>
                       <TableHeader>
@@ -228,7 +250,7 @@ export default function TestFiles() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {files.files.map(file => (
+                        {files.files.map((file) => (
                           <TableRow
                             key={file.id}
                             className="cursor-pointer hover:bg-gray-50"
@@ -237,33 +259,46 @@ export default function TestFiles() {
                             <TableCell>
                               <FileType className="h-5 w-5 text-gray-400" />
                             </TableCell>
-                            <TableCell className="font-medium">{file.filename}</TableCell>
-                            <TableCell>{file.mimeType.split('/')[1].toUpperCase()}</TableCell>
-                            <TableCell>{(parseInt(file.size) / 1024).toFixed(1)} KB</TableCell>
-                            <TableCell>{new Date(file.createdAt).toLocaleDateString('en-US')}</TableCell>
+                            <TableCell className="font-medium">
+                              {file.filename}
+                            </TableCell>
+                            <TableCell>
+                              {file.mimeType.split('/')[1].toUpperCase()}
+                            </TableCell>
+                            <TableCell>
+                              {(parseInt(file.size) / 1024).toFixed(1)} KB
+                            </TableCell>
+                            <TableCell>
+                              {new Date(file.createdAt).toLocaleDateString(
+                                'en-US'
+                              )}
+                            </TableCell>
                             <TableCell>
                               <div className="flex gap-2">
                                 <a
                                   href={`/api/files/${file.id}/download`}
                                   className="text-blue-500 hover:text-blue-700"
-                                  onClick={e => e.stopPropagation()}
+                                  onClick={(e) => e.stopPropagation()}
                                   download
                                   title="Download"
                                 >
                                   <ArrowDown size={14} />
                                 </a>
                                 <button
-                                  onClick={e => {
+                                  onClick={(e) => {
                                     e.stopPropagation();
                                     deleteFile(file.id);
                                   }}
                                   disabled={deleteStatus.id === file.id}
                                   className={`text-red-500 hover:text-red-700 ${
-                                    deleteStatus.id === file.id ? 'opacity-50' : ''
+                                    deleteStatus.id === file.id
+                                      ? 'opacity-50'
+                                      : ''
                                   }`}
                                   title="Delete"
                                 >
-                                  {deleteStatus.id === file.id && deleteStatus.status === 'deleting' ? (
+                                  {deleteStatus.id === file.id &&
+                                  deleteStatus.status === 'deleting' ? (
                                     '...'
                                   ) : (
                                     <Trash2 size={14} />
@@ -282,7 +317,9 @@ export default function TestFiles() {
               {/* Texts Section - Table View */}
               {files.texts && files.texts.length > 0 && (
                 <div>
-                  <h3 className="font-medium mb-4 text-lg">Texts ({files.texts.length})</h3>
+                  <h3 className="font-medium mb-4 text-lg">
+                    Texts ({files.texts.length})
+                  </h3>
                   <div className="rounded-md border">
                     <Table>
                       <TableHeader>
@@ -295,7 +332,7 @@ export default function TestFiles() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {files.texts.map(text => (
+                        {files.texts.map((text) => (
                           <TableRow
                             key={text.id}
                             className="cursor-pointer hover:bg-gray-50"
@@ -304,34 +341,45 @@ export default function TestFiles() {
                             <TableCell>
                               <FileText className="h-5 w-5 text-gray-400" />
                             </TableCell>
-                            <TableCell className="font-medium">{text.title}</TableCell>
-                            <TableCell className="max-w-xs">
-                              <div className="truncate text-sm text-gray-500">{text.content}</div>
+                            <TableCell className="font-medium">
+                              {text.title}
                             </TableCell>
-                            <TableCell>{new Date(text.createdAt).toLocaleDateString('en-US')}</TableCell>
+                            <TableCell className="max-w-xs">
+                              <div className="truncate text-sm text-gray-500">
+                                {text.content}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {new Date(text.createdAt).toLocaleDateString(
+                                'en-US'
+                              )}
+                            </TableCell>
                             <TableCell>
                               <div className="flex gap-2">
                                 <a
                                   href={`/api/files/${text.id}/download`}
                                   className="text-blue-500 hover:text-blue-700"
-                                  onClick={e => e.stopPropagation()}
+                                  onClick={(e) => e.stopPropagation()}
                                   download
                                   title="Download"
                                 >
                                   <ArrowDown size={14} />
                                 </a>
                                 <button
-                                  onClick={e => {
+                                  onClick={(e) => {
                                     e.stopPropagation();
                                     deleteFile(text.id);
                                   }}
                                   disabled={deleteStatus.id === text.id}
                                   className={`text-red-500 hover:text-red-700 ${
-                                    deleteStatus.id === text.id ? 'opacity-50' : ''
+                                    deleteStatus.id === text.id
+                                      ? 'opacity-50'
+                                      : ''
                                   }`}
                                   title="Delete"
                                 >
-                                  {deleteStatus.id === text.id && deleteStatus.status === 'deleting' ? (
+                                  {deleteStatus.id === text.id &&
+                                  deleteStatus.status === 'deleting' ? (
                                     '...'
                                   ) : (
                                     <Trash2 size={14} />
@@ -348,9 +396,13 @@ export default function TestFiles() {
               )}
 
               {/* Show if no files found */}
-              {!files.photos?.length && !files.files?.length && !files.texts?.length && (
-                <div className="text-center p-8 bg-gray-50 rounded">No files found.</div>
-              )}
+              {!files.photos?.length &&
+                !files.files?.length &&
+                !files.texts?.length && (
+                  <div className="text-center p-8 bg-gray-50 rounded">
+                    No files found.
+                  </div>
+                )}
             </div>
           )}
         </div>

@@ -1,4 +1,10 @@
-import { allUsers, users, memories, memoryAssets, resourceMembership } from '@/db';
+import {
+  allUsers,
+  users,
+  memories,
+  memoryAssets,
+  resourceMembership,
+} from '@/db';
 import { eq } from 'drizzle-orm';
 import { db } from '@/db/db';
 
@@ -9,11 +15,13 @@ export async function getSharedMemories(userId: string) {
   });
 
   // Filter for memory resources only
-  const memoryShares = shares.filter(share => share.resourceType === 'memory');
+  const memoryShares = shares.filter(
+    (share) => share.resourceType === 'memory'
+  );
 
   // Fetch the actual memories
   const sharedMemories = await Promise.all(
-    memoryShares.map(async share => {
+    memoryShares.map(async (share) => {
       const memory = await db.query.memories.findFirst({
         where: eq(memories.id, share.resourceId),
       });
@@ -24,7 +32,8 @@ export async function getSharedMemories(userId: string) {
         where: eq(memoryAssets.memoryId, share.resourceId),
       });
       const thumbnailAsset =
-        assets.find(asset => asset.assetType === 'thumb') || assets.find(asset => asset.assetType === 'original');
+        assets.find((asset) => asset.assetType === 'thumb') ||
+        assets.find((asset) => asset.assetType === 'original');
       const thumbnailUrl = thumbnailAsset?.url || null;
 
       return {
@@ -43,13 +52,15 @@ export async function getSharedMemories(userId: string) {
   );
 
   // Filter out null values and group by type
-  const validMemories = sharedMemories.filter((m): m is NonNullable<typeof m> => m !== null);
+  const validMemories = sharedMemories.filter(
+    (m): m is NonNullable<typeof m> => m !== null
+  );
 
   return {
-    images: validMemories.filter(m => m.type === 'image'),
-    videos: validMemories.filter(m => m.type === 'video'),
-    documents: validMemories.filter(m => m.type === 'document'),
-    notes: validMemories.filter(m => m.type === 'note'),
+    images: validMemories.filter((m) => m.type === 'image'),
+    videos: validMemories.filter((m) => m.type === 'video'),
+    documents: validMemories.filter((m) => m.type === 'document'),
+    notes: validMemories.filter((m) => m.type === 'note'),
   };
 }
 

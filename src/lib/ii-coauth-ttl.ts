@@ -75,9 +75,16 @@ export function checkIICoAuthTTL(assertedAt?: number): {
   if (elapsed > II_COAUTH_CONFIG.TTL_MS) {
     return {
       status: 'grace',
-      remainingMs: Math.max(0, II_COAUTH_CONFIG.TTL_MS + II_COAUTH_CONFIG.GRACE_PERIOD_MS - elapsed),
+      remainingMs: Math.max(
+        0,
+        II_COAUTH_CONFIG.TTL_MS + II_COAUTH_CONFIG.GRACE_PERIOD_MS - elapsed
+      ),
       remainingMinutes: Math.ceil(
-        Math.max(0, II_COAUTH_CONFIG.TTL_MS + II_COAUTH_CONFIG.GRACE_PERIOD_MS - elapsed) / (60 * 1000)
+        Math.max(
+          0,
+          II_COAUTH_CONFIG.TTL_MS + II_COAUTH_CONFIG.GRACE_PERIOD_MS - elapsed
+        ) /
+          (60 * 1000)
       ),
       isExpired: true,
       isInGracePeriod: true,

@@ -71,7 +71,8 @@ export function Whoami() {
       });
     } catch (error) {
       fatLogger.error('Whoami failed', 'fe', { data: error as Error });
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
 
       // Handle expired/invalid delegation
       if (
@@ -81,7 +82,8 @@ export function Whoami() {
       ) {
         toast({
           title: 'Authentication Expired',
-          description: 'Your Internet Identity session has expired. Please sign in again.',
+          description:
+            'Your Internet Identity session has expired. Please sign in again.',
           variant: 'destructive',
         });
       } else {
@@ -107,11 +109,17 @@ export function Whoami() {
         {busy ? 'Testing...' : 'Test Backend Connection'}
       </Button>
 
-      <Button variant="outline" disabled className="h-10 px-4 py-2 text-sm font-medium cursor-default">
+      <Button
+        variant="outline"
+        disabled
+        className="h-10 px-4 py-2 text-sm font-medium cursor-default"
+      >
         {isRehydrating ? (
           <span className="text-gray-500">Checking...</span>
         ) : !isAuthenticated ? (
-          <span className="text-orange-600">Sign in with Internet Identity to use this button</span>
+          <span className="text-orange-600">
+            Sign in with Internet Identity to use this button
+          </span>
         ) : backendConnected ? (
           <span className="text-green-600">Connected to Backend</span>
         ) : (

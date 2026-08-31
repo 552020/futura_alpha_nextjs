@@ -10,7 +10,11 @@
 // ============================================================================
 
 // Re-export domain types for backward compatibility
-export type { UploadResult, UploadProgress, StorageBackend } from '@/types/upload';
+export type {
+  UploadResult,
+  UploadProgress,
+  StorageBackend,
+} from '@/types/upload';
 
 // Import types for use in this file
 import type { UploadResult, StorageBackend } from '@/types/upload';
@@ -228,4 +232,10 @@ export type AssetType = 'original' | 'display' | 'thumb' | 'placeholder';
 /**
  * Asset location for storage tracking
  */
-export type AssetLocation = 's3' | 'icp' | 'vercel-blob' | 'arweave' | 'ipfs' | 'neon';
+export type AssetLocation =
+  | 's3'
+  | 'icp'
+  | 'vercel-blob'
+  | 'arweave'
+  | 'ipfs'
+  | 'neon';

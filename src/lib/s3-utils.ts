@@ -1,4 +1,8 @@
-import { S3Client, DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  DeleteObjectCommand,
+  HeadObjectCommand,
+} from '@aws-sdk/client-s3';
 
 import { fatLogger } from '@/lib/logger';
 // Get bucket name from environment variables

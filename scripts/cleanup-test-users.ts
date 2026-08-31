@@ -10,11 +10,16 @@ import { like, inArray } from 'drizzle-orm';
  */
 
 async function cleanupTestUsers() {
-  console.log('🧹 Starting cleanup of test users with @example.com addresses...');
+  console.log(
+    '🧹 Starting cleanup of test users with @example.com addresses...'
+  );
 
   try {
     // Find all users with @example.com emails
-    const testUsers = await db.select().from(users).where(like(users.email, '%@example.com'));
+    const testUsers = await db
+      .select()
+      .from(users)
+      .where(like(users.email, '%@example.com'));
 
     console.log(`📊 Found ${testUsers.length} test users to delete`);
 
@@ -31,14 +36,21 @@ async function cleanupTestUsers() {
 
     // Delete from allUsers table first (due to foreign key constraints)
     // Get user IDs to delete from allUsers
-    const userIdsToDelete = testUsers.map(user => user.id);
+    const userIdsToDelete = testUsers.map((user) => user.id);
 
-    const allUsersToDelete = await db.select().from(allUsers).where(inArray(allUsers.userId, userIdsToDelete));
+    const allUsersToDelete = await db
+      .select()
+      .from(allUsers)
+      .where(inArray(allUsers.userId, userIdsToDelete));
 
-    console.log(`📊 Found ${allUsersToDelete.length} allUsers records to delete`);
+    console.log(
+      `📊 Found ${allUsersToDelete.length} allUsers records to delete`
+    );
 
     if (allUsersToDelete.length > 0) {
-      await db.delete(allUsers).where(inArray(allUsers.userId, userIdsToDelete));
+      await db
+        .delete(allUsers)
+        .where(inArray(allUsers.userId, userIdsToDelete));
 
       console.log(`✅ Deleted ${allUsersToDelete.length} allUsers records`);
     }
@@ -49,12 +61,17 @@ async function cleanupTestUsers() {
     console.log(`✅ Deleted ${testUsers.length} users records`);
 
     // Verify cleanup
-    const remainingTestUsers = await db.select().from(users).where(like(users.email, '%@example.com'));
+    const remainingTestUsers = await db
+      .select()
+      .from(users)
+      .where(like(users.email, '%@example.com'));
 
     if (remainingTestUsers.length === 0) {
       console.log('🎉 Successfully cleaned up all test users!');
     } else {
-      console.log(`⚠️  Warning: ${remainingTestUsers.length} test users still remain`);
+      console.log(
+        `⚠️  Warning: ${remainingTestUsers.length} test users still remain`
+      );
     }
   } catch (error) {
     console.error('❌ Error during cleanup:', error);
@@ -68,7 +85,7 @@ cleanupTestUsers()
     console.log('✨ Cleanup completed successfully');
     process.exit(0);
   })
-  .catch(error => {
+  .catch((error) => {
     console.error('💥 Cleanup failed:', error);
     process.exit(1);
   });

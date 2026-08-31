@@ -25,7 +25,8 @@ function isValidCallbackUrl(url: string): boolean {
   // Allow same-origin absolute URLs
   try {
     const parsed = new URL(url);
-    const allowedOrigin = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_SITE_URL;
+    const allowedOrigin =
+      process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_SITE_URL;
     if (allowedOrigin) {
       const allowedParsed = new URL(allowedOrigin);
       return parsed.origin === allowedParsed.origin;
@@ -47,7 +48,10 @@ function checkRateLimit(ip: string): boolean {
 
   if (!entry || now > entry.resetTime) {
     // Reset or first request
-    rateLimitStore.set(key, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+    rateLimitStore.set(key, {
+      count: 1,
+      resetTime: now + RATE_LIMIT_WINDOW_MS,
+    });
     return true;
   }
 
@@ -65,7 +69,8 @@ function checkRateLimit(ip: string): boolean {
 function checkOrigin(request: NextRequest): boolean {
   const origin = request.headers.get('origin');
   const referer = request.headers.get('referer');
-  const allowedOrigin = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_SITE_URL;
+  const allowedOrigin =
+    process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_SITE_URL;
 
   if (!allowedOrigin) {
     // If no allowed origin configured, skip check (dev mode)
@@ -116,18 +121,28 @@ export async function POST(request: NextRequest) {
     const userAgent = headersList.get('user-agent') || undefined;
     const forwardedFor = headersList.get('x-forwarded-for');
     const realIp = headersList.get('x-real-ip');
-    const ipAddress = forwardedFor?.split(',')[0]?.trim() || realIp || 'unknown';
+    const ipAddress =
+      forwardedFor?.split(',')[0]?.trim() || realIp || 'unknown';
 
     // Security Check 1: Origin/Referer validation (CSRF protection)
     if (!checkOrigin(request)) {
-      fatLogger.warn(`II Challenge: Invalid origin/referer from IP ${ipAddress}`, 'be');
+      fatLogger.warn(
+        `II Challenge: Invalid origin/referer from IP ${ipAddress}`,
+        'be'
+      );
       return NextResponse.json({ error: 'Invalid origin' }, { status: 403 });
     }
 
     // Security Check 2: Rate limiting
     if (!checkRateLimit(ipAddress)) {
-      fatLogger.warn(`II Challenge: Rate limit exceeded for IP ${ipAddress}`, 'be');
-      return NextResponse.json({ error: 'Rate limit exceeded. Please try again later.' }, { status: 429 });
+      fatLogger.warn(
+        `II Challenge: Rate limit exceeded for IP ${ipAddress}`,
+        'be'
+      );
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Please try again later.' },
+        { status: 429 }
+      );
     }
 
     // Parse request body
@@ -136,13 +151,22 @@ export async function POST(request: NextRequest) {
 
     // Security Check 3: CallbackUrl validation (prevent open redirects)
     if (callbackUrl && typeof callbackUrl !== 'string') {
-      return NextResponse.json({ error: 'callbackUrl must be a string' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'callbackUrl must be a string' },
+        { status: 400 }
+      );
     }
 
     if (callbackUrl && !isValidCallbackUrl(callbackUrl)) {
-      fatLogger.warn(`II Challenge: Invalid callbackUrl attempted: ${callbackUrl} from IP ${ipAddress}`, 'be');
+      fatLogger.warn(
+        `II Challenge: Invalid callbackUrl attempted: ${callbackUrl} from IP ${ipAddress}`,
+        'be'
+      );
       return NextResponse.json(
-        { error: 'Invalid callbackUrl. Must be a relative path or same-origin URL.' },
+        {
+          error:
+            'Invalid callbackUrl. Must be a relative path or same-origin URL.',
+        },
         { status: 400 }
       );
     }
@@ -150,7 +174,10 @@ export async function POST(request: NextRequest) {
     // Security Check 4: TTL clamping (don't trust client values)
     let ttlSeconds = DEFAULT_TTL_SECONDS;
     if (typeof clientTtlSeconds === 'number') {
-      ttlSeconds = Math.max(MIN_TTL_SECONDS, Math.min(MAX_TTL_SECONDS, clientTtlSeconds));
+      ttlSeconds = Math.max(
+        MIN_TTL_SECONDS,
+        Math.min(MAX_TTL_SECONDS, clientTtlSeconds)
+      );
     }
 
     // Create nonce context
@@ -178,8 +205,13 @@ export async function POST(request: NextRequest) {
       ttlSeconds: result.ttlSeconds,
     });
   } catch (error) {
-    fatLogger.error('Error creating II challenge nonce:', 'be', { data: error instanceof Error ? error : undefined });
-    return NextResponse.json({ error: 'Failed to create challenge nonce' }, { status: 500 });
+    fatLogger.error('Error creating II challenge nonce:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
+    return NextResponse.json(
+      { error: 'Failed to create challenge nonce' },
+      { status: 500 }
+    );
   }
 }
 
@@ -192,7 +224,10 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   // Disable in production
   if (process.env.NODE_ENV === 'production') {
-    return NextResponse.json({ error: 'Endpoint not available' }, { status: 404 });
+    return NextResponse.json(
+      { error: 'Endpoint not available' },
+      { status: 404 }
+    );
   }
 
   return NextResponse.json({
@@ -207,7 +242,8 @@ export async function GET() {
     },
     requestBody: {
       callbackUrl: 'string (optional) - URL to redirect after successful auth',
-      ttlSeconds: 'number (optional) - TTL in seconds, clamped to server limits',
+      ttlSeconds:
+        'number (optional) - TTL in seconds, clamped to server limits',
     },
     response: {
       nonceId: 'string - unique identifier for this nonce',

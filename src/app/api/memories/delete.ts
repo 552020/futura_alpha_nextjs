@@ -50,20 +50,33 @@ interface MemoryForDeletion {
 }
 
 // Helper function to clean up storage edges for deleted memories
-async function cleanupStorageEdgesForMemories(memoriesToDelete: MemoryForDeletion[]) {
-  fatLogger.info(`🧹 Starting cleanup for ${memoriesToDelete.length} memories`, 'be');
+async function cleanupStorageEdgesForMemories(
+  memoriesToDelete: MemoryForDeletion[]
+) {
+  fatLogger.info(
+    `🧹 Starting cleanup for ${memoriesToDelete.length} memories`,
+    'be'
+  );
 
-  const cleanupPromises = memoriesToDelete.map(memoryData => {
+  const cleanupPromises = memoriesToDelete.map((memoryData) => {
     if (!memoryData) {
       fatLogger.warn('⚠️ Received undefined memory data in cleanup', 'be');
       return Promise.resolve({ success: false });
     }
 
-    fatLogger.info(`🧹 Cleaning up memory: ${memoryData.id} (${memoryData.type})`, 'be');
+    fatLogger.info(
+      `🧹 Cleaning up memory: ${memoryData.id} (${memoryData.type})`,
+      'be'
+    );
 
     return cleanupMemoryAndStorage({
       memoryId: memoryData.id,
-      memoryType: memoryData.type as 'image' | 'video' | 'note' | 'document' | 'audio',
+      memoryType: memoryData.type as
+        | 'image'
+        | 'video'
+        | 'note'
+        | 'document'
+        | 'audio',
       memoryData,
     });
   });
@@ -77,7 +90,10 @@ async function cleanupStorageEdgesForMemories(memoriesToDelete: MemoryForDeletio
     const memory = memoriesToDelete[index];
     if (result.status === 'fulfilled' && result.value.success) {
       successCount++;
-      fatLogger.info(`✅ Successfully cleaned up memory: ${memory?.id || 'unknown'}`, 'be');
+      fatLogger.info(
+        `✅ Successfully cleaned up memory: ${memory?.id || 'unknown'}`,
+        'be'
+      );
     } else {
       errorCount++;
       fatLogger.error(
@@ -87,7 +103,10 @@ async function cleanupStorageEdgesForMemories(memoriesToDelete: MemoryForDeletio
     }
   });
 
-  fatLogger.info(`🧹 Cleanup complete. Success: ${successCount}, Errors: ${errorCount}`, 'be');
+  fatLogger.info(
+    `🧹 Cleanup complete. Success: ${successCount}, Errors: ${errorCount}`,
+    'be'
+  );
   return { successCount, errorCount };
 }
 
@@ -95,7 +114,9 @@ async function cleanupStorageEdgesForMemories(memoriesToDelete: MemoryForDeletio
  * Main DELETE handler for memory deletion
  * Handles bulk deletion and type-specific deletion
  */
-export async function handleApiMemoryDelete(request: NextRequest): Promise<NextResponse> {
+export async function handleApiMemoryDelete(
+  request: NextRequest
+): Promise<NextResponse> {
   // Check authentication
   const session = await auth();
   if (!session?.user?.id) {
@@ -109,8 +130,13 @@ export async function handleApiMemoryDelete(request: NextRequest): Promise<NextR
     });
 
     if (!allUserRecord) {
-      fatLogger.error('No allUsers record found for user:', 'be', { data: session.user.id });
-      return NextResponse.json({ error: 'User record not found' }, { status: 404 });
+      fatLogger.error('No allUsers record found for user:', 'be', {
+        data: session.user.id,
+      });
+      return NextResponse.json(
+        { error: 'User record not found' },
+        { status: 404 }
+      );
     }
 
     // Get query parameters for selective deletion
@@ -128,7 +154,10 @@ export async function handleApiMemoryDelete(request: NextRequest): Promise<NextR
 
       // 1. FIRST: Get the memory data BEFORE deletion
       const memoryData = await db.query.memories.findFirst({
-        where: and(eq(memories.id, memoryId), eq(memories.ownerId, allUserRecord.id)),
+        where: and(
+          eq(memories.id, memoryId),
+          eq(memories.ownerId, allUserRecord.id)
+        ),
         with: {
           assets: true,
           folder: true,
@@ -137,18 +166,29 @@ export async function handleApiMemoryDelete(request: NextRequest): Promise<NextR
 
       if (!memoryData) {
         fatLogger.error(`❌ Memory not found: ${memoryId}`, 'be');
-        return NextResponse.json({ error: 'Memory not found' }, { status: 404 });
+        return NextResponse.json(
+          { error: 'Memory not found' },
+          { status: 404 }
+        );
       }
 
       // 2. THEN: Delete the memory from database
       const [deletedMemoryRow] = await db
         .delete(memories)
-        .where(and(eq(memories.id, memoryId), eq(memories.ownerId, allUserRecord.id)))
+        .where(
+          and(eq(memories.id, memoryId), eq(memories.ownerId, allUserRecord.id))
+        )
         .returning();
 
       if (!deletedMemoryRow) {
-        fatLogger.error(`❌ Failed to delete memory or memory not found: ${memoryId}`, 'be');
-        return NextResponse.json({ error: 'Memory not found' }, { status: 404 });
+        fatLogger.error(
+          `❌ Failed to delete memory or memory not found: ${memoryId}`,
+          'be'
+        );
+        return NextResponse.json(
+          { error: 'Memory not found' },
+          { status: 404 }
+        );
       }
 
       fatLogger.info(`✅ Deleted memory from database: ${memoryId}`, 'be');
@@ -156,14 +196,26 @@ export async function handleApiMemoryDelete(request: NextRequest): Promise<NextR
       // 3. FINALLY: Clean up storage edges with pre-fetched data
       const cleanupResult = await cleanupMemoryAndStorage({
         memoryId,
-        memoryType: memoryData.type as 'image' | 'video' | 'document' | 'audio' | 'note',
+        memoryType: memoryData.type as
+          | 'image'
+          | 'video'
+          | 'document'
+          | 'audio'
+          | 'note',
         memoryData,
       });
 
       if (!cleanupResult.success) {
-        fatLogger.error(`❌ Failed to clean up storage for memory ${memoryId}:`, 'be', { data: cleanupResult.error });
+        fatLogger.error(
+          `❌ Failed to clean up storage for memory ${memoryId}:`,
+          'be',
+          { data: cleanupResult.error }
+        );
       } else {
-        fatLogger.info(`✅ Successfully cleaned up storage for memory: ${memoryId}`, 'be');
+        fatLogger.info(
+          `✅ Successfully cleaned up storage for memory: ${memoryId}`,
+          'be'
+        );
       }
 
       return NextResponse.json({
@@ -173,7 +225,9 @@ export async function handleApiMemoryDelete(request: NextRequest): Promise<NextR
       });
     } else if (all === 'true') {
       // Delete all memories, folders, and galleries for the user
-      fatLogger.info('🗑️ Clearing all data for user:', 'be', { userId: allUserRecord.id });
+      fatLogger.info('🗑️ Clearing all data for user:', 'be', {
+        userId: allUserRecord.id,
+      });
 
       // 1. First get all memories that will be deleted for cleanup
       const memoriesToDelete = await db.query.memories.findMany({
@@ -189,22 +243,34 @@ export async function handleApiMemoryDelete(request: NextRequest): Promise<NextR
       }
 
       // 2. Delete all memories
-      const deletedMemoriesResult = await db.delete(memories).where(eq(memories.ownerId, allUserRecord.id)).returning();
+      const deletedMemoriesResult = await db
+        .delete(memories)
+        .where(eq(memories.ownerId, allUserRecord.id))
+        .returning();
 
       // 3. Delete galleries & gallery items
       const userGalleries = await db.query.galleries.findMany({
         where: eq(galleries.ownerId, allUserRecord.id),
         columns: { id: true },
       });
-      const galleryIds = userGalleries.map(g => g.id);
+      const galleryIds = userGalleries.map((g) => g.id);
 
       if (galleryIds.length > 0) {
-        await db.delete(galleryItems).where(inArray(galleryItems.galleryId, galleryIds)).returning();
+        await db
+          .delete(galleryItems)
+          .where(inArray(galleryItems.galleryId, galleryIds))
+          .returning();
       }
-      await db.delete(galleries).where(eq(galleries.ownerId, allUserRecord.id)).returning();
+      await db
+        .delete(galleries)
+        .where(eq(galleries.ownerId, allUserRecord.id))
+        .returning();
 
       // 4. Delete folders
-      await db.delete(folders).where(eq(folders.ownerId, allUserRecord.id)).returning();
+      await db
+        .delete(folders)
+        .where(eq(folders.ownerId, allUserRecord.id))
+        .returning();
 
       deletedCount = deletedMemoriesResult.length;
     } else if (type) {
@@ -212,7 +278,10 @@ export async function handleApiMemoryDelete(request: NextRequest): Promise<NextR
       const memoriesToDelete = await db.query.memories.findMany({
         where: and(
           eq(memories.ownerId, allUserRecord.id),
-          eq(memories.type, type as 'image' | 'video' | 'document' | 'note' | 'audio')
+          eq(
+            memories.type,
+            type as 'image' | 'video' | 'document' | 'note' | 'audio'
+          )
         ),
         with: {
           assets: true,
@@ -229,7 +298,10 @@ export async function handleApiMemoryDelete(request: NextRequest): Promise<NextR
         .where(
           and(
             eq(memories.ownerId, allUserRecord.id),
-            eq(memories.type, type as 'image' | 'video' | 'document' | 'note' | 'audio')
+            eq(
+              memories.type,
+              type as 'image' | 'video' | 'document' | 'note' | 'audio'
+            )
           )
         )
         .returning();
@@ -238,7 +310,10 @@ export async function handleApiMemoryDelete(request: NextRequest): Promise<NextR
     } else if (folder) {
       // Delete memories in specific folder
       const memoriesToDelete = await db.query.memories.findMany({
-        where: and(eq(memories.ownerId, allUserRecord.id), eq(memories.parentFolderId, folder)),
+        where: and(
+          eq(memories.ownerId, allUserRecord.id),
+          eq(memories.parentFolderId, folder)
+        ),
         with: {
           assets: true,
           folder: true,
@@ -251,14 +326,20 @@ export async function handleApiMemoryDelete(request: NextRequest): Promise<NextR
 
       const deletedMemoriesResult = await db
         .delete(memories)
-        .where(and(eq(memories.ownerId, allUserRecord.id), eq(memories.parentFolderId, folder)))
+        .where(
+          and(
+            eq(memories.ownerId, allUserRecord.id),
+            eq(memories.parentFolderId, folder)
+          )
+        )
         .returning();
 
       deletedCount = deletedMemoriesResult.length;
     } else {
       return NextResponse.json(
         {
-          error: "Missing parameter. Use 'all=true', 'type=<memory_type>', or 'folder=<folder_name>'",
+          error:
+            "Missing parameter. Use 'all=true', 'type=<memory_type>', or 'folder=<folder_name>'",
         },
         { status: 400 }
       );
@@ -276,7 +357,12 @@ export async function handleApiMemoryDelete(request: NextRequest): Promise<NextR
       all,
     });
   } catch (error) {
-    fatLogger.error('Error in bulk delete:', 'be', { data: error instanceof Error ? error : undefined });
-    return NextResponse.json({ error: 'Failed to delete memories' }, { status: 500 });
+    fatLogger.error('Error in bulk delete:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
+    return NextResponse.json(
+      { error: 'Failed to delete memories' },
+      { status: 500 }
+    );
   }
 }

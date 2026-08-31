@@ -27,8 +27,8 @@ function askConfirmation(question) {
     output: process.stdout,
   });
 
-  return new Promise(resolve => {
-    rl.question(question, answer => {
+  return new Promise((resolve) => {
+    rl.question(question, (answer) => {
       rl.close();
       resolve(answer.toLowerCase().trim());
     });
@@ -61,7 +61,9 @@ async function deleteFolderFiles() {
   try {
     // Check if token is available
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      throw new Error('BLOB_READ_WRITE_TOKEN not found in environment variables');
+      throw new Error(
+        'BLOB_READ_WRITE_TOKEN not found in environment variables'
+      );
     }
 
     // Get all blobs
@@ -71,7 +73,9 @@ async function deleteFolderFiles() {
 
     // Filter files in the specified folder
     const folderFiles = allFiles.filter(
-      file => file.pathname.startsWith(`${folderName}/`) || (folderName === 'root' && !file.pathname.includes('/'))
+      (file) =>
+        file.pathname.startsWith(`${folderName}/`) ||
+        (folderName === 'root' && !file.pathname.includes('/'))
     );
 
     if (folderFiles.length === 0) {
@@ -83,7 +87,9 @@ async function deleteFolderFiles() {
     const totalSize = folderFiles.reduce((sum, file) => sum + file.size, 0);
     const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(2);
 
-    console.log(`📊 Found ${folderFiles.length} files in "${folderName}" folder`);
+    console.log(
+      `📊 Found ${folderFiles.length} files in "${folderName}" folder`
+    );
     console.log(`📦 Total size: ${totalSizeMB} MB`);
     console.log('');
 
@@ -106,18 +112,26 @@ async function deleteFolderFiles() {
     }
 
     // Interactive confirmation
-    console.log('⚠️  WARNING: This will permanently delete all files in the folder!');
-    console.log(`📊 You are about to delete ${folderFiles.length} files (${totalSizeMB} MB)`);
+    console.log(
+      '⚠️  WARNING: This will permanently delete all files in the folder!'
+    );
+    console.log(
+      `📊 You are about to delete ${folderFiles.length} files (${totalSizeMB} MB)`
+    );
     console.log('');
 
-    const confirm1 = await askConfirmation('Are you sure you want to proceed? (yes/no): ');
+    const confirm1 = await askConfirmation(
+      'Are you sure you want to proceed? (yes/no): '
+    );
     if (confirm1 !== 'yes' && confirm1 !== 'y') {
       console.log('❌ Operation cancelled by user');
       return;
     }
 
     console.log('');
-    const confirm2 = await askConfirmation("Type 'DELETE' to confirm deletion: ");
+    const confirm2 = await askConfirmation(
+      "Type 'DELETE' to confirm deletion: "
+    );
     if (confirm2 !== 'delete') {
       console.log('❌ Operation cancelled - confirmation text did not match');
       return;
@@ -142,7 +156,7 @@ async function deleteFolderFiles() {
       );
 
       // Delete files in parallel within each batch
-      const deletePromises = batch.map(async file => {
+      const deletePromises = batch.map(async (file) => {
         try {
           await del(file.url);
           deletedCount++;
@@ -157,8 +171,8 @@ async function deleteFolderFiles() {
       const results = await Promise.all(deletePromises);
 
       // Show progress
-      const batchSuccess = results.filter(r => r.success).length;
-      const batchErrors = results.filter(r => !r.success).length;
+      const batchSuccess = results.filter((r) => r.success).length;
+      const batchErrors = results.filter((r) => !r.success).length;
       console.log(`   ✅ Deleted: ${batchSuccess}, ❌ Errors: ${batchErrors}`);
     }
 

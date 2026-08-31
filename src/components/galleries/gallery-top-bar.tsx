@@ -27,7 +27,9 @@ export function GalleryTopBar({
 }: GalleryTopBarProps) {
   // Create button action
   const leftActions =
-    showCreateButton && onCreateGallery ? <Button onClick={onCreateGallery}>Create Gallery</Button> : null;
+    showCreateButton && onCreateGallery ? (
+      <Button onClick={onCreateGallery}>Create Gallery</Button>
+    ) : null;
 
   return (
     <BaseTopBar
@@ -39,7 +41,7 @@ export function GalleryTopBar({
       className={className}
       leftActions={leftActions}
       searchPlaceholder="Search galleries..."
-      searchFields={gallery => [gallery.title, gallery.description || '']}
+      searchFields={(gallery) => [gallery.title, gallery.description || '']}
       filterOptions={[
         { value: 'all', label: 'All Galleries' },
         { value: 'public', label: 'Public' },
@@ -59,9 +61,13 @@ export function GalleryTopBar({
       sortLogic={(a, b, sortBy) => {
         switch (sortBy) {
           case 'newest':
-            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            return (
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
           case 'oldest':
-            return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+            return (
+              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+            );
           case 'name':
             return a.title.localeCompare(b.title);
           case 'most-images':

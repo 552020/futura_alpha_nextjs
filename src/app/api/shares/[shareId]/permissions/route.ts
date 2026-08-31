@@ -13,18 +13,27 @@ type UpdatePermissionsRequest = {
   };
 };
 
-export async function PUT(request: NextRequest, context: { params: Promise<{ shareId: string }> }) {
+export async function PUT(
+  request: NextRequest,
+  context: { params: Promise<{ shareId: string }> }
+) {
   const { shareId } = await context.params;
 
   try {
     const body = (await request.json()) as UpdatePermissionsRequest;
-    fatLogger.info('🔧 Update share permissions request:', 'be', { shareId, body });
+    fatLogger.info('🔧 Update share permissions request:', 'be', {
+      shareId,
+      body,
+    });
 
     const { permissions } = body;
 
     // Validate permissions object
     if (!permissions || typeof permissions !== 'object') {
-      return NextResponse.json({ error: 'Permissions object is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Permissions object is required' },
+        { status: 400 }
+      );
     }
 
     if (
@@ -32,7 +41,10 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ sha
       typeof permissions.canEdit !== 'boolean' ||
       typeof permissions.canDelete !== 'boolean'
     ) {
-      return NextResponse.json({ error: 'All permission fields must be boolean values' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'All permission fields must be boolean values' },
+        { status: 400 }
+      );
     }
 
     // Authentication
@@ -64,7 +76,8 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ sha
     return NextResponse.json(
       {
         error: 'Not implemented',
-        message: 'Update share permissions functionality is not yet implemented',
+        message:
+          'Update share permissions functionality is not yet implemented',
       },
       { status: 501 }
     );

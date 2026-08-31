@@ -47,7 +47,9 @@ export interface ImageProcessingResult {
  * Process an image file to create multiple optimized versions
  * Frontend implementation using browser APIs
  */
-export async function processImageForMultipleAssets(file: File): Promise<ImageProcessingResult> {
+export async function processImageForMultipleAssets(
+  file: File
+): Promise<ImageProcessingResult> {
   // Validate file type
   if (detectMemoryTypeFromFile(file) !== 'image') {
     throw new Error('File is not an image');
@@ -60,7 +62,9 @@ export async function processImageForMultipleAssets(file: File): Promise<ImagePr
 /**
  * Frontend implementation using browser APIs
  */
-async function processImageForMultipleAssetsFrontend(file: File): Promise<ImageProcessingResult> {
+async function processImageForMultipleAssetsFrontend(
+  file: File
+): Promise<ImageProcessingResult> {
   // Create image element and load the file
   const img = new Image();
   const canvas = document.createElement('canvas');
@@ -73,7 +77,7 @@ async function processImageForMultipleAssetsFrontend(file: File): Promise<ImageP
   // Load image
   const imageDataUrl = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = e => resolve(e.target?.result as string);
+    reader.onload = (e) => resolve(e.target?.result as string);
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
@@ -98,10 +102,24 @@ async function processImageForMultipleAssetsFrontend(file: File): Promise<ImageP
   };
 
   // Create display version
-  const displayAsset = await createOptimizedVersion(img, canvas, ctx, DISPLAY_MAX_SIZE, DISPLAY_QUALITY, 'display');
+  const displayAsset = await createOptimizedVersion(
+    img,
+    canvas,
+    ctx,
+    DISPLAY_MAX_SIZE,
+    DISPLAY_QUALITY,
+    'display'
+  );
 
   // Create thumbnail version
-  const thumbAsset = await createOptimizedVersion(img, canvas, ctx, THUMB_MAX_SIZE, THUMB_QUALITY, 'thumb');
+  const thumbAsset = await createOptimizedVersion(
+    img,
+    canvas,
+    ctx,
+    THUMB_MAX_SIZE,
+    THUMB_QUALITY,
+    'thumb'
+  );
 
   return {
     original: originalAsset,
@@ -121,7 +139,11 @@ async function createOptimizedVersion(
   quality: number,
   assetType: 'display' | 'thumb'
 ): Promise<ProcessedImageAsset> {
-  const { width, height } = calculateDimensions(img.naturalWidth, img.naturalHeight, maxSize);
+  const { width, height } = calculateDimensions(
+    img.naturalWidth,
+    img.naturalHeight,
+    maxSize
+  );
 
   // Set canvas dimensions
   canvas.width = width;
@@ -136,7 +158,7 @@ async function createOptimizedVersion(
   // Convert to blob
   const blob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
-      blob => {
+      (blob) => {
         if (blob) {
           resolve(blob);
         } else {
@@ -202,8 +224,14 @@ export async function uploadProcessedAssetsToBlob(
   const { put } = await import('@vercel/blob');
 
   // Generate unique file names
-  const originalFileName = generateProcessedImageFilename(baseFileName, 'original');
-  const displayFileName = generateProcessedImageFilename(baseFileName, 'display');
+  const originalFileName = generateProcessedImageFilename(
+    baseFileName,
+    'original'
+  );
+  const displayFileName = generateProcessedImageFilename(
+    baseFileName,
+    'display'
+  );
   const thumbFileName = generateProcessedImageFilename(baseFileName, 'thumb');
 
   // Upload all three versions in parallel
@@ -326,13 +354,20 @@ export async function processAndUploadImageWithMultipleAssets(
 
   // Upload to blob storage
   const baseFileName = file.name.replace(/[^a-zA-Z0-9-_\.]/g, '_');
-  const blobResults = await uploadProcessedAssetsToBlob(processedAssets, baseFileName);
+  const blobResults = await uploadProcessedAssetsToBlob(
+    processedAssets,
+    baseFileName
+  );
 
   // Create asset data
-  const assetData = createAssetDataFromProcessed(memoryId, processedAssets, blobResults);
+  const assetData = createAssetDataFromProcessed(
+    memoryId,
+    processedAssets,
+    blobResults
+  );
 
   return {
-    assets: assetData.map(asset => ({
+    assets: assetData.map((asset) => ({
       assetType: asset.assetType,
       url: asset.url,
       storageKey: asset.storageKey,

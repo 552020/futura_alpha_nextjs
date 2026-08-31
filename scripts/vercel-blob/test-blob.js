@@ -22,16 +22,22 @@ async function testBlobOperations() {
   try {
     // Check if token is available
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      throw new Error('BLOB_READ_WRITE_TOKEN not found in environment variables');
+      throw new Error(
+        'BLOB_READ_WRITE_TOKEN not found in environment variables'
+      );
     }
     console.log('✅ BLOB_READ_WRITE_TOKEN found');
 
     // Test 1: Upload a text file
     console.log('\n📤 Test 1: Uploading text file...');
-    const textResult = await put('test-script.txt', 'Hello from Vercel Blob script!', {
-      access: 'public',
-      contentType: 'text/plain',
-    });
+    const textResult = await put(
+      'test-script.txt',
+      'Hello from Vercel Blob script!',
+      {
+        access: 'public',
+        contentType: 'text/plain',
+      }
+    );
     console.log('✅ Upload successful:', textResult.url);
 
     // Test 2: Upload a JSON file
@@ -41,10 +47,14 @@ async function testBlobOperations() {
       message: 'Test data from script',
       random: Math.random(),
     };
-    const jsonResult = await put('test-script.json', JSON.stringify(jsonData, null, 2), {
-      access: 'public',
-      contentType: 'application/json',
-    });
+    const jsonResult = await put(
+      'test-script.json',
+      JSON.stringify(jsonData, null, 2),
+      {
+        access: 'public',
+        contentType: 'application/json',
+      }
+    );
     console.log('✅ Upload successful:', jsonResult.url);
 
     // Test 3: List all blobs
@@ -54,12 +64,14 @@ async function testBlobOperations() {
 
     // Show recent uploads
     const recentBlobs = blobs.blobs
-      .filter(blob => blob.pathname.includes('test-script'))
+      .filter((blob) => blob.pathname.includes('test-script'))
       .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
 
     console.log('\n📄 Recent test uploads:');
-    recentBlobs.forEach(blob => {
-      console.log(`  - ${blob.pathname} (${blob.size} bytes, ${blob.contentType})`);
+    recentBlobs.forEach((blob) => {
+      console.log(
+        `  - ${blob.pathname} (${blob.size} bytes, ${blob.contentType})`
+      );
     });
 
     // Test 4: Delete the test files

@@ -22,7 +22,12 @@ interface ProcessResponse {
   ok: boolean;
   display?: ProcessedAsset;
   thumb?: ProcessedAsset;
-  placeholder?: { dataUrl: string; width: number; height: number; bytes: number };
+  placeholder?: {
+    dataUrl: string;
+    width: number;
+    height: number;
+    bytes: number;
+  };
   error?: string;
 }
 
@@ -57,7 +62,9 @@ export interface ProcessedBlobs {
 /**
  * Storage-agnostic image processing - returns pure blobs for any storage backend
  */
-export async function processImageDerivativesPure(file: File): Promise<ProcessedBlobs> {
+export async function processImageDerivativesPure(
+  file: File
+): Promise<ProcessedBlobs> {
   // Format-based routing: only process supported image formats
   const supportedFormats = ['image/jpeg', 'image/png', 'image/webp'];
 
@@ -73,12 +80,18 @@ export async function processImageDerivativesPure(file: File): Promise<Processed
  * Legacy S3-specific function - kept for backward compatibility
  * @deprecated Use processImageDerivativesPure + uploadProcessedAssetsToS3 instead
  */
-export async function processImageDerivatives(file: File, grant: GrantResponse): Promise<ProcessedAssets> {
+export async function processImageDerivatives(
+  file: File,
+  grant: GrantResponse
+): Promise<ProcessedAssets> {
   // Format-based routing: only process supported image formats
   const supportedFormats = ['image/jpeg', 'image/png', 'image/webp'];
 
   if (!supportedFormats.includes(file.type)) {
-    fatLogger.info(`Skipping derivatives for unsupported format: ${file.type}`, 'be');
+    fatLogger.info(
+      `Skipping derivatives for unsupported format: ${file.type}`,
+      'be'
+    );
     // Return skipped status for unsupported formats
     return {
       display: { assetType: 'display', processingStatus: 'skipped' },
@@ -87,7 +100,10 @@ export async function processImageDerivatives(file: File, grant: GrantResponse):
     };
   }
 
-  fatLogger.info(`Processing derivatives for supported format: ${file.type}`, 'be');
+  fatLogger.info(
+    `Processing derivatives for supported format: ${file.type}`,
+    'be'
+  );
   // Process supported formats using Web Worker
   return await processImageDerivativesWithWorker(file, grant);
 }
@@ -95,82 +111,89 @@ export async function processImageDerivatives(file: File, grant: GrantResponse):
 /**
  * Pure image processing using Web Worker - returns blobs only, no uploads
  */
-export async function processImageDerivativesWithWorkerPure(file: File): Promise<ProcessedBlobs> {
+export async function processImageDerivativesWithWorkerPure(
+  file: File
+): Promise<ProcessedBlobs> {
   try {
     // Create Web Worker
-    const worker = new Worker(new URL('../../workers/image-processor.worker.ts', import.meta.url), {
-      type: 'module',
-    });
+    const worker = new Worker(
+      new URL('../../workers/image-processor.worker.ts', import.meta.url),
+      {
+        type: 'module',
+      }
+    );
 
     // Process image in worker
-    const processedBlobs = await new Promise<ProcessedBlobs>((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        worker.terminate();
-        reject(new Error('Worker processing timeout'));
-      }, 30000); // 30 second timeout
+    const processedBlobs = await new Promise<ProcessedBlobs>(
+      (resolve, reject) => {
+        const timeout = setTimeout(() => {
+          worker.terminate();
+          reject(new Error('Worker processing timeout'));
+        }, 30000); // 30 second timeout
 
-      worker.onmessage = (e: MessageEvent<ProcessResponse>) => {
-        clearTimeout(timeout);
-        worker.terminate();
+        worker.onmessage = (e: MessageEvent<ProcessResponse>) => {
+          clearTimeout(timeout);
+          worker.terminate();
 
-        const response = e.data;
-        if (!response.ok) {
-          reject(new Error(response.error || 'Worker processing failed'));
-          return;
-        }
+          const response = e.data;
+          if (!response.ok) {
+            reject(new Error(response.error || 'Worker processing failed'));
+            return;
+          }
 
-        // Convert to storage-agnostic format
-        const result: ProcessedBlobs = {};
+          // Convert to storage-agnostic format
+          const result: ProcessedBlobs = {};
 
-        if (response.display) {
-          result.display = {
-            blob: response.display.blob,
-            width: response.display.width,
-            height: response.display.height,
-            mimeType: response.display.mimeType,
-            bytes: response.display.bytes,
-          };
-        }
+          if (response.display) {
+            result.display = {
+              blob: response.display.blob,
+              width: response.display.width,
+              height: response.display.height,
+              mimeType: response.display.mimeType,
+              bytes: response.display.bytes,
+            };
+          }
 
-        if (response.thumb) {
-          result.thumb = {
-            blob: response.thumb.blob,
-            width: response.thumb.width,
-            height: response.thumb.height,
-            mimeType: response.thumb.mimeType,
-            bytes: response.thumb.bytes,
-          };
-        }
+          if (response.thumb) {
+            result.thumb = {
+              blob: response.thumb.blob,
+              width: response.thumb.width,
+              height: response.thumb.height,
+              mimeType: response.thumb.mimeType,
+              bytes: response.thumb.bytes,
+            };
+          }
 
-        if (response.placeholder) {
-          result.placeholder = {
-            dataUrl: response.placeholder.dataUrl,
-            width: response.placeholder.width,
-            height: response.placeholder.height,
-            bytes: response.placeholder.bytes,
-          };
-        }
+          if (response.placeholder) {
+            result.placeholder = {
+              dataUrl: response.placeholder.dataUrl,
+              width: response.placeholder.width,
+              height: response.placeholder.height,
+              bytes: response.placeholder.bytes,
+            };
+          }
 
-        resolve(result);
-      };
+          resolve(result);
+        };
 
-      worker.onerror = error => {
-        clearTimeout(timeout);
-        worker.terminate();
-        reject(error);
-      };
+        worker.onerror = (error) => {
+          clearTimeout(timeout);
+          worker.terminate();
+          reject(error);
+        };
 
-      // Send processing message
-      const message: ProcessMessage = {
-        kind: 'process',
-        file,
-        maxDisplaySize: 2048,
-        maxThumbSize: 512,
-        maxPlaceholderSize: 32,
-      };
+        // Send processing message
+        const message: ProcessMessage = {
+          kind: 'process',
+          file,
+          maxDisplaySize: 2048,
+          maxThumbSize: 512,
+          maxPlaceholderSize: 32,
+        };
 
-      worker.postMessage(message);
-    });
+        worker.postMessage(message);
+      }
+    );
 
     return processedBlobs;
   } catch (error) {
@@ -188,51 +211,59 @@ export async function processImageDerivativesWithWorkerPure(file: File): Promise
  * Legacy S3-specific processing function - kept for backward compatibility
  * @deprecated Use processImageDerivativesWithWorkerPure + uploadProcessedAssetsToS3 instead
  */
-export async function processImageDerivativesWithWorker(file: File, grant: GrantResponse): Promise<ProcessedAssets> {
+export async function processImageDerivativesWithWorker(
+  file: File,
+  grant: GrantResponse
+): Promise<ProcessedAssets> {
   try {
     // Create Web Worker
-    const worker = new Worker(new URL('../../workers/image-processor.worker.ts', import.meta.url), {
-      type: 'module',
-    });
+    const worker = new Worker(
+      new URL('../../workers/image-processor.worker.ts', import.meta.url),
+      {
+        type: 'module',
+      }
+    );
 
     // Process image in worker
-    const processedAssets = await new Promise<ProcessedAssets>((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        worker.terminate();
-        reject(new Error('Worker processing timeout'));
-      }, 30000); // 30 second timeout
+    const processedAssets = await new Promise<ProcessedAssets>(
+      (resolve, reject) => {
+        const timeout = setTimeout(() => {
+          worker.terminate();
+          reject(new Error('Worker processing timeout'));
+        }, 30000); // 30 second timeout
 
-      worker.onmessage = (e: MessageEvent<ProcessResponse>) => {
-        clearTimeout(timeout);
-        worker.terminate();
+        worker.onmessage = (e: MessageEvent<ProcessResponse>) => {
+          clearTimeout(timeout);
+          worker.terminate();
 
-        const response = e.data;
-        if (!response.ok) {
-          reject(new Error(response.error || 'Worker processing failed'));
-          return;
-        }
+          const response = e.data;
+          if (!response.ok) {
+            reject(new Error(response.error || 'Worker processing failed'));
+            return;
+          }
 
-        // Upload display and thumb to S3, store placeholder in DB
-        resolve(handleProcessedAssets(response, grant));
-      };
+          // Upload display and thumb to S3, store placeholder in DB
+          resolve(handleProcessedAssets(response, grant));
+        };
 
-      worker.onerror = error => {
-        clearTimeout(timeout);
-        worker.terminate();
-        reject(error);
-      };
+        worker.onerror = (error) => {
+          clearTimeout(timeout);
+          worker.terminate();
+          reject(error);
+        };
 
-      // Send processing message
-      const message: ProcessMessage = {
-        kind: 'process',
-        file,
-        maxDisplaySize: 2048,
-        maxThumbSize: 512,
-        maxPlaceholderSize: 32,
-      };
+        // Send processing message
+        const message: ProcessMessage = {
+          kind: 'process',
+          file,
+          maxDisplaySize: 2048,
+          maxThumbSize: 512,
+          maxPlaceholderSize: 32,
+        };
 
-      worker.postMessage(message);
-    });
+        worker.postMessage(message);
+      }
+    );
 
     return processedAssets;
   } catch (error) {
@@ -252,7 +283,10 @@ export async function processImageDerivativesWithWorker(file: File, grant: Grant
 /**
  * Handle processed assets from worker: upload display/thumb, prepare placeholder
  */
-async function handleProcessedAssets(response: ProcessResponse, grant: GrantResponse): Promise<ProcessedAssets> {
+async function handleProcessedAssets(
+  response: ProcessResponse,
+  grant: GrantResponse
+): Promise<ProcessedAssets> {
   const results: ProcessedAssets = {};
 
   // Upload display asset to S3
@@ -348,28 +382,42 @@ async function uploadAssetToS3(blob: Blob, uploadUrl: string): Promise<void> {
 
     if (!response.ok) {
       const errorText = await response.text();
-      fatLogger.error(`S3 upload failed: ${response.status} ${response.statusText}`, 'be', {
-        status: response.status,
-        statusText: response.statusText,
-        errorBody: errorText,
-        url: uploadUrl,
-        blobSize: blob.size,
-      });
-      throw new Error(`S3 upload failed: ${response.status} ${response.statusText} - ${errorText}`);
+      fatLogger.error(
+        `S3 upload failed: ${response.status} ${response.statusText}`,
+        'be',
+        {
+          status: response.status,
+          statusText: response.statusText,
+          errorBody: errorText,
+          url: uploadUrl,
+          blobSize: blob.size,
+        }
+      );
+      throw new Error(
+        `S3 upload failed: ${response.status} ${response.statusText} - ${errorText}`
+      );
     }
 
-    fatLogger.info(`S3 upload successful: ${response.status} ${response.statusText}`, 'be', {
-      status: response.status,
-      url: uploadUrl,
-      blobSize: blob.size,
-    });
+    fatLogger.info(
+      `S3 upload successful: ${response.status} ${response.statusText}`,
+      'be',
+      {
+        status: response.status,
+        url: uploadUrl,
+        blobSize: blob.size,
+      }
+    );
   } catch (error) {
-    fatLogger.error(`S3 upload fetch failed: ${error instanceof Error ? error.message : 'Unknown error'}`, 'be', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-      url: uploadUrl,
-      blobSize: blob.size,
-      blobType: blob.type,
-    });
+    fatLogger.error(
+      `S3 upload fetch failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      'be',
+      {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        url: uploadUrl,
+        blobSize: blob.size,
+        blobType: blob.type,
+      }
+    );
     throw error;
   }
 }
@@ -397,7 +445,10 @@ export async function uploadProcessedAssetsToS3(
   // Upload display asset to S3
   if (processedBlobs.display && grant.display) {
     try {
-      await uploadAssetToS3(processedBlobs.display.blob, grant.display.uploadUrl);
+      await uploadAssetToS3(
+        processedBlobs.display.blob,
+        grant.display.uploadUrl
+      );
       const displayUrl = await generateS3Url(grant.display.fileKey);
       results.display = {
         assetType: 'display',

@@ -81,7 +81,9 @@ export async function createMemoryStorageEdges(
       assetEdge: assetResult.data,
     };
   } catch (error) {
-    fatLogger.error('❌ Error creating storage edges:', 'be', { data: error instanceof Error ? error : undefined });
+    fatLogger.error('❌ Error creating storage edges:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
     return {
       success: false,
       error: error instanceof Error ? error.message : String(error),

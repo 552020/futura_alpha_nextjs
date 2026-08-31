@@ -48,10 +48,15 @@ export async function createMultipleMemories(
 
   try {
     // Create memories using service layer
-    const memoryPromises = files.map(file => {
+    const memoryPromises = files.map((file) => {
       const memoryParams: CreateMemoryParams = {
         title: file.name.split('.')[0],
-        type: getMemoryType(file.type as AcceptedMimeType) as 'image' | 'video' | 'document' | 'note' | 'audio',
+        type: getMemoryType(file.type as AcceptedMimeType) as
+          | 'image'
+          | 'video'
+          | 'document'
+          | 'note'
+          | 'audio',
         ownerId,
         parentFolderId: parentFolderId || null,
         metadata: {
@@ -70,9 +75,9 @@ export async function createMultipleMemories(
     const memoryResults = await Promise.all(memoryPromises);
 
     // Check if any memory creation failed
-    const failedMemories = memoryResults.filter(result => !result.success);
+    const failedMemories = memoryResults.filter((result) => !result.success);
     if (failedMemories.length > 0) {
-      const error = `Failed to create ${failedMemories.length} memories: ${failedMemories.map(r => r.error).join(', ')}`;
+      const error = `Failed to create ${failedMemories.length} memories: ${failedMemories.map((r) => r.error).join(', ')}`;
       fatLogger.error('❌ Error creating memories:', 'be', { error });
       return {
         success: false,
@@ -82,8 +87,13 @@ export async function createMultipleMemories(
       };
     }
 
-    const createdMemories = memoryResults.map(result => result.data as DBMemory);
-    fatLogger.info(`✅ Batch created ${createdMemories.length} memories using service layer`, 'be');
+    const createdMemories = memoryResults.map(
+      (result) => result.data as DBMemory
+    );
+    fatLogger.info(
+      `✅ Batch created ${createdMemories.length} memories using service layer`,
+      'be'
+    );
 
     // Create assets using service layer
     const assetParams: CreateAssetParams[] = files.map((file, index) => ({
@@ -104,7 +114,9 @@ export async function createMultipleMemories(
 
     const assetResult = await createAssetRecords(assetParams);
     if (!assetResult.success) {
-      fatLogger.error('❌ Error creating assets:', 'be', { error: assetResult.error });
+      fatLogger.error('❌ Error creating assets:', 'be', {
+        error: assetResult.error,
+      });
       return {
         success: false,
         memories: createdMemories,
@@ -114,7 +126,10 @@ export async function createMultipleMemories(
     }
 
     const createdAssets = assetResult.data as unknown[];
-    fatLogger.info(`✅ Batch created ${createdAssets.length} assets using service layer`, 'be');
+    fatLogger.info(
+      `✅ Batch created ${createdAssets.length} assets using service layer`,
+      'be'
+    );
 
     return {
       success: true,

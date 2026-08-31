@@ -67,14 +67,16 @@ async function cleanupOrphanedAllUsers() {
     });
 
     // Ask for confirmation
-    console.log(`\n⚠️  Found ${orphanedRecords.length} orphaned allUsers records.`);
+    console.log(
+      `\n⚠️  Found ${orphanedRecords.length} orphaned allUsers records.`
+    );
     console.log('These records will be deleted to clean up the database.');
 
     // In a real script, you might want to add a confirmation prompt
     // For now, we'll proceed with the cleanup
 
     // Delete orphaned records with dependency cleanup
-    const orphanedIds = orphanedRecords.map(record => record.id);
+    const orphanedIds = orphanedRecords.map((record) => record.id);
 
     if (orphanedIds.length > 0) {
       let deletedCount = 0;
@@ -88,7 +90,10 @@ async function cleanupOrphanedAllUsers() {
           console.log(`🗑️  Deleted orphaned record: ${id}`);
         } catch (error) {
           // Check if it's a foreign key constraint error
-          if (error instanceof Error && error.message.includes('foreign key constraint')) {
+          if (
+            error instanceof Error &&
+            error.message.includes('foreign key constraint')
+          ) {
             console.log(`⚠️  Skipping ${id} - has foreign key references`);
             skippedCount++;
           } else {
@@ -98,10 +103,16 @@ async function cleanupOrphanedAllUsers() {
         }
       }
 
-      console.log(`\n✅ Successfully deleted ${deletedCount} orphaned allUsers records`);
+      console.log(
+        `\n✅ Successfully deleted ${deletedCount} orphaned allUsers records`
+      );
       if (skippedCount > 0) {
-        console.log(`⚠️  Skipped ${skippedCount} records due to foreign key constraints`);
-        console.log(`💡 You may need to manually clean up business relationships first`);
+        console.log(
+          `⚠️  Skipped ${skippedCount} records due to foreign key constraints`
+        );
+        console.log(
+          `💡 You may need to manually clean up business relationships first`
+        );
       }
     }
 
@@ -122,7 +133,7 @@ cleanupOrphanedAllUsers()
     console.log('\n✨ Script completed');
     process.exit(0);
   })
-  .catch(error => {
+  .catch((error) => {
     console.error('💥 Script failed:', error);
     process.exit(1);
   });

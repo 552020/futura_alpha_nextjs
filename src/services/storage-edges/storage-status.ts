@@ -3,11 +3,18 @@ import type { DBStorageEdge } from '@/db/types';
 
 export async function getStorageStatusForMemory(
   memoryId: string
-): Promise<{ success: boolean; data?: { storageLocations: string[] }; error?: string }> {
+): Promise<{
+  success: boolean;
+  data?: { storageLocations: string[] };
+  error?: string;
+}> {
   try {
     const edgesResult = await getStorageEdges({ memoryId });
     if (!edgesResult.success || !edgesResult.data) {
-      return { success: false, error: edgesResult.error || 'Failed to fetch storage edges' };
+      return {
+        success: false,
+        error: edgesResult.error || 'Failed to fetch storage edges',
+      };
     }
 
     const edges = Array.isArray(edgesResult.data)
@@ -24,6 +31,9 @@ export async function getStorageStatusForMemory(
 
     return { success: true, data: { storageLocations: Array.from(locations) } };
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
   }
 }

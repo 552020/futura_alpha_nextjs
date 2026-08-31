@@ -14,8 +14,8 @@ const rl = readline.createInterface({
 
 // Helper function to ask questions
 function askQuestion(question: string): Promise<string> {
-  return new Promise(resolve => {
-    rl.question(question, answer => {
+  return new Promise((resolve) => {
+    rl.question(question, (answer) => {
       resolve(answer.trim());
     });
   });
@@ -23,8 +23,8 @@ function askQuestion(question: string): Promise<string> {
 
 // Helper function to ask yes/no questions
 function askYesNo(question: string): Promise<boolean> {
-  return new Promise(resolve => {
-    rl.question(`${question} (y/n): `, answer => {
+  return new Promise((resolve) => {
+    rl.question(`${question} (y/n): `, (answer) => {
       const normalized = answer.toLowerCase().trim();
       resolve(normalized === 'y' || normalized === 'yes');
     });
@@ -35,7 +35,9 @@ async function setupBusinessRelationshipInteractive() {
   try {
     console.log('🏢 Business Relationship Setup');
     console.log('================================');
-    console.log('This script will help you set up a business relationship between a photographer and a client.');
+    console.log(
+      'This script will help you set up a business relationship between a photographer and a client.'
+    );
     console.log('');
 
     // Ask for business email (photographer)
@@ -54,31 +56,57 @@ async function setupBusinessRelationshipInteractive() {
     console.log('🔍 Looking up users...');
 
     // Get the business user ID
-    const [businessUser] = await db.select().from(users).where(eq(users.email, businessEmail)).limit(1);
+    const [businessUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, businessEmail))
+      .limit(1);
     if (!businessUser) {
-      throw new Error(`❌ Photographer with email ${businessEmail} not found. Please make sure they have an account.`);
+      throw new Error(
+        `❌ Photographer with email ${businessEmail} not found. Please make sure they have an account.`
+      );
     }
 
     // Get the client user ID
-    const [clientUser] = await db.select().from(users).where(eq(users.email, clientEmail)).limit(1);
+    const [clientUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, clientEmail))
+      .limit(1);
     if (!clientUser) {
-      throw new Error(`❌ Client with email ${clientEmail} not found. Please make sure they have an account.`);
+      throw new Error(
+        `❌ Client with email ${clientEmail} not found. Please make sure they have an account.`
+      );
     }
 
     // Get the all_user IDs for both users
-    const [businessAllUser] = await db.select().from(allUsers).where(eq(allUsers.userId, businessUser.id)).limit(1);
+    const [businessAllUser] = await db
+      .select()
+      .from(allUsers)
+      .where(eq(allUsers.userId, businessUser.id))
+      .limit(1);
     if (!businessAllUser) {
-      throw new Error(`❌ AllUser record not found for photographer ${businessEmail}`);
+      throw new Error(
+        `❌ AllUser record not found for photographer ${businessEmail}`
+      );
     }
 
-    const [clientAllUser] = await db.select().from(allUsers).where(eq(allUsers.userId, clientUser.id)).limit(1);
+    const [clientAllUser] = await db
+      .select()
+      .from(allUsers)
+      .where(eq(allUsers.userId, clientUser.id))
+      .limit(1);
     if (!clientAllUser) {
       throw new Error(`❌ AllUser record not found for client ${clientEmail}`);
     }
 
     console.log('✅ Found users:');
-    console.log(`   📸 Photographer: ${businessUser.name || 'No name'} (${businessUser.email})`);
-    console.log(`   👤 Client: ${clientUser.name || 'No name'} (${clientUser.email})`);
+    console.log(
+      `   📸 Photographer: ${businessUser.name || 'No name'} (${businessUser.email})`
+    );
+    console.log(
+      `   👤 Client: ${clientUser.name || 'No name'} (${clientUser.email})`
+    );
     console.log('');
 
     // Check for existing relationships
@@ -88,13 +116,17 @@ async function setupBusinessRelationshipInteractive() {
       .where(eq(businessRelationship.clientId, clientUser.id));
 
     if (existingRelationships.length > 0) {
-      console.log('⚠️  Warning: This client already has business relationships:');
+      console.log(
+        '⚠️  Warning: This client already has business relationships:'
+      );
       existingRelationships.forEach((rel, index) => {
         console.log(`   ${index + 1}. Relationship ID: ${rel.id}`);
       });
       console.log('');
 
-      const shouldContinue = await askYesNo('Do you want to continue and add another relationship?');
+      const shouldContinue = await askYesNo(
+        'Do you want to continue and add another relationship?'
+      );
       if (!shouldContinue) {
         console.log('❌ Operation cancelled');
         return;
@@ -102,7 +134,9 @@ async function setupBusinessRelationshipInteractive() {
     }
 
     // Confirm the relationship
-    const shouldCreate = await askYesNo(`Create relationship: ${clientUser.email} → ${businessUser.email}?`);
+    const shouldCreate = await askYesNo(
+      `Create relationship: ${clientUser.email} → ${businessUser.email}?`
+    );
     if (!shouldCreate) {
       console.log('❌ Operation cancelled');
       return;
@@ -131,15 +165,22 @@ async function setupBusinessRelationshipInteractive() {
     console.log('');
 
     // Ask if they want to create another relationship
-    const createAnother = await askYesNo('Do you want to create another business relationship?');
+    const createAnother = await askYesNo(
+      'Do you want to create another business relationship?'
+    );
     if (createAnother) {
       console.log('');
       await setupBusinessRelationshipInteractive();
     } else {
-      console.log('🎉 All done! The client can now send photos to their photographer.');
+      console.log(
+        '🎉 All done! The client can now send photos to their photographer.'
+      );
     }
   } catch (error) {
-    console.error('❌ Error setting up business relationship:', error instanceof Error ? error.message : error);
+    console.error(
+      '❌ Error setting up business relationship:',
+      error instanceof Error ? error.message : error
+    );
   } finally {
     rl.close();
   }

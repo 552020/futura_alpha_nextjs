@@ -24,12 +24,16 @@ config({ path: '.env.local' });
 
 // Ensure DATABASE_URL is set
 if (!process.env.DATABASE_URL_UNPOOLED) {
-  throw new Error("❌ DATABASE_URL_UNPOOLED is missing! Make sure it's set in .env.local");
+  throw new Error(
+    "❌ DATABASE_URL_UNPOOLED is missing! Make sure it's set in .env.local"
+  );
 }
 
 // Create database connection
 const sql = neon(process.env.DATABASE_URL_UNPOOLED!);
-const db = drizzle(sql, { schema: { users, allUsers, memories, storageEdges } });
+const db = drizzle(sql, {
+  schema: { users, allUsers, memories, storageEdges },
+});
 
 interface MemoryWithStorage {
   id: string;
@@ -88,12 +92,15 @@ async function listUserMemories(email: string) {
     for (const memory of userMemories) {
       // Get storage edges for this memory
       const edges = await db.query.storageEdges.findMany({
-        where: and(eq(storageEdges.memoryId, memory.id), eq(storageEdges.present, true)),
+        where: and(
+          eq(storageEdges.memoryId, memory.id),
+          eq(storageEdges.present, true)
+        ),
       });
 
       // Extract storage locations
       const storageLocations = new Set<string>();
-      edges.forEach(edge => {
+      edges.forEach((edge) => {
         if (edge.locationMetadata) {
           storageLocations.add(edge.locationMetadata);
         }
@@ -118,9 +125,13 @@ async function listUserMemories(email: string) {
       console.log('─'.repeat(60));
       console.log(`   ID: ${memory.id}`);
       console.log(`   Type: ${memory.type}`);
-      console.log(`   Created: ${memory.createdAt.toLocaleDateString()} ${memory.createdAt.toLocaleTimeString()}`);
+      console.log(
+        `   Created: ${memory.createdAt.toLocaleDateString()} ${memory.createdAt.toLocaleTimeString()}`
+      );
       console.log(`   Assets: ${memory.assetCount}`);
-      console.log(`   Storage: ${memory.storageLocations.length > 0 ? memory.storageLocations.join(', ') : 'UNKNOWN'}`);
+      console.log(
+        `   Storage: ${memory.storageLocations.length > 0 ? memory.storageLocations.join(', ') : 'UNKNOWN'}`
+      );
 
       // Show first few characters of title for easy identification
       if (memory.title.length > 50) {
@@ -131,17 +142,27 @@ async function listUserMemories(email: string) {
     console.log('\n' + '='.repeat(80));
     console.log(`📊 SUMMARY:`);
     console.log(`   Total memories: ${memoriesWithStorage.length}`);
-    console.log(`   With storage info: ${memoriesWithStorage.filter(m => m.storageLocations.length > 0).length}`);
-    console.log(`   Unknown storage: ${memoriesWithStorage.filter(m => m.storageLocations.length === 0).length}`);
+    console.log(
+      `   With storage info: ${memoriesWithStorage.filter((m) => m.storageLocations.length > 0).length}`
+    );
+    console.log(
+      `   Unknown storage: ${memoriesWithStorage.filter((m) => m.storageLocations.length === 0).length}`
+    );
 
     // Show storage breakdown
     const storageBreakdown = new Map<string, number>();
-    memoriesWithStorage.forEach(memory => {
+    memoriesWithStorage.forEach((memory) => {
       if (memory.storageLocations.length === 0) {
-        storageBreakdown.set('UNKNOWN', (storageBreakdown.get('UNKNOWN') || 0) + 1);
+        storageBreakdown.set(
+          'UNKNOWN',
+          (storageBreakdown.get('UNKNOWN') || 0) + 1
+        );
       } else {
-        memory.storageLocations.forEach(location => {
-          storageBreakdown.set(location, (storageBreakdown.get(location) || 0) + 1);
+        memory.storageLocations.forEach((location) => {
+          storageBreakdown.set(
+            location,
+            (storageBreakdown.get(location) || 0) + 1
+          );
         });
       }
     });
@@ -163,8 +184,12 @@ async function main() {
 
   if (!email) {
     console.error('❌ Error: Email address is required');
-    console.log('\nUsage: npx tsx scripts/db/memories/list-user-memories.ts <email>');
-    console.log('Example: npx tsx scripts/db/memories/list-user-memories.ts stefanolombardo@posteo.de');
+    console.log(
+      '\nUsage: npx tsx scripts/db/memories/list-user-memories.ts <email>'
+    );
+    console.log(
+      'Example: npx tsx scripts/db/memories/list-user-memories.ts stefanolombardo@posteo.de'
+    );
     process.exit(1);
   }
 

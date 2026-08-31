@@ -20,7 +20,9 @@ describe('View Performance Tests', () => {
   afterAll(async () => {
     // Clean up test data
     if (testEdgeIds.length > 0) {
-      await db.delete(storageEdges).where(eq(storageEdges.memoryId, 'test-performance'));
+      await db
+        .delete(storageEdges)
+        .where(eq(storageEdges.memoryId, 'test-performance'));
     }
   });
 
@@ -34,7 +36,13 @@ describe('View Performance Tests', () => {
       const syncStates = ['idle', 'migrating', 'failed'] as const;
       const backends = ['neon-db', 'vercel-blob', 'icp-canister'] as const;
       const artifacts = ['metadata', 'asset'] as const;
-      const memoryTypes = ['image', 'video', 'note', 'document', 'audio'] as const;
+      const memoryTypes = [
+        'image',
+        'video',
+        'note',
+        'document',
+        'audio',
+      ] as const;
 
       // Create 2-4 edges per memory (metadata + asset for different backends)
       for (let j = 0; j < 2 + (i % 3); j++) {
@@ -57,7 +65,10 @@ describe('View Performance Tests', () => {
       }
     }
 
-    const inserted = await db.insert(storageEdges).values(testEdges).returning();
+    const inserted = await db
+      .insert(storageEdges)
+      .values(testEdges)
+      .returning();
     testEdgeIds = inserted.map((edge: any) => edge.id);
 
     expect(inserted).toHaveLength(testEdges.length);
@@ -115,10 +126,16 @@ describe('View Performance Tests', () => {
 
     // Test multiple concurrent queries
     const promises = [
-      db.execute(sql`SELECT COUNT(*) FROM sync_status WHERE sync_state = 'migrating'`),
-      db.execute(sql`SELECT COUNT(*) FROM sync_status WHERE sync_state = 'failed'`),
+      db.execute(
+        sql`SELECT COUNT(*) FROM sync_status WHERE sync_state = 'migrating'`
+      ),
+      db.execute(
+        sql`SELECT COUNT(*) FROM sync_status WHERE sync_state = 'failed'`
+      ),
       db.execute(sql`SELECT COUNT(*) FROM sync_status WHERE is_stuck = true`),
-      db.execute(sql`SELECT COUNT(*) FROM sync_status WHERE backend = 'icp-canister'`),
+      db.execute(
+        sql`SELECT COUNT(*) FROM sync_status WHERE backend = 'icp-canister'`
+      ),
     ];
 
     const results = await Promise.all(promises);
@@ -132,8 +149,12 @@ describe('View Performance Tests', () => {
   it('should verify view data integrity', async () => {
     // Verify that the view only shows migrating and failed syncs
     const allResult = await db.execute(sql`SELECT COUNT(*) FROM sync_status`);
-    const migratingResult = await db.execute(sql`SELECT COUNT(*) FROM sync_status WHERE sync_state = 'migrating'`);
-    const failedResult = await db.execute(sql`SELECT COUNT(*) FROM sync_status WHERE sync_state = 'failed'`);
+    const migratingResult = await db.execute(
+      sql`SELECT COUNT(*) FROM sync_status WHERE sync_state = 'migrating'`
+    );
+    const failedResult = await db.execute(
+      sql`SELECT COUNT(*) FROM sync_status WHERE sync_state = 'failed'`
+    );
 
     // The view should only show migrating and failed syncs
     const allResultRows = (allResult as any).rows || [];

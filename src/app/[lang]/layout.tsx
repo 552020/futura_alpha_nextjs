@@ -34,7 +34,11 @@ const geistMono = Geist_Mono({
 });
 
 // Dynamic metadata based on the current language
-export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}): Promise<Metadata> {
   // Await the params Promise
   const resolvedParams = await params;
 
@@ -69,7 +73,7 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
 }
 
 export function generateStaticParams() {
-  return locales.map(lang => ({ lang }));
+  return locales.map((lang) => ({ lang }));
 }
 
 export default async function RootLayout({
@@ -96,12 +100,20 @@ export default async function RootLayout({
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`} suppressHydrationWarning>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        suppressHydrationWarning
+      >
         <QueryProvider>
           <ServiceWorkerClient />
           <SessionProvider basePath="/api/auth">
             <PostHogProvider>
-              <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+              <ThemeProvider
+                attribute="class"
+                defaultTheme="system"
+                enableSystem
+                disableTransitionOnChange
+              >
                 <InterfaceProvider>
                   <OnboardingProvider>
                     <div className="relative flex min-h-screen flex-col">

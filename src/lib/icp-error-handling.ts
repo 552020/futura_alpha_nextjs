@@ -7,10 +7,20 @@
 
 export type ClassifiedError =
   | { kind: 'connection'; cause: unknown }
-  | { kind: 'auth'; code: 'delegation_expired' | 'unauthorized'; cause: unknown }
+  | {
+      kind: 'auth';
+      code: 'delegation_expired' | 'unauthorized';
+      cause: unknown;
+    }
   | {
       kind: 'business';
-      code: 'NotFound' | 'InvalidArgument' | 'Conflict' | 'ResourceExhausted' | 'NotImplemented' | 'Internal';
+      code:
+        | 'NotFound'
+        | 'InvalidArgument'
+        | 'Conflict'
+        | 'ResourceExhausted'
+        | 'NotImplemented'
+        | 'Internal';
       message?: string;
     }
   | { kind: 'protocol'; cause: unknown };
@@ -48,11 +58,24 @@ export function classifyIcpError(e: unknown): ClassifiedError {
   const code = errorObj?.code;
   if (
     code &&
-    ['NotFound', 'InvalidArgument', 'Conflict', 'ResourceExhausted', 'NotImplemented', 'Internal'].includes(code)
+    [
+      'NotFound',
+      'InvalidArgument',
+      'Conflict',
+      'ResourceExhausted',
+      'NotImplemented',
+      'Internal',
+    ].includes(code)
   ) {
     return {
       kind: 'business',
-      code: code as 'NotFound' | 'InvalidArgument' | 'Conflict' | 'ResourceExhausted' | 'NotImplemented' | 'Internal',
+      code: code as
+        | 'NotFound'
+        | 'InvalidArgument'
+        | 'Conflict'
+        | 'ResourceExhausted'
+        | 'NotImplemented'
+        | 'Internal',
       message: errorObj?.message,
     };
   }
@@ -99,7 +122,9 @@ export function isAuthenticationError(error: unknown): boolean {
  * @param message - Error message
  * @returns Error with BackendConnectionError name
  */
-export function createBackendConnectionError(message: string = 'Backend connection failed'): Error {
+export function createBackendConnectionError(
+  message: string = 'Backend connection failed'
+): Error {
   const error = new Error(message);
   error.name = 'BackendConnectionError';
   return error;
@@ -110,7 +135,9 @@ export function createBackendConnectionError(message: string = 'Backend connecti
  * @param message - Error message
  * @returns Error with AuthenticationExpiredError name
  */
-export function createAuthenticationExpiredError(message: string = 'Authentication expired'): Error {
+export function createAuthenticationExpiredError(
+  message: string = 'Authentication expired'
+): Error {
   const error = new Error(message);
   error.name = 'AuthenticationExpiredError';
   return error;
@@ -136,7 +163,9 @@ export function createServiceError(message: string = 'Service error'): Error {
 export function withTimeout<T>(promise: Promise<T>, ms = 15_000): Promise<T> {
   return Promise.race([
     promise,
-    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('RequestTimeout')), ms)),
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error('RequestTimeout')), ms)
+    ),
   ]);
 }
 
@@ -192,10 +221,12 @@ export async function safeCall<T>(fn: () => Promise<T>): Promise<T> {
       case 'connection':
         throw new BackendConnectionError('Backend unavailable');
       case 'auth':
-        if (err.code === 'delegation_expired') throw new AuthenticationExpiredError('Session expired');
+        if (err.code === 'delegation_expired')
+          throw new AuthenticationExpiredError('Session expired');
         throw new CapsuleUnauthorizedError('Not authorized');
       case 'business':
-        if (err.code === 'NotFound') throw new CapsuleNotFoundError(err.message ?? 'Not found');
+        if (err.code === 'NotFound')
+          throw new CapsuleNotFoundError(err.message ?? 'Not found');
         throw new CapsuleServiceError(err.message ?? err.code);
       case 'protocol':
       default:

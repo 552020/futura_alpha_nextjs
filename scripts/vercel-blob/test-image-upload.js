@@ -23,26 +23,56 @@ async function testImageUploads() {
   try {
     // Check if token is available
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      throw new Error('BLOB_READ_WRITE_TOKEN not found in environment variables');
+      throw new Error(
+        'BLOB_READ_WRITE_TOKEN not found in environment variables'
+      );
     }
     console.log('✅ BLOB_READ_WRITE_TOKEN found');
 
     const testImages = [
       // Small images (< 1MB)
-      { path: '../../public/small/abstract-1.jpg', name: 'abstract-1.jpg', size: '265K' },
-      { path: '../../public/small/diana_charles.jpg', name: 'diana_charles.jpg', size: '408K' },
+      {
+        path: '../../public/small/abstract-1.jpg',
+        name: 'abstract-1.jpg',
+        size: '265K',
+      },
+      {
+        path: '../../public/small/diana_charles.jpg',
+        name: 'diana_charles.jpg',
+        size: '408K',
+      },
 
       // Medium images (1-5MB)
-      { path: '../../public/small/blue-sky.jpg', name: 'blue-sky.jpg', size: '1.9M' },
-      { path: '../../public/small/flowers-bw.jpg', name: 'flowers-bw.jpg', size: '1.0M' },
+      {
+        path: '../../public/small/blue-sky.jpg',
+        name: 'blue-sky.jpg',
+        size: '1.9M',
+      },
+      {
+        path: '../../public/small/flowers-bw.jpg',
+        name: 'flowers-bw.jpg',
+        size: '1.0M',
+      },
 
       // Large images (> 5MB)
-      { path: '../../public/hero/plants.jpg', name: 'plants.jpg', size: '3.3M' },
+      {
+        path: '../../public/hero/plants.jpg',
+        name: 'plants.jpg',
+        size: '3.3M',
+      },
       { path: '../../public/hero/rays.jpg', name: 'rays.jpg', size: '4.9M' },
-      { path: '../../public/hero/sky-night.jpg', name: 'sky-night.jpg', size: '6.3M' },
+      {
+        path: '../../public/hero/sky-night.jpg',
+        name: 'sky-night.jpg',
+        size: '6.3M',
+      },
 
       // Different formats
-      { path: '../../public/hero/placeholder_img_big.png', name: 'placeholder.png', size: '26K' },
+      {
+        path: '../../public/hero/placeholder_img_big.png',
+        name: 'placeholder.png',
+        size: '26K',
+      },
       {
         path: '../../public/images/segments/black-mirror/black_mirror_1.webp',
         name: 'black_mirror_1.webp',
@@ -78,7 +108,11 @@ async function testImageUploads() {
         });
 
         console.log(`✅ Upload successful: ${result.url}`);
-        uploadResults.push({ name: image.name, url: result.url, size: image.size });
+        uploadResults.push({
+          name: image.name,
+          url: result.url,
+          size: image.size,
+        });
       } catch (error) {
         console.log(`❌ Failed to upload ${image.name}: ${error.message}`);
       }
@@ -91,12 +125,14 @@ async function testImageUploads() {
 
     // Show recent test uploads
     const recentBlobs = blobs.blobs
-      .filter(blob => blob.pathname.includes('test-images'))
+      .filter((blob) => blob.pathname.includes('test-images'))
       .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
 
     console.log('\n📄 Recent test image uploads:');
-    recentBlobs.forEach(blob => {
-      console.log(`  - ${blob.pathname} (${blob.size} bytes, ${blob.contentType})`);
+    recentBlobs.forEach((blob) => {
+      console.log(
+        `  - ${blob.pathname} (${blob.size} bytes, ${blob.contentType})`
+      );
     });
 
     // Test 4: Clean up test files
@@ -115,8 +151,12 @@ async function testImageUploads() {
     // Summary
     console.log('\n📊 Test Summary:');
     console.log(`  - Images tested: ${uploadResults.length}`);
-    console.log(`  - Small images (< 1MB): ${uploadResults.filter(r => r.size.includes('K')).length}`);
-    console.log(`  - Large images (> 1MB): ${uploadResults.filter(r => r.size.includes('M')).length}`);
+    console.log(
+      `  - Small images (< 1MB): ${uploadResults.filter((r) => r.size.includes('K')).length}`
+    );
+    console.log(
+      `  - Large images (> 1MB): ${uploadResults.filter((r) => r.size.includes('M')).length}`
+    );
   } catch (error) {
     console.error('\n❌ Error:', error.message);
     process.exit(1);

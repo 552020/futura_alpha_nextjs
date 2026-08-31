@@ -26,9 +26,12 @@ import type {
 /**
  * Create a share for a specific user
  */
-export async function createShare(params: CreateShareParams): Promise<OperationResult<ShareRecord>> {
+export async function createShare(
+  params: CreateShareParams
+): Promise<OperationResult<ShareRecord>> {
   try {
-    const { resourceType, resourceId, targetUserId, permissions, invitedBy } = params;
+    const { resourceType, resourceId, targetUserId, permissions, invitedBy } =
+      params;
 
     // Check if share already exists
     const existingShare = await db.query.resourceMembership.findFirst({
@@ -95,7 +98,10 @@ export async function createShare(params: CreateShareParams): Promise<OperationR
 /**
  * Revoke a share
  */
-export async function revokeShare(shareId: string, revokedBy: string): Promise<OperationResult<boolean>> {
+export async function revokeShare(
+  shareId: string,
+  revokedBy: string
+): Promise<OperationResult<boolean>> {
   try {
     // Check if share exists and user has permission to revoke
     const share = await db.query.resourceMembership.findFirst({
@@ -110,7 +116,9 @@ export async function revokeShare(shareId: string, revokedBy: string): Promise<O
     }
 
     // Delete the share
-    await db.delete(resourceMembership).where(eq(resourceMembership.id, shareId));
+    await db
+      .delete(resourceMembership)
+      .where(eq(resourceMembership.id, shareId));
 
     fatLogger.info('Share revoked successfully', 'be', {
       operation: 'revoke_share',
@@ -139,9 +147,15 @@ export async function revokeShare(shareId: string, revokedBy: string): Promise<O
 /**
  * Get all shares for a resource
  */
-export async function getResourceShares(params: ShareListParams): Promise<OperationResult<ShareListResult>> {
+export async function getResourceShares(
+  params: ShareListParams
+): Promise<OperationResult<ShareListResult>> {
   try {
-    const { resourceType, resourceId, includeInactive: _includeInactive = false } = params;
+    const {
+      resourceType,
+      resourceId,
+      includeInactive: _includeInactive = false,
+    } = params;
 
     // Get user shares (excluding system grants)
     const userShares = await db.query.resourceMembership.findMany({
@@ -183,7 +197,9 @@ export async function getResourceShares(params: ShareListParams): Promise<Operat
 /**
  * Check if a user has access to a resource
  */
-export async function checkResourceAccess(params: AccessCheckParams): Promise<OperationResult<AccessCheckResult>> {
+export async function checkResourceAccess(
+  params: AccessCheckParams
+): Promise<OperationResult<AccessCheckResult>> {
   try {
     const { resourceType, resourceId, userId } = params;
 
@@ -216,9 +232,13 @@ export async function checkResourceAccess(params: AccessCheckParams): Promise<Op
       success: true,
       data: {
         hasAccess: true,
-        accessLevel: accessLevel === 'superadmin' ? 'admin' : (accessLevel as 'owner' | 'admin' | 'member' | 'guest'),
+        accessLevel:
+          accessLevel === 'superadmin'
+            ? 'admin'
+            : (accessLevel as 'owner' | 'admin' | 'member' | 'guest'),
         permissions,
-        source: membership.grantSource === 'system' ? 'ownership' : 'user_share',
+        source:
+          membership.grantSource === 'system' ? 'ownership' : 'user_share',
       },
     };
   } catch (error) {
@@ -243,7 +263,10 @@ export async function getSharedResources(
   resourceType?: 'memory' | 'folder' | 'gallery'
 ): Promise<OperationResult<ShareRecord[]>> {
   try {
-    const whereConditions = [eq(resourceMembership.allUserId, userId), ne(resourceMembership.grantSource, 'system')];
+    const whereConditions = [
+      eq(resourceMembership.allUserId, userId),
+      ne(resourceMembership.grantSource, 'system'),
+    ];
 
     if (resourceType) {
       whereConditions.push(eq(resourceMembership.resourceType, resourceType));
@@ -276,12 +299,15 @@ export async function getSharedResources(
 /**
  * Create multiple shares at once
  */
-export async function createBulkShares(params: BulkShareParams): Promise<OperationResult<BulkShareResult>> {
+export async function createBulkShares(
+  params: BulkShareParams
+): Promise<OperationResult<BulkShareResult>> {
   try {
-    const { resourceType, resourceIds, targetUserId, permissions, invitedBy } = params;
+    const { resourceType, resourceIds, targetUserId, permissions, invitedBy } =
+      params;
 
     const results = await Promise.allSettled(
-      resourceIds.map(resourceId =>
+      resourceIds.map((resourceId) =>
         createShare({
           resourceType,
           resourceId,
@@ -292,7 +318,9 @@ export async function createBulkShares(params: BulkShareParams): Promise<Operati
       )
     );
 
-    const successful = results.filter(r => r.status === 'fulfilled' && r.value.success);
+    const successful = results.filter(
+      (r) => r.status === 'fulfilled' && r.value.success
+    );
 
     return {
       success: true,
@@ -300,7 +328,9 @@ export async function createBulkShares(params: BulkShareParams): Promise<Operati
         success: successful.length > 0,
         createdShares: successful.length,
         failedResources: resourceIds.filter(
-          (_, index) => results[index].status === 'rejected' || !results[index].value.success
+          (_, index) =>
+            results[index].status === 'rejected' ||
+            !results[index].value.success
         ),
       },
     };

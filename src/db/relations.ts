@@ -69,12 +69,15 @@ export const memoryAssetsRelations = relations(memoryAssets, ({ one }) => ({
 }));
 
 // Resource share tokens relations
-export const resourceShareTokensRelations = relations(resourceShareTokens, ({ one }) => ({
-  creator: one(allUsers, {
-    fields: [resourceShareTokens.createdBy],
-    references: [allUsers.id],
-  }),
-}));
+export const resourceShareTokensRelations = relations(
+  resourceShareTokens,
+  ({ one }) => ({
+    creator: one(allUsers, {
+      fields: [resourceShareTokens.createdBy],
+      references: [allUsers.id],
+    }),
+  })
+);
 
 // Folder relations
 export const foldersRelations = relations(folders, ({ one, many }) => ({
@@ -105,12 +108,15 @@ export const videoDetailsRelations = relations(videoDetails, ({ one }) => ({
   }),
 }));
 
-export const documentDetailsRelations = relations(documentDetails, ({ one }) => ({
-  memory: one(memories, {
-    fields: [documentDetails.memoryId],
-    references: [memories.id],
-  }),
-}));
+export const documentDetailsRelations = relations(
+  documentDetails,
+  ({ one }) => ({
+    memory: one(memories, {
+      fields: [documentDetails.memoryId],
+      references: [memories.id],
+    }),
+  })
+);
 
 export const audioDetailsRelations = relations(audioDetails, ({ one }) => ({
   memory: one(memories, {
@@ -127,16 +133,19 @@ export const noteDetailsRelations = relations(noteDetails, ({ one }) => ({
 }));
 
 // People in memories relations
-export const peopleInMemoriesRelations = relations(peopleInMemories, ({ one }) => ({
-  memory: one(memories, {
-    fields: [peopleInMemories.memoryId],
-    references: [memories.id],
-  }),
-  person: one(allUsers, {
-    fields: [peopleInMemories.allUserId],
-    references: [allUsers.id],
-  }),
-}));
+export const peopleInMemoriesRelations = relations(
+  peopleInMemories,
+  ({ one }) => ({
+    memory: one(memories, {
+      fields: [peopleInMemories.memoryId],
+      references: [memories.id],
+    }),
+    person: one(allUsers, {
+      fields: [peopleInMemories.allUserId],
+      references: [allUsers.id],
+    }),
+  })
+);
 
 // Memory likes relations
 export const memoryLikesRelations = relations(memoryLikes, ({ one }) => ({
@@ -151,33 +160,39 @@ export const memoryLikesRelations = relations(memoryLikes, ({ one }) => ({
 }));
 
 // Memory comments relations
-export const memoryCommentsRelations = relations(memoryComments, ({ one, many }) => ({
-  memory: one(memories, {
-    fields: [memoryComments.memoryId],
-    references: [memories.id],
-  }),
-  user: one(allUsers, {
-    fields: [memoryComments.allUserId],
-    references: [allUsers.id],
-  }),
-  parentComment: one(memoryComments, {
-    fields: [memoryComments.parentCommentId],
-    references: [memoryComments.id],
-  }),
-  replies: many(memoryComments),
-}));
+export const memoryCommentsRelations = relations(
+  memoryComments,
+  ({ one, many }) => ({
+    memory: one(memories, {
+      fields: [memoryComments.memoryId],
+      references: [memories.id],
+    }),
+    user: one(allUsers, {
+      fields: [memoryComments.allUserId],
+      references: [allUsers.id],
+    }),
+    parentComment: one(memoryComments, {
+      fields: [memoryComments.parentCommentId],
+      references: [memoryComments.id],
+    }),
+    replies: many(memoryComments),
+  })
+);
 
 // Business relationship relations
-export const businessRelationshipRelations = relations(businessRelationship, ({ one }) => ({
-  business: one(allUsers, {
-    fields: [businessRelationship.businessId],
-    references: [allUsers.id],
-  }),
-  client: one(allUsers, {
-    fields: [businessRelationship.clientId],
-    references: [allUsers.id],
-  }),
-}));
+export const businessRelationshipRelations = relations(
+  businessRelationship,
+  ({ one }) => ({
+    business: one(allUsers, {
+      fields: [businessRelationship.businessId],
+      references: [allUsers.id],
+    }),
+    client: one(allUsers, {
+      fields: [businessRelationship.clientId],
+      references: [allUsers.id],
+    }),
+  })
+);
 
 // User settings relations
 export const userSettingsRelations = relations(userSettings, ({ one }) => ({
@@ -188,12 +203,15 @@ export const userSettingsRelations = relations(userSettings, ({ one }) => ({
 }));
 
 // User hosting preferences relations
-export const userHostingPreferencesRelations = relations(userHostingPreferences, ({ one }) => ({
-  user: one(users, {
-    fields: [userHostingPreferences.userId],
-    references: [users.id],
-  }),
-}));
+export const userHostingPreferencesRelations = relations(
+  userHostingPreferences,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [userHostingPreferences.userId],
+      references: [users.id],
+    }),
+  })
+);
 
 /**
  * USER TABLE RELATIONS - Drizzle ORM query helpers for the users table

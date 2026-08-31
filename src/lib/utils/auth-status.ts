@@ -22,7 +22,8 @@ export function getAuthStatus(session: Session | null): AuthStatus {
   const loginProvider = session?.user?.loginProvider || null;
 
   // Get active ICP principal from session (if available)
-  const activeIcPrincipal = (session?.user as { icpPrincipal?: string })?.icpPrincipal;
+  const activeIcPrincipal = (session?.user as { icpPrincipal?: string })
+    ?.icpPrincipal;
   const hasActiveIcPrincipal = !!activeIcPrincipal;
 
   return {

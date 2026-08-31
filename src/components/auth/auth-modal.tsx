@@ -103,7 +103,9 @@ export function AuthModal({
     if (busy) return;
     setBusy(true);
     // Provider flows use NextAuth redirects
-    void signIn(provider, { callbackUrl: safeCallbackUrl }).finally(() => setBusy(false));
+    void signIn(provider, { callbackUrl: safeCallbackUrl }).finally(() =>
+      setBusy(false)
+    );
   }
 
   async function handleInternetIdentity() {
@@ -146,13 +148,19 @@ export function AuthModal({
         // Redirect manually after successful authentication
         router.push(safeCallbackUrl);
       } else {
-        fatLogger.error('signIn failed', 'fe', { data: new Error(signInResult?.error || 'Unknown error') });
-        setError(`Authentication failed: ${signInResult?.error || 'Unknown error'}`);
+        fatLogger.error('signIn failed', 'fe', {
+          data: new Error(signInResult?.error || 'Unknown error'),
+        });
+        setError(
+          `Authentication failed: ${signInResult?.error || 'Unknown error'}`
+        );
       }
     } catch (e) {
       fatLogger.error('II authentication error', 'fe', { data: e as Error });
       fatLogger.error('Error stack', 'fe', {
-        data: new Error(e instanceof Error ? e.stack || 'No stack trace' : 'No stack trace'),
+        data: new Error(
+          e instanceof Error ? e.stack || 'No stack trace' : 'No stack trace'
+        ),
       });
       const msg = e instanceof Error ? e.message : String(e);
       setError(`Internet Identity sign-in failed: ${msg}`);
@@ -189,21 +197,35 @@ export function AuthModal({
           </Button>
         </div>
 
-        {description && <p className="text-sm text-muted-foreground mb-4">{description}</p>}
+        {description && (
+          <p className="text-sm text-muted-foreground mb-4">{description}</p>
+        )}
 
         <div className="grid gap-3">
           {showGoogle && (
-            <Button variant="outline" onClick={() => handleProvider('google')} disabled={busy || iiBusy}>
+            <Button
+              variant="outline"
+              onClick={() => handleProvider('google')}
+              disabled={busy || iiBusy}
+            >
               Sign in with Google
             </Button>
           )}
           {showGithub && (
-            <Button variant="outline" onClick={() => handleProvider('github')} disabled={busy || iiBusy}>
+            <Button
+              variant="outline"
+              onClick={() => handleProvider('github')}
+              disabled={busy || iiBusy}
+            >
               Sign in with GitHub
             </Button>
           )}
           {showInternetIdentity && (
-            <Button variant="outline" onClick={handleInternetIdentity} disabled={iiBusy || busy}>
+            <Button
+              variant="outline"
+              onClick={handleInternetIdentity}
+              disabled={iiBusy || busy}
+            >
               {iiBusy ? (
                 <>
                   <LoadingSpinner size="sm" text="" className="mr-2" />
@@ -223,7 +245,9 @@ export function AuthModal({
                 <span className="w-full border-t" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">Or continue with email</span>
+                <span className="bg-background px-2 text-muted-foreground">
+                  Or continue with email
+                </span>
               </div>
             </div>
 
@@ -234,7 +258,7 @@ export function AuthModal({
                   id="email"
                   type="email"
                   value={email}
-                  onChange={e => setEmail(e.target.value)}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
                   required
                 />
@@ -245,7 +269,7 @@ export function AuthModal({
                   id="password"
                   type="password"
                   value={password}
-                  onChange={e => setPassword(e.target.value)}
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
                   required
                 />
@@ -260,7 +284,11 @@ export function AuthModal({
 
         {showStepNavigation && onBack && currentStep && (
           <div className="mt-6">
-            <StepNavigation currentStep={currentStep} onBack={onBack} showBackButton={true} />
+            <StepNavigation
+              currentStep={currentStep}
+              onBack={onBack}
+              showBackButton={true}
+            />
           </div>
         )}
 

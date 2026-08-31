@@ -1,4 +1,9 @@
-import type { Capsule, CapsuleInfo, CapsuleHeader, PersonRef } from '@/ic/declarations/backend/backend.did.d.ts';
+import type {
+  Capsule,
+  CapsuleInfo,
+  CapsuleHeader,
+  PersonRef,
+} from '@/ic/declarations/backend/backend.did.d.ts';
 
 /**
  * Error types for capsule operations
@@ -78,11 +83,15 @@ export function adaptCapsuleInfo(capsuleInfo: CapsuleInfo): CapsuleListItem {
   };
 }
 
-export function adaptCapsuleHeader(capsuleHeader: CapsuleHeader, currentUserPrincipal?: string): CapsuleListItem {
+export function adaptCapsuleHeader(
+  capsuleHeader: CapsuleHeader,
+  currentUserPrincipal?: string
+): CapsuleListItem {
   // Determine if this is a self-capsule by comparing subject to current user's principal
   let isSelfCapsule = false;
   if (currentUserPrincipal && 'Principal' in capsuleHeader.subject) {
-    isSelfCapsule = capsuleHeader.subject.Principal.toString() === currentUserPrincipal;
+    isSelfCapsule =
+      capsuleHeader.subject.Principal.toString() === currentUserPrincipal;
   }
 
   return {

@@ -8,7 +8,11 @@ interface StorageStatusBadgeProps {
   className?: string;
 }
 
-export function StorageStatusBadge({ status, size = 'sm', className = '' }: StorageStatusBadgeProps) {
+export function StorageStatusBadge({
+  status,
+  size = 'sm',
+  className = '',
+}: StorageStatusBadgeProps) {
   const sizeClasses = {
     xs: 'text-[10px] px-1 py-0.5 h-4 min-w-[24px]',
     sm: 'text-xs px-2 py-0.5',
@@ -16,7 +20,10 @@ export function StorageStatusBadge({ status, size = 'sm', className = '' }: Stor
   };
 
   return (
-    <Badge variant="secondary" className={`${sizeClasses[size]} font-mono ${className}`}>
+    <Badge
+      variant="secondary"
+      className={`${sizeClasses[size]} font-mono ${className}`}
+    >
       {status.toUpperCase()}
     </Badge>
   );

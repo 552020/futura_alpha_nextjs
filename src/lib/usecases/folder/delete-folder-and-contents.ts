@@ -17,19 +17,31 @@ export async function deleteFolderAndContents(
   ownerAllUserId: string
 ): Promise<DeleteFolderAndContentsResult> {
   try {
-    fatLogger.info(`🗑️ [Folder Deletion] Starting deletion for folder: ${folderId}`, 'be');
+    fatLogger.info(
+      `🗑️ [Folder Deletion] Starting deletion for folder: ${folderId}`,
+      'be'
+    );
 
     // 1) Validate ownership
     const folder = await db.query.folders.findFirst({
       where: and(eq(folders.id, folderId), eq(folders.ownerId, ownerAllUserId)),
     });
     if (!folder) {
-      return { success: false, deletedMemories: 0, deletedS3Objects: 0, deletedEdges: 0, error: 'Folder not found' };
+      return {
+        success: false,
+        deletedMemories: 0,
+        deletedS3Objects: 0,
+        deletedEdges: 0,
+        error: 'Folder not found',
+      };
     }
 
     // 2) List child memories with assets
     const childMemories = await db.query.memories.findMany({
-      where: and(eq(memories.parentFolderId, folderId), eq(memories.ownerId, ownerAllUserId)),
+      where: and(
+        eq(memories.parentFolderId, folderId),
+        eq(memories.ownerId, ownerAllUserId)
+      ),
       with: { assets: true },
     });
 
@@ -44,12 +56,23 @@ export async function deleteFolderAndContents(
 
         const cleanupResult = await cleanupMemoryAndStorage({
           memoryId: memory.id,
-          memoryType: memory.type as 'image' | 'video' | 'note' | 'document' | 'audio',
+          memoryType: memory.type as
+            | 'image'
+            | 'video'
+            | 'note'
+            | 'document'
+            | 'audio',
           memoryData: memory as unknown as {
             id: string;
             type: 'image' | 'video' | 'note' | 'document' | 'audio';
-            metadata?: { custom?: { storageBackend?: string; storageKey?: string } } | null;
-            assets?: Array<{ assetLocation: string; storageKey: string; url?: string }>;
+            metadata?: {
+              custom?: { storageBackend?: string; storageKey?: string };
+            } | null;
+            assets?: Array<{
+              assetLocation: string;
+              storageKey: string;
+              url?: string;
+            }>;
           },
         });
 
@@ -60,9 +83,13 @@ export async function deleteFolderAndContents(
 
         deletedMemoriesCount++;
       } catch (error) {
-        fatLogger.error(`❌ Failed to delete memory ${memory.id} during folder deletion:`, 'be', {
-          data: error instanceof Error ? error : undefined,
-        });
+        fatLogger.error(
+          `❌ Failed to delete memory ${memory.id} during folder deletion:`,
+          'be',
+          {
+            data: error instanceof Error ? error : undefined,
+          }
+        );
       }
     }
 

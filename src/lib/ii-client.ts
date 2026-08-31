@@ -15,7 +15,9 @@ export interface IIChallengeResponse {
 /**
  * Fetch a challenge nonce from the Web2 backend
  */
-export async function fetchChallenge(callbackUrl?: string): Promise<IIChallengeResponse> {
+export async function fetchChallenge(
+  callbackUrl?: string
+): Promise<IIChallengeResponse> {
   // fatLogger.info("DEBUG: fetchChallenge called with callbackUrl:", callbackUrl);
   // fatLogger.info("DEBUG: fetchChallenge using fallback:", callbackUrl || "/en/dashboard");
 
@@ -46,16 +48,20 @@ export async function registerWithNonce(nonce: string, identity: Identity) {
     // fatLogger.info("DEBUG: registerWithNonce called with nonce length:", nonce.length);
     // fatLogger.info("DEBUG: registerWithNonce nonce preview:", nonce.substring(0, 10) + "...");
   } catch (error) {
-    fatLogger.warn('registerWithNonce error:', 'fe', { error: error instanceof Error ? error : undefined });
+    fatLogger.warn('registerWithNonce error:', 'fe', {
+      error: error instanceof Error ? error : undefined,
+    });
   }
 
   const actor = await backendActor(identity);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result = (await actor.register_with_nonce(nonce)) as { Ok: any } | { Err: any };
+  const result = (await actor.register_with_nonce(nonce)) as
+    | { Ok: unknown }
+    | { Err: unknown };
 
   if ('Err' in result) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    throw new Error(`Registration with nonce failed: ${JSON.stringify((result as { Err: any }).Err)}`);
+    throw new Error(
+      `Registration with nonce failed: ${JSON.stringify((result as { Err: unknown }).Err)}`
+    );
   }
 
   return true; // Return true for backward compatibility

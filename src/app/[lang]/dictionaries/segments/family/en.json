@@ -36,17 +36,45 @@
   "variations": {
     "valueJourney": {
       "scene1": {
-        "titles": ["Some moments stand apart", "They shape who we become", "They define our story"],
-        "subtitles": ["They shape who we become", "They define our story", "Some moments stand apart"],
-        "descriptions": ["They define our story", "Some moments stand apart", "They shape who we become"]
+        "titles": [
+          "Some moments stand apart",
+          "They shape who we become",
+          "They define our story"
+        ],
+        "subtitles": [
+          "They shape who we become",
+          "They define our story",
+          "Some moments stand apart"
+        ],
+        "descriptions": [
+          "They define our story",
+          "Some moments stand apart",
+          "They shape who we become"
+        ]
       },
       "scene2": {
-        "titles": ["Moments turn into memories", "Held closely in our hearts", "Treasured forever"],
-        "subtitles": ["Held closely in our hearts", "Treasured forever", "Moments turn into memories"],
-        "descriptions": ["Treasured forever", "Moments turn into memories", "Held closely in our hearts"]
+        "titles": [
+          "Moments turn into memories",
+          "Held closely in our hearts",
+          "Treasured forever"
+        ],
+        "subtitles": [
+          "Held closely in our hearts",
+          "Treasured forever",
+          "Moments turn into memories"
+        ],
+        "descriptions": [
+          "Treasured forever",
+          "Moments turn into memories",
+          "Held closely in our hearts"
+        ]
       },
       "scene3": {
-        "titles": ["Every special memory deserves a special place", "Safe, secure, forever", "Protected for all time"],
+        "titles": [
+          "Every special memory deserves a special place",
+          "Safe, secure, forever",
+          "Protected for all time"
+        ],
         "subtitles": [
           "Safe, secure, forever",
           "Protected for all time",
@@ -59,7 +87,11 @@
         ]
       },
       "scene4": {
-        "titles": ["Memories are meant to be shared", "Shared today, cherished tomorrow", "Pass your memories forward"],
+        "titles": [
+          "Memories are meant to be shared",
+          "Shared today, cherished tomorrow",
+          "Pass your memories forward"
+        ],
         "subtitles": [
           "Shared today, cherished tomorrow",
           "Pass your memories forward",
@@ -72,9 +104,21 @@
         ]
       },
       "scene5": {
-        "titles": ["Futura, your place for memories", "Preserve and share forever", "Because memories matter"],
-        "subtitles": ["Preserve and share forever", "Because memories matter", "Futura, your place for memories"],
-        "descriptions": ["Because memories matter", "Futura, your place for memories", "Preserve and share forever"]
+        "titles": [
+          "Futura, your place for memories",
+          "Preserve and share forever",
+          "Because memories matter"
+        ],
+        "subtitles": [
+          "Preserve and share forever",
+          "Because memories matter",
+          "Futura, your place for memories"
+        ],
+        "descriptions": [
+          "Because memories matter",
+          "Futura, your place for memories",
+          "Preserve and share forever"
+        ]
       }
     }
   }

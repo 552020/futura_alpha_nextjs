@@ -16,7 +16,14 @@ describe('GET /api/galleries/shared - Shared Galleries Logic', () => {
         accessLevel: string;
         createdAt: Date;
       },
-      gallery: { id: string; title: string; ownerId: string; isPublic: boolean; createdAt: Date; updatedAt: Date },
+      gallery: {
+        id: string;
+        title: string;
+        ownerId: string;
+        isPublic: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+      },
       owner: { id: string; userId: string; type: string; createdAt: Date },
       shareCount: number
     ) => {
@@ -68,7 +75,11 @@ describe('GET /api/galleries/shared - Shared Galleries Logic', () => {
   });
 
   it('should handle pagination correctly', () => {
-    const paginateResults = (items: { id: string; title: string }[], page: number, limit: number) => {
+    const paginateResults = (
+      items: { id: string; title: string }[],
+      page: number,
+      limit: number
+    ) => {
       const offset = (page - 1) * limit;
       const paginatedItems = items.slice(offset, offset + limit);
 
@@ -79,7 +90,10 @@ describe('GET /api/galleries/shared - Shared Galleries Logic', () => {
       };
     };
 
-    const mockItems = Array.from({ length: 15 }, (_, i) => ({ id: `item${i}`, title: `Item ${i}` }));
+    const mockItems = Array.from({ length: 15 }, (_, i) => ({
+      id: `item${i}`,
+      title: `Item ${i}`,
+    }));
 
     // Page 1, limit 10
     const page1 = paginateResults(mockItems, 1, 10);
@@ -101,7 +115,9 @@ describe('GET /api/galleries/shared - Shared Galleries Logic', () => {
   });
 
   it('should filter out null galleries', () => {
-    const filterValidGalleries = (galleries: ({ id: string; title: string } | null | undefined)[]) => {
+    const filterValidGalleries = (
+      galleries: ({ id: string; title: string } | null | undefined)[]
+    ) => {
       return galleries.filter(Boolean);
     };
 
@@ -130,16 +146,30 @@ describe('GET /api/galleries/shared - Shared Galleries Logic', () => {
     };
 
     // Valid session
-    expect(validateUserAuth({ user: { id: 'user1' } })).toEqual({ valid: true, userId: 'user1' });
+    expect(validateUserAuth({ user: { id: 'user1' } })).toEqual({
+      valid: true,
+      userId: 'user1',
+    });
 
     // Invalid sessions
-    expect(validateUserAuth(null)).toEqual({ valid: false, error: 'Unauthorized' });
-    expect(validateUserAuth({})).toEqual({ valid: false, error: 'Unauthorized' });
-    expect(validateUserAuth({ user: {} })).toEqual({ valid: false, error: 'Unauthorized' });
+    expect(validateUserAuth(null)).toEqual({
+      valid: false,
+      error: 'Unauthorized',
+    });
+    expect(validateUserAuth({})).toEqual({
+      valid: false,
+      error: 'Unauthorized',
+    });
+    expect(validateUserAuth({ user: {} })).toEqual({
+      valid: false,
+      error: 'Unauthorized',
+    });
   });
 
   it('should validate user record existence', () => {
-    const validateUserRecord = (userRecord: { id: string; userId: string } | null | undefined) => {
+    const validateUserRecord = (
+      userRecord: { id: string; userId: string } | null | undefined
+    ) => {
       if (!userRecord) {
         return { valid: false, error: 'User record not found' };
       }
@@ -147,10 +177,19 @@ describe('GET /api/galleries/shared - Shared Galleries Logic', () => {
     };
 
     // Valid user record
-    expect(validateUserRecord({ id: 'all-user-1', userId: 'user1' })).toEqual({ valid: true, allUserId: 'all-user-1' });
+    expect(validateUserRecord({ id: 'all-user-1', userId: 'user1' })).toEqual({
+      valid: true,
+      allUserId: 'all-user-1',
+    });
 
     // Invalid user record
-    expect(validateUserRecord(null)).toEqual({ valid: false, error: 'User record not found' });
-    expect(validateUserRecord(undefined)).toEqual({ valid: false, error: 'User record not found' });
+    expect(validateUserRecord(null)).toEqual({
+      valid: false,
+      error: 'User record not found',
+    });
+    expect(validateUserRecord(undefined)).toEqual({
+      valid: false,
+      error: 'User record not found',
+    });
   });
 });

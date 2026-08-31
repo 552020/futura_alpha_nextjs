@@ -39,7 +39,9 @@ export interface NextAuthSession {
  * Generate a NextAuth session cookie for testing
  * This creates a session that the auth() function will accept
  */
-export function generateNextAuthSession(user: TestUserSession): NextAuthSession {
+export function generateNextAuthSession(
+  user: TestUserSession
+): NextAuthSession {
   const now = new Date();
   const expires = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour from now
 
@@ -67,7 +69,9 @@ export function generateSessionCookie(user: TestUserSession): string {
   const secret = process.env.AUTH_SECRET;
 
   if (!secret) {
-    throw new Error("❌ AUTH_SECRET is missing! Make sure it's set in .env.local");
+    throw new Error(
+      "❌ AUTH_SECRET is missing! Make sure it's set in .env.local"
+    );
   }
 
   // Create the session data
@@ -96,7 +100,10 @@ export function generateGoogleSessionCookie(user: TestUserSession): string {
 /**
  * Generate a session cookie for a user with linked Internet Identity
  */
-export function generateIISessionCookie(user: TestUserSession, linkedPrincipal: string): string {
+export function generateIISessionCookie(
+  user: TestUserSession,
+  linkedPrincipal: string
+): string {
   return generateSessionCookie({
     ...user,
     linkedIcPrincipal: linkedPrincipal,
@@ -106,7 +113,10 @@ export function generateIISessionCookie(user: TestUserSession, linkedPrincipal: 
 /**
  * Generate a session cookie for a user with active II co-authentication
  */
-export function generateActiveIISessionCookie(user: TestUserSession, activePrincipal: string): string {
+export function generateActiveIISessionCookie(
+  user: TestUserSession,
+  activePrincipal: string
+): string {
   return generateSessionCookie({
     ...user,
     linkedIcPrincipal: activePrincipal,
@@ -121,7 +131,9 @@ export function generateSessionCookies(user: TestUserSession): string[] {
   const secret = process.env.AUTH_SECRET;
 
   if (!secret) {
-    throw new Error("❌ AUTH_SECRET is missing! Make sure it's set in .env.local");
+    throw new Error(
+      "❌ AUTH_SECRET is missing! Make sure it's set in .env.local"
+    );
   }
 
   const cookies: string[] = [];

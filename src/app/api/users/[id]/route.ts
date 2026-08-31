@@ -16,7 +16,10 @@ import { eq } from 'drizzle-orm';
  *
  * Requires authentication.
  */
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     // Check authentication
     const session = await auth();
@@ -35,20 +38,33 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     });
 
     if (!result.success || !result.data) {
-      return NextResponse.json({ error: result.error || 'User not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: result.error || 'User not found' },
+        { status: 404 }
+      );
     }
 
     return NextResponse.json(result.data);
   } catch (error) {
-    fatLogger.error('Error retrieving user:', 'be', { data: error instanceof Error ? error : undefined });
-    return NextResponse.json({ error: 'Failed to retrieve user' }, { status: 500 });
+    fatLogger.error('Error retrieving user:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
+    return NextResponse.json(
+      { error: 'Failed to retrieve user' },
+      { status: 500 }
+    );
   }
 }
 
-export async function PATCH(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PATCH(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   const { id } = await params;
   try {
-    fatLogger.info('Starting PATCH /api/users/[id] request for ID:', 'be', { id });
+    fatLogger.info('Starting PATCH /api/users/[id] request for ID:', 'be', {
+      id,
+    });
     const body = await _request.json();
     fatLogger.info('Request body:', 'be', { body });
     const { name, email } = body;
@@ -62,7 +78,10 @@ export async function PATCH(_request: NextRequest, { params }: { params: Promise
 
     if (!result.success || !result.data) {
       fatLogger.error('Failed to update user:', 'be', { error: result.error });
-      return NextResponse.json({ error: result.error || 'Failed to update user' }, { status: 500 });
+      return NextResponse.json(
+        { error: result.error || 'Failed to update user' },
+        { status: 500 }
+      );
     }
 
     fatLogger.info('User updated successfully', 'be');
@@ -84,7 +103,10 @@ export async function PATCH(_request: NextRequest, { params }: { params: Promise
   }
 }
 
-export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   const { id } = await params;
   try {
     // First, check if this is a temporary user
@@ -98,7 +120,9 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
 
     if (allUser.type === 'temporary') {
       // Delete temporary user
-      await db.delete(temporaryUsers).where(eq(temporaryUsers.id, allUser.temporaryUserId!));
+      await db
+        .delete(temporaryUsers)
+        .where(eq(temporaryUsers.id, allUser.temporaryUserId!));
     } else {
       // Delete permanent user
       await db.delete(users).where(eq(users.id, allUser.userId!));
@@ -109,7 +133,12 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    fatLogger.error('Error deleting user:', 'be', { data: error instanceof Error ? error : undefined });
-    return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 });
+    fatLogger.error('Error deleting user:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
+    return NextResponse.json(
+      { error: 'Failed to delete user' },
+      { status: 500 }
+    );
   }
 }

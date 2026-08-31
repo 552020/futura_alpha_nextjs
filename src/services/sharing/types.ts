@@ -5,7 +5,11 @@
  * Uses database types and shared types to avoid duplication.
  */
 
-import type { ResourceType, resourceMembership, resourceShareTokens } from '@/db';
+import type {
+  ResourceType,
+  resourceMembership,
+  resourceShareTokens,
+} from '@/db';
 
 // Resource sharing types (reuse database types)
 export type ShareableResourceType = ResourceType; // 'memory' | 'gallery' | 'folder'

@@ -18,7 +18,9 @@ async function cleanupTemporaryUsers() {
       where: eq(allUsers.type, 'temporary'),
     });
 
-    console.log(`📋 Found ${temporaryAllUsers.length} temporary allUsers records`);
+    console.log(
+      `📋 Found ${temporaryAllUsers.length} temporary allUsers records`
+    );
 
     if (temporaryAllUsers.length === 0) {
       console.log('✅ No temporary users to clean up');
@@ -26,7 +28,7 @@ async function cleanupTemporaryUsers() {
     }
 
     // 2. Get all allUser IDs for deletion
-    const allUserIds = temporaryAllUsers.map(au => au.id);
+    const allUserIds = temporaryAllUsers.map((au) => au.id);
     console.log('🔍 AllUser IDs to delete:', allUserIds);
 
     // 3. Find all memories owned by these temporary users
@@ -37,11 +39,12 @@ async function cleanupTemporaryUsers() {
     console.log(`📋 Found ${memoriesToDelete.length} memories to delete`);
 
     // 4. Get all asset IDs from these memories
-    const memoryIds = memoriesToDelete.map(m => m.id);
+    const memoryIds = memoriesToDelete.map((m) => m.id);
     let assetsToDelete = [];
     if (memoryIds.length > 0) {
       assetsToDelete = await db.query.memoryAssets.findMany({
-        where: (memoryAssets, { inArray }) => inArray(memoryAssets.memoryId, memoryIds),
+        where: (memoryAssets, { inArray }) =>
+          inArray(memoryAssets.memoryId, memoryIds),
       });
     }
 
@@ -61,7 +64,9 @@ async function cleanupTemporaryUsers() {
     console.log('🗑️ Deleting temporary users...');
     for (const allUser of temporaryAllUsers) {
       if (allUser.temporaryUserId) {
-        await db.delete(temporaryUsers).where(eq(temporaryUsers.id, allUser.temporaryUserId));
+        await db
+          .delete(temporaryUsers)
+          .where(eq(temporaryUsers.id, allUser.temporaryUserId));
       }
     }
 
@@ -87,7 +92,7 @@ cleanupTemporaryUsers()
     console.log('🎉 Cleanup script completed');
     process.exit(0);
   })
-  .catch(error => {
+  .catch((error) => {
     console.error('💥 Cleanup script failed:', error);
     process.exit(1);
   });

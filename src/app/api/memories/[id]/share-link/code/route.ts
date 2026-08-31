@@ -6,7 +6,10 @@ import { auth } from '@/auth';
 import { findMemory } from '@/app/api/memories/utils/memory';
 
 import { fatLogger } from '@/lib/logger';
-export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   // Check authentication
   const session = await auth();
   if (!session?.user?.id) {
@@ -28,7 +31,10 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     });
 
     if (!allUserRecord) {
-      return NextResponse.json({ error: 'User record not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'User record not found' },
+        { status: 404 }
+      );
     }
 
     // Find the membership record for this user
@@ -41,7 +47,10 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     });
 
     if (!membership) {
-      return NextResponse.json({ error: 'Membership not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Membership not found' },
+        { status: 404 }
+      );
     }
 
     // For now, return a simple response since the old secure code system
@@ -52,7 +61,12 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       grantSource: membership.grantSource,
     });
   } catch (error) {
-    fatLogger.error('Error getting membership info:', 'be', { data: error instanceof Error ? error : undefined });
-    return NextResponse.json({ error: 'Failed to get membership info' }, { status: 500 });
+    fatLogger.error('Error getting membership info:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
+    return NextResponse.json(
+      { error: 'Failed to get membership info' },
+      { status: 500 }
+    );
   }
 }

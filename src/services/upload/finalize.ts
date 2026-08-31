@@ -39,17 +39,25 @@ export interface ProcessedAssets {
 export async function finalizeAllAssets(
   laneAResult: PromiseSettledResult<{
     data: { id: string };
-    results: Array<{ memoryId: string; size: number; checksum_sha256: string | null }>;
+    results: Array<{
+      memoryId: string;
+      size: number;
+      checksum_sha256: string | null;
+    }>;
     userId: string;
   }>,
   laneBResult: PromiseSettledResult<ProcessedAssets> | null,
   parentFolderId?: string
 ): Promise<void> {
   // Extract memoryId from Lane A result
-  const memoryId = laneAResult.status === 'fulfilled' ? laneAResult.value.data.id : null;
+  const memoryId =
+    laneAResult.status === 'fulfilled' ? laneAResult.value.data.id : null;
 
   if (!memoryId) {
-    fatLogger.error('Cannot finalize: Lane A failed - no memoryId available', 'be');
+    fatLogger.error(
+      'Cannot finalize: Lane A failed - no memoryId available',
+      'be'
+    );
     return;
   }
 
@@ -71,7 +79,10 @@ export async function finalizeAllAssets(
     if (placeholder) assets.push(placeholder);
   } else {
     // Lane B failed or was skipped - mark derivatives as failed/pending
-    fatLogger.warn('Lane B failed or skipped, marking derivatives as failed', 'be');
+    fatLogger.warn(
+      'Lane B failed or skipped, marking derivatives as failed',
+      'be'
+    );
     assets.push(
       { assetType: 'display', processingStatus: 'failed' },
       { assetType: 'thumb', processingStatus: 'failed' },
@@ -80,7 +91,10 @@ export async function finalizeAllAssets(
   }
 
   // Single finalize call
-  fatLogger.info('Finalizing assets for memory', 'be', { memoryId, parentFolderId });
+  fatLogger.info('Finalizing assets for memory', 'be', {
+    memoryId,
+    parentFolderId,
+  });
   await finalizeAssets({ memoryId, assets, parentFolderId });
 }
 
@@ -90,7 +104,9 @@ export async function finalizeAllAssets(
 async function finalizeAssets(request: FinalizeRequest): Promise<void> {
   const assetCount = request.assets.length;
   const memoryId = request.memoryId;
-  const assetStatuses = request.assets.map(a => `${a.assetType}=${a.processingStatus}`).join(', ');
+  const assetStatuses = request.assets
+    .map((a) => `${a.assetType}=${a.processingStatus}`)
+    .join(', ');
 
   fatLogger.info('Finalizing assets', 'be', {
     assetCount,

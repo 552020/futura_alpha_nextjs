@@ -17,7 +17,10 @@ function checkRateLimit(ip: string): boolean {
 
   if (!entry || now > entry.resetTime) {
     // Reset or first request
-    rateLimitStore.set(key, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+    rateLimitStore.set(key, {
+      count: 1,
+      resetTime: now + RATE_LIMIT_WINDOW_MS,
+    });
     return true;
   }
 
@@ -35,7 +38,8 @@ function checkRateLimit(ip: string): boolean {
 function checkOrigin(request: NextRequest): boolean {
   const origin = request.headers.get('origin');
   const referer = request.headers.get('referer');
-  const allowedOrigin = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_SITE_URL;
+  const allowedOrigin =
+    process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_SITE_URL;
 
   if (!allowedOrigin) {
     // If no allowed origin configured, skip check (dev mode)
@@ -84,18 +88,28 @@ export async function POST(request: NextRequest) {
     const headersList = await request.headers;
     const forwardedFor = headersList.get('x-forwarded-for');
     const realIp = headersList.get('x-real-ip');
-    const ipAddress = forwardedFor?.split(',')[0]?.trim() || realIp || 'unknown';
+    const ipAddress =
+      forwardedFor?.split(',')[0]?.trim() || realIp || 'unknown';
 
     // Security Check 1: Origin/Referer validation (CSRF protection)
     if (!checkOrigin(request)) {
-      fatLogger.warn(`II Verify: Invalid origin/referer from IP ${ipAddress}`, 'be');
+      fatLogger.warn(
+        `II Verify: Invalid origin/referer from IP ${ipAddress}`,
+        'be'
+      );
       return NextResponse.json({ error: 'Invalid origin' }, { status: 403 });
     }
 
     // Security Check 2: Rate limiting
     if (!checkRateLimit(ipAddress)) {
-      fatLogger.warn(`II Verify: Rate limit exceeded for IP ${ipAddress}`, 'be');
-      return NextResponse.json({ error: 'Rate limit exceeded. Please try again later.' }, { status: 429 });
+      fatLogger.warn(
+        `II Verify: Rate limit exceeded for IP ${ipAddress}`,
+        'be'
+      );
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Please try again later.' },
+        { status: 429 }
+      );
     }
 
     // Parse request body
@@ -104,11 +118,17 @@ export async function POST(request: NextRequest) {
 
     // Security Check 3: Validate nonce
     if (!nonce || typeof nonce !== 'string') {
-      return NextResponse.json({ error: 'nonce is required and must be a string' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'nonce is required and must be a string' },
+        { status: 400 }
+      );
     }
 
     if (nonce.length < 10) {
-      return NextResponse.json({ error: 'nonce is too short' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'nonce is too short' },
+        { status: 400 }
+      );
     }
 
     // Security logging (never log raw nonce)
@@ -116,20 +136,19 @@ export async function POST(request: NextRequest) {
 
     // Call canister to verify nonce
     const actor = await createServerSideActor();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const nonceResult = (await actor.verify_nonce(nonce)) as { Ok: any } | { Err: any };
+    const nonceResult = (await actor.verify_nonce(nonce)) as
+      | { Ok: unknown }
+      | { Err: unknown };
 
     if ('Err' in nonceResult) {
       // fatLogger.info(`II Verify: No proof found for nonce from IP ${ipAddress}`);
       return NextResponse.json({
         success: false,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        error: `Authentication failed: ${JSON.stringify((nonceResult as { Err: any }).Err)}`,
+        error: `Authentication failed: ${JSON.stringify((nonceResult as { Err: unknown }).Err)}`,
       });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const principalStr = (nonceResult as { Ok: any }).Ok.toString();
+    const principalStr = (nonceResult as { Ok: { toString(): string } }).Ok.toString();
     // fatLogger.info(`II Verify: Successfully verified nonce for principal ${principalStr} from IP ${ipAddress}`);
 
     return NextResponse.json({
@@ -137,7 +156,9 @@ export async function POST(request: NextRequest) {
       principal: principalStr,
     });
   } catch (error) {
-    fatLogger.error('Error verifying II nonce:', 'be', { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Error verifying II nonce:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
     return NextResponse.json(
       {
         success: false,
@@ -157,13 +178,17 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   // Disable in production
   if (process.env.NODE_ENV === 'production') {
-    return NextResponse.json({ error: 'Endpoint not available' }, { status: 404 });
+    return NextResponse.json(
+      { error: 'Endpoint not available' },
+      { status: 404 }
+    );
   }
 
   return NextResponse.json({
     endpoint: '/api/ii/verify-nonce',
     method: 'POST',
-    description: 'Verifies a nonce with the canister for Internet Identity authentication',
+    description:
+      'Verifies a nonce with the canister for Internet Identity authentication',
     security: {
       rateLimit: `${RATE_LIMIT_MAX_REQUESTS} requests per ${RATE_LIMIT_WINDOW_MS / 1000}s per IP`,
       originCheck: 'Same-origin requests only',

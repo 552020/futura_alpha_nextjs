@@ -1,6 +1,11 @@
 import { Lock, Users, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { usePathname } from 'next/navigation';
 
 type MemoryStatus = 'private' | 'shared' | 'public';
@@ -12,7 +17,12 @@ interface MemoryStatusProps {
   className?: string;
 }
 
-export function MemoryStatus({ status, sharedWithCount, sharedBy, className }: MemoryStatusProps) {
+export function MemoryStatus({
+  status,
+  sharedWithCount,
+  sharedBy,
+  className,
+}: MemoryStatusProps) {
   const pathname = usePathname();
   const isSharedRoute = pathname.includes('/shared');
 
@@ -57,7 +67,13 @@ export function MemoryStatus({ status, sharedWithCount, sharedBy, className }: M
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className={cn('flex items-center gap-1.5 text-sm', config.color, className)}>
+          <div
+            className={cn(
+              'flex items-center gap-1.5 text-sm',
+              config.color,
+              className
+            )}
+          >
             <Icon className="h-4 w-4" />
             <span>{config.label}</span>
           </div>

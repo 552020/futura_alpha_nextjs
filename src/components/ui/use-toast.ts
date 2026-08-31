@@ -38,7 +38,7 @@ export function useToast() {
 
 export const toast = (options: ToastOptions) => {
   if (typeof window === 'undefined') return '';
-  
+
   const event = new CustomEvent('show-toast', {
     detail: options,
   });

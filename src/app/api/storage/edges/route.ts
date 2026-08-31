@@ -34,13 +34,19 @@ export async function PUT(request: NextRequest) {
 
     // Validate required fields
     if (!memoryId || !memoryType || !artifact) {
-      return NextResponse.json({ error: 'Missing required fields: memoryId, memoryType, artifact' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Missing required fields: memoryId, memoryType, artifact' },
+        { status: 400 }
+      );
     }
 
     // Validate that at least one location field is provided
     if (!locationMetadata && !locationAsset) {
       return NextResponse.json(
-        { error: 'At least one location field must be provided: locationMetadata or locationAsset' },
+        {
+          error:
+            'At least one location field must be provided: locationMetadata or locationAsset',
+        },
         { status: 400 }
       );
     }
@@ -49,48 +55,69 @@ export async function PUT(request: NextRequest) {
     const validMemoryTypes = ['image', 'video', 'note', 'document', 'audio'];
     const validArtifacts = ['metadata', 'asset'];
     const validDatabaseHosting = ['neon', 'icp'];
-    const validBlobHosting = ['s3', 'vercel_blob', 'icp', 'arweave', 'ipfs', 'neon'];
+    const validBlobHosting = [
+      's3',
+      'vercel_blob',
+      'icp',
+      'arweave',
+      'ipfs',
+      'neon',
+    ];
     const validSyncStates = ['idle', 'migrating', 'failed'];
 
     if (!validMemoryTypes.includes(memoryType)) {
       return NextResponse.json(
-        { error: `Invalid memoryType. Must be one of: ${validMemoryTypes.join(', ')}` },
+        {
+          error: `Invalid memoryType. Must be one of: ${validMemoryTypes.join(', ')}`,
+        },
         { status: 400 }
       );
     }
 
     if (!validArtifacts.includes(artifact)) {
       return NextResponse.json(
-        { error: `Invalid artifact. Must be one of: ${validArtifacts.join(', ')}` },
+        {
+          error: `Invalid artifact. Must be one of: ${validArtifacts.join(', ')}`,
+        },
         { status: 400 }
       );
     }
 
     if (locationMetadata && !validDatabaseHosting.includes(locationMetadata)) {
       return NextResponse.json(
-        { error: `Invalid locationMetadata. Must be one of: ${validDatabaseHosting.join(', ')}` },
+        {
+          error: `Invalid locationMetadata. Must be one of: ${validDatabaseHosting.join(', ')}`,
+        },
         { status: 400 }
       );
     }
 
     if (locationAsset && !validBlobHosting.includes(locationAsset)) {
       return NextResponse.json(
-        { error: `Invalid locationAsset. Must be one of: ${validBlobHosting.join(', ')}` },
+        {
+          error: `Invalid locationAsset. Must be one of: ${validBlobHosting.join(', ')}`,
+        },
         { status: 400 }
       );
     }
 
     if (syncState && !validSyncStates.includes(syncState)) {
       return NextResponse.json(
-        { error: `Invalid syncState. Must be one of: ${validSyncStates.join(', ')}` },
+        {
+          error: `Invalid syncState. Must be one of: ${validSyncStates.join(', ')}`,
+        },
         { status: 400 }
       );
     }
 
     // Validate UUID format for memoryId (accepts both UUID v4 and custom UUID v7)
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(memoryId)) {
-      return NextResponse.json({ error: 'Invalid memoryId format. Must be a valid UUID' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid memoryId format. Must be a valid UUID' },
+        { status: 400 }
+      );
     }
 
     // Use the service layer to create storage edge
@@ -102,10 +129,22 @@ export async function PUT(request: NextRequest) {
 
     const result = await createStorageEdge({
       memoryId,
-      memoryType: memoryType as 'image' | 'video' | 'note' | 'document' | 'audio',
+      memoryType: memoryType as
+        | 'image'
+        | 'video'
+        | 'note'
+        | 'document'
+        | 'audio',
       artifact: artifact as 'metadata' | 'asset',
       locationMetadata: locationMetadata as 'neon' | 'icp' | undefined,
-      locationAsset: locationAsset as 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs' | 'neon' | undefined,
+      locationAsset: locationAsset as
+        | 's3'
+        | 'vercel_blob'
+        | 'icp'
+        | 'arweave'
+        | 'ipfs'
+        | 'neon'
+        | undefined,
       present: present ?? false,
       location,
       contentHash,
@@ -144,7 +183,10 @@ export async function PUT(request: NextRequest) {
       stack: error instanceof Error ? error.stack : undefined,
       operation: 'storage_edge_api_put',
     });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
 
@@ -162,40 +204,57 @@ export async function GET(request: NextRequest) {
     const validMemoryTypes = ['image', 'video', 'note', 'document', 'audio'];
     const validArtifacts = ['metadata', 'asset'];
     const validDatabaseHosting = ['neon', 'icp'];
-    const validBlobHosting = ['s3', 'vercel_blob', 'icp', 'arweave', 'ipfs', 'neon'];
+    const validBlobHosting = [
+      's3',
+      'vercel_blob',
+      'icp',
+      'arweave',
+      'ipfs',
+      'neon',
+    ];
     const validSyncStates = ['idle', 'migrating', 'failed'];
 
     if (memoryType && !validMemoryTypes.includes(memoryType)) {
       return NextResponse.json(
-        { error: `Invalid memoryType. Must be one of: ${validMemoryTypes.join(', ')}` },
+        {
+          error: `Invalid memoryType. Must be one of: ${validMemoryTypes.join(', ')}`,
+        },
         { status: 400 }
       );
     }
 
     if (artifact && !validArtifacts.includes(artifact)) {
       return NextResponse.json(
-        { error: `Invalid artifact. Must be one of: ${validArtifacts.join(', ')}` },
+        {
+          error: `Invalid artifact. Must be one of: ${validArtifacts.join(', ')}`,
+        },
         { status: 400 }
       );
     }
 
     if (locationMetadata && !validDatabaseHosting.includes(locationMetadata)) {
       return NextResponse.json(
-        { error: `Invalid locationMetadata. Must be one of: ${validDatabaseHosting.join(', ')}` },
+        {
+          error: `Invalid locationMetadata. Must be one of: ${validDatabaseHosting.join(', ')}`,
+        },
         { status: 400 }
       );
     }
 
     if (locationAsset && !validBlobHosting.includes(locationAsset)) {
       return NextResponse.json(
-        { error: `Invalid locationAsset. Must be one of: ${validBlobHosting.join(', ')}` },
+        {
+          error: `Invalid locationAsset. Must be one of: ${validBlobHosting.join(', ')}`,
+        },
         { status: 400 }
       );
     }
 
     if (syncState && !validSyncStates.includes(syncState)) {
       return NextResponse.json(
-        { error: `Invalid syncState. Must be one of: ${validSyncStates.join(', ')}` },
+        {
+          error: `Invalid syncState. Must be one of: ${validSyncStates.join(', ')}`,
+        },
         { status: 400 }
       );
     }
@@ -203,10 +262,23 @@ export async function GET(request: NextRequest) {
     // Use the service layer to get storage edges
     const result = await getStorageEdges({
       memoryId: memoryId || undefined,
-      memoryType: memoryType as 'image' | 'video' | 'note' | 'document' | 'audio' | undefined,
+      memoryType: memoryType as
+        | 'image'
+        | 'video'
+        | 'note'
+        | 'document'
+        | 'audio'
+        | undefined,
       artifact: artifact as 'metadata' | 'asset' | undefined,
       locationMetadata: locationMetadata as 'neon' | 'icp' | undefined,
-      locationAsset: locationAsset as 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs' | 'neon' | undefined,
+      locationAsset: locationAsset as
+        | 's3'
+        | 'vercel_blob'
+        | 'icp'
+        | 'arweave'
+        | 'ipfs'
+        | 'neon'
+        | undefined,
       syncState: syncState as 'idle' | 'migrating' | 'failed' | undefined,
     });
 
@@ -219,7 +291,12 @@ export async function GET(request: NextRequest) {
       data: result.data,
     });
   } catch (error) {
-    fatLogger.error('Error querying storage edges:', 'be', { data: error instanceof Error ? error : undefined });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    fatLogger.error('Error querying storage edges:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }

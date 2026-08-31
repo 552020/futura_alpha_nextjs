@@ -2,17 +2,39 @@ import { pgEnum } from 'drizzle-orm/pg-core';
 
 // Storage Edge Enums
 export const artifact_t = pgEnum('artifact_t', ['metadata', 'asset']);
-export const memory_type_t = pgEnum('memory_type_t', ['image', 'video', 'note', 'document', 'audio']);
+export const memory_type_t = pgEnum('memory_type_t', [
+  'image',
+  'video',
+  'note',
+  'document',
+  'audio',
+]);
 export const sync_t = pgEnum('sync_t', ['idle', 'migrating', 'failed']);
 
 // Hosting preference enums
-export const frontend_hosting_t = pgEnum('frontend_hosting_t', ['vercel', 'icp']);
+export const frontend_hosting_t = pgEnum('frontend_hosting_t', [
+  'vercel',
+  'icp',
+]);
 export const backend_hosting_t = pgEnum('backend_hosting_t', ['vercel', 'icp']);
 export const database_hosting_t = pgEnum('database_hosting_t', ['neon', 'icp']);
-export const blob_hosting_t = pgEnum('blob_hosting_t', ['s3', 'vercel_blob', 'icp', 'arweave', 'ipfs', 'neon']);
+export const blob_hosting_t = pgEnum('blob_hosting_t', [
+  's3',
+  'vercel_blob',
+  'icp',
+  'arweave',
+  'ipfs',
+  'neon',
+]);
 
 // TypeScript types for hosting values (used in JSONB arrays)
-export type BlobHosting = 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs' | 'neon';
+export type BlobHosting =
+  | 's3'
+  | 'vercel_blob'
+  | 'icp'
+  | 'arweave'
+  | 'ipfs'
+  | 'neon';
 export type DatabaseHosting = 'neon' | 'icp';
 
 /**
@@ -78,23 +100,70 @@ export const processing_status_t = pgEnum('processing_status_t', [
  * - Waveform data → arweave (permanent, immutable)
  * - User prefers ICP → icp for all assets
  */
-export const storage_backend_t = pgEnum('storage_backend_t', ['s3', 'vercel_blob', 'icp', 'arweave', 'ipfs', 'neon']);
+export const storage_backend_t = pgEnum('storage_backend_t', [
+  's3',
+  'vercel_blob',
+  'icp',
+  'arweave',
+  'ipfs',
+  'neon',
+]);
 
 // Resource Membership Enums - Universal Sharing System
-export const resource_type_t = pgEnum('resource_type_t', ['gallery', 'memory', 'folder']);
-export const grant_source_t = pgEnum('grant_source_t', ['user', 'group', 'magic_link', 'public_mode', 'system']);
-export const membership_role_t = pgEnum('membership_role_t', ['owner', 'superadmin', 'admin', 'member', 'guest']);
+export const resource_type_t = pgEnum('resource_type_t', [
+  'gallery',
+  'memory',
+  'folder',
+]);
+export const grant_source_t = pgEnum('grant_source_t', [
+  'user',
+  'group',
+  'magic_link',
+  'public_mode',
+  'system',
+]);
+export const membership_role_t = pgEnum('membership_role_t', [
+  'owner',
+  'superadmin',
+  'admin',
+  'member',
+  'guest',
+]);
 
 // Constants for application logic
-export const MEMORY_TYPES = ['image', 'document', 'note', 'video', 'audio'] as const;
+export const MEMORY_TYPES = [
+  'image',
+  'document',
+  'note',
+  'video',
+  'audio',
+] as const;
 export const ACCESS_LEVELS = ['read', 'write'] as const;
 export const MEMBER_ROLES = ['admin', 'member'] as const;
 export const RESOURCE_TYPES = ['gallery', 'memory', 'folder'] as const;
-export const GRANT_SOURCES = ['user', 'group', 'magic_link', 'public_mode', 'system'] as const;
-export const MEMBERSHIP_ROLES = ['owner', 'superadmin', 'admin', 'member', 'guest'] as const;
+export const GRANT_SOURCES = [
+  'user',
+  'group',
+  'magic_link',
+  'public_mode',
+  'system',
+] as const;
+export const MEMBERSHIP_ROLES = [
+  'owner',
+  'superadmin',
+  'admin',
+  'member',
+  'guest',
+] as const;
 
 // Types of relationships between users (e.g., brother, aunt, friend)
-export const RELATIONSHIP_TYPES = ['friend', 'colleague', 'acquaintance', 'family', 'other'] as const;
+export const RELATIONSHIP_TYPES = [
+  'friend',
+  'colleague',
+  'acquaintance',
+  'family',
+  'other',
+] as const;
 export type RelationshipType = (typeof RELATIONSHIP_TYPES)[number];
 
 // Types of sharing relationships (based on trust/proximity)
@@ -107,7 +176,8 @@ export const SHARING_RELATIONSHIP_TYPES = [
   'colleague', // work relationships
   'acquaintance', // casual relationships
 ] as const;
-export type SharingRelationshipType = (typeof SHARING_RELATIONSHIP_TYPES)[number];
+export type SharingRelationshipType =
+  (typeof SHARING_RELATIONSHIP_TYPES)[number];
 
 export const RELATIONSHIP_STATUS = ['pending', 'accepted', 'declined'] as const;
 export type RelationshipStatus = (typeof RELATIONSHIP_STATUS)[number];
@@ -128,8 +198,16 @@ export const FAMILY_RELATIONSHIP_TYPES = [
 export type FamilyRelationshipType = (typeof FAMILY_RELATIONSHIP_TYPES)[number];
 
 // Enum for primary relationships
-export const PRIMARY_RELATIONSHIP_ROLES = ['son', 'daughter', 'father', 'mother', 'sibling', 'spouse'] as const;
-export type PrimaryRelationshipRole = (typeof PRIMARY_RELATIONSHIP_ROLES)[number];
+export const PRIMARY_RELATIONSHIP_ROLES = [
+  'son',
+  'daughter',
+  'father',
+  'mother',
+  'sibling',
+  'spouse',
+] as const;
+export type PrimaryRelationshipRole =
+  (typeof PRIMARY_RELATIONSHIP_ROLES)[number];
 
 // Shared types for file metadata
 export type CommonFileMetadata = {

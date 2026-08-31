@@ -58,7 +58,8 @@ const mockICPEndpoints = {
           status: 200,
           body: {
             success: true,
-            principal: 'ffso4-hbyyy-se2mz-l7nlp-fpqbb-yn4rf-ilnen-yb3ng-izeoj-rxexn-6qe',
+            principal:
+              'ffso4-hbyyy-se2mz-l7nlp-fpqbb-yn4rf-ilnen-yb3ng-izeoj-rxexn-6qe',
           },
         };
       }
@@ -74,7 +75,8 @@ const mockICPEndpoints = {
           status: 409,
           body: {
             error: 'Principal already linked',
-            message: 'This Internet Identity is already linked to another account.',
+            message:
+              'This Internet Identity is already linked to another account.',
             code: 'PRINCIPAL_CONFLICT',
           },
         };
@@ -102,7 +104,10 @@ const mockICPEndpoints = {
       const { nonce } = body;
 
       if (!nonce || typeof nonce !== 'string') {
-        return { status: 400, body: { error: 'nonce is required and must be a string' } };
+        return {
+          status: 400,
+          body: { error: 'nonce is required and must be a string' },
+        };
       }
 
       if (nonce.length < 10) {
@@ -115,7 +120,8 @@ const mockICPEndpoints = {
           status: 200,
           body: {
             success: true,
-            principal: 'ffso4-hbyyy-se2mz-l7nlp-fpqbb-yn4rf-ilnen-yb3ng-izeoj-rxexn-6qe',
+            principal:
+              'ffso4-hbyyy-se2mz-l7nlp-fpqbb-yn4rf-ilnen-yb3ng-izeoj-rxexn-6qe',
           },
         };
       }
@@ -157,7 +163,11 @@ beforeAll(async () => {
     const url = req.url;
     const method = req.method;
 
-    fatLogger.info('Mock Server request', 'be', { method, url, headers: req.headers });
+    fatLogger.info('Mock Server request', 'be', {
+      method,
+      url,
+      headers: req.headers,
+    });
 
     // Handle POST requests to our mock endpoints
     if (method === 'POST') {
@@ -176,22 +186,28 @@ beforeAll(async () => {
             parsedBody = JSON.parse(body);
           }
         } catch (e) {
-          fatLogger.info(`🔍 Failed to parse body:`, 'be', { error: e instanceof Error ? e : undefined });
+          fatLogger.info(`🔍 Failed to parse body:`, 'be', {
+            error: e instanceof Error ? e : undefined,
+          });
         }
 
         // Create a mock request object with the parsed body
         const mockReq: MockRequest = { body: parsedBody };
 
         if (url === '/api/auth/link-ii') {
-          mockICPEndpoints['/api/auth/link-ii'](mockReq).then(result => {
+          mockICPEndpoints['/api/auth/link-ii'](mockReq).then((result) => {
             fatLogger.info(`🔍 Link-II result:`, 'be', { result });
-            res.writeHead(result.status, { 'Content-Type': 'application/json' });
+            res.writeHead(result.status, {
+              'Content-Type': 'application/json',
+            });
             res.end(JSON.stringify(result.body));
           });
         } else if (url === '/api/ii/verify-nonce') {
-          mockICPEndpoints['/api/ii/verify-nonce'](mockReq).then(result => {
+          mockICPEndpoints['/api/ii/verify-nonce'](mockReq).then((result) => {
             fatLogger.info(`🔍 Verify-nonce result:`, 'be', { result });
-            res.writeHead(result.status, { 'Content-Type': 'application/json' });
+            res.writeHead(result.status, {
+              'Content-Type': 'application/json',
+            });
             res.end(JSON.stringify(result.body));
           });
         } else {
@@ -209,7 +225,8 @@ beforeAll(async () => {
         JSON.stringify({
           endpoint: '/api/ii/verify-nonce',
           method: 'POST',
-          description: 'Verifies a nonce with the canister for Internet Identity authentication',
+          description:
+            'Verifies a nonce with the canister for Internet Identity authentication',
           security: {
             rateLimit: '10 requests per 60s per IP',
             originCheck: 'Same-origin requests only',
@@ -225,14 +242,14 @@ beforeAll(async () => {
   };
 
   server = createServer(app);
-  await new Promise<void>(resolve => {
+  await new Promise<void>((resolve) => {
     server.listen(0, () => resolve());
   });
 });
 
 afterAll(async () => {
   if (server) {
-    await new Promise<void>(resolve => {
+    await new Promise<void>((resolve) => {
       server.close(() => resolve());
     });
   }
@@ -252,7 +269,9 @@ describe('ICP Authentication Endpoints - Supertest', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
-      expect(response.body.principal).toBe('ffso4-hbyyy-se2mz-l7nlp-fpqbb-yn4rf-ilnen-yb3ng-izeoj-rxexn-6qe');
+      expect(response.body.principal).toBe(
+        'ffso4-hbyyy-se2mz-l7nlp-fpqbb-yn4rf-ilnen-yb3ng-izeoj-rxexn-6qe'
+      );
     });
 
     it('should return 400 for invalid nonce', async () => {
@@ -266,7 +285,10 @@ describe('ICP Authentication Endpoints - Supertest', () => {
     });
 
     it('should return 400 for missing nonce', async () => {
-      const response = await request(server).post('/api/auth/link-ii').set('Content-Type', 'application/json').send({});
+      const response = await request(server)
+        .post('/api/auth/link-ii')
+        .set('Content-Type', 'application/json')
+        .send({});
 
       expect(response.status).toBe(400);
       expect(response.body.error).toBe('Invalid nonce');
@@ -291,7 +313,9 @@ describe('ICP Authentication Endpoints - Supertest', () => {
       expect(response.status).toBe(409);
       expect(response.body.error).toBe('Principal already linked');
       expect(response.body.code).toBe('PRINCIPAL_CONFLICT');
-      expect(response.body.message).toContain('already linked to another account');
+      expect(response.body.message).toContain(
+        'already linked to another account'
+      );
     });
 
     it('should return 500 for server errors', async () => {
@@ -318,7 +342,9 @@ describe('ICP Authentication Endpoints - Supertest', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
-      expect(response.body.principal).toBe('ffso4-hbyyy-se2mz-l7nlp-fpqbb-yn4rf-ilnen-yb3ng-izeoj-rxexn-6qe');
+      expect(response.body.principal).toBe(
+        'ffso4-hbyyy-se2mz-l7nlp-fpqbb-yn4rf-ilnen-yb3ng-izeoj-rxexn-6qe'
+      );
     });
 
     it('should return 400 for missing nonce', async () => {
@@ -328,7 +354,9 @@ describe('ICP Authentication Endpoints - Supertest', () => {
         .send({});
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toBe('nonce is required and must be a string');
+      expect(response.body.error).toBe(
+        'nonce is required and must be a string'
+      );
     });
 
     it('should return 400 for non-string nonce', async () => {
@@ -338,7 +366,9 @@ describe('ICP Authentication Endpoints - Supertest', () => {
         .send({ nonce: 123 });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toBe('nonce is required and must be a string');
+      expect(response.body.error).toBe(
+        'nonce is required and must be a string'
+      );
     });
 
     it('should return 400 for short nonce', async () => {
@@ -387,8 +417,12 @@ describe('ICP Authentication Endpoints - Supertest', () => {
       expect(response.body.method).toBe('POST');
       expect(response.body.description).toContain('Verifies a nonce');
       expect(response.body.security).toBeDefined();
-      expect(response.body.security.rateLimit).toBe('10 requests per 60s per IP');
-      expect(response.body.security.originCheck).toBe('Same-origin requests only');
+      expect(response.body.security.rateLimit).toBe(
+        '10 requests per 60s per IP'
+      );
+      expect(response.body.security.originCheck).toBe(
+        'Same-origin requests only'
+      );
     });
   });
 
@@ -408,7 +442,9 @@ describe('ICP Authentication Endpoints - Supertest', () => {
     });
 
     it('should handle missing Content-Type header', async () => {
-      const response = await request(server).post('/api/auth/link-ii').send({ nonce: 'valid-nonce-123' });
+      const response = await request(server)
+        .post('/api/auth/link-ii')
+        .send({ nonce: 'valid-nonce-123' });
 
       // The mock endpoint should still work without Content-Type
       expect(response.status).toBe(200);

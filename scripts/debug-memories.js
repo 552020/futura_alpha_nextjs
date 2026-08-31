@@ -18,7 +18,10 @@ async function debugMemories() {
       WHERE owner_id = 'addcfcef-1cf4-45ad-b0e1-15daa49d8c15'
       ORDER BY created_at DESC
     `;
-    console.log('👤 Memories for user addcfcef-1cf4-45ad-b0e1-15daa49d8c15:', userMemories.length);
+    console.log(
+      '👤 Memories for user addcfcef-1cf4-45ad-b0e1-15daa49d8c15:',
+      userMemories.length
+    );
     console.log('📋 Sample memories:', userMemories.slice(0, 3));
 
     // Check if the folder exists
@@ -27,7 +30,10 @@ async function debugMemories() {
       FROM folders 
       WHERE id = '45e5bff0-064a-4352-8e20-6eb5ad3d6472'
     `;
-    console.log('📁 Folder check:', folder.length > 0 ? folder[0] : 'NOT FOUND');
+    console.log(
+      '📁 Folder check:',
+      folder.length > 0 ? folder[0] : 'NOT FOUND'
+    );
 
     // Check memories linked to the folder
     const folderMemories = await client`

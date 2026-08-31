@@ -18,9 +18,15 @@ export function renderGallerySelectionEmail({
   message: userMessage,
   timestamp = new Date().toISOString(),
   requestId,
-}: GallerySelectionEmailParams): { subject: string; html: string; text: string } {
+}: GallerySelectionEmailParams): {
+  subject: string;
+  html: string;
+  text: string;
+} {
   // Sort images by rating (highest first) and get top 35
-  const sortedImages = [...images].sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 35);
+  const sortedImages = [...images]
+    .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+    .slice(0, 35);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -55,20 +61,23 @@ export function renderGallerySelectionEmail({
       
       <p><strong>From:</strong> ${userName}</p>
       
-      ${userMessage
-      ? `<div class="email-message-section">
+      ${
+        userMessage
+          ? `<div class="email-message-section">
                <strong>Message from ${userName}:</strong><br>
                ${userMessage.replace(/\n/g, '<br>')}
              </div>`
-      : ''
-    }
+          : ''
+      }
       
       <div class="email-images-section">
         <div class="email-images-header">
           Selected Images (${sortedImages.length})
         </div>
         <ul class="email-images-list">
-          ${sortedImages.map((img) => `
+          ${sortedImages
+            .map(
+              (img) => `
             <li>
               <img src="${img.url}" alt="${img.name}" class="email-image-preview" />
               <div class="email-image-details">
@@ -76,7 +85,9 @@ export function renderGallerySelectionEmail({
                 ${img.rating ? `<div class="email-rating">${'★'.repeat(Math.round(img.rating))}${'☆'.repeat(5 - Math.round(img.rating))}</div>` : ''}
               </div>
             </li>
-          `).join('')}
+          `
+            )
+            .join('')}
         </ul>
       </div>
       
@@ -101,13 +112,14 @@ ${'='.repeat(50)}
 From: ${userName}
 Date: ${formattedDate}
 
-${userMessage
-      ? `MESSAGE FROM ${userName.toUpperCase()}:
+${
+  userMessage
+    ? `MESSAGE FROM ${userName.toUpperCase()}:
 ${userMessage}
 
 `
-      : ''
-    }SELECTED IMAGES (${sortedImages.length}):
+    : ''
+}SELECTED IMAGES (${sortedImages.length}):
 ${'~'.repeat(50)}
 ${sortedImages.map((img) => `• ${img.name}${img.rating ? ` [Rating: ${'★'.repeat(Math.round(img.rating))}${'☆'.repeat(5 - Math.round(img.rating))}]` : ''}`).join('\n')}
 

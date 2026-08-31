@@ -21,13 +21,17 @@ type UseMemoryUploadResult = {
   resetUploads: () => void;
 };
 
-async function uploadFileWithProgress(file: File, url: string, onProgress: (progress: number) => void): Promise<File> {
+async function uploadFileWithProgress(
+  file: File,
+  url: string,
+  onProgress: (progress: number) => void
+): Promise<File> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('PUT', url, true);
     xhr.setRequestHeader('Content-Type', file.type);
 
-    xhr.upload.onprogress = event => {
+    xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) {
         const progress = (event.loaded / event.total) * 100;
         onProgress(progress);
@@ -59,15 +63,22 @@ export function useMemoryUpload(): UseMemoryUploadResult {
     setUploads([]);
   };
 
-  const updateUploadProgress = (file: File, updates: Partial<UploadProgress>) => {
-    setUploads(prev => prev.map(upload => (upload.file === file ? { ...upload, ...updates } : upload)));
+  const updateUploadProgress = (
+    file: File,
+    updates: Partial<UploadProgress>
+  ) => {
+    setUploads((prev) =>
+      prev.map((upload) =>
+        upload.file === file ? { ...upload, ...updates } : upload
+      )
+    );
   };
 
   const uploadFiles = async (files: FileList | File[], folderName?: string) => {
     const fileArray = Array.from(files);
 
     // Initialize upload progress
-    const initialUploads: UploadProgress[] = fileArray.map(file => ({
+    const initialUploads: UploadProgress[] = fileArray.map((file) => ({
       file,
       progress: 0,
       status: 'pending' as const,
@@ -84,7 +95,7 @@ export function useMemoryUpload(): UseMemoryUploadResult {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          files: fileArray.map(file => ({
+          files: fileArray.map((file) => ({
             fileName: file.name,
             fileType: file.type,
             fileSize: file.size,
@@ -100,12 +111,14 @@ export function useMemoryUpload(): UseMemoryUploadResult {
       const { presignedUrls } = await presignResponse.json();
 
       // Step 2: Upload files to S3
-      const uploadPromises = presignedUrls.map((upload: PresignedUrlInfo, index: number) => {
-        const file = fileArray[index];
-        return uploadFileWithProgress(file, upload.signedUrl, progress => {
-          updateUploadProgress(file, { progress, status: 'uploading' });
-        });
-      });
+      const uploadPromises = presignedUrls.map(
+        (upload: PresignedUrlInfo, index: number) => {
+          const file = fileArray[index];
+          return uploadFileWithProgress(file, upload.signedUrl, (progress) => {
+            updateUploadProgress(file, { progress, status: 'uploading' });
+          });
+        }
+      );
 
       const uploadedFiles = await Promise.all(uploadPromises);
 
@@ -139,16 +152,24 @@ export function useMemoryUpload(): UseMemoryUploadResult {
             uploadedFiles.map(async (file, index) => {
               // Generate presigned URL using the s3Key from the presigned response
               const s3Key = presignedUrls[index].s3Key;
-              fatLogger.info('🔑 Generating presigned URL for frontend upload', 'fe', {
-                s3Key,
-                fileName: file.name,
-              });
+              fatLogger.info(
+                '🔑 Generating presigned URL for frontend upload',
+                'fe',
+                {
+                  s3Key,
+                  fileName: file.name,
+                }
+              );
               const publicUrl = await generatePresignedUrlFromStorageKey(s3Key);
-              fatLogger.info('✅ Generated presigned URL for frontend upload', 'fe', {
-                urlLength: publicUrl.length,
-                urlPreview: publicUrl.substring(0, 100) + '...',
-                fileName: file.name,
-              });
+              fatLogger.info(
+                '✅ Generated presigned URL for frontend upload',
+                'fe',
+                {
+                  urlLength: publicUrl.length,
+                  urlPreview: publicUrl.substring(0, 100) + '...',
+                  fileName: file.name,
+                }
+              );
 
               return {
                 fileName: file.name,
@@ -168,16 +189,18 @@ export function useMemoryUpload(): UseMemoryUploadResult {
       }
 
       // Mark all as completed
-      fileArray.forEach(file => {
+      fileArray.forEach((file) => {
         updateUploadProgress(file, { status: 'completed', progress: 100 });
       });
 
       return await commitResponse.json();
     } catch (error) {
-      fatLogger.error('Error during upload:', 'fe', { data: error instanceof Error ? error : undefined });
+      fatLogger.error('Error during upload:', 'fe', {
+        data: error instanceof Error ? error : undefined,
+      });
       // Update all pending/uploading uploads to error state
-      setUploads(prev =>
-        prev.map(upload =>
+      setUploads((prev) =>
+        prev.map((upload) =>
           upload.status !== 'completed' && upload.status !== 'error'
             ? {
                 ...upload,

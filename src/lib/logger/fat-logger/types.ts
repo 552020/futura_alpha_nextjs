@@ -14,7 +14,10 @@ export const TAG_NAMESPACES = {
 } as const;
 
 // Helper function for creating namespaced tags
-export function createTag(namespace: keyof typeof TAG_NAMESPACES, value: string): string {
+export function createTag(
+  namespace: keyof typeof TAG_NAMESPACES,
+  value: string
+): string {
   return `${TAG_NAMESPACES[namespace]}:${value}`;
 }
 

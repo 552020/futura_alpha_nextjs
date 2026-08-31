@@ -32,7 +32,10 @@ export async function GET(request: NextRequest) {
     });
 
     if (!allUserRecord) {
-      return NextResponse.json({ error: 'User record not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'User record not found' },
+        { status: 404 }
+      );
     }
 
     allUserId = allUserRecord.id;
@@ -42,7 +45,10 @@ export async function GET(request: NextRequest) {
 
     if (!body?.allUserId) {
       return NextResponse.json(
-        { error: 'For temporary users, allUserId must be provided in the request body' },
+        {
+          error:
+            'For temporary users, allUserId must be provided in the request body',
+        },
         { status: 401 }
       );
     }
@@ -53,7 +59,10 @@ export async function GET(request: NextRequest) {
     });
 
     if (!tempUserRecord) {
-      return NextResponse.json({ error: 'Invalid temporary user ID' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Invalid temporary user ID' },
+        { status: 404 }
+      );
     }
 
     allUserId = body.allUserId;
@@ -75,11 +84,14 @@ export async function GET(request: NextRequest) {
         // Exclude system-granted memberships (usually ownership)
         ne(resourceMembership.grantSource, 'system')
       ),
-      orderBy: orderBy === 'sharedAt' ? desc(resourceMembership.createdAt) : desc(resourceMembership.createdAt),
+      orderBy:
+        orderBy === 'sharedAt'
+          ? desc(resourceMembership.createdAt)
+          : desc(resourceMembership.createdAt),
     });
 
     // Get memory IDs from memberships (already ordered)
-    const memoryIds = memberships.map(membership => membership.resourceId);
+    const memoryIds = memberships.map((membership) => membership.resourceId);
 
     if (memoryIds.length === 0) {
       return NextResponse.json({
@@ -104,7 +116,7 @@ export async function GET(request: NextRequest) {
 
     // Sort memories by the order they appear in memoryIds (which is ordered by shares)
     const orderedMemories = memoryIds
-      .map(id => sharedMemories.find(memory => memory.id === id))
+      .map((id) => sharedMemories.find((memory) => memory.id === id))
       .filter(Boolean) as typeof sharedMemories;
 
     // Apply pagination to the ordered results
@@ -112,19 +124,21 @@ export async function GET(request: NextRequest) {
 
     // Calculate share counts and add sharing info
     const memoriesWithShareInfo = await Promise.all(
-      paginatedMemories.map(async memory => {
+      paginatedMemories.map(async (memory) => {
         // Find the membership record for this memory and user
-        const membership = memberships.find(m => m.resourceId === memory.id);
+        const membership = memberships.find((m) => m.resourceId === memory.id);
 
         // Get total membership count for this memory (excluding owner)
         const membershipCount = await db
           .select({ count: sql<number>`count(*)` })
           .from(resourceMembership)
-          .where(and(
-            eq(resourceMembership.resourceType, 'memory'),
-            eq(resourceMembership.resourceId, memory.id),
-            ne(resourceMembership.grantSource, 'system')
-          ));
+          .where(
+            and(
+              eq(resourceMembership.resourceType, 'memory'),
+              eq(resourceMembership.resourceId, memory.id),
+              ne(resourceMembership.grantSource, 'system')
+            )
+          );
 
         // Convert membership role to access level
         let accessLevel = 'read';
@@ -159,11 +173,13 @@ export async function GET(request: NextRequest) {
     );
 
     // Filter memories by type for backward compatibility
-    const images = memoriesWithShareInfo.filter(m => m.type === 'image');
-    const documents = memoriesWithShareInfo.filter(m => m.type === 'document');
-    const notes = memoriesWithShareInfo.filter(m => m.type === 'note');
-    const videos = memoriesWithShareInfo.filter(m => m.type === 'video');
-    const audio = memoriesWithShareInfo.filter(m => m.type === 'audio');
+    const images = memoriesWithShareInfo.filter((m) => m.type === 'image');
+    const documents = memoriesWithShareInfo.filter(
+      (m) => m.type === 'document'
+    );
+    const notes = memoriesWithShareInfo.filter((m) => m.type === 'note');
+    const videos = memoriesWithShareInfo.filter((m) => m.type === 'video');
+    const audio = memoriesWithShareInfo.filter((m) => m.type === 'audio');
 
     const hasMore = orderedMemories.length > offset + limit;
 
@@ -181,8 +197,13 @@ export async function GET(request: NextRequest) {
       total: memoriesWithShareInfo.length,
     });
   } catch (error) {
-    fatLogger.error('Error fetching shared memories:', 'be', { data: error instanceof Error ? error : undefined });
-    return NextResponse.json({ error: 'Failed to fetch shared memories' }, { status: 500 });
+    fatLogger.error('Error fetching shared memories:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
+    return NextResponse.json(
+      { error: 'Failed to fetch shared memories' },
+      { status: 500 }
+    );
   }
 }
 
@@ -200,12 +221,16 @@ async function getOwnerName(ownerId: string): Promise<string> {
     if (owner?.user) {
       return (owner.user as { name?: string }).name || 'Unknown User';
     } else if (owner?.temporaryUser) {
-      return (owner.temporaryUser as { name?: string }).name || 'Temporary User';
+      return (
+        (owner.temporaryUser as { name?: string }).name || 'Temporary User'
+      );
     }
 
     return 'Unknown';
   } catch (error) {
-    fatLogger.error('Error getting owner name:', 'be', { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Error getting owner name:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
     return 'Unknown';
   }
 }

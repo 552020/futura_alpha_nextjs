@@ -69,9 +69,15 @@ export const createMemoryRecord = async (
 ): Promise<MemoryOperationResult<typeof memories.$inferSelect>> => {
   try {
     // Resolve owner ID (handles onboarding case)
-    const ownerResult = await resolveOwnerId(params.ownerId, params.isOnboarding);
+    const ownerResult = await resolveOwnerId(
+      params.ownerId,
+      params.isOnboarding
+    );
     if (!ownerResult.success || !ownerResult.data) {
-      return { success: false, error: ownerResult.error || 'Failed to resolve owner ID' };
+      return {
+        success: false,
+        error: ownerResult.error || 'Failed to resolve owner ID',
+      };
     }
     const ownerId = ownerResult.data;
 
@@ -162,7 +168,10 @@ export const updateMemoryRecord = async (
 /**
  * Read a single memory record by ID
  */
-export const getMemoryRecord = async (memoryId: string, includeAssets = false): Promise<MemoryOperationResult> => {
+export const getMemoryRecord = async (
+  memoryId: string,
+  includeAssets = false
+): Promise<MemoryOperationResult> => {
   try {
     const memory = await db.query.memories.findFirst({
       where: eq(memories.id, memoryId),
@@ -208,7 +217,10 @@ export const getMemoryWithRelations = async (
       : undefined;
 
     const memory = await db.query.memories.findFirst({
-      where: and(eq(memories.id, memoryId), eq(memories.ownerId, ownerAllUserId)),
+      where: and(
+        eq(memories.id, memoryId),
+        eq(memories.ownerId, ownerAllUserId)
+      ),
       with: withRelations as unknown as undefined, // drizzle expects undefined when empty
     });
 
@@ -247,10 +259,17 @@ export const getMemoryWithAssetsByOwner = async (
  */
 export const attachStorageStatus = async (
   memory: typeof memories.$inferSelect
-): Promise<MemoryOperationResult<typeof memories.$inferSelect & { storageStatus: { storageLocations: string[] } }>> => {
+): Promise<
+  MemoryOperationResult<
+    typeof memories.$inferSelect & {
+      storageStatus: { storageLocations: string[] };
+    }
+  >
+> => {
   try {
     const status = await getStorageStatusForMemory(memory.id);
-    const storageStatus = status.success && status.data ? status.data : { storageLocations: [] };
+    const storageStatus =
+      status.success && status.data ? status.data : { storageLocations: [] };
     return { success: true, data: { ...memory, storageStatus } };
   } catch (error) {
     fatLogger.error('Failed to attach storage status', 'be', {
@@ -258,7 +277,10 @@ export const attachStorageStatus = async (
       operation: 'attach_storage_status',
       memoryId: memory.id,
     });
-    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
   }
 };
 
@@ -282,7 +304,9 @@ export const getMemoryRecords = async (
       if (params.parentFolderId === null) {
         whereConditions.push(isNull(memories.parentFolderId));
       } else {
-        whereConditions.push(eq(memories.parentFolderId, params.parentFolderId));
+        whereConditions.push(
+          eq(memories.parentFolderId, params.parentFolderId)
+        );
       }
     }
     if (!params.includeDeleted) {
@@ -400,9 +424,17 @@ export const getMemoryRecordsWithGalleries = async (
       title: r.title ?? null,
       description: r.description ?? null,
       url: r.url ?? '',
-      created_at: r.created_at?.toISOString ? r.created_at.toISOString() : String(r.created_at),
-      updated_at: r.updated_at ? (r.updated_at.toISOString ? r.updated_at.toISOString() : String(r.updated_at)) : null,
-      galleries: Array.isArray(r.galleries) ? r.galleries : JSON.parse(r.galleries ?? '[]'),
+      created_at: r.created_at?.toISOString
+        ? r.created_at.toISOString()
+        : String(r.created_at),
+      updated_at: r.updated_at
+        ? r.updated_at.toISOString
+          ? r.updated_at.toISOString()
+          : String(r.updated_at)
+        : null,
+      galleries: Array.isArray(r.galleries)
+        ? r.galleries
+        : JSON.parse(r.galleries ?? '[]'),
     })) as MemoryWithGalleries[];
 
     fatLogger.info('Retrieved memories with galleries', 'be', {
@@ -448,7 +480,13 @@ export const createMemoryWithAssets = async (params: {
 
   // Asset parameters
   assets?: Array<{
-    assetType: 'original' | 'display' | 'thumb' | 'placeholder' | 'poster' | 'waveform';
+    assetType:
+      | 'original'
+      | 'display'
+      | 'thumb'
+      | 'placeholder'
+      | 'poster'
+      | 'waveform';
     variant?: string;
     url: string;
     assetLocation: 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs' | 'neon';
@@ -462,7 +500,9 @@ export const createMemoryWithAssets = async (params: {
     processingStatus?: 'failed' | 'pending' | 'processing' | 'completed';
     processingError?: string;
   }>;
-}): Promise<MemoryOperationResult<{ memoryId: string; assets?: unknown[] }>> => {
+}): Promise<
+  MemoryOperationResult<{ memoryId: string; assets?: unknown[] }>
+> => {
   try {
     // Import asset operations
     const { createAssetRecord } = await import('./asset-operations');
@@ -482,7 +522,10 @@ export const createMemoryWithAssets = async (params: {
     });
 
     if (!memoryResult.success || !memoryResult.data) {
-      return { success: false, error: memoryResult.error || 'Failed to create memory' };
+      return {
+        success: false,
+        error: memoryResult.error || 'Failed to create memory',
+      };
     }
 
     const createdMemory = memoryResult.data;
@@ -529,14 +572,22 @@ export const createMemoryWithAssets = async (params: {
           memoryId: createdMemory.id,
           memoryType: params.type,
           assetsCount: params.assets.length,
-          assets: params.assets.map(a => ({ type: a.assetType, url: a.url, size: a.bytes })),
+          assets: params.assets.map((a) => ({
+            type: a.assetType,
+            url: a.url,
+            size: a.bytes,
+          })),
         });
 
         // Import storage edge creation function
-        const { createMemoryStorageEdges } = await import('@/lib/usecases/memory/create-memory-storage-edges');
+        const { createMemoryStorageEdges } = await import(
+          '@/lib/usecases/memory/create-memory-storage-edges'
+        );
 
         // Get the first asset (original) for storage edge creation
-        const originalAsset = params.assets.find(asset => asset.assetType === 'original') || params.assets[0];
+        const originalAsset =
+          params.assets.find((asset) => asset.assetType === 'original') ||
+          params.assets[0];
 
         fatLogger.info('🔗 Creating storage edges with asset data', 'be', {
           operation: 'create_memory_with_assets',
@@ -558,33 +609,41 @@ export const createMemoryWithAssets = async (params: {
         });
 
         if (!storageEdgeResult.success) {
-          fatLogger.error('❌ Failed to create storage edges for memory', 'be', {
-            operation: 'create_memory_with_assets',
-            memoryId: createdMemory.id,
-            error: storageEdgeResult.error,
-            originalAsset: {
-              type: originalAsset.assetType,
-              url: originalAsset.url,
-              size: originalAsset.bytes,
-            },
-          });
+          fatLogger.error(
+            '❌ Failed to create storage edges for memory',
+            'be',
+            {
+              operation: 'create_memory_with_assets',
+              memoryId: createdMemory.id,
+              error: storageEdgeResult.error,
+              originalAsset: {
+                type: originalAsset.assetType,
+                url: originalAsset.url,
+                size: originalAsset.bytes,
+              },
+            }
+          );
           // Don't fail the entire operation if storage edges fail
         } else {
-          fatLogger.info('✅ Successfully created storage edges for memory', 'be', {
-            operation: 'create_memory_with_assets',
-            memoryId: createdMemory.id,
-            metadataEdge: Array.isArray(storageEdgeResult.metadataEdge)
-              ? storageEdgeResult.metadataEdge[0]?.id
-              : storageEdgeResult.metadataEdge?.id,
-            assetEdge: Array.isArray(storageEdgeResult.assetEdge)
-              ? storageEdgeResult.assetEdge[0]?.id
-              : storageEdgeResult.assetEdge?.id,
-            originalAsset: {
-              type: originalAsset.assetType,
-              url: originalAsset.url,
-              size: originalAsset.bytes,
-            },
-          });
+          fatLogger.info(
+            '✅ Successfully created storage edges for memory',
+            'be',
+            {
+              operation: 'create_memory_with_assets',
+              memoryId: createdMemory.id,
+              metadataEdge: Array.isArray(storageEdgeResult.metadataEdge)
+                ? storageEdgeResult.metadataEdge[0]?.id
+                : storageEdgeResult.metadataEdge?.id,
+              assetEdge: Array.isArray(storageEdgeResult.assetEdge)
+                ? storageEdgeResult.assetEdge[0]?.id
+                : storageEdgeResult.assetEdge?.id,
+              originalAsset: {
+                type: originalAsset.assetType,
+                url: originalAsset.url,
+                size: originalAsset.bytes,
+              },
+            }
+          );
         }
       } catch (error) {
         fatLogger.error('❌ Error creating storage edges for memory', 'be', {
@@ -596,12 +655,16 @@ export const createMemoryWithAssets = async (params: {
         // Don't fail the entire operation if storage edges fail
       }
     } else {
-      fatLogger.warn('⚠️ Skipping storage edge creation - no assets provided', 'be', {
-        operation: 'create_memory_with_assets',
-        memoryId: createdMemory?.id,
-        hasAssets: !!(params.assets && params.assets.length > 0),
-        assetsCount: params.assets?.length || 0,
-      });
+      fatLogger.warn(
+        '⚠️ Skipping storage edge creation - no assets provided',
+        'be',
+        {
+          operation: 'create_memory_with_assets',
+          memoryId: createdMemory?.id,
+          hasAssets: !!(params.assets && params.assets.length > 0),
+          assetsCount: params.assets?.length || 0,
+        }
+      );
     }
 
     fatLogger.info('Created memory with assets', 'be', {
@@ -639,7 +702,9 @@ export const createMemoryWithAssets = async (params: {
  * The actual files remain in storage (S3, ICP, Vercel Blob, etc.).
  * Use MemoryOrchestrationService.deleteMemory() for complete deletion.
  */
-export const deleteMemoryRecord = async (memoryId: string): Promise<MemoryOperationResult> => {
+export const deleteMemoryRecord = async (
+  memoryId: string
+): Promise<MemoryOperationResult> => {
   try {
     const [deletedMemory] = await db
       .update(memories)
@@ -681,9 +746,14 @@ export const deleteMemoryRecord = async (memoryId: string): Promise<MemoryOperat
  * The actual files remain in storage (S3, ICP, Vercel Blob, etc.).
  * Use MemoryOrchestrationService.deleteMemory() for complete deletion.
  */
-export const hardDeleteMemoryRecord = async (memoryId: string): Promise<MemoryOperationResult> => {
+export const hardDeleteMemoryRecord = async (
+  memoryId: string
+): Promise<MemoryOperationResult> => {
   try {
-    const [deletedMemory] = await db.delete(memories).where(eq(memories.id, memoryId)).returning();
+    const [deletedMemory] = await db
+      .delete(memories)
+      .where(eq(memories.id, memoryId))
+      .returning();
 
     if (!deletedMemory) {
       return { success: false, error: 'Memory not found' };
@@ -718,7 +788,11 @@ export const checkMemoryRecordAccess = async (
 ): Promise<MemoryOperationResult<boolean>> => {
   try {
     const memory = await db.query.memories.findFirst({
-      where: and(eq(memories.id, memoryId), eq(memories.ownerId, userId), isNull(memories.deletedAt)),
+      where: and(
+        eq(memories.id, memoryId),
+        eq(memories.ownerId, userId),
+        isNull(memories.deletedAt)
+      ),
     });
 
     return { success: true, data: !!memory };
@@ -785,7 +859,10 @@ import { detectMemoryType as _detectMemoryType } from '@/utils/memory-type';
  * Extract memory type from MIME type or file extension
  * @deprecated Use detectMemoryType from @/utils/memory-type instead
  */
-export const extractMemoryType = (mimeType: string, fileName?: string): MemoryType => {
+export const extractMemoryType = (
+  mimeType: string,
+  fileName?: string
+): MemoryType => {
   // Re-export the utility function for backward compatibility
   return _detectMemoryType(mimeType, fileName);
 };
@@ -793,7 +870,9 @@ export const extractMemoryType = (mimeType: string, fileName?: string): MemoryTy
 /**
  * Get memory record statistics for a user
  */
-export const getMemoryRecordStats = async (ownerId: string): Promise<MemoryOperationResult> => {
+export const getMemoryRecordStats = async (
+  ownerId: string
+): Promise<MemoryOperationResult> => {
   try {
     const stats = await db.query.memories.findMany({
       where: and(eq(memories.ownerId, ownerId), isNull(memories.deletedAt)),
@@ -812,7 +891,7 @@ export const getMemoryRecordStats = async (ownerId: string): Promise<MemoryOpera
     );
 
     const totalCount = stats.length;
-    const recentCount = stats.filter(m => {
+    const recentCount = stats.filter((m) => {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       return m.createdAt > thirtyDaysAgo;

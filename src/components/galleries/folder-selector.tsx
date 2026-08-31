@@ -2,7 +2,13 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FolderInfo } from '@/types/gallery';
 import { RefreshCw, Folder, Image as ImageIcon } from 'lucide-react';
@@ -55,15 +61,24 @@ export function FolderSelector({
             <span className="text-sm font-medium">No folders found</span>
           </div>
           {onRefresh && (
-            <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+            >
+              <RefreshCw
+                className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`}
+              />
               Refresh
             </Button>
           )}
         </div>
         <div className="text-center py-6 border-2 border-dashed border-muted-foreground/25 rounded-lg">
           <Folder className="h-12 w-12 mx-auto text-muted-foreground/50 mb-2" />
-          <p className="text-sm text-muted-foreground mb-2">No folders with memories found</p>
+          <p className="text-sm text-muted-foreground mb-2">
+            No folders with memories found
+          </p>
           <p className="text-xs text-muted-foreground">
             Upload memories to folders first, then create galleries from them.
           </p>
@@ -80,7 +95,7 @@ export function FolderSelector({
             <SelectValue placeholder={placeholder} />
           </SelectTrigger>
           <SelectContent>
-            {folders.map(folder => (
+            {folders.map((folder) => (
               <SelectItem key={folder.name} value={folder.name}>
                 <div className="flex items-center space-x-2">
                   <Folder className="h-4 w-4" />
@@ -95,14 +110,24 @@ export function FolderSelector({
           </SelectContent>
         </Select>
         {onRefresh && (
-          <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={isRefreshing} className="ml-2">
-            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="ml-2"
+          >
+            <RefreshCw
+              className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}
+            />
           </Button>
         )}
       </div>
       {selectedFolder && (
         <div className="text-xs text-muted-foreground">
-          Selected: {selectedFolder} ({folders.find(f => f.name === selectedFolder)?.imageCount || 0} items)
+          Selected: {selectedFolder} (
+          {folders.find((f) => f.name === selectedFolder)?.imageCount || 0}{' '}
+          items)
         </div>
       )}
     </div>

@@ -6,7 +6,7 @@ export type AccessLevel = 'read' | 'write' | 'owner';
 
 /**
  * Get user's access level to a memory using the new resourceMembership system
- * 
+ *
  * Access hierarchy:
  * 1. Owner - Full control (from memories.ownerId match)
  * 2. Direct membership - Via resourceMembership with 'user' grant source

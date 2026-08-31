@@ -35,12 +35,18 @@ async function listS3Files() {
 
   try {
     // Check if S3 is configured
-    if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY || !process.env.AWS_S3_BUCKET) {
+    if (
+      !process.env.AWS_ACCESS_KEY_ID ||
+      !process.env.AWS_SECRET_ACCESS_KEY ||
+      !process.env.AWS_S3_BUCKET
+    ) {
       throw new Error(
         'S3 credentials not found in environment variables. Please check AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_S3_BUCKET'
       );
     }
-    console.log(`✅ S3 configured for bucket: ${BUCKET_NAME} (${s3Config.region})`);
+    console.log(
+      `✅ S3 configured for bucket: ${BUCKET_NAME} (${s3Config.region})`
+    );
     console.log('');
 
     // Get all objects from S3
@@ -73,7 +79,9 @@ async function listS3Files() {
     console.log(`📊 S3 Storage Statistics:`);
     console.log(`   Total files: ${allFiles.length}`);
     console.log(`   Total size: ${totalSizeMB} MB`);
-    console.log(`   Average file size: ${(totalSize / allFiles.length / 1024).toFixed(2)} KB\n`);
+    console.log(
+      `   Average file size: ${(totalSize / allFiles.length / 1024).toFixed(2)} KB\n`
+    );
 
     // Group files by type (based on file extension)
     const filesByType = allFiles.reduce((acc, file) => {
@@ -82,9 +90,13 @@ async function listS3Files() {
 
       // Map extensions to types
       let type = 'other';
-      if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'].includes(extension)) {
+      if (
+        ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'].includes(extension)
+      ) {
         type = 'image';
-      } else if (['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm'].includes(extension)) {
+      } else if (
+        ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm'].includes(extension)
+      ) {
         type = 'video';
       } else if (['mp3', 'wav', 'flac', 'aac', 'ogg'].includes(extension)) {
         type = 'audio';
@@ -103,7 +115,10 @@ async function listS3Files() {
     Object.entries(filesByType)
       .sort(([, a], [, b]) => b.length - a.length)
       .forEach(([type, typeFiles]) => {
-        const typeSize = typeFiles.reduce((sum, file) => sum + (file.Size || 0), 0);
+        const typeSize = typeFiles.reduce(
+          (sum, file) => sum + (file.Size || 0),
+          0
+        );
         const typeSizeMB = (typeSize / (1024 * 1024)).toFixed(2);
         console.log(`   ${type}: ${typeFiles.length} files (${typeSizeMB} MB)`);
       });
@@ -123,14 +138,19 @@ async function listS3Files() {
     Object.entries(filesByDirectory)
       .sort(([, a], [, b]) => b.length - a.length)
       .forEach(([directory, dirFiles]) => {
-        const dirSize = dirFiles.reduce((sum, file) => sum + (file.Size || 0), 0);
+        const dirSize = dirFiles.reduce(
+          (sum, file) => sum + (file.Size || 0),
+          0
+        );
         const dirSizeMB = (dirSize / (1024 * 1024)).toFixed(2);
-        console.log(`   ${directory}: ${dirFiles.length} files (${dirSizeMB} MB)`);
+        console.log(
+          `   ${directory}: ${dirFiles.length} files (${dirSizeMB} MB)`
+        );
       });
 
     // Recent uploads (last 20)
     const recentFiles = allFiles
-      .filter(file => file.LastModified)
+      .filter((file) => file.LastModified)
       .sort((a, b) => new Date(b.LastModified) - new Date(a.LastModified))
       .slice(0, 20);
 
@@ -140,12 +160,14 @@ async function listS3Files() {
       const uploadedAt = new Date(file.LastModified).toLocaleString();
       const fileName = file.Key?.split('/').pop() || 'unknown';
       console.log(`   ${index + 1}. ${fileName}`);
-      console.log(`      Size: ${sizeKB} KB | Key: ${file.Key} | Uploaded: ${uploadedAt}`);
+      console.log(
+        `      Size: ${sizeKB} KB | Key: ${file.Key} | Uploaded: ${uploadedAt}`
+      );
     });
 
     // Large files (> 1MB)
     const largeFiles = allFiles
-      .filter(file => (file.Size || 0) > 1024 * 1024)
+      .filter((file) => (file.Size || 0) > 1024 * 1024)
       .sort((a, b) => (b.Size || 0) - (a.Size || 0));
 
     if (largeFiles.length > 0) {
@@ -173,10 +195,12 @@ async function listS3Files() {
       });
 
     // Show processed image patterns (display, thumb variants)
-    const imageFiles = allFiles.filter(file => {
+    const imageFiles = allFiles.filter((file) => {
       const key = file.Key || '';
       const extension = key.split('.').pop()?.toLowerCase() || '';
-      return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'].includes(extension);
+      return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'].includes(
+        extension
+      );
     });
 
     if (imageFiles.length > 0) {
@@ -207,10 +231,15 @@ async function listS3Files() {
       if (multiVariantImages.length > 0) {
         console.log('   Processed images (multiple variants):');
         multiVariantImages.slice(0, 10).forEach(([baseName, files]) => {
-          const totalSize = files.reduce((sum, file) => sum + (file.Size || 0), 0);
+          const totalSize = files.reduce(
+            (sum, file) => sum + (file.Size || 0),
+            0
+          );
           const totalSizeKB = (totalSize / 1024).toFixed(2);
-          console.log(`   ${baseName}: ${files.length} variants (${totalSizeKB} KB total)`);
-          files.forEach(file => {
+          console.log(
+            `   ${baseName}: ${files.length} variants (${totalSizeKB} KB total)`
+          );
+          files.forEach((file) => {
             const fileName = file.Key?.split('/').pop() || 'unknown';
             const sizeKB = ((file.Size || 0) / 1024).toFixed(2);
             console.log(`     - ${fileName} (${sizeKB} KB)`);
@@ -219,7 +248,9 @@ async function listS3Files() {
       }
 
       // Show single images
-      const singleImages = Object.entries(imageGroups).filter(([, files]) => files.length === 1).length;
+      const singleImages = Object.entries(imageGroups).filter(
+        ([, files]) => files.length === 1
+      ).length;
 
       if (singleImages > 0) {
         console.log(`   Single images (no variants): ${singleImages} files`);
@@ -243,9 +274,14 @@ async function listS3Files() {
       Object.entries(userDirectories)
         .sort(([, a], [, b]) => b.length - a.length)
         .forEach(([userId, userFiles]) => {
-          const userSize = userFiles.reduce((sum, file) => sum + (file.Size || 0), 0);
+          const userSize = userFiles.reduce(
+            (sum, file) => sum + (file.Size || 0),
+            0
+          );
           const userSizeMB = (userSize / (1024 * 1024)).toFixed(2);
-          console.log(`   ${userId}: ${userFiles.length} files (${userSizeMB} MB)`);
+          console.log(
+            `   ${userId}: ${userFiles.length} files (${userSizeMB} MB)`
+          );
         });
     }
 
@@ -263,7 +299,12 @@ async function listS3Files() {
           {
             count: typeFiles.length,
             size: typeFiles.reduce((sum, file) => sum + (file.Size || 0), 0),
-            sizeMB: parseFloat((typeFiles.reduce((sum, file) => sum + (file.Size || 0), 0) / (1024 * 1024)).toFixed(2)),
+            sizeMB: parseFloat(
+              (
+                typeFiles.reduce((sum, file) => sum + (file.Size || 0), 0) /
+                (1024 * 1024)
+              ).toFixed(2)
+            ),
           },
         ])
       ),
@@ -273,11 +314,16 @@ async function listS3Files() {
           {
             count: dirFiles.length,
             size: dirFiles.reduce((sum, file) => sum + (file.Size || 0), 0),
-            sizeMB: parseFloat((dirFiles.reduce((sum, file) => sum + (file.Size || 0), 0) / (1024 * 1024)).toFixed(2)),
+            sizeMB: parseFloat(
+              (
+                dirFiles.reduce((sum, file) => sum + (file.Size || 0), 0) /
+                (1024 * 1024)
+              ).toFixed(2)
+            ),
           },
         ])
       ),
-      files: allFiles.map(file => ({
+      files: allFiles.map((file) => ({
         key: file.Key,
         fileName: file.Key?.split('/').pop() || 'unknown',
         size: file.Size || 0,

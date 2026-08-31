@@ -41,7 +41,11 @@ interface FeedItem extends Memory {
   sharedAt: string; // When it was shared with the user
 }
 
-export default function FeedPage({ params }: { params: Promise<{ lang: string }> }) {
+export default function FeedPage({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}) {
   // Unwrap params using React.use()
   const { lang } = use(params);
 
@@ -105,7 +109,9 @@ export default function FeedPage({ params }: { params: Promise<{ lang: string }>
     }
 
     try {
-      const response = await fetch(`/api/memories/shared?page=${currentPage}&orderBy=sharedAt`);
+      const response = await fetch(
+        `/api/memories/shared?page=${currentPage}&orderBy=sharedAt`
+      );
       if (!response.ok) {
         throw new Error('Failed to fetch feed items');
       }
@@ -124,13 +130,15 @@ export default function FeedPage({ params }: { params: Promise<{ lang: string }>
         };
       });
 
-      setFeedItems(prev => {
+      setFeedItems((prev) => {
         if (currentPage === 1) return feedItems;
         return [...prev, ...feedItems];
       });
       setHasMore(data.hasMore);
     } catch (error) {
-      fatLogger.error('Error fetching feed items', 'fe', { data: error as Error });
+      fatLogger.error('Error fetching feed items', 'fe', {
+        data: error as Error,
+      });
       toast({
         title: 'Error',
         description: 'Failed to load feed items. Please try again.',
@@ -149,9 +157,12 @@ export default function FeedPage({ params }: { params: Promise<{ lang: string }>
 
   useEffect(() => {
     const handleScroll = () => {
-      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 100) {
+      if (
+        window.innerHeight + window.scrollY >=
+        document.documentElement.scrollHeight - 100
+      ) {
         if (!isLoadingFeed && hasMore) {
-          setCurrentPage(prev => prev + 1);
+          setCurrentPage((prev) => prev + 1);
         }
       }
     };
@@ -166,9 +177,16 @@ export default function FeedPage({ params }: { params: Promise<{ lang: string }>
         return (
           <div className="relative w-full h-48 rounded-lg overflow-hidden bg-gray-100">
             {item.thumbnail ? (
-              <Image src={item.thumbnail} alt={item.title || 'Shared image'} fill className="object-cover" />
+              <Image
+                src={item.thumbnail}
+                alt={item.title || 'Shared image'}
+                fill
+                className="object-cover"
+              />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-gray-400">📷 Image</div>
+              <div className="w-full h-full flex items-center justify-center text-gray-400">
+                📷 Image
+              </div>
             )}
           </div>
         );
@@ -188,9 +206,16 @@ export default function FeedPage({ params }: { params: Promise<{ lang: string }>
                 className="rounded-lg"
               />
             ) : item.thumbnail ? (
-              <Image src={item.thumbnail} alt={item.title || 'Shared video'} fill className="object-cover" />
+              <Image
+                src={item.thumbnail}
+                alt={item.title || 'Shared video'}
+                fill
+                className="object-cover"
+              />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-gray-400">🎥 Video</div>
+              <div className="w-full h-full flex items-center justify-center text-gray-400">
+                🎥 Video
+              </div>
             )}
           </div>
         );
@@ -253,10 +278,14 @@ export default function FeedPage({ params }: { params: Promise<{ lang: string }>
               <h3 className="text-sm font-medium">Temporary Account</h3>
               <div className="mt-2 text-sm">
                 <p>
-                  You are currently using a temporary account. Your feed will be saved, but you need to complete the
-                  signup process within 7 days to keep your account and all your feed items.
+                  You are currently using a temporary account. Your feed will be
+                  saved, but you need to complete the signup process within 7
+                  days to keep your account and all your feed items.
                 </p>
-                <p className="mt-2">After 7 days, your account and all feed items will be automatically deleted.</p>
+                <p className="mt-2">
+                  After 7 days, your account and all feed items will be
+                  automatically deleted.
+                </p>
               </div>
             </div>
           </div>
@@ -271,12 +300,13 @@ export default function FeedPage({ params }: { params: Promise<{ lang: string }>
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-12 text-center">
           <h3 className="text-lg font-medium">No shared memories yet</h3>
           <p className="mt-2 text-sm text-muted-foreground">
-            When someone shares a memory with you, it will appear here in your feed.
+            When someone shares a memory with you, it will appear here in your
+            feed.
           </p>
         </div>
       ) : (
         <div className="space-y-6">
-          {feedItems.map(item => (
+          {feedItems.map((item) => (
             <div
               key={item.id}
               className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 cursor-pointer hover:shadow-md transition-shadow"
@@ -289,7 +319,9 @@ export default function FeedPage({ params }: { params: Promise<{ lang: string }>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <h3 className="font-semibold">{item.sharedBy.name}</h3>
-                    <span className="text-sm text-gray-500">shared a {item.type}</span>
+                    <span className="text-sm text-gray-500">
+                      shared a {item.type}
+                    </span>
                   </div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     {new Date(item.sharedAt).toLocaleDateString('en-US')} at{' '}
@@ -299,8 +331,14 @@ export default function FeedPage({ params }: { params: Promise<{ lang: string }>
               </div>
 
               <div className="space-y-3">
-                <h4 className="text-lg font-medium">{item.title || `Untitled ${item.type}`}</h4>
-                {item.description && <p className="text-gray-600 dark:text-gray-300">{item.description}</p>}
+                <h4 className="text-lg font-medium">
+                  {item.title || `Untitled ${item.type}`}
+                </h4>
+                {item.description && (
+                  <p className="text-gray-600 dark:text-gray-300">
+                    {item.description}
+                  </p>
+                )}
 
                 {renderMemoryPreview(item)}
               </div>

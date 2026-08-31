@@ -6,14 +6,20 @@ import { notFound } from 'next/navigation';
 import FileDetailEditor from '@/app/tests/files/[id]/file-detail-editor';
 
 // Server component to handle data fetching
-export default async function FileDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function FileDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   // Get the authenticated user
   const session = await auth();
   if (!session || !session.user) {
     return (
       <div className="p-8 max-w-xl mx-auto text-center">
         <h1 className="text-2xl font-bold mb-6">File Details</h1>
-        <div className="bg-yellow-50 text-yellow-800 p-4 rounded mb-6">You must be logged in to view file details</div>
+        <div className="bg-yellow-50 text-yellow-800 p-4 rounded mb-6">
+          You must be logged in to view file details
+        </div>
       </div>
     );
   }
@@ -33,7 +39,9 @@ export default async function FileDetailPage({ params }: { params: Promise<{ id:
       return (
         <div className="p-8 max-w-xl mx-auto">
           <h1 className="text-2xl font-bold mb-6">Access Denied</h1>
-          <div className="bg-red-50 text-red-800 p-4 rounded">You don&apos;t have permission to view this file</div>
+          <div className="bg-red-50 text-red-800 p-4 rounded">
+            You don&apos;t have permission to view this file
+          </div>
         </div>
       );
     }
@@ -52,7 +60,9 @@ export default async function FileDetailPage({ params }: { params: Promise<{ id:
       return (
         <div className="p-8 max-w-xl mx-auto">
           <h1 className="text-2xl font-bold mb-6">Access Denied</h1>
-          <div className="bg-red-50 text-red-800 p-4 rounded">You don&apos;t have permission to view this file</div>
+          <div className="bg-red-50 text-red-800 p-4 rounded">
+            You don&apos;t have permission to view this file
+          </div>
         </div>
       );
     }
@@ -71,7 +81,9 @@ export default async function FileDetailPage({ params }: { params: Promise<{ id:
       return (
         <div className="p-8 max-w-xl mx-auto">
           <h1 className="text-2xl font-bold mb-6">Access Denied</h1>
-          <div className="bg-red-50 text-red-800 p-4 rounded">You don&apos;t have permission to view this file</div>
+          <div className="bg-red-50 text-red-800 p-4 rounded">
+            You don&apos;t have permission to view this file
+          </div>
         </div>
       );
     }

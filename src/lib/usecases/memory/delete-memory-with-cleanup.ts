@@ -21,7 +21,11 @@ export async function deleteMemoryWithCleanup(
 ): Promise<DeleteMemoryWithCleanupResult> {
   try {
     // 1) Pre-read memory with relations needed for cleanup
-    const memoryDataResult = await getMemoryWithRelations(memoryId, ownerAllUserId, { assets: true, folder: true });
+    const memoryDataResult = await getMemoryWithRelations(
+      memoryId,
+      ownerAllUserId,
+      { assets: true, folder: true }
+    );
     if (!memoryDataResult.success || !memoryDataResult.data) {
       return { success: false, error: 'Memory not found' };
     }
@@ -29,22 +33,33 @@ export async function deleteMemoryWithCleanup(
     const memoryData = memoryDataResult.data as {
       id: string;
       type: 'image' | 'video' | 'note' | 'document' | 'audio';
-      metadata?: { custom?: { storageBackend?: string; storageKey?: string } } | null;
-      assets?: Array<{ assetLocation: string; storageKey: string; url?: string }>;
+      metadata?: {
+        custom?: { storageBackend?: string; storageKey?: string };
+      } | null;
+      assets?: Array<{
+        assetLocation: string;
+        storageKey: string;
+        url?: string;
+      }>;
       [key: string]: unknown;
     };
 
     // 2) Delete memory from database
     const deleted = await db
       .delete(memories)
-      .where(and(eq(memories.id, memoryId), eq(memories.ownerId, ownerAllUserId)))
+      .where(
+        and(eq(memories.id, memoryId), eq(memories.ownerId, ownerAllUserId))
+      )
       .returning();
 
     if (!deleted || deleted.length === 0) {
       return { success: false, error: 'Failed to delete memory' };
     }
 
-    fatLogger.info(`✅ Usecase - Deleted memory from database: ${memoryId}`, 'be');
+    fatLogger.info(
+      `✅ Usecase - Deleted memory from database: ${memoryId}`,
+      'be'
+    );
 
     // 3) Cleanup storage with pre-read data
     const cleanupResult = await cleanupMemoryAndStorage({
@@ -54,7 +69,11 @@ export async function deleteMemoryWithCleanup(
     });
 
     if (!cleanupResult.success) {
-      fatLogger.error(`❌ Usecase - Storage cleanup failed for ${memoryId}:`, 'be', { data: cleanupResult.error });
+      fatLogger.error(
+        `❌ Usecase - Storage cleanup failed for ${memoryId}:`,
+        'be',
+        { data: cleanupResult.error }
+      );
       return {
         success: true,
         cleanup: {
@@ -65,10 +84,14 @@ export async function deleteMemoryWithCleanup(
       };
     }
 
-    fatLogger.info(`✅ Usecase - Storage cleanup completed for ${memoryId}`, 'be', {
-      deletedS3Objects: cleanupResult.deletedS3Count,
-      deletedEdges: cleanupResult.deletedCount,
-    });
+    fatLogger.info(
+      `✅ Usecase - Storage cleanup completed for ${memoryId}`,
+      'be',
+      {
+        deletedS3Objects: cleanupResult.deletedS3Count,
+        deletedEdges: cleanupResult.deletedCount,
+      }
+    );
 
     return {
       success: true,
@@ -79,7 +102,9 @@ export async function deleteMemoryWithCleanup(
       },
     };
   } catch (error) {
-    fatLogger.error('Error deleting memory with cleanup:', 'be', { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Error deleting memory with cleanup:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
     return { success: false, error: 'Failed to delete memory' };
   }
 }

@@ -20,7 +20,9 @@ function Hero({ dict, lang }: HeroProps) {
         <div className="pt-32">
           <h1
             className="text-center font-black font-bold leading-none text-foreground"
-            style={{ fontSize: `calc(147vw / ${(dict?.hero?.title || 'Futura').length})` }}
+            style={{
+              fontSize: `calc(147vw / ${(dict?.hero?.title || 'Futura').length})`,
+            }}
           >
             {dict?.hero?.title || 'Futura'}
           </h1>
@@ -30,7 +32,9 @@ function Hero({ dict, lang }: HeroProps) {
         <div className="pb-15">
           <p
             className="text-center font-normal text-foreground"
-            style={{ fontSize: `calc(160vw / ${(dict?.hero?.subtitle || 'Live Forever. Now!').length})` }}
+            style={{
+              fontSize: `calc(160vw / ${(dict?.hero?.subtitle || 'Live Forever. Now!').length})`,
+            }}
           >
             {dict?.hero?.subtitle || 'Live Forever. Now!'}
           </p>

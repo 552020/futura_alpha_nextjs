@@ -31,7 +31,9 @@ export interface GrantResponse {
  * STEP 1 of the upload pipeline (uploadMultipleToS3WithProcessing in s3-with-processing.ts)
  */
 export async function getGrants(files: File[]): Promise<GrantResponse[]> {
-  fatLogger.info(`Getting grants for ${files.length} file(s)`, 'be', { fileNames: files.map(f => f.name) });
+  fatLogger.info(`Getting grants for ${files.length} file(s)`, 'be', {
+    fileNames: files.map((f) => f.name),
+  });
 
   const response = await fetch('/api/upload/s3/presign', {
     method: 'POST',
@@ -39,7 +41,7 @@ export async function getGrants(files: File[]): Promise<GrantResponse[]> {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      files: files.map(file => ({
+      files: files.map((file) => ({
         fileName: file.name,
         fileType: file.type,
         fileSize: file.size,

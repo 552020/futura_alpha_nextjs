@@ -13,14 +13,23 @@ describe('Gallery Sharing Routes Logic', () => {
         sharedWithId?: string;
         accessLevel?: string;
       }) => {
-        if (!params.sharedWithType) return { valid: false, error: 'sharedWithType is required' };
+        if (!params.sharedWithType)
+          return { valid: false, error: 'sharedWithType is required' };
         if (!['user', 'group'].includes(params.sharedWithType)) {
-          return { valid: false, error: "sharedWithType must be 'user' or 'group'" };
+          return {
+            valid: false,
+            error: "sharedWithType must be 'user' or 'group'",
+          };
         }
-        if (!params.sharedWithId) return { valid: false, error: 'sharedWithId is required' };
-        if (!params.accessLevel) return { valid: false, error: 'accessLevel is required' };
+        if (!params.sharedWithId)
+          return { valid: false, error: 'sharedWithId is required' };
+        if (!params.accessLevel)
+          return { valid: false, error: 'accessLevel is required' };
         if (!['read', 'write', 'admin'].includes(params.accessLevel)) {
-          return { valid: false, error: "accessLevel must be 'read', 'write', or 'admin'" };
+          return {
+            valid: false,
+            error: "accessLevel must be 'read', 'write', or 'admin'",
+          };
         }
         return { valid: true };
       };
@@ -43,7 +52,10 @@ describe('Gallery Sharing Routes Logic', () => {
       ).toEqual({ valid: true });
 
       // Invalid parameters
-      expect(validateShareParams({})).toEqual({ valid: false, error: 'sharedWithType is required' });
+      expect(validateShareParams({})).toEqual({
+        valid: false,
+        error: 'sharedWithType is required',
+      });
       expect(validateShareParams({ sharedWithType: 'invalid' })).toEqual({
         valid: false,
         error: "sharedWithType must be 'user' or 'group'",
@@ -52,11 +64,19 @@ describe('Gallery Sharing Routes Logic', () => {
         valid: false,
         error: 'sharedWithId is required',
       });
-      expect(validateShareParams({ sharedWithType: 'user', sharedWithId: 'user123' })).toEqual({
+      expect(
+        validateShareParams({ sharedWithType: 'user', sharedWithId: 'user123' })
+      ).toEqual({
         valid: false,
         error: 'accessLevel is required',
       });
-      expect(validateShareParams({ sharedWithType: 'user', sharedWithId: 'user123', accessLevel: 'invalid' })).toEqual({
+      expect(
+        validateShareParams({
+          sharedWithType: 'user',
+          sharedWithId: 'user123',
+          accessLevel: 'invalid',
+        })
+      ).toEqual({
         valid: false,
         error: "accessLevel must be 'read', 'write', or 'admin'",
       });
@@ -111,9 +131,14 @@ describe('Gallery Sharing Routes Logic', () => {
 
   describe('DELETE /api/galleries/[id]/share - Remove Sharing', () => {
     it('should validate unshare parameters', () => {
-      const validateUnshareParams = (params: { sharedWithType?: string; sharedWithId?: string }) => {
-        if (!params.sharedWithType) return { valid: false, error: 'sharedWithType is required' };
-        if (!params.sharedWithId) return { valid: false, error: 'sharedWithId is required' };
+      const validateUnshareParams = (params: {
+        sharedWithType?: string;
+        sharedWithId?: string;
+      }) => {
+        if (!params.sharedWithType)
+          return { valid: false, error: 'sharedWithType is required' };
+        if (!params.sharedWithId)
+          return { valid: false, error: 'sharedWithId is required' };
         return { valid: true };
       };
 
@@ -126,7 +151,10 @@ describe('Gallery Sharing Routes Logic', () => {
       ).toEqual({ valid: true });
 
       // Invalid parameters
-      expect(validateUnshareParams({})).toEqual({ valid: false, error: 'sharedWithType is required' });
+      expect(validateUnshareParams({})).toEqual({
+        valid: false,
+        error: 'sharedWithType is required',
+      });
       expect(validateUnshareParams({ sharedWithType: 'user' })).toEqual({
         valid: false,
         error: 'sharedWithId is required',
@@ -134,7 +162,10 @@ describe('Gallery Sharing Routes Logic', () => {
     });
 
     it('should prepare unshare deletion criteria', () => {
-      const prepareUnshareCriteria = (galleryId: string, params: { sharedWithType: string; sharedWithId: string }) => {
+      const prepareUnshareCriteria = (
+        galleryId: string,
+        params: { sharedWithType: string; sharedWithId: string }
+      ) => {
         return {
           galleryId,
           sharedWithType: params.sharedWithType,
@@ -162,7 +193,9 @@ describe('Gallery Sharing Routes Logic', () => {
         newShare: { sharedWithType: string; sharedWithId: string }
       ) => {
         return existingShares.some(
-          share => share.sharedWithType === newShare.sharedWithType && share.sharedWithId === newShare.sharedWithId
+          (share) =>
+            share.sharedWithType === newShare.sharedWithType &&
+            share.sharedWithId === newShare.sharedWithId
         );
       };
 
@@ -172,16 +205,34 @@ describe('Gallery Sharing Routes Logic', () => {
       ];
 
       // Already shared
-      expect(checkExistingShare(existingShares, { sharedWithType: 'user', sharedWithId: 'user1' })).toBe(true);
+      expect(
+        checkExistingShare(existingShares, {
+          sharedWithType: 'user',
+          sharedWithId: 'user1',
+        })
+      ).toBe(true);
 
       // Not shared
-      expect(checkExistingShare(existingShares, { sharedWithType: 'user', sharedWithId: 'user2' })).toBe(false);
-      expect(checkExistingShare(existingShares, { sharedWithType: 'group', sharedWithId: 'group2' })).toBe(false);
+      expect(
+        checkExistingShare(existingShares, {
+          sharedWithType: 'user',
+          sharedWithId: 'user2',
+        })
+      ).toBe(false);
+      expect(
+        checkExistingShare(existingShares, {
+          sharedWithType: 'group',
+          sharedWithId: 'group2',
+        })
+      ).toBe(false);
     });
 
     it('should generate secure access codes', () => {
       const generateSecureCode = () => {
-        return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        return (
+          Math.random().toString(36).substring(2, 15) +
+          Math.random().toString(36).substring(2, 15)
+        );
       };
 
       const code1 = generateSecureCode();
@@ -241,7 +292,11 @@ describe('Gallery Sharing Routes Logic', () => {
       });
 
       // Read can only change to read
-      expect(validateAccessLevel('read', 'read')).toEqual({ canChange: true, currentLevel: 'read', newLevel: 'read' });
+      expect(validateAccessLevel('read', 'read')).toEqual({
+        canChange: true,
+        currentLevel: 'read',
+        newLevel: 'read',
+      });
       expect(validateAccessLevel('read', 'write')).toEqual({
         canChange: false,
         currentLevel: 'read',

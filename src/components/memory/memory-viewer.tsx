@@ -38,7 +38,9 @@ export function MemoryViewer({ memory, isOwner }: MemoryViewerProps) {
       setDownloadUrl(url);
       setDownloadFileName(memory.title || 'memory');
     } catch (error) {
-      fatLogger.error('Error downloading memory:', 'fe', { data: error instanceof Error ? error : undefined });
+      fatLogger.error('Error downloading memory:', 'fe', {
+        data: error instanceof Error ? error : undefined,
+      });
     }
   };
 
@@ -64,7 +66,9 @@ export function MemoryViewer({ memory, isOwner }: MemoryViewerProps) {
       // Redirect to home or show success message
       window.location.href = '/';
     } catch (error) {
-      fatLogger.error('Error deleting memory:', 'fe', { data: error instanceof Error ? error : undefined });
+      fatLogger.error('Error deleting memory:', 'fe', {
+        data: error instanceof Error ? error : undefined,
+      });
     }
   };
 
@@ -81,7 +85,11 @@ export function MemoryViewer({ memory, isOwner }: MemoryViewerProps) {
           </Button>
           {isOwner && (
             <>
-              <Button variant="outline" size="icon" onClick={() => setIsEditing(!isEditing)}>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setIsEditing(!isEditing)}
+              >
                 <Edit className="h-4 w-4" />
               </Button>
               <Button variant="destructive" size="icon" onClick={handleDelete}>
@@ -96,7 +104,12 @@ export function MemoryViewer({ memory, isOwner }: MemoryViewerProps) {
       <div className="mt-4">
         {memory.type === 'image' && primaryAsset && (
           <div className="relative aspect-video w-full overflow-hidden rounded-lg">
-            <Image src={primaryAsset.url} alt={memory.title || 'Shared memory'} fill className="object-cover" />
+            <Image
+              src={primaryAsset.url}
+              alt={memory.title || 'Shared memory'}
+              fill
+              className="object-cover"
+            />
           </div>
         )}
 
@@ -111,18 +124,26 @@ export function MemoryViewer({ memory, isOwner }: MemoryViewerProps) {
 
         {memory.type === 'document' && primaryAsset && (
           <div className="rounded-lg border p-4">
-            <p className="text-sm text-muted-foreground">Document Type: {primaryAsset.mimeType}</p>
-            <p className="text-sm text-muted-foreground">Size: {primaryAsset.bytes} bytes</p>
+            <p className="text-sm text-muted-foreground">
+              Document Type: {primaryAsset.mimeType}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Size: {primaryAsset.bytes} bytes
+            </p>
           </div>
         )}
 
         {memory.type === 'note' && (
           <div className="rounded-lg border p-4">
-            <p className="text-muted-foreground">{memory.description || 'Note content not available'}</p>
+            <p className="text-muted-foreground">
+              {memory.description || 'Note content not available'}
+            </p>
           </div>
         )}
 
-        {memory.description && <p className="mt-4 text-muted-foreground">{memory.description}</p>}
+        {memory.description && (
+          <p className="mt-4 text-muted-foreground">{memory.description}</p>
+        )}
       </div>
 
       {downloadUrl && downloadFileName && (
@@ -130,7 +151,7 @@ export function MemoryViewer({ memory, isOwner }: MemoryViewerProps) {
           href={downloadUrl}
           download={downloadFileName}
           className="hidden"
-          ref={el => {
+          ref={(el) => {
             if (el) {
               el.click();
               setDownloadUrl(null);

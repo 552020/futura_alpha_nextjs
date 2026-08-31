@@ -50,10 +50,14 @@ export async function generateBestAssetUrl(asset: ICPAsset): Promise<string> {
 
       return httpUrl;
     } catch (error) {
-      fatLogger.warn('Failed to generate ICP HTTP URL, falling back to direct URL', 'fe', {
-        memoryId: asset.memoryId,
-        error: error instanceof Error ? error.message : String(error),
-      });
+      fatLogger.warn(
+        'Failed to generate ICP HTTP URL, falling back to direct URL',
+        'fe',
+        {
+          memoryId: asset.memoryId,
+          error: error instanceof Error ? error.message : String(error),
+        }
+      );
 
       // Fall back to direct URL if HTTP serving fails
       return asset.url;
@@ -76,15 +80,19 @@ export async function generateBulkAssetUrls(
   variant: string = 'thumbnail'
 ): Promise<Map<string, string>> {
   // Separate ICP and non-ICP assets
-  const icpAssets = assets.filter(asset => asset.assetLocation === 'icp' && asset.memoryId);
-  const nonIcpAssets = assets.filter(asset => asset.assetLocation !== 'icp' || !asset.memoryId);
+  const icpAssets = assets.filter(
+    (asset) => asset.assetLocation === 'icp' && asset.memoryId
+  );
+  const nonIcpAssets = assets.filter(
+    (asset) => asset.assetLocation !== 'icp' || !asset.memoryId
+  );
 
   const urlMap = new Map<string, string>();
 
   // Handle ICP assets with bulk HTTP serving
   if (icpAssets.length > 0) {
     try {
-      const memoryIds = icpAssets.map(asset => asset.memoryId!);
+      const memoryIds = icpAssets.map((asset) => asset.memoryId!);
       const httpUrls = await getBulkHttpAssetUrls(memoryIds, variant);
 
       // Map HTTP URLs back to assets
@@ -179,5 +187,3 @@ export function createICPAsset(
     storageKey,
   };
 }
-
-

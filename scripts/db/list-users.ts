@@ -10,7 +10,7 @@ async function listUsers() {
     });
 
     console.log(`Found ${allUsers.length} users:`);
-    allUsers.forEach(user => {
+    allUsers.forEach((user) => {
       console.log('\n--- User ---');
       console.log(`ID: ${user.id}`);
       console.log(`Name: ${user.name}`);

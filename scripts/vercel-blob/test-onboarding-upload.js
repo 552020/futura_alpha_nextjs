@@ -37,10 +37,20 @@ async function processImageForMultipleAssetsBackend(file) {
   console.log(`📐 Original dimensions: ${originalWidth}x${originalHeight}`);
 
   // Calculate resize dimensions
-  const displaySize = calculateResizeDimensions(originalWidth, originalHeight, 2048);
-  const thumbSize = calculateResizeDimensions(originalWidth, originalHeight, 512);
+  const displaySize = calculateResizeDimensions(
+    originalWidth,
+    originalHeight,
+    2048
+  );
+  const thumbSize = calculateResizeDimensions(
+    originalWidth,
+    originalHeight,
+    512
+  );
 
-  console.log(`📐 Display dimensions: ${displaySize.width}x${displaySize.height}`);
+  console.log(
+    `📐 Display dimensions: ${displaySize.width}x${displaySize.height}`
+  );
   console.log(`📐 Thumb dimensions: ${thumbSize.width}x${thumbSize.height}`);
 
   // Process images in parallel
@@ -68,9 +78,19 @@ async function processImageForMultipleAssetsBackend(file) {
   ]);
 
   // Create File objects for each processed image
-  const originalBlob = new File([new Uint8Array(originalBuffer)], file.name, { type: 'image/webp' });
-  const displayBlob = new File([new Uint8Array(displayBuffer)], `display_${file.name}`, { type: 'image/webp' });
-  const thumbBlob = new File([new Uint8Array(thumbBuffer)], `thumb_${file.name}`, { type: 'image/webp' });
+  const originalBlob = new File([new Uint8Array(originalBuffer)], file.name, {
+    type: 'image/webp',
+  });
+  const displayBlob = new File(
+    [new Uint8Array(displayBuffer)],
+    `display_${file.name}`,
+    { type: 'image/webp' }
+  );
+  const thumbBlob = new File(
+    [new Uint8Array(thumbBuffer)],
+    `thumb_${file.name}`,
+    { type: 'image/webp' }
+  );
 
   return {
     original: {
@@ -127,12 +147,17 @@ async function testOnboardingUpload() {
   try {
     // Check if token is available
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      throw new Error('BLOB_READ_WRITE_TOKEN not found in environment variables');
+      throw new Error(
+        'BLOB_READ_WRITE_TOKEN not found in environment variables'
+      );
     }
     console.log('✅ BLOB_READ_WRITE_TOKEN found');
 
     // Test with a real image file
-    const testImage = { path: '../../public/small/abstract-1.jpg', name: 'abstract-1.jpg' };
+    const testImage = {
+      path: '../../public/small/abstract-1.jpg',
+      name: 'abstract-1.jpg',
+    };
     const fullPath = path.join(__dirname, testImage.path);
 
     if (!fs.existsSync(fullPath)) {
@@ -186,15 +211,33 @@ async function testOnboardingUpload() {
     // Step 4: Test file accessibility
     console.log('🔍 Step 4: Testing file accessibility...');
     const [originalTest, displayTest, thumbTest] = await Promise.all([
-      fetch(originalBlob.url).then(r => ({ ok: r.ok, status: r.status, size: r.headers.get('content-length') })),
-      fetch(displayBlob.url).then(r => ({ ok: r.ok, status: r.status, size: r.headers.get('content-length') })),
-      fetch(thumbBlob.url).then(r => ({ ok: r.ok, status: r.status, size: r.headers.get('content-length') })),
+      fetch(originalBlob.url).then((r) => ({
+        ok: r.ok,
+        status: r.status,
+        size: r.headers.get('content-length'),
+      })),
+      fetch(displayBlob.url).then((r) => ({
+        ok: r.ok,
+        status: r.status,
+        size: r.headers.get('content-length'),
+      })),
+      fetch(thumbBlob.url).then((r) => ({
+        ok: r.ok,
+        status: r.status,
+        size: r.headers.get('content-length'),
+      })),
     ]);
 
     console.log('✅ File accessibility test:');
-    console.log(`  Original: ${originalTest.ok ? '✅' : '❌'} (${originalTest.status}) - ${originalTest.size} bytes`);
-    console.log(`  Display: ${displayTest.ok ? '✅' : '❌'} (${displayTest.status}) - ${displayTest.size} bytes`);
-    console.log(`  Thumb: ${thumbTest.ok ? '✅' : '❌'} (${thumbTest.status}) - ${thumbTest.size} bytes`);
+    console.log(
+      `  Original: ${originalTest.ok ? '✅' : '❌'} (${originalTest.status}) - ${originalTest.size} bytes`
+    );
+    console.log(
+      `  Display: ${displayTest.ok ? '✅' : '❌'} (${displayTest.status}) - ${displayTest.size} bytes`
+    );
+    console.log(
+      `  Thumb: ${thumbTest.ok ? '✅' : '❌'} (${thumbTest.status}) - ${thumbTest.size} bytes`
+    );
 
     // Step 5: Simulate memory creation
     console.log('💾 Step 5: Simulating memory creation...');
@@ -239,8 +282,12 @@ async function testOnboardingUpload() {
 
     console.log('✅ Memory data structure:');
     console.log(`  Memory ID: ${memoryData.id}`);
-    console.log(`  Assets: ${memoryData.assets.length} (original, display, thumb)`);
-    console.log(`  All assets accessible: ${memoryData.assets.every(asset => asset.url.startsWith('https://'))}`);
+    console.log(
+      `  Assets: ${memoryData.assets.length} (original, display, thumb)`
+    );
+    console.log(
+      `  All assets accessible: ${memoryData.assets.every((asset) => asset.url.startsWith('https://'))}`
+    );
 
     console.log('\n🎉 Onboarding upload test completed successfully!');
     console.log('\n📊 Summary:');

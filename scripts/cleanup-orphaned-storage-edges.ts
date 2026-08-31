@@ -16,8 +16,10 @@ async function cleanupOrphanedStorageEdges() {
 
   try {
     // Get all existing memory IDs
-    const existingMemories = await db.select({ id: memories.id }).from(memories);
-    const existingMemoryIds = existingMemories.map(m => m.id);
+    const existingMemories = await db
+      .select({ id: memories.id })
+      .from(memories);
+    const existingMemoryIds = existingMemories.map((m) => m.id);
 
     console.log(`📊 Found ${existingMemoryIds.length} existing memories`);
 
@@ -34,7 +36,9 @@ async function cleanupOrphanedStorageEdges() {
       .from(storageEdges)
       .where(notInArray(storageEdges.memoryId, existingMemoryIds));
 
-    console.log(`🔍 Found ${orphanedEdges.length} orphaned storage_edges records`);
+    console.log(
+      `🔍 Found ${orphanedEdges.length} orphaned storage_edges records`
+    );
 
     if (orphanedEdges.length === 0) {
       console.log('✅ No orphaned storage_edges found - database is clean!');
@@ -44,7 +48,9 @@ async function cleanupOrphanedStorageEdges() {
     // Log some examples of orphaned records
     console.log('\n📋 Examples of orphaned records:');
     orphanedEdges.slice(0, 5).forEach((edge, index) => {
-      console.log(`  ${index + 1}. Edge ID: ${edge.id}, Memory ID: ${edge.memoryId}`);
+      console.log(
+        `  ${index + 1}. Edge ID: ${edge.id}, Memory ID: ${edge.memoryId}`
+      );
     });
 
     if (orphanedEdges.length > 5) {
@@ -52,9 +58,13 @@ async function cleanupOrphanedStorageEdges() {
     }
 
     // Delete orphaned storage_edges
-    await db.delete(storageEdges).where(notInArray(storageEdges.memoryId, existingMemoryIds));
+    await db
+      .delete(storageEdges)
+      .where(notInArray(storageEdges.memoryId, existingMemoryIds));
 
-    console.log(`\n✅ Successfully deleted ${orphanedEdges.length} orphaned storage_edges records`);
+    console.log(
+      `\n✅ Successfully deleted ${orphanedEdges.length} orphaned storage_edges records`
+    );
 
     // Verify cleanup
     const remainingOrphaned = await db
@@ -63,9 +73,13 @@ async function cleanupOrphanedStorageEdges() {
       .where(notInArray(storageEdges.memoryId, existingMemoryIds));
 
     if (remainingOrphaned.length === 0) {
-      console.log('🎉 Database is now clean - no orphaned storage_edges remain!');
+      console.log(
+        '🎉 Database is now clean - no orphaned storage_edges remain!'
+      );
     } else {
-      console.log(`⚠️  Warning: ${remainingOrphaned.length} orphaned records still exist`);
+      console.log(
+        `⚠️  Warning: ${remainingOrphaned.length} orphaned records still exist`
+      );
     }
   } catch (error) {
     console.error('❌ Error during cleanup:', error);
@@ -79,7 +93,7 @@ cleanupOrphanedStorageEdges()
     console.log('\n🎉 Cleanup completed successfully!');
     process.exit(0);
   })
-  .catch(error => {
+  .catch((error) => {
     console.error('💥 Cleanup failed:', error);
     process.exit(1);
   });

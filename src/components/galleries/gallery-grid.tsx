@@ -26,7 +26,9 @@ export function GalleryGrid({
         <div className="h-12 w-12 text-muted-foreground">📁</div>
       </div>
       <h3 className="text-xl font-semibold mb-2">No galleries yet</h3>
-      <p className="text-muted-foreground mb-6">Create your first gallery to start organizing your photos</p>
+      <p className="text-muted-foreground mb-6">
+        Create your first gallery to start organizing your photos
+      </p>
     </div>
   );
 
@@ -36,14 +38,26 @@ export function GalleryGrid({
       emptyState={emptyState}
       gap="md"
       gridCols={{ sm: 1, md: 2, lg: 3, xl: 4 }}
-      renderItem={gallery => (
+      renderItem={(gallery) => (
         <ContentCard
           key={gallery.id}
           item={gallery}
           onClick={() => onGalleryClick(gallery)}
-          onEdit={onGalleryEdit && gallery.isOwner ? () => onGalleryEdit(gallery) : undefined}
-          onShare={onGalleryShare && gallery.isOwner ? () => onGalleryShare(gallery) : undefined}
-          onDelete={onGalleryDelete && gallery.isOwner ? () => onGalleryDelete(gallery) : undefined}
+          onEdit={
+            onGalleryEdit && gallery.isOwner
+              ? () => onGalleryEdit(gallery)
+              : undefined
+          }
+          onShare={
+            onGalleryShare && gallery.isOwner
+              ? () => onGalleryShare(gallery)
+              : undefined
+          }
+          onDelete={
+            onGalleryDelete && gallery.isOwner
+              ? () => onGalleryDelete(gallery)
+              : undefined
+          }
           contentType="gallery"
         />
       )}

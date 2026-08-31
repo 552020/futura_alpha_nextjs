@@ -14,7 +14,10 @@ import type { MemoryType } from '@/db/enums';
  * @param fileName - Optional file name for extension fallback
  * @returns The detected memory type
  */
-export function detectMemoryType(mimeType: string, fileName?: string): MemoryType {
+export function detectMemoryType(
+  mimeType: string,
+  fileName?: string
+): MemoryType {
   // Primary detection based on MIME type
   if (mimeType.startsWith('image/')) return 'image';
   if (mimeType.startsWith('video/')) return 'video';
@@ -27,12 +30,18 @@ export function detectMemoryType(mimeType: string, fileName?: string): MemoryTyp
     if (!extension) return 'document';
 
     // Image extensions
-    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'tiff'].includes(extension)) {
+    if (
+      ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'tiff'].includes(
+        extension
+      )
+    ) {
       return 'image';
     }
 
     // Video extensions
-    if (['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv'].includes(extension)) {
+    if (
+      ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv'].includes(extension)
+    ) {
       return 'video';
     }
 

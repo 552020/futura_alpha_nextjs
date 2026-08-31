@@ -11,12 +11,21 @@
  * - Handle upload progress and error states
  */
 
-import { processImageForMultipleAssets, uploadProcessedAssetsToBlob } from '@/app/api/memories/utils/image-processing';
+import {
+  processImageForMultipleAssets,
+  uploadProcessedAssetsToBlob,
+} from '@/app/api/memories/utils/image-processing';
 
 export interface UploadProgress {
   fileIndex: number;
   fileName: string;
-  stage: 'processing' | 'uploading' | 'creating-memory' | 'adding-assets' | 'completed' | 'error';
+  stage:
+    | 'processing'
+    | 'uploading'
+    | 'creating-memory'
+    | 'adding-assets'
+    | 'completed'
+    | 'error';
   progress: number; // 0-100
   error?: string;
 }
@@ -85,7 +94,10 @@ export async function uploadImageWithMultipleAssets(
     });
 
     const baseFileName = file.name.replace(/[^a-zA-Z0-9-_\.]/g, '_');
-    const blobResults = await uploadProcessedAssetsToBlob(processedAssets, baseFileName);
+    const blobResults = await uploadProcessedAssetsToBlob(
+      processedAssets,
+      baseFileName
+    );
 
     onProgress?.({
       fileIndex: 0,
@@ -202,7 +214,13 @@ export async function uploadImageWithMultipleAssets(
         type: memory.type,
         title: memory.title,
         assets: assetsData.assets.map(
-          (asset: { assetType: string; url: string; width: number; height: number; bytes: number }) => ({
+          (asset: {
+            assetType: string;
+            url: string;
+            width: number;
+            height: number;
+            bytes: number;
+          }) => ({
             assetType: asset.assetType,
             url: asset.url,
             width: asset.width,
@@ -255,7 +273,7 @@ export async function uploadMultipleImagesWithAssets(
 
       const result = await uploadImageWithMultipleAssets(file, {
         parentFolderId,
-        onProgress: progress => {
+        onProgress: (progress) => {
           onProgress?.(fileIndex, progress);
         },
       });
@@ -387,22 +405,22 @@ export function getOptimalAssetUrl(
   switch (useCase) {
     case 'grid':
       // Use thumbnail for grid view
-      const thumb = assets.find(a => a.assetType === 'thumb');
+      const thumb = assets.find((a) => a.assetType === 'thumb');
       return thumb?.url || assets[0]?.url || '';
 
     case 'lightbox':
       // Use display version for lightbox
-      const display = assets.find(a => a.assetType === 'display');
+      const display = assets.find((a) => a.assetType === 'display');
       return display?.url || assets[0]?.url || '';
 
     case 'fullscreen':
       // Use display version for fullscreen (could be original for very high-res displays)
-      const fullscreen = assets.find(a => a.assetType === 'display');
+      const fullscreen = assets.find((a) => a.assetType === 'display');
       return fullscreen?.url || assets[0]?.url || '';
 
     case 'original':
       // Use original for editing/downloading
-      const original = assets.find(a => a.assetType === 'original');
+      const original = assets.find((a) => a.assetType === 'original');
       return original?.url || assets[0]?.url || '';
 
     default:
@@ -423,7 +441,8 @@ export function calculateUploadSize(files: File[]): {
   // Estimate processed size (display + thumb are typically 5-10% of original)
   const estimatedProcessedSize = originalSize * 0.15; // 15% of original size
 
-  const compressionRatio = originalSize > 0 ? estimatedProcessedSize / originalSize : 0;
+  const compressionRatio =
+    originalSize > 0 ? estimatedProcessedSize / originalSize : 0;
 
   return {
     originalSize,

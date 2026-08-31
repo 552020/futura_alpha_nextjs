@@ -12,7 +12,14 @@ import SocialLinks from '@/components/layout/social-links';
 import UserButtonClientWithII from '@/components/auth/user-button-client-with-ii';
 import { useInterface } from '@/contexts/interface-context';
 import { LanguageSwitcher } from '@/components/i18n/language-switcher';
-import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader, SheetClose } from '@/components/ui/sheet';
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetTitle,
+  SheetHeader,
+  SheetClose,
+} from '@/components/ui/sheet';
 import { Dictionary } from '@/utils/dictionaries';
 import { usePathname } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -22,7 +29,13 @@ import { fatLogger } from '@/lib/logger';
 // Define a proper type for the dictionary with optional fields
 type HeaderDictionary = Dictionary;
 
-export default function Header({ dict, lang }: { dict: HeaderDictionary; lang?: string }) {
+export default function Header({
+  dict,
+  lang,
+}: {
+  dict: HeaderDictionary;
+  lang?: string;
+}) {
   const { data: session, status } = useSession();
   const { mode } = useInterface();
   const pathname = usePathname();
@@ -42,7 +55,8 @@ export default function Header({ dict, lang }: { dict: HeaderDictionary; lang?: 
   }, []);
 
   // Hide header on gallery preview pages
-  const isGalleryPreview = pathname.includes('/gallery/') && pathname.includes('/preview');
+  const isGalleryPreview =
+    pathname.includes('/gallery/') && pathname.includes('/preview');
 
   if (isGalleryPreview) {
     return null;
@@ -61,7 +75,9 @@ export default function Header({ dict, lang }: { dict: HeaderDictionary; lang?: 
         if ((error as Error).name === 'AbortError') {
           // fatLogger.info("Web Share API not supported");
         } else {
-          fatLogger.error('Error sharing content:', 'fe', { data: error instanceof Error ? error : undefined });
+          fatLogger.error('Error sharing content:', 'fe', {
+            data: error instanceof Error ? error : undefined,
+          });
         }
       }
     } else {
@@ -74,7 +90,9 @@ export default function Header({ dict, lang }: { dict: HeaderDictionary; lang?: 
           description: 'The link has been copied to your clipboard.',
         });
       } catch (error) {
-        fatLogger.error('Failed to copy link:', 'fe', { data: error instanceof Error ? error : undefined });
+        fatLogger.error('Failed to copy link:', 'fe', {
+          data: error instanceof Error ? error : undefined,
+        });
         toast({
           title: 'Error',
           description: 'Failed to copy link to clipboard.',
@@ -89,16 +107,26 @@ export default function Header({ dict, lang }: { dict: HeaderDictionary; lang?: 
       <div className="flex h-16 items-center justify-between px-6">
         {/* Left: Logo section */}
         <section className="logo-section flex items-center">
-          <Link href={`/${currentLang}`} className="transition-transform hover:scale-105">
+          <Link
+            href={`/${currentLang}`}
+            className="transition-transform hover:scale-105"
+          >
             <div className="w-10 h-10 rounded-full bg-black dark:bg-white flex items-center justify-center">
-              <span className="text-xl sm:text-2xl font-bold text-white dark:text-black">F</span>
+              <span className="text-xl sm:text-2xl font-bold text-white dark:text-black">
+                F
+              </span>
             </div>
           </Link>
         </section>
 
         {/* Center: Navigation - DESKTOP ONLY */}
         <nav className="navigation-section hidden md:flex flex-1 justify-center gap-6 text-xs sm:text-sm">
-          <NavBar mode={mode} lang={currentLang} dict={dict} subdomain={subdomain} />
+          <NavBar
+            mode={mode}
+            lang={currentLang}
+            dict={dict}
+            subdomain={subdomain}
+          />
         </nav>
 
         {/* Right User controls */}
@@ -125,21 +153,30 @@ export default function Header({ dict, lang }: { dict: HeaderDictionary; lang?: 
 
           {/* Settings button - hide on mobile, and hide when unauthenticated */}
           <div className="hidden md:block transition-opacity hover:opacity-80">
-            {status === 'authenticated' && session?.user ? <SettingsButton /> : null}
+            {status === 'authenticated' && session?.user ? (
+              <SettingsButton />
+            ) : null}
           </div>
 
           {/* Mobile: Burger menu - MOBILE ONLY */}
           <div className="md:hidden transition-opacity hover:opacity-80">
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="hover:bg-muted" suppressHydrationWarning>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="hover:bg-muted"
+                  suppressHydrationWarning
+                >
                   <Menu className="h-5 w-5" />
                   <span className="sr-only">Toggle menu</span>
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-[300px]">
                 <SheetHeader className="border-b pb-4 mb-4">
-                  <SheetTitle className="text-lg font-semibold">Menu</SheetTitle>
+                  <SheetTitle className="text-lg font-semibold">
+                    Menu
+                  </SheetTitle>
                 </SheetHeader>
                 <div className="flex flex-col space-y-4">
                   <nav className="flex flex-col">

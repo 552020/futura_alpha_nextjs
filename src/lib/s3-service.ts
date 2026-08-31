@@ -27,14 +27,20 @@ export function generateS3Key(filename: string, userId: string): string {
 }
 
 // Generate derivative-specific S3 keys
-export function generateDerivativeS3Key(baseKey: string, derivativeType: 'display' | 'thumb'): string {
+export function generateDerivativeS3Key(
+  baseKey: string,
+  derivativeType: 'display' | 'thumb'
+): string {
   // Remove the original extension and add derivative suffix
   const keyWithoutExt = baseKey.replace(/\.[^.]+$/, '');
   return `${keyWithoutExt}-${derivativeType}.webp`;
 }
 
 // Generate a presigned URL for direct S3 upload
-export async function generatePresignedUploadUrl(key: string, contentType: string): Promise<string> {
+export async function generatePresignedUploadUrl(
+  key: string,
+  contentType: string
+): Promise<string> {
   const command = new PutObjectCommand({
     Bucket: S3_BUCKET,
     Key: key,
@@ -57,7 +63,11 @@ export async function createMultipartUpload(key: string, contentType: string) {
 }
 
 // Generate presigned URL for a part of a multipart upload
-export async function generatePresignedPartUrl(key: string, uploadId: string, partNumber: number): Promise<string> {
+export async function generatePresignedPartUrl(
+  key: string,
+  uploadId: string,
+  partNumber: number
+): Promise<string> {
   // If it's a simple upload (no uploadId or partNumber)
   if (uploadId === 'simple-upload' && partNumber === 1) {
     const command = new PutObjectCommand({

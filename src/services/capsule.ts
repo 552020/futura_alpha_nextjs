@@ -1,5 +1,11 @@
 import { fatLogger } from '@/lib/logger';
-import type { CapsuleInfo, Capsule, PersonRef, CapsuleUpdateData, CapsuleError } from '@/types/capsule';
+import type {
+  CapsuleInfo,
+  Capsule,
+  PersonRef,
+  CapsuleUpdateData,
+  CapsuleError,
+} from '@/types/capsule';
 import type { BackendActor } from '@/ic/backend';
 import type { Identity } from '@dfinity/agent';
 import {
@@ -13,7 +19,10 @@ import {
 /**
  * Create typed capsule errors
  */
-export function createCapsuleError(kind: CapsuleError['kind'], message: string): CapsuleError {
+export function createCapsuleError(
+  kind: CapsuleError['kind'],
+  message: string
+): CapsuleError {
   return { kind, message };
 }
 
@@ -43,7 +52,9 @@ export async function getCapsuleFull(
       return null;
     }
   } catch (error) {
-    fatLogger.error('Failed to get full capsule data', 'be', { data: error as Error });
+    fatLogger.error('Failed to get full capsule data', 'be', {
+      data: error as Error,
+    });
 
     const errorMessage = error instanceof Error ? error.message : String(error);
 
@@ -58,24 +69,39 @@ export async function getCapsuleFull(
     // Handle authentication expiration
     if (isAuthenticationError(error)) {
       clearActor();
-      throw createCapsuleError('authExpired', 'Your session has expired. Please sign in again.');
+      throw createCapsuleError(
+        'authExpired',
+        'Your session has expired. Please sign in again.'
+      );
     }
 
     // Handle business logic errors
-    if (errorMessage.includes('NotFound') || errorMessage.includes('not found')) {
+    if (
+      errorMessage.includes('NotFound') ||
+      errorMessage.includes('not found')
+    ) {
       throw createCapsuleError('notFound', 'Capsule not found');
     }
 
-    if (errorMessage.includes('Unauthorized') || errorMessage.includes('access denied')) {
+    if (
+      errorMessage.includes('Unauthorized') ||
+      errorMessage.includes('access denied')
+    ) {
       throw createCapsuleError('unauthorized', 'Access denied to capsule');
     }
 
-    if (errorMessage.includes('InvalidArgument') || errorMessage.includes('invalid')) {
+    if (
+      errorMessage.includes('InvalidArgument') ||
+      errorMessage.includes('invalid')
+    ) {
       throw createCapsuleError('invalid', 'Invalid request parameters');
     }
 
     // Fallback to internal error
-    throw createCapsuleError('internal', `Failed to get full capsule data: ${errorMessage}`);
+    throw createCapsuleError(
+      'internal',
+      `Failed to get full capsule data: ${errorMessage}`
+    );
   }
 }
 
@@ -105,7 +131,9 @@ export async function getCapsuleInfo(
       return null;
     }
   } catch (error) {
-    fatLogger.error('Failed to get capsule info', 'be', { data: error as Error });
+    fatLogger.error('Failed to get capsule info', 'be', {
+      data: error as Error,
+    });
 
     const errorMessage = error instanceof Error ? error.message : String(error);
 
@@ -120,24 +148,39 @@ export async function getCapsuleInfo(
     // Handle authentication expiration
     if (isAuthenticationError(error)) {
       clearActor();
-      throw createCapsuleError('authExpired', 'Your session has expired. Please sign in again.');
+      throw createCapsuleError(
+        'authExpired',
+        'Your session has expired. Please sign in again.'
+      );
     }
 
     // Handle business logic errors
-    if (errorMessage.includes('NotFound') || errorMessage.includes('not found')) {
+    if (
+      errorMessage.includes('NotFound') ||
+      errorMessage.includes('not found')
+    ) {
       throw createCapsuleError('notFound', 'Capsule not found');
     }
 
-    if (errorMessage.includes('Unauthorized') || errorMessage.includes('access denied')) {
+    if (
+      errorMessage.includes('Unauthorized') ||
+      errorMessage.includes('access denied')
+    ) {
       throw createCapsuleError('unauthorized', 'Access denied to capsule');
     }
 
-    if (errorMessage.includes('InvalidArgument') || errorMessage.includes('invalid')) {
+    if (
+      errorMessage.includes('InvalidArgument') ||
+      errorMessage.includes('invalid')
+    ) {
       throw createCapsuleError('invalid', 'Invalid request parameters');
     }
 
     // Fallback to internal error
-    throw createCapsuleError('internal', `Failed to get capsule info: ${errorMessage}`);
+    throw createCapsuleError(
+      'internal',
+      `Failed to get capsule info: ${errorMessage}`
+    );
   }
 }
 
@@ -165,7 +208,9 @@ export async function readCapsule(
     fatLogger.info(`Reading capsule: ${capsuleId}`, 'be');
 
     const authenticatedActor = await getActor();
-    const capsuleResult = await authenticatedActor.capsules_read_full([capsuleId.trim()]);
+    const capsuleResult = await authenticatedActor.capsules_read_full([
+      capsuleId.trim(),
+    ]);
 
     if ('Ok' in capsuleResult) {
       fatLogger.info(`Successfully read capsule: ${capsuleId}`, 'be');
@@ -175,7 +220,9 @@ export async function readCapsule(
       return null;
     }
   } catch (error) {
-    fatLogger.error(`Failed to read capsule: ${capsuleId}`, 'be', { data: error as Error });
+    fatLogger.error(`Failed to read capsule: ${capsuleId}`, 'be', {
+      data: error as Error,
+    });
 
     const errorMessage = error instanceof Error ? error.message : String(error);
 
@@ -190,24 +237,39 @@ export async function readCapsule(
     // Handle authentication expiration
     if (isAuthenticationError(error)) {
       clearActor();
-      throw createCapsuleError('authExpired', 'Your session has expired. Please sign in again.');
+      throw createCapsuleError(
+        'authExpired',
+        'Your session has expired. Please sign in again.'
+      );
     }
 
     // Handle business logic errors
-    if (errorMessage.includes('NotFound') || errorMessage.includes('not found')) {
+    if (
+      errorMessage.includes('NotFound') ||
+      errorMessage.includes('not found')
+    ) {
       throw createCapsuleError('notFound', 'Capsule not found');
     }
 
-    if (errorMessage.includes('Unauthorized') || errorMessage.includes('access denied')) {
+    if (
+      errorMessage.includes('Unauthorized') ||
+      errorMessage.includes('access denied')
+    ) {
       throw createCapsuleError('unauthorized', 'Access denied to capsule');
     }
 
-    if (errorMessage.includes('InvalidArgument') || errorMessage.includes('invalid')) {
+    if (
+      errorMessage.includes('InvalidArgument') ||
+      errorMessage.includes('invalid')
+    ) {
       throw createCapsuleError('invalid', 'Invalid request parameters');
     }
 
     // Fallback to internal error
-    throw createCapsuleError('internal', `Failed to get capsule info: ${errorMessage}`);
+    throw createCapsuleError(
+      'internal',
+      `Failed to get capsule info: ${errorMessage}`
+    );
   }
 }
 
@@ -228,16 +290,23 @@ export async function createCapsule(
   try {
     fatLogger.info('Creating new capsule', 'be', {
       subject,
-      subjectType: subject ? ('Principal' in subject ? 'Principal' : 'Opaque') : 'null',
+      subjectType: subject
+        ? 'Principal' in subject
+          ? 'Principal'
+          : 'Opaque'
+        : 'null',
     });
 
     const authenticatedActor = await getActor();
     fatLogger.info('Actor retrieved', 'be', {
       actorType: typeof authenticatedActor,
-      hasCapsulesCreate: typeof authenticatedActor.capsules_create === 'function',
+      hasCapsulesCreate:
+        typeof authenticatedActor.capsules_create === 'function',
     });
 
-    const capsuleResult = await authenticatedActor.capsules_create(subject ? [subject] : []);
+    const capsuleResult = await authenticatedActor.capsules_create(
+      subject ? [subject] : []
+    );
     fatLogger.info('Capsule creation result', 'be', {
       resultType: typeof capsuleResult,
       hasOk: 'Ok' in capsuleResult,
@@ -249,7 +318,9 @@ export async function createCapsule(
       fatLogger.info('Successfully created capsule', 'be');
       return capsuleResult.Ok;
     } else {
-      throw createServiceError(`Failed to create capsule: ${JSON.stringify(capsuleResult.Err)}`);
+      throw createServiceError(
+        `Failed to create capsule: ${JSON.stringify(capsuleResult.Err)}`
+      );
     }
   } catch (error) {
     fatLogger.error('Failed to create capsule', 'be', {
@@ -272,7 +343,9 @@ export async function createCapsule(
     // Handle authentication expiration
     if (isAuthenticationError(error)) {
       clearActor();
-      throw createAuthenticationExpiredError('Your session has expired. Please sign in again.');
+      throw createAuthenticationExpiredError(
+        'Your session has expired. Please sign in again.'
+      );
     }
 
     throw createServiceError(`Failed to create capsule: ${errorMessage}`);
@@ -305,16 +378,23 @@ export async function updateCapsule(
     fatLogger.info(`Updating capsule: ${capsuleId}`, 'be');
 
     const authenticatedActor = await getActor();
-    const capsuleResult = await authenticatedActor.capsules_update(capsuleId, updates);
+    const capsuleResult = await authenticatedActor.capsules_update(
+      capsuleId,
+      updates
+    );
 
     if ('Ok' in capsuleResult) {
       fatLogger.info(`Successfully updated capsule: ${capsuleId}`, 'be');
       return capsuleResult.Ok;
     } else {
-      throw createServiceError(`Failed to update capsule: ${JSON.stringify(capsuleResult.Err)}`);
+      throw createServiceError(
+        `Failed to update capsule: ${JSON.stringify(capsuleResult.Err)}`
+      );
     }
   } catch (error) {
-    fatLogger.error(`Failed to update capsule: ${capsuleId}`, 'be', { data: error as Error });
+    fatLogger.error(`Failed to update capsule: ${capsuleId}`, 'be', {
+      data: error as Error,
+    });
 
     const errorMessage = error instanceof Error ? error.message : String(error);
 
@@ -326,16 +406,27 @@ export async function updateCapsule(
       errorMessage.includes('Not authenticated')
     ) {
       clearActor();
-      throw createAuthenticationExpiredError('Your session has expired. Please sign in again.');
+      throw createAuthenticationExpiredError(
+        'Your session has expired. Please sign in again.'
+      );
     }
 
     // Handle specific error types
-    if (errorMessage.includes('NotFound') || errorMessage.includes('not found')) {
+    if (
+      errorMessage.includes('NotFound') ||
+      errorMessage.includes('not found')
+    ) {
       throw createCapsuleError('notFound', `Capsule not found: ${capsuleId}`);
     }
 
-    if (errorMessage.includes('Unauthorized') || errorMessage.includes('access denied')) {
-      throw createCapsuleError('unauthorized', `No access to capsule: ${capsuleId}`);
+    if (
+      errorMessage.includes('Unauthorized') ||
+      errorMessage.includes('access denied')
+    ) {
+      throw createCapsuleError(
+        'unauthorized',
+        `No access to capsule: ${capsuleId}`
+      );
     }
 
     throw createServiceError(`Failed to update capsule: ${errorMessage}`);
@@ -372,10 +463,14 @@ export async function deleteCapsule(
       fatLogger.info(`Successfully deleted capsule: ${capsuleId}`, 'be');
       return;
     } else {
-      throw createServiceError(`Failed to delete capsule: ${JSON.stringify(result.Err)}`);
+      throw createServiceError(
+        `Failed to delete capsule: ${JSON.stringify(result.Err)}`
+      );
     }
   } catch (error) {
-    fatLogger.error(`Failed to delete capsule: ${capsuleId}`, 'be', { data: error as Error });
+    fatLogger.error(`Failed to delete capsule: ${capsuleId}`, 'be', {
+      data: error as Error,
+    });
 
     const errorMessage = error instanceof Error ? error.message : String(error);
 
@@ -387,16 +482,27 @@ export async function deleteCapsule(
       errorMessage.includes('Not authenticated')
     ) {
       clearActor();
-      throw createAuthenticationExpiredError('Your session has expired. Please sign in again.');
+      throw createAuthenticationExpiredError(
+        'Your session has expired. Please sign in again.'
+      );
     }
 
     // Handle specific error types
-    if (errorMessage.includes('NotFound') || errorMessage.includes('not found')) {
+    if (
+      errorMessage.includes('NotFound') ||
+      errorMessage.includes('not found')
+    ) {
       throw createCapsuleError('notFound', `Capsule not found: ${capsuleId}`);
     }
 
-    if (errorMessage.includes('Unauthorized') || errorMessage.includes('access denied')) {
-      throw createCapsuleError('unauthorized', `No access to capsule: ${capsuleId}`);
+    if (
+      errorMessage.includes('Unauthorized') ||
+      errorMessage.includes('access denied')
+    ) {
+      throw createCapsuleError(
+        'unauthorized',
+        `No access to capsule: ${capsuleId}`
+      );
     }
 
     throw createServiceError(`Failed to delete capsule: ${errorMessage}`);
@@ -411,7 +517,10 @@ export async function deleteCapsule(
  * @throws CapsuleServiceError - For general service errors
  * @throws AuthenticationExpiredError - When authentication expires
  */
-export async function listCapsules(getActor: () => Promise<BackendActor>, clearActor: () => void): Promise<unknown[]> {
+export async function listCapsules(
+  getActor: () => Promise<BackendActor>,
+  clearActor: () => void
+): Promise<unknown[]> {
   try {
     fatLogger.info('Listing capsules for authenticated user', 'be');
 
@@ -433,7 +542,9 @@ export async function listCapsules(getActor: () => Promise<BackendActor>, clearA
       errorMessage.includes('Not authenticated')
     ) {
       clearActor();
-      throw createAuthenticationExpiredError('Your session has expired. Please sign in again.');
+      throw createAuthenticationExpiredError(
+        'Your session has expired. Please sign in again.'
+      );
     }
 
     throw createServiceError(`Failed to list capsules: ${errorMessage}`);
@@ -462,7 +573,9 @@ export async function ensureSelfCapsule(
       fatLogger.info('Self-capsule ensured successfully', 'be');
       return capsuleResult.Ok;
     } else {
-      throw createServiceError(`Failed to create capsule: ${JSON.stringify(capsuleResult.Err)}`);
+      throw createServiceError(
+        `Failed to create capsule: ${JSON.stringify(capsuleResult.Err)}`
+      );
     }
   } catch (error) {
     fatLogger.error('Failed to ensure self-capsule:', 'be', {
@@ -472,7 +585,9 @@ export async function ensureSelfCapsule(
     // Clear actor on authentication errors
     if (isAuthenticationError(error)) {
       clearActor();
-      throw createAuthenticationExpiredError('Your session has expired. Please sign in again.');
+      throw createAuthenticationExpiredError(
+        'Your session has expired. Please sign in again.'
+      );
     }
 
     throw error;
@@ -484,7 +599,9 @@ export async function ensureSelfCapsule(
  * This is a convenience wrapper for the sign-in flow where we have raw Identity.
  * Used for auto-creation during sign-in flow.
  */
-export async function ensureSelfCapsuleWithIdentity(identity: Identity): Promise<Capsule> {
+export async function ensureSelfCapsuleWithIdentity(
+  identity: Identity
+): Promise<Capsule> {
   try {
     fatLogger.info('Ensuring self-capsule exists with raw identity', 'be');
 
@@ -497,10 +614,15 @@ export async function ensureSelfCapsuleWithIdentity(identity: Identity): Promise
 
     // Handle the Result type
     if ('Ok' in capsuleResult) {
-      fatLogger.info('Self-capsule ensured successfully with raw identity', 'be');
+      fatLogger.info(
+        'Self-capsule ensured successfully with raw identity',
+        'be'
+      );
       return capsuleResult.Ok;
     } else {
-      throw createServiceError(`Failed to create capsule: ${JSON.stringify(capsuleResult.Err)}`);
+      throw createServiceError(
+        `Failed to create capsule: ${JSON.stringify(capsuleResult.Err)}`
+      );
     }
   } catch (error) {
     fatLogger.error('Failed to ensure self-capsule with raw identity:', 'be', {

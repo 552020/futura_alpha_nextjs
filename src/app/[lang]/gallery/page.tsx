@@ -25,13 +25,16 @@ export default function GalleryPage() {
   const { isAuthorized, isLoading: authLoading } = useAuthGuard();
 
   const [galleries, setGalleries] = useState<GalleryWithItems[]>([]);
-  const [filteredGalleries, setFilteredGalleries] = useState<GalleryWithItems[]>([]);
+  const [filteredGalleries, setFilteredGalleries] = useState<
+    GalleryWithItems[]
+  >([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
-  const [selectedGallery, setSelectedGallery] = useState<GalleryWithItems | null>(null);
+  const [selectedGallery, setSelectedGallery] =
+    useState<GalleryWithItems | null>(null);
 
   useEffect(() => {
     if (isAuthorized) {
@@ -66,7 +69,11 @@ export default function GalleryPage() {
   };
 
   const handleGalleryDelete = async (gallery: GalleryWithItems) => {
-    if (!confirm(`Are you sure you want to delete "${gallery.title}"? This action cannot be undone.`)) {
+    if (
+      !confirm(
+        `Are you sure you want to delete "${gallery.title}"? This action cannot be undone.`
+      )
+    ) {
       return;
     }
 
@@ -139,8 +146,8 @@ export default function GalleryPage() {
 
       {/* Gallery Grid */}
       <div className="container mx-auto px-6">
-        <GalleryGrid 
-          galleries={filteredGalleries} 
+        <GalleryGrid
+          galleries={filteredGalleries}
           onGalleryClick={handleGalleryClick}
           onGalleryShare={handleGalleryShare}
           onGalleryDelete={handleGalleryDelete}

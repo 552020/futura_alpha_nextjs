@@ -64,13 +64,17 @@ export function UserInfoStep({
     return isValid;
   };
 
-  const handleEventBasedNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleEventBasedNameChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const newValue = e.target.value;
     setLocalName(newValue);
     updateUserData({ name: newValue });
   };
 
-  const handleEventBasedEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleEventBasedEmailChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const newValue = e.target.value;
     // userLogger.info("Email changed:", newValue);
     setLocalEmail(newValue);
@@ -112,14 +116,17 @@ export function UserInfoStep({
       <div className="space-y-2 sm:space-y-4 py-1 sm:py-4">
         {!withImage && (
           <div className="pt-1 sm:pt-4">
-            <p className="text-lg sm:text-5xl font-bold">How should we call you?</p>
+            <p className="text-lg sm:text-5xl font-bold">
+              How should we call you?
+            </p>
             {userData.uploadedFileCount && userData.uploadedFileCount > 1 && (
               <p className="text-sm text-muted-foreground mt-1">
                 Great! You&apos;ve uploaded {userData.uploadedFileCount} files.
               </p>
             )}
             <p className="text-xs sm:text-sm text-muted-foreground italic mt-2">
-              We need at least your name to let you retrieve your memory for the case you don&apos;t want to sign in.
+              We need at least your name to let you retrieve your memory for the
+              case you don&apos;t want to sign in.
             </p>
           </div>
         )}
@@ -149,11 +156,20 @@ export function UserInfoStep({
               placeholder="Enter your email"
               readOnly={isReadOnly}
             />
-            {!validateEmail(localEmail) && <p className="text-sm text-red-500">Please enter a valid email address</p>}
+            {!validateEmail(localEmail) && (
+              <p className="text-sm text-red-500">
+                Please enter a valid email address
+              </p>
+            )}
           </div>
         )}
       </div>
-      <StepNavigation currentStep={currentStep} onNext={handleNext} onBack={onBack} isNextDisabled={isNextDisabled} />
+      <StepNavigation
+        currentStep={currentStep}
+        onNext={handleNext}
+        onBack={onBack}
+        isNextDisabled={isNextDisabled}
+      />
     </StepContainer>
   );
 }

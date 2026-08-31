@@ -5,7 +5,10 @@ import { getAllUserRecord } from '@/services/user';
 import { getMemoryRecord } from '@/services/memory';
 import type { allUsers, memories } from '@/db';
 import { fatLogger } from '@/lib/logger';
-export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   const { id: memoryId } = await context.params;
   const { searchParams } = new URL(request.url);
   const token = searchParams.get('token');
@@ -15,7 +18,10 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
   }
 
   try {
-    fatLogger.info('🔗 Accessing shared memory via token:', 'be', { memoryId, token: token.substring(0, 8) + '...' });
+    fatLogger.info('🔗 Accessing shared memory via token:', 'be', {
+      memoryId,
+      token: token.substring(0, 8) + '...',
+    });
 
     // First try to find the memory using service function
     const memoryResult = await getMemoryRecord(memoryId);
@@ -77,7 +83,10 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
           const allUserRecord = userResult.data as typeof allUsers.$inferSelect;
 
           // Grant access via token
-          const accessResult = await grantAccessViaToken(token, allUserRecord.id);
+          const accessResult = await grantAccessViaToken(
+            token,
+            allUserRecord.id
+          );
           if (accessResult.success) {
             accessGranted = true;
             fatLogger.info('✅ Access granted via token:', 'be', {
@@ -94,7 +103,11 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       }
     } catch (_authError) {
       // User might not be authenticated, that's okay for public links
-      fatLogger.info('ℹ️ No authenticated user, providing public access:', 'be', { memoryId });
+      fatLogger.info(
+        'ℹ️ No authenticated user, providing public access:',
+        'be',
+        { memoryId }
+      );
     }
 
     fatLogger.info('✅ Public link access successful:', 'be', {

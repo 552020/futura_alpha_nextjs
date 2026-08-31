@@ -118,7 +118,9 @@ export class ICPGalleryService {
   /**
    * Store a gallery forever in the ICP canister
    */
-  async storeGalleryForever(galleryData: GalleryData): Promise<StoreGalleryResponse> {
+  async storeGalleryForever(
+    galleryData: GalleryData
+  ): Promise<StoreGalleryResponse> {
     try {
       const actor = await backendActor(this.identity);
 
@@ -152,7 +154,9 @@ export class ICPGalleryService {
         storage_location: gallery.metadata.storage_location[0] || { S3: null },
       };
     } catch (error) {
-      fatLogger.error('Error storing gallery forever:', 'be', { data: error instanceof Error ? error : undefined });
+      fatLogger.error('Error storing gallery forever:', 'be', {
+        data: error instanceof Error ? error : undefined,
+      });
       return {
         success: false,
         message: `Failed to store gallery: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -175,8 +179,12 @@ export class ICPGalleryService {
       // fatLogger.info("Get my galleries - placeholder");
       return [];
     } catch (error) {
-      fatLogger.error('Error getting user galleries:', 'be', { data: error instanceof Error ? error : undefined });
-      throw new Error(`Failed to get galleries: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      fatLogger.error('Error getting user galleries:', 'be', {
+        data: error instanceof Error ? error : undefined,
+      });
+      throw new Error(
+        `Failed to get galleries: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -195,15 +203,22 @@ export class ICPGalleryService {
 
       return null;
     } catch (error) {
-      fatLogger.error('Error getting gallery:', 'be', { data: error instanceof Error ? error : undefined });
-      throw new Error(`Failed to get gallery: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      fatLogger.error('Error getting gallery:', 'be', {
+        data: error instanceof Error ? error : undefined,
+      });
+      throw new Error(
+        `Failed to get gallery: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
   /**
    * Update a gallery in the ICP canister
    */
-  async updateGallery(_galleryId: string, _updateData: GalleryUpdateData): Promise<UpdateGalleryResponse> {
+  async updateGallery(
+    _galleryId: string,
+    _updateData: GalleryUpdateData
+  ): Promise<UpdateGalleryResponse> {
     try {
       // const actor = await backendActor(this.identity);
 
@@ -218,7 +233,9 @@ export class ICPGalleryService {
         message: 'Gallery updated successfully',
       };
     } catch (error) {
-      fatLogger.error('Error updating gallery:', 'be', { data: error instanceof Error ? error : undefined });
+      fatLogger.error('Error updating gallery:', 'be', {
+        data: error instanceof Error ? error : undefined,
+      });
       return {
         success: false,
         message: `Failed to update gallery: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -244,7 +261,9 @@ export class ICPGalleryService {
         message: 'Gallery deleted successfully',
       };
     } catch (error) {
-      fatLogger.error('Error deleting gallery:', 'be', { data: error instanceof Error ? error : undefined });
+      fatLogger.error('Error deleting gallery:', 'be', {
+        data: error instanceof Error ? error : undefined,
+      });
       return {
         success: false,
         message: `Failed to delete gallery: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -259,7 +278,9 @@ export class ICPGalleryService {
   /**
    * Create a new memory
    */
-  async createMemory(_memoryData: Record<string, unknown>): Promise<MemoryOperationResponse> {
+  async createMemory(
+    _memoryData: Record<string, unknown>
+  ): Promise<MemoryOperationResponse> {
     try {
       // const actor = await backendActor(this.identity);
 
@@ -275,7 +296,9 @@ export class ICPGalleryService {
         message: 'Memory added successfully to capsule',
       };
     } catch (error) {
-      fatLogger.error('Error adding memory to capsule:', 'be', { data: error instanceof Error ? error : undefined });
+      fatLogger.error('Error adding memory to capsule:', 'be', {
+        data: error instanceof Error ? error : undefined,
+      });
       return {
         success: false,
         message: `Failed to add memory: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -298,15 +321,22 @@ export class ICPGalleryService {
 
       return null;
     } catch (error) {
-      fatLogger.error('Error getting memory:', 'be', { data: error instanceof Error ? error : undefined });
-      throw new Error(`Failed to get memory: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      fatLogger.error('Error getting memory:', 'be', {
+        data: error instanceof Error ? error : undefined,
+      });
+      throw new Error(
+        `Failed to get memory: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
   /**
    * Update a memory by ID
    */
-  async updateMemory(_memoryId: string, _updates: Record<string, unknown>): Promise<MemoryOperationResponse> {
+  async updateMemory(
+    _memoryId: string,
+    _updates: Record<string, unknown>
+  ): Promise<MemoryOperationResponse> {
     try {
       // const actor = await backendActor(this.identity);
 
@@ -321,7 +351,9 @@ export class ICPGalleryService {
         message: 'Memory updated successfully',
       };
     } catch (error) {
-      fatLogger.error('Error updating memory:', 'be', { data: error instanceof Error ? error : undefined });
+      fatLogger.error('Error updating memory:', 'be', {
+        data: error instanceof Error ? error : undefined,
+      });
       return {
         success: false,
         message: `Failed to update memory: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -347,7 +379,9 @@ export class ICPGalleryService {
         message: 'Memory deleted successfully',
       };
     } catch (error) {
-      fatLogger.error('Error deleting memory:', 'be', { data: error instanceof Error ? error : undefined });
+      fatLogger.error('Error deleting memory:', 'be', {
+        data: error instanceof Error ? error : undefined,
+      });
       return {
         success: false,
         message: `Failed to delete memory: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -376,7 +410,9 @@ export class ICPGalleryService {
         message: 'Memories retrieved successfully',
       };
     } catch (error) {
-      fatLogger.error('Error listing memories:', 'be', { data: error instanceof Error ? error : undefined });
+      fatLogger.error('Error listing memories:', 'be', {
+        data: error instanceof Error ? error : undefined,
+      });
       return {
         success: false,
         memories: [],
@@ -412,15 +448,20 @@ export class ICPGalleryService {
       metadata: {
         total_memories: web2Items.length,
         title: [String(web2Gallery.title || 'Untitled Gallery')],
-        sharing_status: Boolean(web2Gallery.is_public) ? { Public: null } : { Private: null },
+        sharing_status: Boolean(web2Gallery.is_public)
+          ? { Public: null }
+          : { Private: null },
         storage_location: [{ S3: null }], // Default to S3
         name: String(web2Gallery.title || 'Untitled Gallery')
           .toLowerCase()
           .replace(/\s+/g, '-'),
-        description: web2Gallery.description ? [String(web2Gallery.description)] : [],
+        description: web2Gallery.description
+          ? [String(web2Gallery.description)]
+          : [],
         shared_count: 0,
       },
-      cover_memory_id: web2Items.length > 0 ? [web2Items[0].memory_id as string] : [],
+      cover_memory_id:
+        web2Items.length > 0 ? [web2Items[0].memory_id as string] : [],
       created_at: BigInt((web2Gallery.created_at as number) || Date.now()),
       items,
       access_entries: [], // Empty access entries for now
@@ -447,7 +488,9 @@ export class ICPGalleryService {
 
       return true; // Assume user has capsule for now
     } catch (error) {
-      fatLogger.error('Error checking capsule status:', 'be', { data: error instanceof Error ? error : undefined });
+      fatLogger.error('Error checking capsule status:', 'be', {
+        data: error instanceof Error ? error : undefined,
+      });
       return false;
     }
   }
@@ -461,6 +504,8 @@ export class ICPGalleryService {
 export const icpGalleryService = new ICPGalleryService();
 
 // Export a function to create an instance with a specific identity
-export function createICPGalleryService(identity?: Identity): ICPGalleryService {
+export function createICPGalleryService(
+  identity?: Identity
+): ICPGalleryService {
   return new ICPGalleryService(identity);
 }

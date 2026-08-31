@@ -3,14 +3,18 @@ import path from 'path';
 
 // Configuration
 const GALLERIES_DIR = path.join(process.cwd(), 'public/mock/galleries');
-const OUTPUT_FILE = path.join(process.cwd(), 'scripts/mock-data/generated-gallery-data.ts');
+const OUTPUT_FILE = path.join(
+  process.cwd(),
+  'scripts/mock-data/generated-gallery-data.ts'
+);
 
 // Gallery configurations
 const GALLERY_CONFIGS = [
   {
     id: 'portrait-gallery',
     title: 'Portrait Collection',
-    description: 'Beautiful portrait photography showcasing people and emotions',
+    description:
+      'Beautiful portrait photography showcasing people and emotions',
     isPublic: true,
   },
   {
@@ -55,7 +59,9 @@ const GALLERY_CONFIGS = [
 const getRandomDate = (): string => {
   const now = new Date();
   const sixMonthsAgo = new Date(now.getTime() - 6 * 30 * 24 * 60 * 60 * 1000);
-  const randomTime = sixMonthsAgo.getTime() + Math.random() * (now.getTime() - sixMonthsAgo.getTime());
+  const randomTime =
+    sixMonthsAgo.getTime() +
+    Math.random() * (now.getTime() - sixMonthsAgo.getTime());
   return new Date(randomTime).toISOString();
 };
 
@@ -71,7 +77,7 @@ const getGalleryFiles = (galleryId: string): string[] => {
   try {
     const files = fs
       .readdirSync(galleryDir)
-      .filter(file => file.endsWith('.webp'))
+      .filter((file) => file.endsWith('.webp'))
       .sort();
 
     return files;
@@ -94,7 +100,7 @@ const generateBrokenLinks = (): string[] => {
 
 // Generate mock data
 const generateMockData = () => {
-  const galleries = GALLERY_CONFIGS.map(config => {
+  const galleries = GALLERY_CONFIGS.map((config) => {
     let files: string[];
     let imageCount: number;
 
@@ -163,11 +169,27 @@ const generateTypeScriptFile = (galleries: any[]) => {
 
 import { GalleryWithItems } from "@/types/gallery";
 
-export const generatedGalleries: GalleryWithItems[] = ${JSON.stringify(galleries, null, 2)
-    .replace(/\n    "createdAt": "([^"]+)"/g, '\n    "createdAt": new Date("$1")')
-    .replace(/\n    "updatedAt": "([^"]+)"/g, '\n    "updatedAt": new Date("$1")')
-    .replace(/\n        "createdAt": "([^"]+)"/g, '\n        "createdAt": new Date("$1")')
-    .replace(/\n        "updatedAt": "([^"]+)"/g, '\n        "updatedAt": new Date("$1")')};
+export const generatedGalleries: GalleryWithItems[] = ${JSON.stringify(
+    galleries,
+    null,
+    2
+  )
+    .replace(
+      /\n    "createdAt": "([^"]+)"/g,
+      '\n    "createdAt": new Date("$1")'
+    )
+    .replace(
+      /\n    "updatedAt": "([^"]+)"/g,
+      '\n    "updatedAt": new Date("$1")'
+    )
+    .replace(
+      /\n        "createdAt": "([^"]+)"/g,
+      '\n        "createdAt": new Date("$1")'
+    )
+    .replace(
+      /\n        "updatedAt": "([^"]+)"/g,
+      '\n        "updatedAt": new Date("$1")'
+    )};
 
 export const getGeneratedGallery = (id: string): GalleryWithItems | undefined => {
   return generatedGalleries.find(gallery => gallery.id === id);
@@ -201,7 +223,7 @@ const main = () => {
   console.log(`📁 Output file: ${OUTPUT_FILE}`);
 
   // Log summary
-  galleries.forEach(gallery => {
+  galleries.forEach((gallery) => {
     console.log(`  - ${gallery.title}: ${gallery.imageCount} images`);
   });
 };

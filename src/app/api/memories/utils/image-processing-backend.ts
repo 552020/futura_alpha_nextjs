@@ -23,7 +23,9 @@ export interface ImageProcessingResult {
 /**
  * Backend implementation using Node.js libraries (sharp)
  */
-export async function processImageForMultipleAssetsBackend(file: File): Promise<ImageProcessingResult> {
+export async function processImageForMultipleAssetsBackend(
+  file: File
+): Promise<ImageProcessingResult> {
   // Convert File to Buffer for sharp processing
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
@@ -37,8 +39,16 @@ export async function processImageForMultipleAssetsBackend(file: File): Promise<
   }
 
   // Calculate resize dimensions
-  const displaySize = calculateResizeDimensions(originalWidth, originalHeight, 2048);
-  const thumbSize = calculateResizeDimensions(originalWidth, originalHeight, 512);
+  const displaySize = calculateResizeDimensions(
+    originalWidth,
+    originalHeight,
+    2048
+  );
+  const thumbSize = calculateResizeDimensions(
+    originalWidth,
+    originalHeight,
+    512
+  );
 
   // Process images in parallel
   const [originalBuffer, displayBuffer, thumbBuffer] = await Promise.all([
@@ -65,9 +75,19 @@ export async function processImageForMultipleAssetsBackend(file: File): Promise<
   ]);
 
   // Create File objects for each processed image
-  const originalBlob = new File([new Uint8Array(originalBuffer)], file.name, { type: 'image/webp' });
-  const displayBlob = new File([new Uint8Array(displayBuffer)], `display_${file.name}`, { type: 'image/webp' });
-  const thumbBlob = new File([new Uint8Array(thumbBuffer)], `thumb_${file.name}`, { type: 'image/webp' });
+  const originalBlob = new File([new Uint8Array(originalBuffer)], file.name, {
+    type: 'image/webp',
+  });
+  const displayBlob = new File(
+    [new Uint8Array(displayBuffer)],
+    `display_${file.name}`,
+    { type: 'image/webp' }
+  );
+  const thumbBlob = new File(
+    [new Uint8Array(thumbBuffer)],
+    `thumb_${file.name}`,
+    { type: 'image/webp' }
+  );
 
   return {
     original: {

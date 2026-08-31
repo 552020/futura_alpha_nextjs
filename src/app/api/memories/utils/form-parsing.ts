@@ -19,7 +19,11 @@ import { fatLogger } from '@/lib/logger';
  */
 export async function parseSingleFile(
   request: NextRequest
-): Promise<{ file: File | null; formData: FormData | null; error: string | null }> {
+): Promise<{
+  file: File | null;
+  formData: FormData | null;
+  error: string | null;
+}> {
   // fatLogger.info("📦 Parsing form data...");
 
   try {

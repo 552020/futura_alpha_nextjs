@@ -24,7 +24,9 @@ config({ path: '.env.local' });
 
 // Ensure DATABASE_URL is set
 if (!process.env.DATABASE_URL_UNPOOLED) {
-  throw new Error("❌ DATABASE_URL_UNPOOLED is missing! Make sure it's set in .env.local");
+  throw new Error(
+    "❌ DATABASE_URL_UNPOOLED is missing! Make sure it's set in .env.local"
+  );
 }
 
 // Create database connection
@@ -66,7 +68,10 @@ async function lookupUserByEmail(email: string): Promise<UserLookupResult> {
       });
 
       // Find relationships
-      const relationships = await findUserRelationships(userData.id, allUserData?.id);
+      const relationships = await findUserRelationships(
+        userData.id,
+        allUserData?.id
+      );
 
       return {
         email,
@@ -88,7 +93,10 @@ async function lookupUserByEmail(email: string): Promise<UserLookupResult> {
 
       // Find the corresponding allUsers entry
       const allUserData = await db.query.allUsers.findFirst({
-        where: and(eq(allUsers.temporaryUserId, temporaryUserData.id), eq(allUsers.type, 'temporary')),
+        where: and(
+          eq(allUsers.temporaryUserId, temporaryUserData.id),
+          eq(allUsers.type, 'temporary')
+        ),
       });
 
       return {
@@ -143,7 +151,7 @@ async function findUserRelationships(userId: string, allUserId?: string) {
           columns: { id: true, email: true, name: true },
         })
       : [];
-    relationships.children = children.map(child => ({
+    relationships.children = children.map((child) => ({
       id: child.id,
       email: child.email || '',
       name: child.name || '',
@@ -206,8 +214,12 @@ function formatUserData(result: UserLookupResult) {
     console.log(`Plan: ${result.userData.plan}`);
     console.log(`User Type: ${result.userData.userType}`);
     console.log(`Registration Status: ${result.userData.registrationStatus}`);
-    console.log(`Email Verified: ${result.userData.emailVerified || 'Not verified'}`);
-    console.log(`Premium Expires: ${result.userData.premiumExpiresAt || 'N/A'}`);
+    console.log(
+      `Email Verified: ${result.userData.emailVerified || 'Not verified'}`
+    );
+    console.log(
+      `Premium Expires: ${result.userData.premiumExpiresAt || 'N/A'}`
+    );
     console.log(`Created: ${result.userData.createdAt}`);
     console.log(`Updated: ${result.userData.updatedAt}`);
     console.log(`Deleted: ${result.userData.deletedAt || 'Not deleted'}`);
@@ -226,7 +238,9 @@ function formatUserData(result: UserLookupResult) {
     console.log(`Name: ${result.temporaryUserData.name || 'N/A'}`);
     console.log(`Email: ${result.temporaryUserData.email}`);
     console.log(`Role: ${result.temporaryUserData.role}`);
-    console.log(`Registration Status: ${result.temporaryUserData.registrationStatus}`);
+    console.log(
+      `Registration Status: ${result.temporaryUserData.registrationStatus}`
+    );
     console.log(`Created: ${result.temporaryUserData.createdAt}`);
   }
 
@@ -236,7 +250,9 @@ function formatUserData(result: UserLookupResult) {
     console.log(`All User ID: ${result.allUserData.id}`);
     console.log(`Type: ${result.allUserData.type}`);
     console.log(`User ID: ${result.allUserData.userId || 'N/A'}`);
-    console.log(`Temporary User ID: ${result.allUserData.temporaryUserId || 'N/A'}`);
+    console.log(
+      `Temporary User ID: ${result.allUserData.temporaryUserId || 'N/A'}`
+    );
     console.log(`Created: ${result.allUserData.createdAt}`);
     console.log(`Deleted: ${result.allUserData.deletedAt || 'Not deleted'}`);
   }
@@ -250,10 +266,15 @@ function formatUserData(result: UserLookupResult) {
     }
 
     if (result.relationships.parent) {
-      console.log(`Parent User: ${result.relationships.parent.name} (${result.relationships.parent.email})`);
+      console.log(
+        `Parent User: ${result.relationships.parent.name} (${result.relationships.parent.email})`
+      );
     }
 
-    if (result.relationships.children && result.relationships.children.length > 0) {
+    if (
+      result.relationships.children &&
+      result.relationships.children.length > 0
+    ) {
       console.log(`Children (${result.relationships.children.length}):`);
       result.relationships.children.forEach((child, index: number) => {
         console.log(`  ${index + 1}. ${child.name} (${child.email})`);
@@ -271,8 +292,12 @@ async function main() {
 
   if (!email) {
     console.error('❌ Error: Email address is required');
-    console.log('\nUsage: npx tsx scripts/db/users/lookup-user-by-email.ts <email>');
-    console.log('Example: npx tsx scripts/db/users/lookup-user-by-email.ts user@example.com');
+    console.log(
+      '\nUsage: npx tsx scripts/db/users/lookup-user-by-email.ts <email>'
+    );
+    console.log(
+      'Example: npx tsx scripts/db/users/lookup-user-by-email.ts user@example.com'
+    );
     process.exit(1);
   }
 

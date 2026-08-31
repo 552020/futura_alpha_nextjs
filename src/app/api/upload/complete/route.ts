@@ -1,7 +1,14 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/db/db';
-import { memories, memoryAssets, allUsers, type MemoryType, type AssetType, type ProcessingStatus } from '@/db';
+import {
+  memories,
+  memoryAssets,
+  allUsers,
+  type MemoryType,
+  type AssetType,
+  type ProcessingStatus,
+} from '@/db';
 import { randomBytes } from 'crypto';
 import { randomUUID } from 'crypto';
 import { eq, and } from 'drizzle-orm';
@@ -114,7 +121,10 @@ export async function POST(request: Request) {
     // Handle new parallel processing format (Format 3)
     if (requestData.memoryId && requestData.assets) {
       fatLogger.info('Using Format 3 (parallel processing)', 'be');
-      return await handleParallelProcessingFinalize(requestData as FinalizeRequest, allUserId);
+      return await handleParallelProcessingFinalize(
+        requestData as FinalizeRequest,
+        allUserId
+      );
     }
 
     // Handle legacy formats (Format 1 & 2)
@@ -122,20 +132,35 @@ export async function POST(request: Request) {
     return await handleLegacyComplete(requestData, allUserId);
   } catch (error) {
     fatLogger.error('Error in upload complete:', 'be', { error });
-    fatLogger.error('Error message:', 'be', { error: error instanceof Error ? error.message : 'Unknown error' });
-    fatLogger.error('Error stack:', 'be', { error: error instanceof Error ? error.stack : 'No stack trace' });
-    fatLogger.error('Error completing upload:', 'be', { data: error instanceof Error ? error : undefined });
-    return NextResponse.json({ error: 'Failed to complete upload' }, { status: 500 });
+    fatLogger.error('Error message:', 'be', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    fatLogger.error('Error stack:', 'be', {
+      error: error instanceof Error ? error.stack : 'No stack trace',
+    });
+    fatLogger.error('Error completing upload:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
+    return NextResponse.json(
+      { error: 'Failed to complete upload' },
+      { status: 500 }
+    );
   }
 }
 
 /**
  * Handle new parallel processing finalize format
  */
-async function handleParallelProcessingFinalize(request: FinalizeRequest, allUserId: string) {
+async function handleParallelProcessingFinalize(
+  request: FinalizeRequest,
+  allUserId: string
+) {
   const { memoryId, assets, parentFolderId } = request;
 
-  fatLogger.info(`🔄 Processing parallel finalize for memory: ${memoryId} with ${assets.length} assets`, 'be');
+  fatLogger.info(
+    `🔄 Processing parallel finalize for memory: ${memoryId} with ${assets.length} assets`,
+    'be'
+  );
   if (parentFolderId) {
     fatLogger.info(`📁 Linking memory to folder: ${parentFolderId}`, 'be');
   }
@@ -148,7 +173,10 @@ async function handleParallelProcessingFinalize(request: FinalizeRequest, allUse
   });
 
   if (!existingMemory) {
-    return NextResponse.json({ error: 'Memory not found or access denied' }, { status: 404 });
+    return NextResponse.json(
+      { error: 'Memory not found or access denied' },
+      { status: 404 }
+    );
   }
 
   // Update memory with parentFolderId if provided
@@ -161,7 +189,10 @@ async function handleParallelProcessingFinalize(request: FinalizeRequest, allUse
       })
       .where(eq(memories.id, memoryId));
 
-    fatLogger.info(`✅ Updated memory ${memoryId} with parentFolderId: ${parentFolderId}`, 'be');
+    fatLogger.info(
+      `✅ Updated memory ${memoryId} with parentFolderId: ${parentFolderId}`,
+      'be'
+    );
   }
 
   // Process each asset with idempotent upserts
@@ -172,7 +203,10 @@ async function handleParallelProcessingFinalize(request: FinalizeRequest, allUse
       // Check if asset already exists
       const existingAsset = await db.query.memoryAssets.findFirst({
         where: (memoryAssets, { eq, and: andFn }) => {
-          return andFn(eq(memoryAssets.memoryId, memoryId), eq(memoryAssets.assetType, asset.assetType));
+          return andFn(
+            eq(memoryAssets.memoryId, memoryId),
+            eq(memoryAssets.assetType, asset.assetType)
+          );
         },
       });
 
@@ -182,7 +216,8 @@ async function handleParallelProcessingFinalize(request: FinalizeRequest, allUse
           .update(memoryAssets)
           .set({
             processingStatus: asset.processingStatus,
-            processingError: asset.processingStatus === 'failed' ? 'Processing failed' : null,
+            processingError:
+              asset.processingStatus === 'failed' ? 'Processing failed' : null,
             assetLocation: asset.assetLocation || existingAsset.assetLocation,
             storageKey: asset.storageKey || existingAsset.storageKey,
             bytes: asset.bytes || existingAsset.bytes,
@@ -192,9 +227,17 @@ async function handleParallelProcessingFinalize(request: FinalizeRequest, allUse
             url: asset.url || existingAsset.url, // Use url field for all assets
             updatedAt: new Date(),
           })
-          .where(and(eq(memoryAssets.memoryId, memoryId), eq(memoryAssets.assetType, asset.assetType)));
+          .where(
+            and(
+              eq(memoryAssets.memoryId, memoryId),
+              eq(memoryAssets.assetType, asset.assetType)
+            )
+          );
 
-        fatLogger.info(`✅ Updated existing asset: ${asset.assetType} -> ${asset.processingStatus}`, 'be');
+        fatLogger.info(
+          `✅ Updated existing asset: ${asset.assetType} -> ${asset.processingStatus}`,
+          'be'
+        );
       } else {
         // Create new asset
         const assetId = randomUUID();
@@ -213,12 +256,16 @@ async function handleParallelProcessingFinalize(request: FinalizeRequest, allUse
           height: asset.height || null,
           mimeType: asset.mimeType || 'application/octet-stream',
           processingStatus: asset.processingStatus,
-          processingError: asset.processingStatus === 'failed' ? 'Processing failed' : null,
+          processingError:
+            asset.processingStatus === 'failed' ? 'Processing failed' : null,
           createdAt: new Date(),
           updatedAt: new Date(),
         });
 
-        fatLogger.info(`✅ Created new asset: ${asset.assetType} -> ${asset.processingStatus}`, 'be');
+        fatLogger.info(
+          `✅ Created new asset: ${asset.assetType} -> ${asset.processingStatus}`,
+          'be'
+        );
       }
 
       processedAssets.push({
@@ -246,8 +293,13 @@ async function handleParallelProcessingFinalize(request: FinalizeRequest, allUse
 /**
  * Handle legacy complete formats (backward compatibility)
  */
-async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserId: string) {
-  fatLogger.info('Starting handleLegacyComplete with allUserId:', 'be', { allUserId });
+async function handleLegacyComplete(
+  requestData: CompleteUploadRequest,
+  allUserId: string
+) {
+  fatLogger.info('Starting handleLegacyComplete with allUserId:', 'be', {
+    allUserId,
+  });
   // Handle both request formats
   let fileKey: string;
   let originalName: string;
@@ -274,7 +326,9 @@ async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserI
         const tokenData = JSON.parse(requestData.token);
         metadata.userId = tokenData.userId || metadata.userId;
       } catch (e) {
-        fatLogger.warn('Failed to parse token data', 'be', { error: e instanceof Error ? e : undefined });
+        fatLogger.warn('Failed to parse token data', 'be', {
+          error: e instanceof Error ? e : undefined,
+        });
       }
     }
   } else {
@@ -289,10 +343,19 @@ async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserI
 
   if (!size) {
     fatLogger.error('Missing required field: size', 'be');
-    return NextResponse.json({ error: 'Missing required field: size' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'Missing required field: size' },
+      { status: 400 }
+    );
   }
 
-  fatLogger.info('Parsed request data:', 'be', { fileKey, originalName, size, mimeType, metadata });
+  fatLogger.info('Parsed request data:', 'be', {
+    fileKey,
+    originalName,
+    size,
+    mimeType,
+    metadata,
+  });
 
   // Determine memory type from content type or file extension
   const memoryType: MemoryType = detectMemoryType(mimeType, originalName);
@@ -335,12 +398,15 @@ async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserI
         unlockDate: null,
         metadata: {
           originalPath: originalName,
-          custom: Object.entries(metadata).reduce<Record<string, unknown>>((acc, [key, value]) => {
-            if (key !== 'width' && key !== 'height') {
-              acc[key] = value;
-            }
-            return acc;
-          }, {}),
+          custom: Object.entries(metadata).reduce<Record<string, unknown>>(
+            (acc, [key, value]) => {
+              if (key !== 'width' && key !== 'height') {
+                acc[key] = value;
+              }
+              return acc;
+            },
+            {}
+          ),
         },
         storageDuration: null,
         createdAt: new Date(),
@@ -385,7 +451,9 @@ async function handleLegacyComplete(requestData: CompleteUploadRequest, allUserI
   // Create storage edges for the memory
   try {
     fatLogger.info('Creating storage edges for memory:', 'be', { memoryId });
-    const { createMemoryStorageEdges } = await import('@/lib/usecases/memory/create-memory-storage-edges');
+    const { createMemoryStorageEdges } = await import(
+      '@/lib/usecases/memory/create-memory-storage-edges'
+    );
 
     const storageEdgeResult = await createMemoryStorageEdges({
       memoryId: memoryId,
@@ -461,7 +529,10 @@ async function handleOnboardingComplete(request: Request) {
     const { blobUrl, metadata } = await request.json();
 
     if (!blobUrl) {
-      return NextResponse.json({ error: 'Blob URL is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Blob URL is required' },
+        { status: 400 }
+      );
     }
 
     // Create temporary user using service
@@ -471,8 +542,13 @@ async function handleOnboardingComplete(request: Request) {
     });
 
     if (!tempUserResult.success || !tempUserResult.data) {
-      fatLogger.error('Failed to create temporary user:', 'be', { error: tempUserResult.error });
-      return NextResponse.json({ error: 'Failed to create temporary user' }, { status: 500 });
+      fatLogger.error('Failed to create temporary user:', 'be', {
+        error: tempUserResult.error,
+      });
+      return NextResponse.json(
+        { error: 'Failed to create temporary user' },
+        { status: 500 }
+      );
     }
 
     const { tempUserId, allUserId } = tempUserResult.data;
@@ -541,6 +617,9 @@ async function handleOnboardingComplete(request: Request) {
     });
   } catch (error) {
     fatLogger.error('Error creating onboarding memory:', 'be', { error });
-    return NextResponse.json({ error: 'Failed to create memory' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to create memory' },
+      { status: 500 }
+    );
   }
 }

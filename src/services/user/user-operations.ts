@@ -4,12 +4,18 @@ import { eq } from 'drizzle-orm';
 import { randomUUID, randomBytes } from 'crypto';
 import { hash } from 'bcrypt';
 import { fatLogger } from '@/lib/logger';
-import type { UserOperationResult, CreateUserParams, CreateAllUserParams } from './types';
+import type {
+  UserOperationResult,
+  CreateUserParams,
+  CreateAllUserParams,
+} from './types';
 
 /**
  * Create a new user record in the database
  */
-export const createUserRecord = async (params: CreateUserParams): Promise<UserOperationResult> => {
+export const createUserRecord = async (
+  params: CreateUserParams
+): Promise<UserOperationResult> => {
   try {
     const [createdUser] = await db
       .insert(users)
@@ -45,7 +51,9 @@ export const createUserRecord = async (params: CreateUserParams): Promise<UserOp
 /**
  * Create a new all_user record in the database
  */
-export const createAllUserRecord = async (params: CreateAllUserParams): Promise<UserOperationResult> => {
+export const createAllUserRecord = async (
+  params: CreateAllUserParams
+): Promise<UserOperationResult> => {
   try {
     const newUserId = randomUUID();
     const [createdAllUser] = await db
@@ -83,7 +91,9 @@ export const createAllUserRecord = async (params: CreateAllUserParams): Promise<
 /**
  * Get user record by ID
  */
-export const getUserRecord = async (userId: string): Promise<UserOperationResult> => {
+export const getUserRecord = async (
+  userId: string
+): Promise<UserOperationResult> => {
   try {
     const user = await db.query.users.findFirst({
       where: eq(users.id, userId),
@@ -110,7 +120,9 @@ export const getUserRecord = async (userId: string): Promise<UserOperationResult
 /**
  * Get all_user record by user ID
  */
-export const getAllUserRecord = async (userId: string): Promise<UserOperationResult> => {
+export const getAllUserRecord = async (
+  userId: string
+): Promise<UserOperationResult> => {
   try {
     const allUser = await db.query.allUsers.findFirst({
       where: eq(allUsers.userId, userId),
@@ -137,7 +149,9 @@ export const getAllUserRecord = async (userId: string): Promise<UserOperationRes
 /**
  * Get all_user record by all_user ID
  */
-export const getAllUserRecordById = async (allUserId: string): Promise<UserOperationResult> => {
+export const getAllUserRecordById = async (
+  allUserId: string
+): Promise<UserOperationResult> => {
   try {
     const allUser = await db.query.allUsers.findFirst({
       where: eq(allUsers.id, allUserId),
@@ -182,7 +196,10 @@ export const createUserWithAllUser = async (params: {
     });
 
     if (!userResult.success || !userResult.data) {
-      return { success: false, error: userResult.error || 'Failed to create user' };
+      return {
+        success: false,
+        error: userResult.error || 'Failed to create user',
+      };
     }
 
     // Create all_user record
@@ -193,12 +210,19 @@ export const createUserWithAllUser = async (params: {
 
     if (!allUserResult.success || !allUserResult.data) {
       // If all_user creation fails, we should clean up the user record
-      fatLogger.warn('Failed to create all_user record, user record was created', 'be', {
-        operation: 'create_user_with_all_user',
-        userId: params.id,
-        error: allUserResult.error,
-      });
-      return { success: false, error: allUserResult.error || 'Failed to create all_user record' };
+      fatLogger.warn(
+        'Failed to create all_user record, user record was created',
+        'be',
+        {
+          operation: 'create_user_with_all_user',
+          userId: params.id,
+          error: allUserResult.error,
+        }
+      );
+      return {
+        success: false,
+        error: allUserResult.error || 'Failed to create all_user record',
+      };
     }
 
     const allUser = allUserResult.data as { id: string };
@@ -232,7 +256,9 @@ export const createUserWithAllUser = async (params: {
  * Get user ID for authenticated user (session-based)
  * This function handles the complex logic of getting the allUserId for authenticated users
  */
-export const getAuthenticatedUserId = async (sessionUserId: string): Promise<UserOperationResult<string>> => {
+export const getAuthenticatedUserId = async (
+  sessionUserId: string
+): Promise<UserOperationResult<string>> => {
   try {
     // First get the user from users table
     const userResult = await getUserRecord(sessionUserId);
@@ -269,7 +295,12 @@ export const createTemporaryUser = async (params: {
   name?: string;
   email?: string;
 }): Promise<
-  UserOperationResult<{ temporaryUser: unknown; allUser: unknown; tempUserId: string; allUserId: string }>
+  UserOperationResult<{
+    temporaryUser: unknown;
+    allUser: unknown;
+    tempUserId: string;
+    allUserId: string;
+  }>
 > => {
   try {
     const tempUserId = `temp-${randomUUID()}`;
@@ -346,15 +377,23 @@ export const updateUser = async (params: {
       return { success: false, error: 'User not found' };
     }
 
-    const allUser = allUserResult.data as { type: string; temporaryUserId?: string; userId?: string };
+    const allUser = allUserResult.data as {
+      type: string;
+      temporaryUserId?: string;
+      userId?: string;
+    };
 
     if (allUser.type === 'temporary') {
       // Handle case where temporaryUserId is missing (old broken records)
       if (!allUser.temporaryUserId) {
-        fatLogger.warn('temporaryUserId is missing from allUser - this is an old broken record', 'be', {
-          operation: 'update_user',
-          allUserId: params.allUserId,
-        });
+        fatLogger.warn(
+          'temporaryUserId is missing from allUser - this is an old broken record',
+          'be',
+          {
+            operation: 'update_user',
+            allUserId: params.allUserId,
+          }
+        );
 
         // Try to find the temporary user by the userId field (old structure)
         if (allUser.userId) {
@@ -390,7 +429,10 @@ export const updateUser = async (params: {
           }
         }
 
-        return { success: false, error: 'Invalid user data - missing temporaryUserId' };
+        return {
+          success: false,
+          error: 'Invalid user data - missing temporaryUserId',
+        };
       }
 
       // Update temporary user
@@ -597,7 +639,9 @@ export const getUserByIdOrEmail = async (params: {
  * Get user ID for temporary user
  * This function validates and returns the allUserId for temporary users
  */
-export const getTemporaryUserId = async (providedAllUserId: string): Promise<UserOperationResult<string>> => {
+export const getTemporaryUserId = async (
+  providedAllUserId: string
+): Promise<UserOperationResult<string>> => {
   try {
     const allUserResult = await getAllUserRecordById(providedAllUserId);
     if (!allUserResult.success || !allUserResult.data) {
@@ -627,7 +671,9 @@ export const getTemporaryUserId = async (providedAllUserId: string): Promise<Use
  * WARNING: this returns ALL user data from the table
  *          -> Including password
  */
-export const getUserByEmail = async (email: string): Promise<UserOperationResult> => {
+export const getUserByEmail = async (
+  email: string
+): Promise<UserOperationResult> => {
   try {
     const user = await db.query.users.findFirst({
       where: eq(users.email, email),
@@ -722,7 +768,9 @@ export const createUserWithPassword = async (params: {
  * Delete the current user's account (hard delete with cascade)
  * This will delete all user data including memories, galleries, folders, etc.
  */
-export const deleteAccount = async (userId: string): Promise<UserOperationResult> => {
+export const deleteAccount = async (
+  userId: string
+): Promise<UserOperationResult> => {
   try {
     // Get the allUser record for this user
     const allUserRecord = await db.query.allUsers.findFirst({
@@ -781,7 +829,9 @@ export const deleteAccount = async (userId: string): Promise<UserOperationResult
  * Soft delete the current user's account (for audit purposes)
  * This keeps the user record but marks it as deleted
  */
-export const softDeleteAccount = async (userId: string): Promise<UserOperationResult> => {
+export const softDeleteAccount = async (
+  userId: string
+): Promise<UserOperationResult> => {
   try {
     // Get the allUser record for this user
     const allUserRecord = await db.query.allUsers.findFirst({
@@ -841,7 +891,9 @@ export const softDeleteAccount = async (userId: string): Promise<UserOperationRe
 /**
  * Get temporary user record by ID
  */
-export const getTemporaryUserRecord = async (temporaryUserId: string): Promise<UserOperationResult> => {
+export const getTemporaryUserRecord = async (
+  temporaryUserId: string
+): Promise<UserOperationResult> => {
   try {
     const temporaryUser = await db.query.temporaryUsers.findFirst({
       where: eq(temporaryUsers.id, temporaryUserId),
@@ -868,7 +920,9 @@ export const getTemporaryUserRecord = async (temporaryUserId: string): Promise<U
 /**
  * Get user email by allUserId (works for both regular and temporary users)
  */
-export const getUserEmailByAllUserId = async (allUserId: string): Promise<UserOperationResult<string>> => {
+export const getUserEmailByAllUserId = async (
+  allUserId: string
+): Promise<UserOperationResult<string>> => {
   try {
     // First get the allUsers record to determine type
     const allUserResult = await getAllUserRecordById(allUserId);
@@ -880,11 +934,14 @@ export const getUserEmailByAllUserId = async (allUserId: string): Promise<UserOp
 
     if (allUser.type === 'temporary' && allUser.temporaryUserId) {
       // Get email from temporaryUsers table
-      const tempUserResult = await getTemporaryUserRecord(allUser.temporaryUserId);
+      const tempUserResult = await getTemporaryUserRecord(
+        allUser.temporaryUserId
+      );
       if (!tempUserResult.success || !tempUserResult.data) {
         return { success: false, error: 'Temporary user not found' };
       }
-      const email = (tempUserResult.data as typeof temporaryUsers.$inferSelect).email;
+      const email = (tempUserResult.data as typeof temporaryUsers.$inferSelect)
+        .email;
       return { success: true, data: email || '' };
     } else if (allUser.type === 'user' && allUser.userId) {
       // Get email from users table
@@ -892,7 +949,10 @@ export const getUserEmailByAllUserId = async (allUserId: string): Promise<UserOp
       if (!userResult.success || !userResult.data) {
         return { success: false, error: 'User not found' };
       }
-      return { success: true, data: (userResult.data as { email: string }).email };
+      return {
+        success: true,
+        data: (userResult.data as { email: string }).email,
+      };
     }
 
     return { success: false, error: 'Invalid user type' };

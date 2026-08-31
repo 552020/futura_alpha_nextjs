@@ -58,7 +58,8 @@ export async function verifyIICoAuth(): Promise<IICoAuthVerificationResult> {
 
     // Check if user has II co-auth active
     const icpPrincipal = (session.user as ExtendedSessionUser).icpPrincipal;
-    const icpPrincipalAssertedAt = (session.user as ExtendedSessionUser).icpPrincipalAssertedAt;
+    const icpPrincipalAssertedAt = (session.user as ExtendedSessionUser)
+      .icpPrincipalAssertedAt;
 
     if (!icpPrincipal || !icpPrincipalAssertedAt) {
       return {
@@ -71,7 +72,8 @@ export async function verifyIICoAuth(): Promise<IICoAuthVerificationResult> {
 
     // Check TTL status
     const ttlStatus = checkIICoAuthTTL(icpPrincipalAssertedAt);
-    const isValid = ttlStatus.status === 'active' || ttlStatus.status === 'grace';
+    const isValid =
+      ttlStatus.status === 'active' || ttlStatus.status === 'grace';
     const requiresReAuth = requiresIIReAuth(icpPrincipalAssertedAt);
 
     return {
@@ -89,7 +91,9 @@ export async function verifyIICoAuth(): Promise<IICoAuthVerificationResult> {
       ttlStatus,
     };
   } catch (error) {
-    fatLogger.error('II co-auth verification failed:', 'fe', { data: error instanceof Error ? error : undefined });
+    fatLogger.error('II co-auth verification failed:', 'fe', {
+      data: error instanceof Error ? error : undefined,
+    });
     return {
       isValid: false,
       requiresReAuth: false,
@@ -125,7 +129,8 @@ export async function hasLinkedIIAccount(): Promise<boolean> {
     const session = await auth();
     if (!session?.user) return false;
 
-    const linkedIcPrincipal = (session.user as ExtendedSessionUser).linkedIcPrincipal;
+    const linkedIcPrincipal = (session.user as ExtendedSessionUser)
+      .linkedIcPrincipal;
     return !!linkedIcPrincipal;
   } catch (error) {
     fatLogger.error('Failed to check linked II account:', 'fe', {
@@ -150,13 +155,16 @@ export async function getIIAccountInfo(): Promise<{
     if (!session?.user) return null;
 
     return {
-      linkedIcPrincipal: (session.user as ExtendedSessionUser).linkedIcPrincipal,
+      linkedIcPrincipal: (session.user as ExtendedSessionUser)
+        .linkedIcPrincipal,
       activeIcPrincipal: (session.user as ExtendedSessionUser).icpPrincipal,
       assertedAt: (session.user as ExtendedSessionUser).icpPrincipalAssertedAt,
       loginProvider: (session.user as ExtendedSessionUser).loginProvider,
     };
   } catch (error) {
-    fatLogger.error('Failed to get II account info:', 'fe', { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Failed to get II account info:', 'fe', {
+      data: error instanceof Error ? error : undefined,
+    });
     return null;
   }
 }
@@ -166,13 +174,18 @@ export async function getIIAccountInfo(): Promise<{
  * @param handler - The actual API route handler function
  * @returns Wrapped handler with II co-auth protection
  */
-export function withIICoAuth<T extends unknown[]>(handler: (req: Request, ...args: T) => Promise<Response>) {
+export function withIICoAuth<T extends unknown[]>(
+  handler: (req: Request, ...args: T) => Promise<Response>
+) {
   return async (req: Request, ...args: T): Promise<Response> => {
     try {
       await guardIICoAuth();
       return handler(req, ...args);
     } catch (error) {
-      if (error instanceof Error && (error as IICoAuthError).code === 'II_COAUTH_REQUIRED') {
+      if (
+        error instanceof Error &&
+        (error as IICoAuthError).code === 'II_COAUTH_REQUIRED'
+      ) {
         return new Response(
           JSON.stringify({
             error: 'II co-auth required',

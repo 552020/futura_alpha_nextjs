@@ -56,7 +56,11 @@ async function createHttpActor(): Promise<BackendActor> {
 /**
  * Generate cache key for individual token
  */
-function getCacheKey(memoryId: string, variants: string[], assetIds: string[] | null): string {
+function getCacheKey(
+  memoryId: string,
+  variants: string[],
+  assetIds: string[] | null
+): string {
   const variantStr = variants.sort().join(',');
   const assetStr = assetIds ? assetIds.sort().join(',') : 'null';
   return `${memoryId}:${variantStr}:${assetStr}`;
@@ -65,7 +69,11 @@ function getCacheKey(memoryId: string, variants: string[], assetIds: string[] | 
 /**
  * Generate cache key for bulk tokens
  */
-function getBulkCacheKey(memoryIds: string[], variants: string[], assetIds: string[] | null): string {
+function getBulkCacheKey(
+  memoryIds: string[],
+  variants: string[],
+  assetIds: string[] | null
+): string {
   const memoryStr = memoryIds.sort().join(',');
   const variantStr = variants.sort().join(',');
   const assetStr = assetIds ? assetIds.sort().join(',') : 'null';
@@ -83,9 +91,13 @@ export const icGatewayFor = (host?: string) =>
  * Generate ICP URL with proper gateway
  */
 export const icUrl = (canisterId: string, path: string, token?: string) => {
-  const gw = icGatewayFor(typeof window !== 'undefined' ? window.location.host : undefined);
+  const gw = icGatewayFor(
+    typeof window !== 'undefined' ? window.location.host : undefined
+  );
   const base = `https://${canisterId}.${gw}`;
-  return token ? `${base}${path}${path.includes('?') ? '&' : '?'}token=${token}` : `${base}${path}`;
+  return token
+    ? `${base}${path}${path.includes('?') ? '&' : '?'}token=${token}`
+    : `${base}${path}`;
 };
 
 /**
@@ -108,7 +120,9 @@ export function getHttpBaseUrl(): string {
   if (isLocal) {
     const canisterId = process.env.NEXT_PUBLIC_CANISTER_ID_BACKEND;
     if (!canisterId) {
-      throw new Error('NEXT_PUBLIC_CANISTER_ID_BACKEND not set for local development');
+      throw new Error(
+        'NEXT_PUBLIC_CANISTER_ID_BACKEND not set for local development'
+      );
     }
     return `http://${canisterId}.localhost:4943`;
   }
@@ -125,7 +139,10 @@ export function getHttpBaseUrl(): string {
 /**
  * Detect if a memory is from ICP or Neon based on its properties
  */
-export function isICPMemory(memory: { ownerId?: string; storageStatus?: { storageLocations: string[] } }): boolean {
+export function isICPMemory(memory: {
+  ownerId?: string;
+  storageStatus?: { storageLocations: string[] };
+}): boolean {
   // Check if ownerId indicates ICP user
   if (memory.ownerId === 'icp-user') {
     return true;
@@ -161,7 +178,12 @@ export async function getHttpToken(
 
   try {
     const actor = await getHttpActor();
-    const token = await actor.mint_http_token(memoryId, variants, assetIds ? [assetIds] : [], ttlSecs);
+    const token = await actor.mint_http_token(
+      memoryId,
+      variants,
+      assetIds ? [assetIds] : [],
+      ttlSecs
+    );
 
     // Cache the token with expiry
     const expiresAt = Date.now() + ttlSecs * 1000 - 10000; // 10s buffer
@@ -201,11 +223,19 @@ export async function getBulkHttpTokens(
     return new Map(cached.tokens);
   }
 
-  fatLogger.info('Fetching bulk tokens', 'fe', { count: memoryIds.length, variants });
+  fatLogger.info('Fetching bulk tokens', 'fe', {
+    count: memoryIds.length,
+    variants,
+  });
 
   try {
     const actor = await getHttpActor();
-    const tokenPairs = await actor.mint_http_tokens_bulk(memoryIds, variants, assetIds ? [assetIds] : [], ttlSecs);
+    const tokenPairs = await actor.mint_http_tokens_bulk(
+      memoryIds,
+      variants,
+      assetIds ? [assetIds] : [],
+      ttlSecs
+    );
 
     // Convert to Map and update individual cache
     const tokenMap = new Map<string, string>();

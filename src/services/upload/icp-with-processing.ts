@@ -12,7 +12,10 @@
 // import { randomUUID } from 'crypto'; // Not used in this file
 
 import { detectMemoryTypeFromFile } from '@/utils/memory-type';
-import { processImageDerivativesPure, type ProcessedBlobs } from './image-derivatives';
+import {
+  processImageDerivativesPure,
+  type ProcessedBlobs,
+} from './image-derivatives';
 // import { finalizeAllAssets, type ProcessedAssets } from './finalize'; // Not used for ICP-only uploads
 import { type ProcessedAssets } from './finalize';
 import { createFolderIfNeeded } from './shared-utils';
@@ -53,7 +56,7 @@ async function uploadOriginalAndCreateMemory(
 
   const uploadPromises = files.map(async (file, fileIndex) => {
     // 1. Upload original file using ICP chunked upload
-    const uploadResult = await uploadFileToICPWithProgress(file, progress => {
+    const uploadResult = await uploadFileToICPWithProgress(file, (progress) => {
       if (isSingleFile) {
         onProgress?.(progress);
       } else {
@@ -65,7 +68,11 @@ async function uploadOriginalAndCreateMemory(
     });
 
     // 2. Create ICP memory record with the original blob
-    const icpMemoryId = await createICPMemoryWithOriginalBlob(file, uploadResult.uploadResult.blob_id, parentFolderId);
+    const icpMemoryId = await createICPMemoryWithOriginalBlob(
+      file,
+      uploadResult.uploadResult.blob_id,
+      parentFolderId
+    );
 
     return {
       data: { id: icpMemoryId },
@@ -100,28 +107,40 @@ export async function uploadFileAndCreateMemoryWithDerivatives(
 ): Promise<UploadServiceResult> {
   try {
     // 1. Start both lanes simultaneously
-    const laneAPromise = uploadOriginalAndCreateMemory([file], onProgress).then(results => results[0]);
+    const laneAPromise = uploadOriginalAndCreateMemory([file], onProgress).then(
+      (results) => results[0]
+    );
 
     let laneBPromise: Promise<ProcessedAssets> | null = null;
     if (file.type.startsWith('image/')) {
       // Lane B processes original File object immediately
-      laneBPromise = processImageDerivativesPure(file).then(processedBlobs =>
+      laneBPromise = processImageDerivativesPure(file).then((processedBlobs) =>
         uploadProcessedAssetsToICP(processedBlobs, file.name)
       );
     }
 
     // 2. Wait for both lanes to complete
-    const laneAResult = await Promise.allSettled([laneAPromise]).then(results => results[0]);
-    const laneBResult = laneBPromise ? await Promise.allSettled([laneBPromise]).then(results => results[0]) : null;
+    const laneAResult = await Promise.allSettled([laneAPromise]).then(
+      (results) => results[0]
+    );
+    const laneBResult = laneBPromise
+      ? await Promise.allSettled([laneBPromise]).then((results) => results[0])
+      : null;
 
     if (laneAResult.status === 'rejected') {
       fatLogger.error('❌ Lane A (original upload) failed:', 'fe', {
-        error: laneAResult.reason instanceof Error ? laneAResult.reason.message : 'Unknown error',
+        error:
+          laneAResult.reason instanceof Error
+            ? laneAResult.reason.message
+            : 'Unknown error',
       });
     }
     if (laneBResult?.status === 'rejected') {
       fatLogger.error('❌ Lane B (derivative processing) failed:', 'fe', {
-        error: laneBResult.reason instanceof Error ? laneBResult.reason.message : 'Unknown error',
+        error:
+          laneBResult.reason instanceof Error
+            ? laneBResult.reason.message
+            : 'Unknown error',
       });
     }
 
@@ -140,18 +159,32 @@ export async function uploadFileAndCreateMemoryWithDerivatives(
         laneBResult?.status === 'fulfilled'
           ? {
               display: laneBResult.value.display
-                ? { blobId: laneBResult.value.display.storageKey || '', size: laneBResult.value.display.bytes || 0 }
+                ? {
+                    blobId: laneBResult.value.display.storageKey || '',
+                    size: laneBResult.value.display.bytes || 0,
+                  }
                 : undefined,
               thumb: laneBResult.value.thumb
-                ? { blobId: laneBResult.value.thumb.storageKey || '', size: laneBResult.value.thumb.bytes || 0 }
+                ? {
+                    blobId: laneBResult.value.thumb.storageKey || '',
+                    size: laneBResult.value.thumb.bytes || 0,
+                  }
                 : undefined,
               placeholder: laneBResult.value.placeholder
-                ? { blobId: 'inline', size: laneBResult.value.placeholder.bytes || 0 }
+                ? {
+                    blobId: 'inline',
+                    size: laneBResult.value.placeholder.bytes || 0,
+                  }
                 : undefined,
             }
           : {};
 
-      await createStorageEdgesForAllAssets(icpMemoryId, file, originalResult.blobId, derivativeAssets);
+      await createStorageEdgesForAllAssets(
+        icpMemoryId,
+        file,
+        originalResult.blobId,
+        derivativeAssets
+      );
     }
 
     // Return Lane A result (original upload + memory creation)
@@ -178,7 +211,13 @@ export async function uploadMultipleToICPWithProcessing(
   mode: 'directory' | 'multiple-files',
   onProgress?: (file: File, progress: number) => void
 ): Promise<{
-  results?: Array<{ memoryId: string; size?: number; checksum_sha256?: string | null; name?: string; type?: string }>;
+  results?: Array<{
+    memoryId: string;
+    size?: number;
+    checksum_sha256?: string | null;
+    name?: string;
+    type?: string;
+  }>;
   userId?: string;
   successfulUploads?: number;
 }> {
@@ -189,7 +228,7 @@ export async function uploadMultipleToICPWithProcessing(
     // 2.1. Start Lane A: Upload original files to ICP
     const laneAPromise = uploadOriginalAndCreateMemory(
       files,
-      progress => {
+      (progress) => {
         // Convert overall progress to per-file progress for compatibility
         onProgress?.(files[0], progress);
       },
@@ -197,7 +236,7 @@ export async function uploadMultipleToICPWithProcessing(
     );
 
     // 2.2. Start Lane B: Process derivatives for image files
-    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    const imageFiles = files.filter((file) => file.type.startsWith('image/'));
     let laneBPromise: Promise<ProcessedAssets[]> | null = null;
 
     if (imageFiles.length > 0) {
@@ -205,18 +244,29 @@ export async function uploadMultipleToICPWithProcessing(
     }
 
     // 3. Wait for both lanes to complete
-    const laneAResult = await Promise.allSettled([laneAPromise]).then(results => results[0]);
-    const laneBResult = laneBPromise ? await Promise.allSettled([laneBPromise]).then(results => results[0]) : null;
+    const laneAResult = await Promise.allSettled([laneAPromise]).then(
+      (results) => results[0]
+    );
+    const laneBResult = laneBPromise
+      ? await Promise.allSettled([laneBPromise]).then((results) => results[0])
+      : null;
 
     // 4. Add derivative assets to existing memories
-    if (laneAResult.status === 'fulfilled' && laneBResult?.status === 'fulfilled') {
+    if (
+      laneAResult.status === 'fulfilled' &&
+      laneBResult?.status === 'fulfilled'
+    ) {
       // Add derivatives to each memory
       const assetAdditionPromises = files.map(async (file, index) => {
         const memoryResult = laneAResult.value[index];
         const derivativeResult = laneBResult.value[index];
 
         if (derivativeResult) {
-          await addDerivativeAssetsToMemory(memoryResult.data.id, derivativeResult, file);
+          await addDerivativeAssetsToMemory(
+            memoryResult.data.id,
+            derivativeResult,
+            file
+          );
         }
       });
 
@@ -227,7 +277,8 @@ export async function uploadMultipleToICPWithProcessing(
     if (laneAResult.status === 'fulfilled') {
       const storageEdgePromises = files.map(async (file, index) => {
         const memoryResult = laneAResult.value[index];
-        const derivativeResult = laneBResult?.status === 'fulfilled' ? laneBResult.value[index] : null;
+        const derivativeResult =
+          laneBResult?.status === 'fulfilled' ? laneBResult.value[index] : null;
 
         const derivativeAssets = derivativeResult
           ? {
@@ -266,20 +317,24 @@ export async function uploadMultipleToICPWithProcessing(
     return {
       results:
         laneAResult.status === 'fulfilled'
-          ? laneAResult.value.map(result => ({
+          ? laneAResult.value.map((result) => ({
               memoryId: result.results[0].memoryId,
               size: Number(result.results[0].size),
               checksum_sha256: result.results[0].checksumSha256
                 ? Array.from(result.results[0].checksumSha256)
-                    .map(b => b.toString(16).padStart(2, '0'))
+                    .map((b) => b.toString(16).padStart(2, '0'))
                     .join('')
                 : null,
               name: files[0]?.name,
               type: files[0]?.type,
             }))
           : [],
-      userId: laneAResult.status === 'fulfilled' ? laneAResult.value[0]?.userId || '' : '',
-      successfulUploads: laneAResult.status === 'fulfilled' ? laneAResult.value.length : 0,
+      userId:
+        laneAResult.status === 'fulfilled'
+          ? laneAResult.value[0]?.userId || ''
+          : '',
+      successfulUploads:
+        laneAResult.status === 'fulfilled' ? laneAResult.value.length : 0,
     };
   } catch (error) {
     throw error;
@@ -290,7 +345,9 @@ export async function uploadMultipleToICPWithProcessing(
  * Process image derivatives for multiple files using pure processing + ICP upload
  * STEP 2.2 of the upload pipeline (uploadMultipleToICPWithProcessing in icp-with-processing.ts)
  */
-async function processMultipleImageDerivativesForICP(imageFiles: File[]): Promise<ProcessedAssets[]> {
+async function processMultipleImageDerivativesForICP(
+  imageFiles: File[]
+): Promise<ProcessedAssets[]> {
   const derivativePromises = imageFiles.map(async (file, _index) => {
     try {
       // Pure processing first, then ICP upload
@@ -329,14 +386,27 @@ async function processMultipleImageDerivativesForICP(imageFiles: File[]): Promis
 
       return await uploadProcessedAssetsToICP(processedBlobs, file.name);
     } catch (error) {
-      fatLogger.error('❌ [Lane B] Failed to process image derivatives:', 'fe', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        fileName: file.name,
-      });
+      fatLogger.error(
+        '❌ [Lane B] Failed to process image derivatives:',
+        'fe',
+        {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          fileName: file.name,
+        }
+      );
       return {
-        display: { assetType: 'display' as const, processingStatus: 'failed' as const },
-        thumb: { assetType: 'thumb' as const, processingStatus: 'failed' as const },
-        placeholder: { assetType: 'placeholder' as const, processingStatus: 'failed' as const },
+        display: {
+          assetType: 'display' as const,
+          processingStatus: 'failed' as const,
+        },
+        thumb: {
+          assetType: 'thumb' as const,
+          processingStatus: 'failed' as const,
+        },
+        placeholder: {
+          assetType: 'placeholder' as const,
+          processingStatus: 'failed' as const,
+        },
       };
     }
   });
@@ -358,11 +428,18 @@ export async function uploadProcessedAssetsToICP(
   if (processedBlobs.display) {
     try {
       // Convert blob to File for ICP upload
-      const displayFile = new File([processedBlobs.display.blob], `display-${originalFileName}`, {
-        type: processedBlobs.display.mimeType,
-      });
+      const displayFile = new File(
+        [processedBlobs.display.blob],
+        `display-${originalFileName}`,
+        {
+          type: processedBlobs.display.mimeType,
+        }
+      );
 
-      const displayUploadResult = await uploadFileToICPWithProgress(displayFile, () => {}); // No progress tracking for derivatives
+      const displayUploadResult = await uploadFileToICPWithProgress(
+        displayFile,
+        () => {}
+      ); // No progress tracking for derivatives
 
       fatLogger.info('✅ [Lane B] Display upload completed:', 'fe', {
         blob_id: displayUploadResult.uploadResult.blob_id,
@@ -404,11 +481,18 @@ export async function uploadProcessedAssetsToICP(
   if (processedBlobs.thumb) {
     try {
       // Convert blob to File for ICP upload
-      const thumbFile = new File([processedBlobs.thumb.blob], `thumb-${originalFileName}`, {
-        type: processedBlobs.thumb.mimeType,
-      });
+      const thumbFile = new File(
+        [processedBlobs.thumb.blob],
+        `thumb-${originalFileName}`,
+        {
+          type: processedBlobs.thumb.mimeType,
+        }
+      );
 
-      const thumbUploadResult = await uploadFileToICPWithProgress(thumbFile, () => {}); // No progress tracking for derivatives
+      const thumbUploadResult = await uploadFileToICPWithProgress(
+        thumbFile,
+        () => {}
+      ); // No progress tracking for derivatives
 
       fatLogger.info('✅ [Lane B] Thumb upload completed:', 'fe', {
         blob_id: thumbUploadResult.uploadResult.blob_id,
@@ -428,10 +512,14 @@ export async function uploadProcessedAssetsToICP(
         url: '', // ICP URLs will be generated after memory edge creation
       };
     } catch (error) {
-      fatLogger.error('❌ [Lane B] Failed to upload thumb asset to ICP:', 'fe', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        fileName: originalFileName,
-      });
+      fatLogger.error(
+        '❌ [Lane B] Failed to upload thumb asset to ICP:',
+        'fe',
+        {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          fileName: originalFileName,
+        }
+      );
       results.thumb = {
         assetType: 'thumb',
         processingStatus: 'failed',
@@ -450,12 +538,18 @@ export async function uploadProcessedAssetsToICP(
   if (processedBlobs.placeholder) {
     try {
       // Convert data URL to bytes for inline storage
-      const placeholderBytes = dataURLtoBytes(processedBlobs.placeholder.dataUrl);
+      const placeholderBytes = dataURLtoBytes(
+        processedBlobs.placeholder.dataUrl
+      );
 
-      fatLogger.info('✅ [Lane B] Placeholder prepared for inline storage:', 'fe', {
-        bytes: placeholderBytes.length,
-        dimensions: `${processedBlobs.placeholder.width}x${processedBlobs.placeholder.height}`,
-      });
+      fatLogger.info(
+        '✅ [Lane B] Placeholder prepared for inline storage:',
+        'fe',
+        {
+          bytes: placeholderBytes.length,
+          dimensions: `${processedBlobs.placeholder.width}x${processedBlobs.placeholder.height}`,
+        }
+      );
 
       results.placeholder = {
         assetType: 'placeholder',
@@ -469,10 +563,14 @@ export async function uploadProcessedAssetsToICP(
         url: processedBlobs.placeholder.dataUrl, // Keep data URL for immediate display
       };
     } catch (error) {
-      fatLogger.error('❌ [Lane B] Failed to prepare placeholder for inline storage:', 'fe', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        fileName: originalFileName,
-      });
+      fatLogger.error(
+        '❌ [Lane B] Failed to prepare placeholder for inline storage:',
+        'fe',
+        {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          fileName: originalFileName,
+        }
+      );
       results.placeholder = {
         assetType: 'placeholder',
         processingStatus: 'failed',
@@ -524,7 +622,10 @@ export async function uploadFileToICPWithProgress(
     // 1. Get authenticated actor using existing pattern
     const authClient = await getAuthClient();
     if (!authClient.isAuthenticated()) {
-      fatLogger.error('❌ Authentication failed: User not connected to Internet Identity', 'fe');
+      fatLogger.error(
+        '❌ Authentication failed: User not connected to Internet Identity',
+        'fe'
+      );
       throw new Error('Please connect your Internet Identity to upload to ICP');
     }
 
@@ -544,8 +645,12 @@ export async function uploadFileToICPWithProgress(
       fatLogger.info('📦 Creating new capsule...', 'fe');
       const createResult = (await backend.capsules_create([])) as Result_5;
       if (!('Ok' in createResult)) {
-        fatLogger.error('❌ Failed to create capsule:', 'fe', { error: JSON.stringify(createResult) });
-        throw new Error('Failed to create capsule: ' + JSON.stringify(createResult));
+        fatLogger.error('❌ Failed to create capsule:', 'fe', {
+          error: JSON.stringify(createResult),
+        });
+        throw new Error(
+          'Failed to create capsule: ' + JSON.stringify(createResult)
+        );
       }
       capsuleId = createResult.Ok.id;
       fatLogger.info('✅ New capsule created:', 'fe', { capsuleId });
@@ -589,7 +694,11 @@ export async function uploadFileToICPWithProgress(
       totalChunks,
     });
 
-    const begin = (await backend.uploads_begin(capsuleId, totalChunks, `upload-${Date.now()}`)) as Result13;
+    const begin = (await backend.uploads_begin(
+      capsuleId,
+      totalChunks,
+      `upload-${Date.now()}`
+    )) as Result13;
 
     if (!('Ok' in begin)) {
       fatLogger.error('❌ uploads_begin failed:', 'fe', {
@@ -617,7 +726,11 @@ export async function uploadFileToICPWithProgress(
       const end = Math.min(start + limits.chunk_size, file.size);
       const chunk = new Uint8Array(await file.slice(start, end).arrayBuffer());
 
-      const put = (await backend.uploads_put_chunk(session, index, chunk)) as Result;
+      const put = (await backend.uploads_put_chunk(
+        session,
+        index,
+        chunk
+      )) as Result;
 
       if (!('Ok' in put)) {
         fatLogger.error('❌ put_chunk failed:', 'fe', {
@@ -625,7 +738,9 @@ export async function uploadFileToICPWithProgress(
           chunkIndex: index,
           chunkSize: chunk.length,
         });
-        throw new Error(`put_chunk failed for chunk ${index}: ${JSON.stringify(put)}`);
+        throw new Error(
+          `put_chunk failed for chunk ${index}: ${JSON.stringify(put)}`
+        );
       }
 
       uploadedBytes += chunk.length;
@@ -633,7 +748,10 @@ export async function uploadFileToICPWithProgress(
       onProgress(percentage);
 
       // Log progress every 10% or for last chunk
-      if (index % Math.max(1, Math.floor(totalChunks / 10)) === 0 || index === totalChunks - 1) {
+      if (
+        index % Math.max(1, Math.floor(totalChunks / 10)) === 0 ||
+        index === totalChunks - 1
+      ) {
         fatLogger.info('📤 Upload progress:', 'fe', {
           chunk: `${index + 1}/${totalChunks}`,
           percentage: Math.round(percentage),
@@ -659,7 +777,7 @@ export async function uploadFileToICPWithProgress(
     const hashBuffer = await crypto.subtle.digest('SHA-256', fileBuffer);
     const hash = new Uint8Array(hashBuffer);
     const hashHex = Array.from(hash)
-      .map(b => b.toString(16).padStart(2, '0'))
+      .map((b) => b.toString(16).padStart(2, '0'))
       .join('');
 
     fatLogger.info('✅ File hash computed:', 'fe', { hashHex });
@@ -670,7 +788,11 @@ export async function uploadFileToICPWithProgress(
       fileSize: file.size,
     });
 
-    const fin = (await backend.uploads_finish(session, hash, BigInt(file.size))) as Result15;
+    const fin = (await backend.uploads_finish(
+      session,
+      hash,
+      BigInt(file.size)
+    )) as Result15;
 
     if (!('Ok' in fin)) {
       fatLogger.error('❌ uploads_finish failed:', 'fe', {
@@ -738,7 +860,9 @@ async function createICPMemoryWithOriginalBlob(
     const authClient = await getAuthClient();
     if (!authClient.isAuthenticated()) {
       fatLogger.error('❌ Authentication failed for memory creation', 'fe');
-      throw new Error('Please connect your Internet Identity to create ICP memory records');
+      throw new Error(
+        'Please connect your Internet Identity to create ICP memory records'
+      );
     }
 
     const identity = authClient.getIdentity();
@@ -753,7 +877,9 @@ async function createICPMemoryWithOriginalBlob(
       throw new Error('Failed to get user capsule');
     }
     const capsuleId = capsuleResult.Ok.capsule_id;
-    fatLogger.info('📦 Using capsule for memory creation:', 'fe', { capsuleId });
+    fatLogger.info('📦 Using capsule for memory creation:', 'fe', {
+      capsuleId,
+    });
 
     // Create memory metadata
     const memoryMetadata: MemoryMetadata = {
@@ -839,7 +965,9 @@ async function createICPMemoryWithOriginalBlob(
         fileName: file.name,
         blobId: originalBlobId,
       });
-      throw new Error(`Failed to create ICP memory: ${JSON.stringify(result.Err)}`);
+      throw new Error(
+        `Failed to create ICP memory: ${JSON.stringify(result.Err)}`
+      );
     }
   } catch (error) {
     fatLogger.error('❌ Failed to create ICP memory record:', 'fe', {
@@ -872,7 +1000,9 @@ async function addDerivativeAssetsToMemory(
     const authClient = await getAuthClient();
     if (!authClient.isAuthenticated()) {
       fatLogger.error('❌ Authentication failed for asset addition', 'fe');
-      throw new Error('Please connect your Internet Identity to add assets to memory');
+      throw new Error(
+        'Please connect your Internet Identity to add assets to memory'
+      );
     }
 
     const identity = authClient.getIdentity();
@@ -945,7 +1075,9 @@ async function addDerivativeAssetsToMemory(
           memoryId: icpMemoryId,
           storageKey: derivativeAssets.display.storageKey,
         });
-        throw new Error(`Failed to add display asset: ${JSON.stringify(displayResult.Err)}`);
+        throw new Error(
+          `Failed to add display asset: ${JSON.stringify(displayResult.Err)}`
+        );
       }
     }
 
@@ -1016,7 +1148,9 @@ async function addDerivativeAssetsToMemory(
           memoryId: icpMemoryId,
           storageKey: derivativeAssets.thumb.storageKey,
         });
-        throw new Error(`Failed to add thumb asset: ${JSON.stringify(thumbResult.Err)}`);
+        throw new Error(
+          `Failed to add thumb asset: ${JSON.stringify(thumbResult.Err)}`
+        );
       }
     }
 
@@ -1089,7 +1223,9 @@ async function addDerivativeAssetsToMemory(
           memoryId: icpMemoryId,
           placeholderSize: placeholderBytes.length,
         });
-        throw new Error(`Failed to add placeholder asset: ${JSON.stringify(placeholderResult.Err)}`);
+        throw new Error(
+          `Failed to add placeholder asset: ${JSON.stringify(placeholderResult.Err)}`
+        );
       }
     }
   } catch (error) {
@@ -1223,7 +1359,9 @@ async function createStorageEdgesForAllAssets(
           edge: edge,
           memoryId: icpMemoryId,
         });
-        throw new Error(`Failed to create storage edge: ${error.error || 'Unknown error'}`);
+        throw new Error(
+          `Failed to create storage edge: ${error.error || 'Unknown error'}`
+        );
       }
     }
 

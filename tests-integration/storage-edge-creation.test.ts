@@ -48,15 +48,27 @@ describe('Storage Edge Creation Logic', () => {
 
   it('should create correct storage edge data structure for image memory', async () => {
     // Import the function after mocking
-    const { createMemoryStorageEdges } = await import('@/lib/usecases/memory/create-memory-storage-edges');
+    const { createMemoryStorageEdges } = await import(
+      '@/lib/usecases/memory/create-memory-storage-edges'
+    );
     const { db } = await import('@/db/db');
 
     // Mock the database insert to return success
     const mockInsert = vi.fn().mockReturnValue({
       values: vi.fn().mockReturnValue({
         returning: vi.fn().mockResolvedValue([
-          { id: 'edge-1', memoryId: 'test-memory', artifact: 'metadata', backend: 'neon-db' },
-          { id: 'edge-2', memoryId: 'test-memory', artifact: 'asset', backend: 'vercel-blob' },
+          {
+            id: 'edge-1',
+            memoryId: 'test-memory',
+            artifact: 'metadata',
+            backend: 'neon-db',
+          },
+          {
+            id: 'edge-2',
+            memoryId: 'test-memory',
+            artifact: 'asset',
+            backend: 'vercel-blob',
+          },
         ]),
       }),
     });
@@ -78,7 +90,9 @@ describe('Storage Edge Creation Logic', () => {
   });
 
   it('should handle different memory types correctly', async () => {
-    const { createMemoryStorageEdges } = await import('@/lib/usecases/memory/create-memory-storage-edges');
+    const { createMemoryStorageEdges } = await import(
+      '@/lib/usecases/memory/create-memory-storage-edges'
+    );
     const { db } = await import('@/db/db');
 
     const mockInsert = vi.fn().mockReturnValue({
@@ -103,7 +117,9 @@ describe('Storage Edge Creation Logic', () => {
   });
 
   it('should handle database errors gracefully', async () => {
-    const { createMemoryStorageEdges } = await import('@/lib/usecases/memory/create-memory-storage-edges');
+    const { createMemoryStorageEdges } = await import(
+      '@/lib/usecases/memory/create-memory-storage-edges'
+    );
     const { db } = await import('@/db/db');
 
     // Mock database to throw an error

@@ -73,8 +73,13 @@ export function formatFolderUploadResponse(params: {
 /**
  * Format error response
  */
-export function formatErrorResponse(error: unknown, message: string = 'Unexpected error occurred'): NextResponse {
-  fatLogger.error('❌ Error:', 'be', { data: error instanceof Error ? error : undefined });
+export function formatErrorResponse(
+  error: unknown,
+  message: string = 'Unexpected error occurred'
+): NextResponse {
+  fatLogger.error('❌ Error:', 'be', {
+    data: error instanceof Error ? error : undefined,
+  });
   return NextResponse.json(
     {
       error: message,

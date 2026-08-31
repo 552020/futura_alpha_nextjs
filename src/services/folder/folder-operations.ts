@@ -39,7 +39,9 @@ export interface FolderAccessCheckParams {
 /**
  * Create a new folder record in the database
  */
-export const createFolderRecord = async (params: CreateFolderParams): Promise<FolderOperationResult> => {
+export const createFolderRecord = async (
+  params: CreateFolderParams
+): Promise<FolderOperationResult> => {
   try {
     const [createdFolder] = await db
       .insert(folders)
@@ -76,7 +78,10 @@ export const createFolderRecord = async (params: CreateFolderParams): Promise<Fo
 /**
  * Get a single folder record by ID for owner (with ownership check)
  */
-export const getFolderByIdForOwner = async (folderId: string, ownerAllUserId: string): Promise<FolderOperationResult<DBFolder>> => {
+export const getFolderByIdForOwner = async (
+  folderId: string,
+  ownerAllUserId: string
+): Promise<FolderOperationResult<DBFolder>> => {
   try {
     const folder = await db.query.folders.findFirst({
       where: and(eq(folders.id, folderId), eq(folders.ownerId, ownerAllUserId)),
@@ -104,7 +109,9 @@ export const getFolderByIdForOwner = async (folderId: string, ownerAllUserId: st
 /**
  * Get a single folder record by ID
  */
-export const getFolderRecord = async (folderId: string): Promise<FolderOperationResult> => {
+export const getFolderRecord = async (
+  folderId: string
+): Promise<FolderOperationResult> => {
   try {
     const folder = await db.query.folders.findFirst({
       where: eq(folders.id, folderId),
@@ -131,7 +138,9 @@ export const getFolderRecord = async (folderId: string): Promise<FolderOperation
 /**
  * Get folders by multiple IDs
  */
-export const getFoldersByIds = async (folderIds: string[]): Promise<FolderOperationResult<DBFolder[]>> => {
+export const getFoldersByIds = async (
+  folderIds: string[]
+): Promise<FolderOperationResult<DBFolder[]>> => {
   try {
     if (folderIds.length === 0) {
       return { success: true, data: [] };
@@ -158,7 +167,9 @@ export const getFoldersByIds = async (folderIds: string[]): Promise<FolderOperat
 /**
  * Get folders by owner
  */
-export const getFoldersByOwner = async (ownerId: string): Promise<FolderOperationResult> => {
+export const getFoldersByOwner = async (
+  ownerId: string
+): Promise<FolderOperationResult> => {
   try {
     const foldersList = await db.query.folders.findMany({
       where: eq(folders.ownerId, ownerId),
@@ -182,11 +193,16 @@ export const getFoldersByOwner = async (ownerId: string): Promise<FolderOperatio
 /**
  * Get folders shared with a user
  */
-export const getSharedFolders = async (allUserId: string): Promise<FolderOperationResult> => {
+export const getSharedFolders = async (
+  allUserId: string
+): Promise<FolderOperationResult> => {
   try {
     // Get folder memberships for this user
     const memberships = await db.query.resourceMembership.findMany({
-      where: and(eq(resourceMembership.allUserId, allUserId), eq(resourceMembership.resourceType, 'folder')),
+      where: and(
+        eq(resourceMembership.allUserId, allUserId),
+        eq(resourceMembership.resourceType, 'folder')
+      ),
     });
 
     if (memberships.length === 0) {
@@ -194,7 +210,7 @@ export const getSharedFolders = async (allUserId: string): Promise<FolderOperati
     }
 
     // Get the actual folder data
-    const folderIds = memberships.map(m => m.resourceId);
+    const folderIds = memberships.map((m) => m.resourceId);
     const sharedFolders = await db.query.folders.findMany({
       where: eq(folders.id, folderIds[0]), // This needs to be fixed with proper inArray
       orderBy: desc(folders.createdAt),
@@ -254,7 +270,9 @@ export const updateFolderRecord = async (
 /**
  * Delete folder record
  */
-export const deleteFolderRecord = async (folderId: string): Promise<FolderOperationResult> => {
+export const deleteFolderRecord = async (
+  folderId: string
+): Promise<FolderOperationResult> => {
   try {
     await db.delete(folders).where(eq(folders.id, folderId));
 
@@ -284,7 +302,9 @@ export const deleteFolderRecord = async (folderId: string): Promise<FolderOperat
 /**
  * Share a folder with a user
  */
-export const shareFolderWithUser = async (params: ShareFolderParams): Promise<FolderOperationResult> => {
+export const shareFolderWithUser = async (
+  params: ShareFolderParams
+): Promise<FolderOperationResult> => {
   try {
     const [share] = await db
       .insert(resourceMembership)
@@ -324,10 +344,15 @@ export const shareFolderWithUser = async (params: ShareFolderParams): Promise<Fo
 /**
  * Get folder shares
  */
-export const getFolderShares = async (folderId: string): Promise<FolderOperationResult> => {
+export const getFolderShares = async (
+  folderId: string
+): Promise<FolderOperationResult> => {
   try {
     const shares = await db.query.resourceMembership.findMany({
-      where: and(eq(resourceMembership.resourceId, folderId), eq(resourceMembership.resourceType, 'folder')),
+      where: and(
+        eq(resourceMembership.resourceId, folderId),
+        eq(resourceMembership.resourceType, 'folder')
+      ),
     });
 
     return { success: true, data: shares };

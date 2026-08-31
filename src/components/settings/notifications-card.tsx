@@ -11,7 +11,8 @@ export function NotificationsCard() {
         {
           id: 'email-notifications',
           label: 'Email Notifications',
-          description: 'Receive updates about new memories and family activity.',
+          description:
+            'Receive updates about new memories and family activity.',
           defaultChecked: true,
         },
         {

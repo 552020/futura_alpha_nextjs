@@ -5,7 +5,10 @@
  * Only this file should import wire types from backend.did
  */
 
-import type { UploadFinishResult as Wire, StorageBackend as WireSB } from '@/ic/declarations/backend/backend.did';
+import type {
+  UploadFinishResult as Wire,
+  StorageBackend as WireSB,
+} from '@/ic/declarations/backend/backend.did';
 import type { UploadResult, StorageBackend as DomainSB } from '@/types/upload';
 
 // ============================================================================
@@ -45,7 +48,10 @@ export function wireToDomain(w: Wire): UploadResult {
     blobId: w.blob_id, // snake_case → camelCase
     remoteId: w.remote_id?.[0], // []|[T] → T|undefined
     size: w.size, // bigint → bigint
-    checksumSha256: w.checksum_sha256?.[0] instanceof Uint8Array ? w.checksum_sha256[0] : undefined, // []|[Uint8Array] → Uint8Array|undefined
+    checksumSha256:
+      w.checksum_sha256?.[0] instanceof Uint8Array
+        ? w.checksum_sha256[0]
+        : undefined, // []|[Uint8Array] → Uint8Array|undefined
     storageBackend: toDomainSB(w.storage_backend), // Candid variant → string
     storageLocation: w.storage_location, // snake_case → camelCase
     uploadedAt: w.uploaded_at, // bigint → bigint

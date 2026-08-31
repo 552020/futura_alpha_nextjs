@@ -16,7 +16,9 @@ test.describe('Mobile Overflow Testing', () => {
 
     // Verify no horizontal scroll
     const hasHorizontalScroll = await page.evaluate(
-      () => document.documentElement.scrollWidth > document.documentElement.clientWidth
+      () =>
+        document.documentElement.scrollWidth >
+        document.documentElement.clientWidth
     );
     expect(hasHorizontalScroll).toBe(false);
   });
@@ -42,7 +44,9 @@ test.describe('Mobile Overflow Testing', () => {
 
     // Verify no horizontal overflow
     const overflow = await page.evaluate(
-      () => document.documentElement.scrollWidth > document.documentElement.clientWidth
+      () =>
+        document.documentElement.scrollWidth >
+        document.documentElement.clientWidth
     );
     expect(overflow).toBe(false);
   });
@@ -56,7 +60,9 @@ test.describe('Mobile Overflow Testing', () => {
     await expect(container).toBeVisible();
 
     // Get container width
-    const containerWidth = await container.evaluate(el => el.getBoundingClientRect().width);
+    const containerWidth = await container.evaluate(
+      (el) => el.getBoundingClientRect().width
+    );
     const viewportWidth = await page.evaluate(() => window.innerWidth);
 
     // Container should not exceed viewport width
@@ -94,15 +100,23 @@ test.describe('Mobile Overflow Testing', () => {
     ];
 
     for (const viewport of viewports) {
-      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      await page.setViewportSize({
+        width: viewport.width,
+        height: viewport.height,
+      });
       await page.goto('/en');
 
       // Check for horizontal overflow
       const hasOverflow = await page.evaluate(
-        () => document.documentElement.scrollWidth > document.documentElement.clientWidth
+        () =>
+          document.documentElement.scrollWidth >
+          document.documentElement.clientWidth
       );
 
-      expect(hasOverflow, `Should not have horizontal overflow on ${viewport.name}`).toBe(false);
+      expect(
+        hasOverflow,
+        `Should not have horizontal overflow on ${viewport.name}`
+      ).toBe(false);
     }
   });
 
@@ -132,10 +146,15 @@ test.describe('Mobile Overflow Testing', () => {
 
     // Find elements that extend beyond viewport
     const overflowingElements = await page.evaluate(() => {
-      const elements: Array<{ tagName: string; className: string; right: number; viewportWidth: number }> = [];
+      const elements: Array<{
+        tagName: string;
+        className: string;
+        right: number;
+        viewportWidth: number;
+      }> = [];
       const viewportWidth = document.documentElement.clientWidth;
 
-      document.querySelectorAll('*').forEach(el => {
+      document.querySelectorAll('*').forEach((el) => {
         const rect = el.getBoundingClientRect();
         if (rect.right > viewportWidth) {
           elements.push({

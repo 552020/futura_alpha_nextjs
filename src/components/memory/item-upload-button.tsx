@@ -3,7 +3,13 @@ import { Plus, Loader2, Upload } from 'lucide-react';
 import { useFileUpload } from '@/hooks/use-file-upload';
 import { triggerFileInput } from '@/services/upload/file-picker';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import type { FileInputAttributeMode } from '@/types/upload';
 
 // Button variant interfaces
@@ -32,10 +38,14 @@ const LargeIconButton = ({ onClick, isLoading }: BaseButtonProps) => (
     role="button"
     tabIndex={0}
     onClick={onClick}
-    onKeyDown={e => e.key === 'Enter' && onClick()}
+    onKeyDown={(e) => e.key === 'Enter' && onClick()}
     className="w-20 h-20 rounded-full bg-black hover:bg-white dark:bg-white dark:hover:bg-black flex items-center justify-center cursor-pointer text-white hover:text-black dark:text-black dark:hover:text-white border-2 border-transparent hover:border-black dark:hover:border-white transition-all"
   >
-    {isLoading ? <Loader2 size={72} className="animate-spin" /> : <Plus size={72} />}
+    {isLoading ? (
+      <Loader2 size={72} className="animate-spin" />
+    ) : (
+      <Plus size={72} />
+    )}
   </div>
 );
 
@@ -45,7 +55,11 @@ const LargeIconButton = ({ onClick, isLoading }: BaseButtonProps) => (
  */
 const IconButton = ({ onClick, isLoading }: BaseButtonProps) => (
   <Button variant="ghost" size="icon" onClick={onClick} disabled={isLoading}>
-    {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+    {isLoading ? (
+      <Loader2 className="h-4 w-4 animate-spin" />
+    ) : (
+      <Upload className="h-4 w-4" />
+    )}
   </Button>
 );
 
@@ -55,7 +69,11 @@ const IconButton = ({ onClick, isLoading }: BaseButtonProps) => (
  */
 const DefaultButton = ({ onClick, isLoading }: BaseButtonProps) => (
   <Button onClick={onClick} disabled={isLoading} className="gap-2">
-    {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+    {isLoading ? (
+      <Loader2 className="h-4 w-4 animate-spin" />
+    ) : (
+      <Upload className="h-4 w-4" />
+    )}
     Upload Memory
   </Button>
 );
@@ -87,7 +105,11 @@ const OnboardingAlbumButton = ({ onClick, isLoading }: BaseButtonProps) => (
  * Used in:
  * - Onboarding flow: /app/[lang]/onboarding/items-upload/items-upload-client.tsx
  */
-const OnboardingOneShotButton = ({ onClick, isLoading, buttonText }: BaseButtonProps) => (
+const OnboardingOneShotButton = ({
+  onClick,
+  isLoading,
+  buttonText,
+}: BaseButtonProps) => (
   <button
     onClick={onClick}
     disabled={isLoading}
@@ -109,7 +131,11 @@ const OnboardingOneShotButton = ({ onClick, isLoading, buttonText }: BaseButtonP
  * Used in:
  * - Dashboard top bar: /components/dashboard/dashboard-top-bar.tsx
  */
-const DashboardAddFolderButton = ({ onClick, isLoading, buttonText }: BaseButtonProps) => (
+const DashboardAddFolderButton = ({
+  onClick,
+  isLoading,
+  buttonText,
+}: BaseButtonProps) => (
   <button
     onClick={onClick}
     disabled={isLoading}
@@ -131,7 +157,11 @@ const DashboardAddFolderButton = ({ onClick, isLoading, buttonText }: BaseButton
  * Used in:
  * - Dashboard top bar: /components/dashboard/dashboard-top-bar.tsx
  */
-const DashboardAddFileButton = ({ onClick, isLoading, buttonText }: BaseButtonProps) => (
+const DashboardAddFileButton = ({
+  onClick,
+  isLoading,
+  buttonText,
+}: BaseButtonProps) => (
   <button
     onClick={onClick}
     disabled={isLoading}
@@ -221,7 +251,7 @@ export function ItemUploadButton({
       setShowUploadDialog(false);
       onSuccess?.();
     },
-    onError: error => {
+    onError: (error) => {
       onError?.(error);
     },
   });
@@ -283,7 +313,9 @@ export function ItemUploadButton({
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Uploading Memory</DialogTitle>
-              <DialogDescription>Please wait while we upload your memory...</DialogDescription>
+              <DialogDescription>
+                Please wait while we upload your memory...
+              </DialogDescription>
             </DialogHeader>
             <div className="flex justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin" />

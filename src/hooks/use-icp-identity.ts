@@ -39,7 +39,7 @@ export function useICPIdentity() {
     let bc: BroadcastChannel | null = null;
     try {
       bc = new BroadcastChannel(CHANNEL);
-      bc.onmessage = e => e.data?.type === 'identity-changed' && refresh();
+      bc.onmessage = (e) => e.data?.type === 'identity-changed' && refresh();
     } catch {
       // Fallback: storage ping
       const key = '__icp_identity_ping__';

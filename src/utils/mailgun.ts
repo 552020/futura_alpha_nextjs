@@ -1,5 +1,8 @@
 import Mailgun from 'mailgun.js';
-import { MailgunClientOptions, MessagesSendResult } from 'mailgun.js/definitions';
+import {
+  MailgunClientOptions,
+  MessagesSendResult,
+} from 'mailgun.js/definitions';
 import formData from 'form-data';
 
 const mailgun = new Mailgun(formData);
@@ -111,18 +114,22 @@ export const sendEmail = async ({
     if (template) {
       messageData.template = template;
       if (templateVariables) {
-        messageData['h:X-Mailgun-Variables'] = JSON.stringify(templateVariables);
+        messageData['h:X-Mailgun-Variables'] =
+          JSON.stringify(templateVariables);
       }
     }
 
     if (attachments?.length) {
-      messageData.attachment = attachments.map(file => ({
+      messageData.attachment = attachments.map((file) => ({
         data: file.data,
         filename: file.filename,
       }));
     }
 
-    const response = await mg.messages.create(DOMAIN, { ...messageData, message: '' });
+    const response = await mg.messages.create(DOMAIN, {
+      ...messageData,
+      message: '',
+    });
 
     return response;
   } catch (error) {

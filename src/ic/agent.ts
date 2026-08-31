@@ -15,7 +15,7 @@ export function createAgent(identity?: Identity): Promise<HttpAgent> {
   const cached = agentCache.get(key);
   if (cached) return cached;
 
-  const agentPromise = HttpAgent.create({ host: HOST, identity }).catch(e => {
+  const agentPromise = HttpAgent.create({ host: HOST, identity }).catch((e) => {
     agentCache.delete(key);
     throw e;
   });

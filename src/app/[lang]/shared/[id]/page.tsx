@@ -14,7 +14,9 @@ interface SharedMemoryPageProps {
   }>;
 }
 
-export default async function SharedMemoryPage({ params }: SharedMemoryPageProps) {
+export default async function SharedMemoryPage({
+  params,
+}: SharedMemoryPageProps) {
   const { id } = await params;
   const session = await auth();
 
@@ -44,7 +46,10 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
     });
 
     if (!allUserRecord) {
-      fatLogger.info('❌ DEBUG SharedMemoryPage - No allUser record found', 'fe');
+      fatLogger.info(
+        '❌ DEBUG SharedMemoryPage - No allUser record found',
+        'fe'
+      );
       notFound();
     }
 
@@ -133,23 +138,32 @@ export default async function SharedMemoryPage({ params }: SharedMemoryPageProps
       timestamp: new Date().toISOString(),
     });
 
-
     return (
       <div className="container mx-auto py-8">
         <Card className="p-6">
           <div className="mb-4">
-            <h1 className="text-2xl font-bold">{isOwner ? 'Your Memory' : 'Shared Memory'}</h1>
+            <h1 className="text-2xl font-bold">
+              {isOwner ? 'Your Memory' : 'Shared Memory'}
+            </h1>
             <p className="text-muted-foreground">
-              {isOwner ? 'You are viewing this memory as the owner' : `You have ${accessLevel} access to this memory`}
+              {isOwner
+                ? 'You are viewing this memory as the owner'
+                : `You have ${accessLevel} access to this memory`}
             </p>
           </div>
 
-          <MemoryViewer memory={memory} isOwner={isOwner} accessLevel={accessLevel} />
+          <MemoryViewer
+            memory={memory}
+            isOwner={isOwner}
+            accessLevel={accessLevel}
+          />
         </Card>
       </div>
     );
   } catch (error) {
-    fatLogger.error('Error accessing shared memory', 'fe', { data: error as Error });
+    fatLogger.error('Error accessing shared memory', 'fe', {
+      data: error as Error,
+    });
     notFound();
   }
 }

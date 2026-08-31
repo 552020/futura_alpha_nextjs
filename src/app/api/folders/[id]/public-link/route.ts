@@ -11,12 +11,18 @@ type CreateFolderPublicLinkRequest = {
   isActive?: boolean;
 };
 
-export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+export async function POST(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   const { id: folderId } = await context.params;
 
   try {
     const body = (await request.json()) as CreateFolderPublicLinkRequest;
-    fatLogger.info('📁 Create folder public link request:', 'be', { folderId, body });
+    fatLogger.info('📁 Create folder public link request:', 'be', {
+      folderId,
+      body,
+    });
 
     const { expiresAt, isActive = true } = body;
 
@@ -46,14 +52,20 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     const allUserRecord = userResult.data as typeof allUsers.$inferSelect;
 
     // Find the folder and check ownership using service function
-    const folderResult = await getFolderByIdForOwner(folderId, allUserRecord.id);
+    const folderResult = await getFolderByIdForOwner(
+      folderId,
+      allUserRecord.id
+    );
 
     if (!folderResult.success || !folderResult.data) {
       fatLogger.error('Folder not found or not owned by user', 'be', {
         folderId,
         ownerId: allUserRecord.id,
       });
-      return NextResponse.json({ error: 'Folder not found or access denied' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Folder not found or access denied' },
+        { status: 404 }
+      );
     }
 
     const folder = folderResult.data as DBFolder;

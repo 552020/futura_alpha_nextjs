@@ -14,14 +14,17 @@ interface GallerySelectionPanelProps {
   }>;
   ratings: { [imageId: string]: number };
   failedImages: Set<string>;
-  onImageClick: (item: {
-    id: string;
-    memory: {
+  onImageClick: (
+    item: {
       id: string;
-      url?: string;
-      title?: string;
-    };
-  }, index: number) => void;
+      memory: {
+        id: string;
+        url?: string;
+        title?: string;
+      };
+    },
+    index: number
+  ) => void;
   onRemoveFromSelection: (imageId: string) => void;
   onSendPhotos: () => void;
 }
@@ -51,13 +54,19 @@ export function GallerySelectionPanel({
       {/* Resize Handle */}
       <div
         className="absolute left-0 top-0 bottom-0 w-2 bg-border hover:bg-primary cursor-col-resize transition-colors z-50 -ml-1"
-        onMouseDown={e => {
+        onMouseDown={(e) => {
           e.preventDefault();
           const startX = e.clientX;
           const startWidth = panelWidth;
 
           const handleMouseMove = (e: MouseEvent) => {
-            const newWidth = Math.max(280, Math.min(window.innerWidth * 0.6, startWidth - (e.clientX - startX)));
+            const newWidth = Math.max(
+              280,
+              Math.min(
+                window.innerWidth * 0.6,
+                startWidth - (e.clientX - startX)
+              )
+            );
             setPanelWidth(newWidth);
           };
 
@@ -72,13 +81,15 @@ export function GallerySelectionPanel({
       />
 
       <div className="p-4 border-b border-border">
-        <h3 className="font-medium text-center">Selected Photos ({selectedItems.length})</h3>
+        <h3 className="font-medium text-center">
+          Selected Photos ({selectedItems.length})
+        </h3>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
         <div className="h-full flex flex-col">
           <div className="flex-1 grid grid-cols-2 gap-2 auto-rows-max">
-            {selectedItems.map(item => (
+            {selectedItems.map((item) => (
               <div
                 key={item.id}
                 className="relative aspect-square rounded-md overflow-hidden border border-border hover:ring-2 hover:ring-primary hover:ring-offset-1 transition-all"
@@ -99,7 +110,7 @@ export function GallerySelectionPanel({
                 )}
                 <button
                   className="absolute top-1 right-1 p-1 rounded-full bg-destructive/80 hover:bg-destructive text-white"
-                  onClick={e => {
+                  onClick={(e) => {
                     e.stopPropagation();
                     onRemoveFromSelection(item.memory.id);
                   }}
@@ -110,7 +121,9 @@ export function GallerySelectionPanel({
                 <div className="absolute bottom-1 left-1 bg-black/70 rounded-full px-2 py-1">
                   <div className="flex items-center gap-1">
                     <Star className="h-3 w-3 text-yellow-400 fill-current" />
-                    <span className="text-xs text-white">{ratings[item.memory.id] || 0}</span>
+                    <span className="text-xs text-white">
+                      {ratings[item.memory.id] || 0}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -121,7 +134,9 @@ export function GallerySelectionPanel({
             <div className="flex-1 flex items-center justify-center text-muted-foreground">
               <div className="text-center">
                 <p className="text-sm">Select photos to see them here</p>
-                <p className="text-xs mt-1 opacity-70">Click on photos in the gallery to select them</p>
+                <p className="text-xs mt-1 opacity-70">
+                  Click on photos in the gallery to select them
+                </p>
               </div>
             </div>
           )}

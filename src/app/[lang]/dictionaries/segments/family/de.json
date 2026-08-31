@@ -24,7 +24,11 @@
     "valueJourney": {
       "scene1": {
         "titles": ["Anfang", "Lorem Ipsum", "Dolor Sit"],
-        "subtitles": ["Lorem ipsum dolor sit amet", "Consectetur adipiscing elit", "Nullam in dui mauris"],
+        "subtitles": [
+          "Lorem ipsum dolor sit amet",
+          "Consectetur adipiscing elit",
+          "Nullam in dui mauris"
+        ],
         "descriptions": [
           "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
           "Vivamus hendrerit arcu sed erat molestie vehicula."
@@ -32,7 +36,11 @@
       },
       "scene2": {
         "titles": ["Mitte", "Consectetur", "Adipiscing"],
-        "subtitles": ["Consectetur adipiscing elit", "Nullam in dui mauris", "Vivamus hendrerit arcu"],
+        "subtitles": [
+          "Consectetur adipiscing elit",
+          "Nullam in dui mauris",
+          "Vivamus hendrerit arcu"
+        ],
         "descriptions": [
           "Nullam in dui mauris. Vivamus hendrerit arcu sed erat molestie vehicula.",
           "Sed auctor neque eu tellus rhoncus ut eleifend nibh porttitor."
@@ -40,7 +48,11 @@
       },
       "scene3": {
         "titles": ["Ende", "Vivamus", "Hendrerit"],
-        "subtitles": ["Nullam in dui mauris", "Vivamus hendrerit arcu", "Sed auctor neque eu tellus"],
+        "subtitles": [
+          "Nullam in dui mauris",
+          "Vivamus hendrerit arcu",
+          "Sed auctor neque eu tellus"
+        ],
         "descriptions": [
           "Sed auctor neque eu tellus rhoncus ut eleifend nibh porttitor.",
           "Ut in nulla enim. Phasellus molestie magna non est bibendum."

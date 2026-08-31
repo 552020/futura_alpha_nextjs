@@ -106,7 +106,9 @@ Now let's test authentication with session cookies!
         'be'
       );
     } catch (error) {
-      fatLogger.error('❌ Error creating test users:', 'be', { data: error instanceof Error ? error : undefined });
+      fatLogger.error('❌ Error creating test users:', 'be', {
+        data: error instanceof Error ? error : undefined,
+      });
       throw error;
     }
   });
@@ -119,7 +121,9 @@ Now let's test authentication with session cookies!
       await testDb.delete(users).where(eq(users.id, testUser3Id));
       fatLogger.info('🧹 Test users cleaned up successfully', 'be');
     } catch (error) {
-      fatLogger.error('❌ Error cleaning up test users:', 'be', { data: error instanceof Error ? error : undefined });
+      fatLogger.error('❌ Error cleaning up test users:', 'be', {
+        data: error instanceof Error ? error : undefined,
+      });
     }
   });
 
@@ -150,7 +154,10 @@ Now testing authenticated endpoint with session cookie...
       );
 
       // Test the authenticated endpoint with session cookie
-      const response = await request(baseURL).get('/api/test/auth').set('Cookie', sessionCookie).expect(200);
+      const response = await request(baseURL)
+        .get('/api/test/auth')
+        .set('Cookie', sessionCookie)
+        .expect(200);
 
       expect(response.body).toMatchObject({
         message: 'Hello from authenticated GET test endpoint!',
@@ -200,7 +207,10 @@ Testing authenticated endpoint with II user session...
       );
 
       // Test the authenticated endpoint
-      const response = await request(baseURL).get('/api/test/auth').set('Cookie', sessionCookie).expect(200);
+      const response = await request(baseURL)
+        .get('/api/test/auth')
+        .set('Cookie', sessionCookie)
+        .expect(200);
 
       expect(response.body).toMatchObject({
         message: 'Hello from authenticated GET test endpoint!',
@@ -247,7 +257,10 @@ Testing authenticated endpoint with admin user session...
       );
 
       // Test the authenticated endpoint
-      const response = await request(baseURL).get('/api/test/auth').set('Cookie', sessionCookie).expect(200);
+      const response = await request(baseURL)
+        .get('/api/test/auth')
+        .set('Cookie', sessionCookie)
+        .expect(200);
 
       expect(response.body).toMatchObject({
         message: 'Hello from authenticated GET test endpoint!',
@@ -283,7 +296,10 @@ Testing authenticated endpoint with admin user session...
       const activePrincipal = '2vxsx-fae';
 
       // Generate session cookie for user with active II co-auth
-      const sessionCookie = generateActiveIISessionCookie(testUser, activePrincipal);
+      const sessionCookie = generateActiveIISessionCookie(
+        testUser,
+        activePrincipal
+      );
 
       fatLogger.info(
         `
@@ -299,7 +315,10 @@ Testing authenticated endpoint with active co-auth session...
       );
 
       // Test the authenticated endpoint
-      const response = await request(baseURL).get('/api/test/auth').set('Cookie', sessionCookie).expect(200);
+      const response = await request(baseURL)
+        .get('/api/test/auth')
+        .set('Cookie', sessionCookie)
+        .expect(200);
 
       expect(response.body).toMatchObject({
         message: 'Hello from authenticated GET test endpoint!',

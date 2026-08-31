@@ -25,7 +25,9 @@ test.describe('Email/Password Signup', () => {
     // Wait for the operation to complete (button becomes enabled again)
     await page.waitForFunction(
       () => {
-        const button = document.querySelector('button[type="submit"]') as HTMLButtonElement;
+        const button = document.querySelector(
+          'button[type="submit"]'
+        ) as HTMLButtonElement;
         return button && !button.disabled;
       },
       { timeout: 10000 }
@@ -42,7 +44,9 @@ test.describe('Email/Password Signup', () => {
         const errorText = await errorElement.textContent();
         throw new Error(`Signup failed: ${errorText}`);
       } else {
-        throw new Error('Signup failed: No redirect occurred and no error message shown');
+        throw new Error(
+          'Signup failed: No redirect occurred and no error message shown'
+        );
       }
     }
 
@@ -50,10 +54,14 @@ test.describe('Email/Password Signup', () => {
     await expect(page).toHaveURL(/\/dashboard/);
 
     // Verify user is signed in (should see dashboard content)
-    await expect(page.locator('h1, h2, h3')).toContainText(/dashboard|vault|memories/i);
+    await expect(page.locator('h1, h2, h3')).toContainText(
+      /dashboard|vault|memories/i
+    );
   });
 
-  test('signup shows validation errors for mismatched passwords', async ({ page }) => {
+  test('signup shows validation errors for mismatched passwords', async ({
+    page,
+  }) => {
     await page.goto('/en/signin');
 
     // Switch to signup tab
@@ -90,7 +98,9 @@ test.describe('Email/Password Signup', () => {
     await expect(page.getByText(/invalid email format/i)).toBeVisible();
   });
 
-  test('signup shows validation errors for short password', async ({ page }) => {
+  test('signup shows validation errors for short password', async ({
+    page,
+  }) => {
     await page.goto('/en/signin');
     await page.getByRole('button', { name: /sign up/i }).click();
 
@@ -127,7 +137,9 @@ test.describe('Email/Password Signup', () => {
     // Wait for successful signup
     await page.waitForFunction(
       () => {
-        const button = document.querySelector('button[type="submit"]') as HTMLButtonElement;
+        const button = document.querySelector(
+          'button[type="submit"]'
+        ) as HTMLButtonElement;
         return button && !button.disabled;
       },
       { timeout: 10000 }
@@ -148,7 +160,9 @@ test.describe('Email/Password Signup', () => {
     await page.waitForTimeout(2000);
 
     // Should show error for existing email
-    await expect(page.getByText(/user with this email already exists/i)).toBeVisible();
+    await expect(
+      page.getByText(/user with this email already exists/i)
+    ).toBeVisible();
   });
 
   test('signup form has all required fields', async ({ page }) => {
@@ -163,28 +177,36 @@ test.describe('Email/Password Signup', () => {
     await expect(page.locator('#confirmPassword')).toBeVisible();
 
     // Check that submit button is present
-    await expect(page.getByRole('button', { name: /sign up with email/i })).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: /sign up with email/i })
+    ).toBeVisible();
   });
 
   test('can switch between signin and signup tabs', async ({ page }) => {
     await page.goto('/en/signin');
 
     // Initially should be on signin tab
-    await expect(page.getByRole('button', { name: /sign in with email/i })).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: /sign in with email/i })
+    ).toBeVisible();
     await expect(page.getByLabel(/confirm password/i)).not.toBeVisible();
 
     // Switch to signup tab
     await page.getByRole('button', { name: /sign up/i }).click();
 
     // Should show signup form
-    await expect(page.getByRole('button', { name: /sign up with email/i })).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: /sign up with email/i })
+    ).toBeVisible();
     await expect(page.getByLabel(/confirm password/i)).toBeVisible();
 
     // Switch back to signin tab
     await page.getByRole('button', { name: 'Sign In', exact: true }).click();
 
     // Should show signin form
-    await expect(page.getByRole('button', { name: /sign in with email/i })).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: /sign in with email/i })
+    ).toBeVisible();
     await expect(page.getByLabel(/confirm password/i)).not.toBeVisible();
   });
 });

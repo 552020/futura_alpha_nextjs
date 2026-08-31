@@ -104,7 +104,10 @@ const simpleEndpoints: SimpleEndpoints = {
 
     POST: () => ({
       status: 422,
-      body: { error: 'Validation failed', details: ["Field 'name' is required"] },
+      body: {
+        error: 'Validation failed',
+        details: ["Field 'name' is required"],
+      },
     }),
   },
 };
@@ -123,7 +126,9 @@ beforeAll(async () => {
 
       if (method === 'GET' && endpoint && 'GET' in endpoint && endpoint.GET) {
         const result = endpoint.GET();
-        res.writeHead(result.status, undefined, { 'Content-Type': 'application/json' });
+        res.writeHead(result.status, undefined, {
+          'Content-Type': 'application/json',
+        });
         res.end(JSON.stringify(result.body));
         return;
       }
@@ -148,7 +153,9 @@ beforeAll(async () => {
           fatLogger.info(`🔍 Request body:`, 'be', { parsedBody });
           if (endpoint.POST) {
             const result = endpoint.POST(parsedBody);
-            res.writeHead(result.status, { 'Content-Type': 'application/json' });
+            res.writeHead(result.status, {
+              'Content-Type': 'application/json',
+            });
             res.end(JSON.stringify(result.body));
           } else {
             res.writeHead(405, { 'Content-Type': 'application/json' });
@@ -165,14 +172,14 @@ beforeAll(async () => {
   };
 
   server = createServer(app);
-  await new Promise<void>(resolve => {
+  await new Promise<void>((resolve) => {
     server.listen(0, () => resolve());
   });
 });
 
 afterAll(async () => {
   if (server) {
-    await new Promise<void>(resolve => {
+    await new Promise<void>((resolve) => {
       server.close(() => resolve());
     });
   }
@@ -225,7 +232,10 @@ describe('Simple Endpoint - Supertest Experimentation', () => {
     it('should echo back sent data', async () => {
       const testData = { message: 'Hello', number: 42, active: true };
 
-      const response = await request(server).post('/api/echo').set('Content-Type', 'application/json').send(testData);
+      const response = await request(server)
+        .post('/api/echo')
+        .set('Content-Type', 'application/json')
+        .send(testData);
 
       expect(response.status).toBe(200);
       expect(response.body.message).toBe('Echo response');
@@ -236,7 +246,10 @@ describe('Simple Endpoint - Supertest Experimentation', () => {
     it('should create user with valid data', async () => {
       const userData = { name: 'Charlie', email: 'charlie@example.com' };
 
-      const response = await request(server).post('/api/users').set('Content-Type', 'application/json').send(userData);
+      const response = await request(server)
+        .post('/api/users')
+        .set('Content-Type', 'application/json')
+        .send(userData);
 
       expect(response.status).toBe(201);
       expect(response.body.name).toBe(userData.name);
@@ -254,7 +267,10 @@ describe('Simple Endpoint - Supertest Experimentation', () => {
     it('should reject user creation without name', async () => {
       const userData = { email: 'test@example.com' };
 
-      const response = await request(server).post('/api/users').set('Content-Type', 'application/json').send(userData);
+      const response = await request(server)
+        .post('/api/users')
+        .set('Content-Type', 'application/json')
+        .send(userData);
 
       expect(response.status).toBe(400);
       expect(response.body.error).toBe('Name is required and must be a string');
@@ -263,16 +279,24 @@ describe('Simple Endpoint - Supertest Experimentation', () => {
     it('should reject user creation without email', async () => {
       const userData = { name: 'Test User' };
 
-      const response = await request(server).post('/api/users').set('Content-Type', 'application/json').send(userData);
+      const response = await request(server)
+        .post('/api/users')
+        .set('Content-Type', 'application/json')
+        .send(userData);
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toBe('Email is required and must be a string');
+      expect(response.body.error).toBe(
+        'Email is required and must be a string'
+      );
     });
 
     it('should reject user creation with invalid name type', async () => {
       const userData = { name: 123, email: 'test@example.com' };
 
-      const response = await request(server).post('/api/users').set('Content-Type', 'application/json').send(userData);
+      const response = await request(server)
+        .post('/api/users')
+        .set('Content-Type', 'application/json')
+        .send(userData);
 
       expect(response.status).toBe(400);
       expect(response.body.error).toBe('Name is required and must be a string');
@@ -293,7 +317,10 @@ describe('Simple Endpoint - Supertest Experimentation', () => {
     });
 
     it('should handle validation error endpoint', async () => {
-      const response = await request(server).post('/api/error-demo').set('Content-Type', 'application/json').send({});
+      const response = await request(server)
+        .post('/api/error-demo')
+        .set('Content-Type', 'application/json')
+        .send({});
 
       expect(response.status).toBe(422);
       expect(response.body.error).toBe('Validation failed');
@@ -307,7 +334,9 @@ describe('Simple Endpoint - Supertest Experimentation', () => {
 
   describe('Header Testing', () => {
     it('should work without Content-Type header', async () => {
-      const response = await request(server).post('/api/echo').send({ test: 'data' });
+      const response = await request(server)
+        .post('/api/echo')
+        .send({ test: 'data' });
 
       expect(response.status).toBe(200);
       expect(response.body.received).toEqual({ test: 'data' });
@@ -333,7 +362,10 @@ describe('Simple Endpoint - Supertest Experimentation', () => {
     it('should validate user response structure', async () => {
       const userData = { name: 'Test User', email: 'test@example.com' };
 
-      const response = await request(server).post('/api/users').set('Content-Type', 'application/json').send(userData);
+      const response = await request(server)
+        .post('/api/users')
+        .set('Content-Type', 'application/json')
+        .send(userData);
 
       expect(response.status).toBe(201);
       expect(response.body).toHaveProperty('id');
@@ -348,7 +380,10 @@ describe('Simple Endpoint - Supertest Experimentation', () => {
     });
 
     it('should validate error response structure', async () => {
-      const response = await request(server).post('/api/users').set('Content-Type', 'application/json').send({});
+      const response = await request(server)
+        .post('/api/users')
+        .set('Content-Type', 'application/json')
+        .send({});
 
       expect(response.status).toBe(400);
       expect(response.body).toHaveProperty('error');

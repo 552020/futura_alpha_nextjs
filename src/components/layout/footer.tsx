@@ -8,7 +8,13 @@ import SocialLinks from '@/components/layout/social-links';
 import { useToast } from '@/hooks/use-toast';
 
 import { fatLogger } from '@/lib/logger';
-export default function Footer({ dict, lang }: { dict?: Dictionary; lang?: string }) {
+export default function Footer({
+  dict,
+  lang,
+}: {
+  dict?: Dictionary;
+  lang?: string;
+}) {
   const { mode } = useInterface();
   const { toast } = useToast();
 
@@ -34,7 +40,9 @@ export default function Footer({ dict, lang }: { dict?: Dictionary; lang?: strin
           // fatLogger.info("Web Share API not supported");
           return;
         }
-        fatLogger.error('Error sharing content:', 'fe', { data: error instanceof Error ? error : undefined });
+        fatLogger.error('Error sharing content:', 'fe', {
+          data: error instanceof Error ? error : undefined,
+        });
       }
     } else {
       // fatLogger.info("Share was canceled by the user");
@@ -46,7 +54,9 @@ export default function Footer({ dict, lang }: { dict?: Dictionary; lang?: strin
           description: 'The link has been copied to your clipboard.',
         });
       } catch (error) {
-        fatLogger.error('Failed to copy link:', 'fe', { data: error instanceof Error ? error : undefined });
+        fatLogger.error('Failed to copy link:', 'fe', {
+          data: error instanceof Error ? error : undefined,
+        });
         toast({
           title: 'Error',
           description: 'Failed to copy link to clipboard.',
@@ -63,13 +73,22 @@ export default function Footer({ dict, lang }: { dict?: Dictionary; lang?: strin
           {/* Links */}
           <div className="flex gap-4 sm:gap-6 text-xs sm:text-sm text-gray-500">
             {/* Legal and Contact Links */}
-            <Link href={`/${currentLang}/terms`} className="hover:text-gray-900 dark:hover:text-gray-300 py-1">
+            <Link
+              href={`/${currentLang}/terms`}
+              className="hover:text-gray-900 dark:hover:text-gray-300 py-1"
+            >
               {dict?.footer?.terms || 'Terms'}
             </Link>
-            <Link href={`/${currentLang}/privacy`} className="hover:text-gray-900 dark:hover:text-gray-300 py-1">
+            <Link
+              href={`/${currentLang}/privacy`}
+              className="hover:text-gray-900 dark:hover:text-gray-300 py-1"
+            >
               {dict?.footer?.privacy || 'Privacy'}
             </Link>
-            <Link href={`/${currentLang}/contact`} className="hover:text-gray-900 dark:hover:text-gray-300 py-1">
+            <Link
+              href={`/${currentLang}/contact`}
+              className="hover:text-gray-900 dark:hover:text-gray-300 py-1"
+            >
               {dict?.footer?.contact || 'Contact'}
             </Link>
 
@@ -121,7 +140,8 @@ export default function Footer({ dict, lang }: { dict?: Dictionary; lang?: strin
 
           {/* Tagline - hidden on mobile */}
           <p className="hidden sm:block text-xs sm:text-sm text-gray-500">
-            {dict?.footer?.tagline || 'Made with ❤️ between Berlin, Marseille and Lisbon'}
+            {dict?.footer?.tagline ||
+              'Made with ❤️ between Berlin, Marseille and Lisbon'}
           </p>
         </div>
       </div>

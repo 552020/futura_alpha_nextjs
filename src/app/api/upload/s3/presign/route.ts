@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateS3Key, generateDerivativeS3Key, generatePresignedUploadUrl } from '@/lib/s3-service';
+import {
+  generateS3Key,
+  generateDerivativeS3Key,
+  generatePresignedUploadUrl,
+} from '@/lib/s3-service';
 import { getUserIdForUpload } from '../../../memories/utils/user-management';
 import { detectMemoryType } from '@/utils/memory-type';
 
@@ -15,7 +19,10 @@ export async function POST(request: NextRequest) {
     const { files } = await request.json();
 
     if (!files || !Array.isArray(files) || files.length === 0) {
-      return NextResponse.json({ error: 'Missing or invalid files array' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Missing or invalid files array' },
+        { status: 400 }
+      );
     }
 
     const { allUserId, error } = await getUserIdForUpload({});
@@ -29,7 +36,10 @@ export async function POST(request: NextRequest) {
       const baseKey = generateS3Key(file.fileName, allUserId);
 
       // Generate presigned URL for original file
-      const originalUploadUrl = await generatePresignedUploadUrl(baseKey, file.fileType);
+      const originalUploadUrl = await generatePresignedUploadUrl(
+        baseKey,
+        file.fileType
+      );
 
       // Build response with original file
       const response: {
@@ -61,10 +71,16 @@ export async function POST(request: NextRequest) {
       // Add derivative presigned URLs for image files
       if (detectMemoryType(file.fileType) === 'image') {
         const displayKey = generateDerivativeS3Key(baseKey, 'display');
-        const displayUploadUrl = await generatePresignedUploadUrl(displayKey, 'image/webp');
+        const displayUploadUrl = await generatePresignedUploadUrl(
+          displayKey,
+          'image/webp'
+        );
 
         const thumbKey = generateDerivativeS3Key(baseKey, 'thumb');
-        const thumbUploadUrl = await generatePresignedUploadUrl(thumbKey, 'image/webp');
+        const thumbUploadUrl = await generatePresignedUploadUrl(
+          thumbKey,
+          'image/webp'
+        );
 
         response.display = {
           uploadUrl: displayUploadUrl,
@@ -84,14 +100,23 @@ export async function POST(request: NextRequest) {
 
     const grants = await Promise.all(grantPromises);
 
-    fatLogger.info(`🎫 Generated batch grants for ${files.length} files`, 'be', {
-      files: files.map(f => f.fileName),
-      hasDerivatives: grants.some(g => g.display && g.thumb),
-    });
+    fatLogger.info(
+      `🎫 Generated batch grants for ${files.length} files`,
+      'be',
+      {
+        files: files.map((f) => f.fileName),
+        hasDerivatives: grants.some((g) => g.display && g.thumb),
+      }
+    );
 
     return NextResponse.json({ grants });
   } catch (error) {
-    fatLogger.error('Error in batch presign endpoint:', 'be', { data: error instanceof Error ? error : undefined });
-    return NextResponse.json({ error: 'Failed to generate batch presigned URLs' }, { status: 500 });
+    fatLogger.error('Error in batch presign endpoint:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
+    return NextResponse.json(
+      { error: 'Failed to generate batch presigned URLs' },
+      { status: 500 }
+    );
   }
 }

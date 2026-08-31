@@ -18,7 +18,11 @@ export function useAuthGuard() {
 
   // Clear temporary state when user becomes authenticated (only once per session)
   useEffect(() => {
-    if (isAuthenticated && userData.isTemporary && !hasClearedTemporaryState.current) {
+    if (
+      isAuthenticated &&
+      userData.isTemporary &&
+      !hasClearedTemporaryState.current
+    ) {
       // User is now authenticated (permanent), clear temporary state
       updateUserData({
         isTemporary: false,

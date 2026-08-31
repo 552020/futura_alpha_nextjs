@@ -41,7 +41,12 @@
   "variations": {
     "valueJourney": {
       "scene1": {
-        "titles": ["Hochzeitstag", "Der Anfang", "Ein Moment in der Zeit", "Die erste Erinnerung"],
+        "titles": [
+          "Hochzeitstag",
+          "Der Anfang",
+          "Ein Moment in der Zeit",
+          "Die erste Erinnerung"
+        ],
         "subtitles": [
           "Manche Momente verblassen nie",
           "Manche Momente vergehen nie",
@@ -53,7 +58,11 @@
         ]
       },
       "scene2": {
-        "titles": ["Fotoalbum über Generationen", "Familienerbe", "Generationen vereint"],
+        "titles": [
+          "Fotoalbum über Generationen",
+          "Familienerbe",
+          "Generationen vereint"
+        ],
         "subtitles": [
           "Drei Generationen, ein Foto, unzählige Geschichten",
           "Wir sammeln diese Momente, schätzen sie und geben sie weiter—Generation für Generation",
@@ -61,7 +70,11 @@
         ]
       },
       "scene3": {
-        "titles": ["Großmutters Sterbebett", "Das letzte Kapitel des Lebens", "Der Kreis schließt sich"],
+        "titles": [
+          "Großmutters Sterbebett",
+          "Das letzte Kapitel des Lebens",
+          "Der Kreis schließt sich"
+        ],
         "subtitles": [
           "Die Zeit vergeht, und wir mit ihr. Familie bleibt",
           "Wir folgen der vergehenden Zeit. Familie bleibt",
@@ -69,7 +82,11 @@
         ]
       },
       "scene4": {
-        "titles": ["Großmutters Haus brennt", "Physischer Verlust", "Wenn das Unglück zuschlägt"],
+        "titles": [
+          "Großmutters Haus brennt",
+          "Physischer Verlust",
+          "Wenn das Unglück zuschlägt"
+        ],
         "subtitles": [
           "Erinnerungen sind zerbrechlich. Häuser brennen nieder. Asche zu Asche",
           "Feuer unterscheidet nicht zwischen Wänden und Hochzeitsfotos",
@@ -77,7 +94,11 @@
         ]
       },
       "scene5": {
-        "titles": ["AWS-Abschaltung und Speicherlöschung", "Digitaler Verrat", "Wenn die Cloud verdunstet"],
+        "titles": [
+          "AWS-Abschaltung und Speicherlöschung",
+          "Digitaler Verrat",
+          "Wenn die Cloud verdunstet"
+        ],
         "subtitles": [
           "Du hast Jeffs Cloud vertraut. Jetzt ist sie verdampft",
           "Die Cloud: nur der Computer eines anderen, der abgeschaltet werden kann",

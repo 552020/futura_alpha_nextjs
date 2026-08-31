@@ -18,7 +18,11 @@
 
 import { NextResponse, NextRequest } from 'next/server';
 import { auth } from '@/auth';
-import { getAuthenticatedUserId, getTemporaryUserId, createUserWithAllUser } from '@/services/user';
+import {
+  getAuthenticatedUserId,
+  getTemporaryUserId,
+  createUserWithAllUser,
+} from '@/services/user';
 import { fatLogger } from '@/lib/logger';
 /**
  * Helper function to get allUserId for both authenticated and temporary users
@@ -26,7 +30,9 @@ import { fatLogger } from '@/lib/logger';
  *
  * This function now uses the service layer instead of direct database operations.
  */
-export async function getAllUserId(request: NextRequest): Promise<{ allUserId: string; error?: NextResponse }> {
+export async function getAllUserId(
+  request: NextRequest
+): Promise<{ allUserId: string; error?: NextResponse }> {
   try {
     const session = await auth();
 
@@ -47,15 +53,22 @@ export async function getAllUserId(request: NextRequest): Promise<{ allUserId: s
         });
         return {
           allUserId: '',
-          error: NextResponse.json({ error: result.error || 'User not found' }, { status: 404 }),
+          error: NextResponse.json(
+            { error: result.error || 'User not found' },
+            { status: 404 }
+          ),
         };
       }
 
-      fatLogger.info('Successfully got allUserId for authenticated user', 'be', {
-        operation: 'get_all_user_id',
-        sessionUserId: session.user.id,
-        allUserId: result.data,
-      });
+      fatLogger.info(
+        'Successfully got allUserId for authenticated user',
+        'be',
+        {
+          operation: 'get_all_user_id',
+          sessionUserId: session.user.id,
+          allUserId: result.data,
+        }
+      );
 
       return { allUserId: result.data! };
     } else {
@@ -81,15 +94,22 @@ export async function getAllUserId(request: NextRequest): Promise<{ allUserId: s
             });
             return {
               allUserId: '',
-              error: NextResponse.json({ error: result.error || 'Invalid temporary user' }, { status: 404 }),
+              error: NextResponse.json(
+                { error: result.error || 'Invalid temporary user' },
+                { status: 404 }
+              ),
             };
           }
 
-          fatLogger.info('Successfully got allUserId for temporary user', 'be', {
-            operation: 'get_all_user_id',
-            providedAllUserId,
-            allUserId: result.data,
-          });
+          fatLogger.info(
+            'Successfully got allUserId for temporary user',
+            'be',
+            {
+              operation: 'get_all_user_id',
+              providedAllUserId,
+              allUserId: result.data,
+            }
+          );
 
           return { allUserId: result.data! };
         } else {
@@ -98,7 +118,10 @@ export async function getAllUserId(request: NextRequest): Promise<{ allUserId: s
           });
           return {
             allUserId: '',
-            error: NextResponse.json({ error: 'User identification required' }, { status: 401 }),
+            error: NextResponse.json(
+              { error: 'User identification required' },
+              { status: 401 }
+            ),
           };
         }
       } catch {
@@ -106,7 +129,13 @@ export async function getAllUserId(request: NextRequest): Promise<{ allUserId: s
         fatLogger.error('No valid user identification provided', 'be', {
           operation: 'get_all_user_id',
         });
-        return { allUserId: '', error: NextResponse.json({ error: 'User identification required' }, { status: 401 }) };
+        return {
+          allUserId: '',
+          error: NextResponse.json(
+            { error: 'User identification required' },
+            { status: 401 }
+          ),
+        };
       }
     }
   } catch (error) {
@@ -116,7 +145,10 @@ export async function getAllUserId(request: NextRequest): Promise<{ allUserId: s
     });
     return {
       allUserId: '',
-      error: NextResponse.json({ error: 'Failed to get user ID' }, { status: 500 }),
+      error: NextResponse.json(
+        { error: 'Failed to get user ID' },
+        { status: 500 }
+      ),
     };
   }
 }
@@ -156,10 +188,14 @@ export async function getUserIdForUpload(params: {
       }
 
       // If user doesn't exist, try to create them
-      fatLogger.info('User not found, attempting to create from session data', 'be', {
-        operation: 'get_user_id_for_upload',
-        sessionUserId: session.user.id,
-      });
+      fatLogger.info(
+        'User not found, attempting to create from session data',
+        'be',
+        {
+          operation: 'get_user_id_for_upload',
+          sessionUserId: session.user.id,
+        }
+      );
 
       const createResult = await createUserWithAllUser({
         id: session.user.id,
@@ -221,7 +257,10 @@ export async function getUserIdForUpload(params: {
 
       return {
         allUserId: '',
-        error: NextResponse.json({ error: result.error || 'Invalid temporary user' }, { status: 404 }),
+        error: NextResponse.json(
+          { error: result.error || 'Invalid temporary user' },
+          { status: 404 }
+        ),
       };
     } else {
       fatLogger.error('No valid user identification provided', 'be', {
@@ -229,7 +268,10 @@ export async function getUserIdForUpload(params: {
       });
       return {
         allUserId: '',
-        error: NextResponse.json({ error: 'User identification required' }, { status: 401 }),
+        error: NextResponse.json(
+          { error: 'User identification required' },
+          { status: 401 }
+        ),
       };
     }
   } catch (error) {
@@ -240,7 +282,10 @@ export async function getUserIdForUpload(params: {
     return {
       allUserId: '',
       error: NextResponse.json(
-        { error: 'Failed to get user ID', details: error instanceof Error ? error.message : String(error) },
+        {
+          error: 'Failed to get user ID',
+          details: error instanceof Error ? error.message : String(error),
+        },
         { status: 500 }
       ),
     };
@@ -252,7 +297,9 @@ export async function getUserIdForUpload(params: {
  * Returns user or error response
  */
 export async function createTemporaryUserWithErrorHandling(
-  createTemporaryUserBase: (role: 'inviter' | 'invitee') => Promise<{ allUser: { id: string } }>
+  createTemporaryUserBase: (
+    role: 'inviter' | 'invitee'
+  ) => Promise<{ allUser: { id: string } }>
 ): Promise<{ allUser: { id: string }; error: string | null }> {
   try {
     // fatLogger.info("👤 Creating temporary user...");

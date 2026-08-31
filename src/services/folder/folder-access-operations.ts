@@ -5,7 +5,9 @@ import { getFoldersByOwner, getSharedFolders } from './folder-operations';
 /**
  * Get all folders accessible by a user (owned + shared)
  */
-export const getAllAccessibleFolders = async (allUserId: string): Promise<FolderOperationResult> => {
+export const getAllAccessibleFolders = async (
+  allUserId: string
+): Promise<FolderOperationResult> => {
   try {
     // Get owned folders
     const ownedResult = await getFoldersByOwner(allUserId);
@@ -27,7 +29,7 @@ export const getAllAccessibleFolders = async (allUserId: string): Promise<Folder
     allFolders.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
     // Add access level metadata
-    const foldersWithAccess = allFolders.map(folder => ({
+    const foldersWithAccess = allFolders.map((folder) => ({
       ...folder,
       accessLevel: folder.ownerId === allUserId ? 'owner' : 'shared',
     }));

@@ -4,7 +4,7 @@ test.describe('Debug Signin Flow', () => {
   test('check signin modal flow', async ({ page }) => {
     // Listen for console errors
     const consoleErrors: string[] = [];
-    page.on('console', msg => {
+    page.on('console', (msg) => {
       if (msg.type() === 'error') {
         consoleErrors.push(msg.text());
       }
@@ -30,16 +30,24 @@ test.describe('Debug Signin Flow', () => {
     console.log('Modal visible:', modalVisible);
 
     // 6. Check for Internet Identity button in modal
-    const iiButton = page.locator('button:has-text("Sign in with Internet Identity")');
+    const iiButton = page.locator(
+      'button:has-text("Sign in with Internet Identity")'
+    );
     const iiButtonCount = await iiButton.count();
-    const iiButtonVisible = iiButtonCount > 0 ? await iiButton.first().isVisible() : false;
-    console.log(`Internet Identity button found: ${iiButtonCount}, visible: ${iiButtonVisible}`);
+    const iiButtonVisible =
+      iiButtonCount > 0 ? await iiButton.first().isVisible() : false;
+    console.log(
+      `Internet Identity button found: ${iiButtonCount}, visible: ${iiButtonVisible}`
+    );
 
     // 7. Check for Google button too
     const googleButton = page.locator('button:has-text("Sign in with Google")');
     const googleButtonCount = await googleButton.count();
-    const googleButtonVisible = googleButtonCount > 0 ? await googleButton.first().isVisible() : false;
-    console.log(`Google button found: ${googleButtonCount}, visible: ${googleButtonVisible}`);
+    const googleButtonVisible =
+      googleButtonCount > 0 ? await googleButton.first().isVisible() : false;
+    console.log(
+      `Google button found: ${googleButtonCount}, visible: ${googleButtonVisible}`
+    );
 
     // 8. Check for modal title
     const modalTitle = page.locator('h1:has-text("Sign in")');
@@ -55,7 +63,9 @@ test.describe('Debug Signin Flow', () => {
     console.log('Console errors:', consoleErrors);
 
     // 11. Check for any error messages in modal
-    const errorElements = await page.locator('[role="alert"], .error, .alert').count();
+    const errorElements = await page
+      .locator('[role="alert"], .error, .alert')
+      .count();
     console.log(`Found ${errorElements} error/alert elements`);
 
     // 12. List all buttons in modal

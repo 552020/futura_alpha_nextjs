@@ -26,14 +26,19 @@ import crypto from 'node:crypto';
 import { fatLogger } from '@/lib/logger';
 
 function etagOf(obj: unknown) {
-  const hash = crypto.createHash('sha1').update(JSON.stringify(obj)).digest('hex');
+  const hash = crypto
+    .createHash('sha1')
+    .update(JSON.stringify(obj))
+    .digest('hex');
   return `W/"${hash}"`;
 }
 /**
  * Main GET handler for memory listing
  * Handles pagination, filtering, and asset inclusion
  */
-export async function handleApiMemoryGet(request: NextRequest): Promise<NextResponse> {
+export async function handleApiMemoryGet(
+  request: NextRequest
+): Promise<NextResponse> {
   // Check authentication
   const session = await auth();
   if (!session?.user?.id) {
@@ -41,10 +46,14 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
   }
 
   // Test fatLogger
-  fatLogger.info('🧪 FATLOGGER TEST - This should appear if fatLogger is working', 'be', {
-    userId: session.user.id,
-    timestamp: new Date().toISOString(),
-  });
+  fatLogger.info(
+    '🧪 FATLOGGER TEST - This should appear if fatLogger is working',
+    'be',
+    {
+      userId: session.user.id,
+      timestamp: new Date().toISOString(),
+    }
+  );
 
   try {
     // First get the allUserId for the authenticated user
@@ -53,8 +62,13 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
     });
 
     if (!allUserRecord) {
-      fatLogger.error('No allUsers record found for user', 'be', { userId: session.user.id });
-      return NextResponse.json({ error: 'User record not found' }, { status: 404 });
+      fatLogger.error('No allUsers record found for user', 'be', {
+        userId: session.user.id,
+      });
+      return NextResponse.json(
+        { error: 'User record not found' },
+        { status: 404 }
+      );
     }
 
     fatLogger.info('Found allUserRecord', 'be', { userId: allUserRecord.id });
@@ -78,19 +92,34 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
     const whereCondition = mappedMemoryType
       ? and(
           eq(memories.ownerId, allUserRecord.id),
-          eq(memories.type, mappedMemoryType as 'image' | 'video' | 'document' | 'note' | 'audio')
+          eq(
+            memories.type,
+            mappedMemoryType as
+              | 'image'
+              | 'video'
+              | 'document'
+              | 'note'
+              | 'audio'
+          )
         )
       : eq(memories.ownerId, allUserRecord.id);
 
-    fatLogger.debug('Built whereCondition', 'be', { ownerId: allUserRecord.id });
+    fatLogger.debug('Built whereCondition', 'be', {
+      ownerId: allUserRecord.id,
+    });
 
     // Handle optimized query with galleries
     if (useOptimizedQuery) {
       try {
-        const memoriesWithGalleries = await fetchMemoriesWithGalleries(allUserRecord.id);
+        const memoriesWithGalleries = await fetchMemoriesWithGalleries(
+          allUserRecord.id
+        );
 
         // Apply pagination
-        const paginatedMemories = memoriesWithGalleries.slice(offset, offset + limit);
+        const paginatedMemories = memoriesWithGalleries.slice(
+          offset,
+          offset + limit
+        );
 
         return NextResponse.json({
           data: paginatedMemories,
@@ -116,7 +145,9 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
     const totalCount = await db.query.memories.findMany({
       where: whereCondition,
     });
-    fatLogger.debug('Total memories count (no pagination)', 'be', { count: totalCount.length });
+    fatLogger.debug('Total memories count (no pagination)', 'be', {
+      count: totalCount.length,
+    });
     const folderCounts = totalCount.reduce(
       (acc, m) => {
         const folderId = m.parentFolderId || 'no-folder';
@@ -144,7 +175,7 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
 
     // Calculate share counts for each memory using resourceMembership
     const memoriesWithShareInfo = await Promise.all(
-      userMemories.map(async memory => {
+      userMemories.map(async (memory) => {
         let sharedWithCount = 0;
         try {
           // Count memberships for this memory (excluding the owner)
@@ -162,14 +193,23 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
           sharedWithCount = shareCount[0]?.count || 0;
         } catch (error) {
           // Handle potential issues gracefully
-          fatLogger.debug('resourceMembership query failed, assuming no shares', 'be', {
-            memoryId: memory.id,
-            error: error instanceof Error ? error.message : String(error),
-          });
+          fatLogger.debug(
+            'resourceMembership query failed, assuming no shares',
+            'be',
+            {
+              memoryId: memory.id,
+              error: error instanceof Error ? error.message : String(error),
+            }
+          );
           sharedWithCount = 0;
         }
 
-        const status = memory.sharingStatus === 'public' ? 'public' : sharedWithCount > 0 ? 'shared' : 'private';
+        const status =
+          memory.sharingStatus === 'public'
+            ? 'public'
+            : sharedWithCount > 0
+              ? 'shared'
+              : 'private';
 
         return {
           ...memory,
@@ -180,8 +220,10 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
     );
 
     // Normalize folder name to prefer latest folders.title when present (when folder is included)
-    const normalizedMemories = memoriesWithShareInfo.map(memory => {
-      const m = memory as typeof memory & { folder?: { id: string; name?: string; title?: string } };
+    const normalizedMemories = memoriesWithShareInfo.map((memory) => {
+      const m = memory as typeof memory & {
+        folder?: { id: string; name?: string; title?: string };
+      };
       const f = m.folder;
       if (f?.title) {
         return {
@@ -199,66 +241,96 @@ export async function handleApiMemoryGet(request: NextRequest): Promise<NextResp
     if (!includeAssets) {
       // Add thumbnails for grid view
       const memoriesWithThumbs = await Promise.all(
-        normalizedMemories.map(async memory => {
-          fatLogger.debug('Processing memory for thumbnail', 'be', { memoryId: memory.id });
+        normalizedMemories.map(async (memory) => {
+          fatLogger.debug('Processing memory for thumbnail', 'be', {
+            memoryId: memory.id,
+          });
 
           // Get thumb asset and placeholder asset for better UX
-          const [thumbAsset, displayAsset, originalAsset, placeholderAsset] = await Promise.all([
-            db.query.memoryAssets.findFirst({
-              where: and(eq(memoryAssets.memoryId, memory.id), eq(memoryAssets.assetType, 'thumb')),
-            }),
-            db.query.memoryAssets.findFirst({
-              where: and(eq(memoryAssets.memoryId, memory.id), eq(memoryAssets.assetType, 'display')),
-            }),
-            db.query.memoryAssets.findFirst({
-              where: and(eq(memoryAssets.memoryId, memory.id), eq(memoryAssets.assetType, 'original')),
-            }),
-            db.query.memoryAssets.findFirst({
-              where: and(eq(memoryAssets.memoryId, memory.id), eq(memoryAssets.assetType, 'placeholder')),
-            }),
-          ]);
+          const [thumbAsset, displayAsset, originalAsset, placeholderAsset] =
+            await Promise.all([
+              db.query.memoryAssets.findFirst({
+                where: and(
+                  eq(memoryAssets.memoryId, memory.id),
+                  eq(memoryAssets.assetType, 'thumb')
+                ),
+              }),
+              db.query.memoryAssets.findFirst({
+                where: and(
+                  eq(memoryAssets.memoryId, memory.id),
+                  eq(memoryAssets.assetType, 'display')
+                ),
+              }),
+              db.query.memoryAssets.findFirst({
+                where: and(
+                  eq(memoryAssets.memoryId, memory.id),
+                  eq(memoryAssets.assetType, 'original')
+                ),
+              }),
+              db.query.memoryAssets.findFirst({
+                where: and(
+                  eq(memoryAssets.memoryId, memory.id),
+                  eq(memoryAssets.assetType, 'placeholder')
+                ),
+              }),
+            ]);
 
           // Use thumb if available, otherwise fallback to display, then original
           const thumbOrFallback = thumbAsset || displayAsset || originalAsset;
           let thumbnailUrl = null;
 
           if (thumbOrFallback) {
-            fatLogger.info('🔍 Processing asset for thumbnail generation', 'be', {
-              memoryId: memory.id,
-              assetId: thumbOrFallback.id,
-              assetType: thumbOrFallback.assetType,
-              assetLocation: thumbOrFallback.assetLocation,
-              storageKey: thumbOrFallback.storageKey,
-              bucket: thumbOrFallback.bucket,
-              url: thumbOrFallback.url,
-            });
+            fatLogger.info(
+              '🔍 Processing asset for thumbnail generation',
+              'be',
+              {
+                memoryId: memory.id,
+                assetId: thumbOrFallback.id,
+                assetType: thumbOrFallback.assetType,
+                assetLocation: thumbOrFallback.assetLocation,
+                storageKey: thumbOrFallback.storageKey,
+                bucket: thumbOrFallback.bucket,
+                url: thumbOrFallback.url,
+              }
+            );
 
             try {
-              fatLogger.info('🚀 Starting generateBestAssetUrl for S3 asset', 'be', {
-                memoryId: memory.id,
-                assetLocation: thumbOrFallback.assetLocation,
-                isS3Asset: thumbOrFallback.assetLocation === 's3',
-              });
+              fatLogger.info(
+                '🚀 Starting generateBestAssetUrl for S3 asset',
+                'be',
+                {
+                  memoryId: memory.id,
+                  assetLocation: thumbOrFallback.assetLocation,
+                  isS3Asset: thumbOrFallback.assetLocation === 's3',
+                }
+              );
 
               thumbnailUrl = await generateBestAssetUrl(thumbOrFallback);
 
               fatLogger.info('✅ Successfully generated thumbnail URL', 'be', {
                 memoryId: memory.id,
-                thumbnailUrl: thumbnailUrl ? thumbnailUrl.substring(0, 100) + '...' : 'null',
+                thumbnailUrl: thumbnailUrl
+                  ? thumbnailUrl.substring(0, 100) + '...'
+                  : 'null',
                 urlLength: thumbnailUrl?.length || 0,
               });
             } catch (error) {
-              const errorObj = error instanceof Error ? error : new Error(String(error));
-              fatLogger.error('❌ CRITICAL: Failed to generate thumbnail URL for S3 asset', 'be', {
-                memoryId: memory.id,
-                assetId: thumbOrFallback.id,
-                assetLocation: thumbOrFallback.assetLocation,
-                storageKey: thumbOrFallback.storageKey,
-                bucket: thumbOrFallback.bucket,
-                error: errorObj.message,
-                errorStack: errorObj.stack,
-                errorName: errorObj.name,
-              });
+              const errorObj =
+                error instanceof Error ? error : new Error(String(error));
+              fatLogger.error(
+                '❌ CRITICAL: Failed to generate thumbnail URL for S3 asset',
+                'be',
+                {
+                  memoryId: memory.id,
+                  assetId: thumbOrFallback.id,
+                  assetLocation: thumbOrFallback.assetLocation,
+                  storageKey: thumbOrFallback.storageKey,
+                  bucket: thumbOrFallback.bucket,
+                  error: errorObj.message,
+                  errorStack: errorObj.stack,
+                  errorName: errorObj.name,
+                }
+              );
 
               fatLogger.warn('🔄 Falling back to direct URL', 'be', {
                 memoryId: memory.id,

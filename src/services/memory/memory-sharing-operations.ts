@@ -20,7 +20,9 @@ export interface MemoryAccessCheckParams {
 /**
  * Share a memory with a user
  */
-export const shareMemoryWithUser = async (params: ShareMemoryParams): Promise<OperationResult> => {
+export const shareMemoryWithUser = async (
+  params: ShareMemoryParams
+): Promise<OperationResult> => {
   try {
     const [share] = await db
       .insert(resourceMembership)
@@ -38,7 +40,10 @@ export const shareMemoryWithUser = async (params: ShareMemoryParams): Promise<Op
 
     // Update memory's sharedCount
     const shareCount = await db.query.resourceMembership.findMany({
-      where: and(eq(resourceMembership.resourceId, params.memoryId), eq(resourceMembership.resourceType, 'memory')),
+      where: and(
+        eq(resourceMembership.resourceId, params.memoryId),
+        eq(resourceMembership.resourceType, 'memory')
+      ),
     });
 
     await db
@@ -73,10 +78,15 @@ export const shareMemoryWithUser = async (params: ShareMemoryParams): Promise<Op
 /**
  * Get memory shares
  */
-export const getMemoryShares = async (memoryId: string): Promise<OperationResult> => {
+export const getMemoryShares = async (
+  memoryId: string
+): Promise<OperationResult> => {
   try {
     const shares = await db.query.resourceMembership.findMany({
-      where: and(eq(resourceMembership.resourceId, memoryId), eq(resourceMembership.resourceType, 'memory')),
+      where: and(
+        eq(resourceMembership.resourceId, memoryId),
+        eq(resourceMembership.resourceType, 'memory')
+      ),
     });
 
     return { success: true, data: shares };

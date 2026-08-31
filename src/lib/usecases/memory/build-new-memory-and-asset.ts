@@ -33,13 +33,20 @@ export interface BuildMemoryAndAssetResult {
  * @param params - Input parameters for building memory and asset data
  * @returns Object containing memory and asset data structures
  */
-export function buildNewMemoryAndAsset(params: BuildMemoryAndAssetParams): BuildMemoryAndAssetResult {
+export function buildNewMemoryAndAsset(
+  params: BuildMemoryAndAssetParams
+): BuildMemoryAndAssetResult {
   const { file, url, ownerId, parentFolderId, assetLocation = 's3' } = params;
   const name = file.name || 'Untitled';
 
   const memory: NewDBMemory = {
     ownerId,
-    type: getMemoryType(file.type as AcceptedMimeType) as 'image' | 'video' | 'document' | 'note' | 'audio',
+    type: getMemoryType(file.type as AcceptedMimeType) as
+      | 'image'
+      | 'video'
+      | 'document'
+      | 'note'
+      | 'audio',
     title: name,
     description: '',
     fileCreatedAt: new Date(),

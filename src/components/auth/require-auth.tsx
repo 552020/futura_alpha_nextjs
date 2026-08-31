@@ -23,7 +23,9 @@ export default function RequireAuth({
       <div className="text-center space-y-4 max-w-md px-6">
         <h1 className="text-2xl font-semibold">{title}</h1>
         <p className="text-muted-foreground">{message}</p>
-        <Button onClick={() => router.push(`/${lang}/signin`)}>{buttonText}</Button>
+        <Button onClick={() => router.push(`/${lang}/signin`)}>
+          {buttonText}
+        </Button>
       </div>
     </div>
   );

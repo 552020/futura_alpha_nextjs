@@ -34,7 +34,11 @@ export function FolderTopBar({
       onGalleryCreated={onCreateGallery}
       hideFolderSelection={true}
       trigger={
-        <Button variant="default" size="sm" className="h-9 px-4 py-1 text-sm whitespace-nowrap">
+        <Button
+          variant="default"
+          size="sm"
+          className="h-9 px-4 py-1 text-sm whitespace-nowrap"
+        >
           <ImageIcon className="h-4 w-4 mr-2" />
           Create Gallery from &quot;{folderName}&quot;
         </Button>
@@ -52,7 +56,11 @@ export function FolderTopBar({
       className={className}
       leftActions={leftActions}
       searchPlaceholder="Search memories, tags, or descriptions..."
-      searchFields={memory => [memory.title, memory.description || '', ...(memory.tags || [])]}
+      searchFields={(memory) => [
+        memory.title,
+        memory.description || '',
+        ...(memory.tags || []),
+      ]}
       filterOptions={[
         { value: 'all', label: 'All Types' },
         { value: 'image', label: 'Images' },
@@ -73,13 +81,23 @@ export function FolderTopBar({
       sortLogic={(a, b, sortBy) => {
         switch (sortBy) {
           case 'newest':
-            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            return (
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
           case 'oldest':
-            return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+            return (
+              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+            );
           case 'most-viewed':
-            return ((b as ExtendedMemory).views || 0) - ((a as ExtendedMemory).views || 0);
+            return (
+              ((b as ExtendedMemory).views || 0) -
+              ((a as ExtendedMemory).views || 0)
+            );
           case 'favorites':
-            return ((b as ExtendedMemory).isFavorite ? 1 : 0) - ((a as ExtendedMemory).isFavorite ? 1 : 0);
+            return (
+              ((b as ExtendedMemory).isFavorite ? 1 : 0) -
+              ((a as ExtendedMemory).isFavorite ? 1 : 0)
+            );
           default:
             return 0;
         }

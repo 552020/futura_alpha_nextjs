@@ -30,7 +30,11 @@ function HeroTitle({
     return (
       <h1
         className="font-black leading-none tracking-wider m-0 text-white relative z-10 pointer-events-none transform-gpu origin-top scale-[1.45] mb-8 mr-3"
-        style={{ fontSize, marginTop: `${offsetRem}rem`, textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}
+        style={{
+          fontSize,
+          marginTop: `${offsetRem}rem`,
+          textShadow: '0 2px 8px rgba(0,0,0,0.5)',
+        }}
       >
         {text}
       </h1>
@@ -102,7 +106,9 @@ function Hero({ dict, lang, subdomain }: HeroProps) {
             <h1
               className="font-black font-bold leading-none text-foreground"
               //   style={{ fontSize: `calc(147vw / ${(dict?.hero?.title || "Futura").length})` }}
-              style={{ fontSize: `calc(73.5vw / ${(dict?.hero?.title || 'Futura').length})` }}
+              style={{
+                fontSize: `calc(73.5vw / ${(dict?.hero?.title || 'Futura').length})`,
+              }}
             >
               {dict?.hero?.title || 'Futura'}
             </h1>
@@ -112,7 +118,9 @@ function Hero({ dict, lang, subdomain }: HeroProps) {
           <div className="pb-15 lg:pb-8">
             <p
               className="font-normal text-foreground"
-              style={{ fontSize: `calc(80vw / ${(dict?.hero?.galleryForever || 'Your Gallery. Forever.').length})` }}
+              style={{
+                fontSize: `calc(80vw / ${(dict?.hero?.galleryForever || 'Your Gallery. Forever.').length})`,
+              }}
             >
               {dict?.hero?.galleryForever || 'Your Gallery. Forever.'}
             </p>
@@ -155,7 +163,8 @@ function Hero({ dict, lang, subdomain }: HeroProps) {
                   className="font-medium tracking-wide m-0 mt-3 leading-snug text-left ml-2 mb-[-0.5rem]"
                   style={{
                     fontSize: `calc(${(SUBTITLE_VW * SUBTITLE_SCALE).toFixed(1)}vw / ${
-                      (dict?.hero?.galleryForever || 'Your Gallery. Forever.').length
+                      (dict?.hero?.galleryForever || 'Your Gallery. Forever.')
+                        .length
                     })`,
                   }}
                 >
@@ -212,7 +221,10 @@ function Hero({ dict, lang, subdomain }: HeroProps) {
                   >
                     Futura
                   </div>
-                  <div className="mt-2 text-white/90 w-full" style={{ fontSize: 'clamp(2rem, 3vw, 6rem)' }}>
+                  <div
+                    className="mt-2 text-white/90 w-full"
+                    style={{ fontSize: 'clamp(2rem, 3vw, 6rem)' }}
+                  >
                     {dict?.hero?.galleryForever || 'Your Gallery. Forever.'}
                   </div>
                 </div>

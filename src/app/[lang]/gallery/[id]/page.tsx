@@ -5,7 +5,16 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useAuthGuard } from '@/utils/authentication';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Globe, Lock, Trash2, Maximize2, HardDrive, Eye, Check, Share2 } from 'lucide-react';
+import {
+  Globe,
+  Lock,
+  Trash2,
+  Maximize2,
+  HardDrive,
+  Eye,
+  Check,
+  Share2,
+} from 'lucide-react';
 import { galleryService } from '@/services/gallery';
 import { GalleryWithItems } from '@/types/gallery';
 import { Memory } from '@/types/memory';
@@ -20,7 +29,10 @@ interface MemoryAsset {
 interface GalleryItemMemory extends Memory {
   assets?: MemoryAsset[];
 }
-import { StorageStatusBadge, getGalleryStorageStatus } from '@/components/common/storage-status-badge';
+import {
+  StorageStatusBadge,
+  getGalleryStorageStatus,
+} from '@/components/common/storage-status-badge';
 import { GalleryStorageSummary } from '@/components/galleries/gallery-storage-summary';
 import { GalleryImageModal } from '@/components/galleries/gallery-image-modal';
 import { GallerySelectionBar } from '@/components/galleries/gallery-selection-bar';
@@ -82,8 +94,14 @@ function GalleryViewContent() {
       fatLogger.info('Loading gallery with ID', 'fe', { galleryId: id });
       setIsLoading(true);
       setError(null);
-      const result = await galleryService.getGallery(id as string, USE_MOCK_DATA);
-      fatLogger.info('Gallery data received', 'fe', { galleryId: id, itemCount: result.gallery?.items?.length || 0 });
+      const result = await galleryService.getGallery(
+        id as string,
+        USE_MOCK_DATA
+      );
+      fatLogger.info('Gallery data received', 'fe', {
+        galleryId: id,
+        itemCount: result.gallery?.items?.length || 0,
+      });
       setGallery(result.gallery);
 
       // Get the current user's ID from the session
@@ -92,14 +110,21 @@ function GalleryViewContent() {
       const userId = session?.user?.id;
 
       if (!userId) {
-        fatLogger.info('No user session found, skipping business relationship check', 'fe');
+        fatLogger.info(
+          'No user session found, skipping business relationship check',
+          'fe'
+        );
         return;
       }
 
       // Fetch business relationship to get the business email
       try {
-        fatLogger.info('Fetching business relationship for user ID', 'fe', { userId });
-        const response = await fetch(`/api/users/${userId}/business-relationship`);
+        fatLogger.info('Fetching business relationship for user ID', 'fe', {
+          userId,
+        });
+        const response = await fetch(
+          `/api/users/${userId}/business-relationship`
+        );
         if (response.ok) {
           const data = await response.json();
           fatLogger.info('Business relationship API response', 'fe', {
@@ -110,23 +135,35 @@ function GalleryViewContent() {
           });
 
           if (data.isClient && data.businessEmail) {
-            fatLogger.info('Using business email from relationship', 'fe', { businessEmail: data.businessEmail });
+            fatLogger.info('Using business email from relationship', 'fe', {
+              businessEmail: data.businessEmail,
+            });
             setBusinessEmail(data.businessEmail);
           } else if (data.isBusiness) {
-            fatLogger.info('User is a business. No business email to use from relationship.', 'fe');
+            fatLogger.info(
+              'User is a business. No business email to use from relationship.',
+              'fe'
+            );
           } else {
             fatLogger.info('No business relationship found.', 'fe');
           }
         } else {
           const error = await response.json().catch(() => ({}));
-          fatLogger.error('Error response from business-relationship API', 'fe', {
-            status: response.status,
-            statusText: response.statusText,
-            error,
-          });
+          fatLogger.error(
+            'Error response from business-relationship API',
+            'fe',
+            {
+              status: response.status,
+              statusText: response.statusText,
+              error,
+            }
+          );
         }
       } catch (error) {
-        fatLogger.error('Error fetching business relationship', 'fe', { error, userId });
+        fatLogger.error('Error fetching business relationship', 'fe', {
+          error,
+          userId,
+        });
       }
     } catch (err) {
       fatLogger.error('Error loading gallery', 'fe', { data: err as Error });
@@ -174,7 +211,7 @@ function GalleryViewContent() {
 
   // Filter items based on active tab and hidden state
   const filteredItems = showRatingAndHide
-    ? gallery?.items.filter(item => {
+    ? gallery?.items.filter((item) => {
         if (activeTab === 'hidden') {
           return hiddenImages.includes(item.memory.id);
         }
@@ -189,25 +226,32 @@ function GalleryViewContent() {
   // Rating and hiding handlers
   const handleRateImage = (imageId: string, rating: number) => {
     if (!showRatingAndHide) return;
-    setRatings(prev => ({ ...prev, [imageId]: rating }));
+    setRatings((prev) => ({ ...prev, [imageId]: rating }));
 
     // Auto-select the image when rating it
-    if (isSelecting && !selectedImages.includes(imageId) && selectedImages.length < MAX_SELECTION) {
-      setSelectedImages(prev => [...prev, imageId]);
+    if (
+      isSelecting &&
+      !selectedImages.includes(imageId) &&
+      selectedImages.length < MAX_SELECTION
+    ) {
+      setSelectedImages((prev) => [...prev, imageId]);
     }
   };
 
   const handleHideImage = (imageId: string) => {
     if (!showRatingAndHide) return;
     fatLogger.info('Hiding image', 'fe', { imageId });
-    setHiddenImages(prev => {
+    setHiddenImages((prev) => {
       const newHidden = [...prev, imageId];
-      fatLogger.info('New hidden images', 'fe', { hiddenCount: newHidden.length, imageIds: newHidden });
+      fatLogger.info('New hidden images', 'fe', {
+        hiddenCount: newHidden.length,
+        imageIds: newHidden,
+      });
       return newHidden;
     });
     // Remove from selected images if hidden
-    setSelectedImages(prev => {
-      const filtered = prev.filter(id => id !== imageId);
+    setSelectedImages((prev) => {
+      const filtered = prev.filter((id) => id !== imageId);
       fatLogger.info('Removed from selection, new selection', 'fe', {
         selectedCount: filtered.length,
         imageIds: filtered,
@@ -219,14 +263,17 @@ function GalleryViewContent() {
   const handleUnhideImage = (imageId: string) => {
     if (!showRatingAndHide) return;
     fatLogger.info('Unhiding image', 'fe', { imageId });
-    setHiddenImages(prev => {
-      const newHidden = prev.filter(id => id !== imageId);
-      fatLogger.info('New hidden images', 'fe', { hiddenCount: newHidden.length, imageIds: newHidden });
+    setHiddenImages((prev) => {
+      const newHidden = prev.filter((id) => id !== imageId);
+      fatLogger.info('New hidden images', 'fe', {
+        hiddenCount: newHidden.length,
+        imageIds: newHidden,
+      });
       return newHidden;
     });
     // Remove from selected images if unhidden
-    setSelectedImages(prev => {
-      const filtered = prev.filter(id => id !== imageId);
+    setSelectedImages((prev) => {
+      const filtered = prev.filter((id) => id !== imageId);
       fatLogger.info('Removed from selection, new selection', 'fe', {
         selectedCount: filtered.length,
         imageIds: filtered,
@@ -245,8 +292,10 @@ function GalleryViewContent() {
 
     const selectedItems =
       gallery?.items
-        .filter(item => selectedImages.includes(item.memory.id) && item.memory.url)
-        .map(item => ({
+        .filter(
+          (item) => selectedImages.includes(item.memory.id) && item.memory.url
+        )
+        .map((item) => ({
           url: item.memory.url!, // We know it's defined due to the filter above
           name: item.memory.title || `Photo ${item.memory.id}`,
           rating: showRatingAndHide ? ratings[item.memory.id] || 0 : 0,
@@ -254,12 +303,16 @@ function GalleryViewContent() {
 
     try {
       // Get user info for the email
-      const session = await fetch('/api/auth/session').then(res => res.json());
+      const session = await fetch('/api/auth/session').then((res) =>
+        res.json()
+      );
       const userName = session?.user?.name || 'a user';
       const userEmail = session?.user?.email || 'unknown@example.com';
 
       // Generate email content
-      const { subject, html, text } = await import('@/utils/email/gallerySelectionTemplate').then(m =>
+      const { subject, html, text } = await import(
+        '@/utils/email/gallerySelectionTemplate'
+      ).then((m) =>
         m.renderGallerySelectionEmail({
           userName,
           images: selectedItems,
@@ -270,10 +323,13 @@ function GalleryViewContent() {
       );
 
       // Determine recipient email - use business email if available, otherwise fall back to env var
-      const recipientEmail = businessEmail || process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL;
+      const recipientEmail =
+        businessEmail || process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL;
 
       fatLogger.info('Email sending details', 'fe', {
-        source: businessEmail ? 'business-relationship' : 'NEXT_PUBLIC_PHOTOGRAPHER_EMAIL',
+        source: businessEmail
+          ? 'business-relationship'
+          : 'NEXT_PUBLIC_PHOTOGRAPHER_EMAIL',
         recipientEmail,
         hasBusinessEmail: !!businessEmail,
         hasEnvEmail: !!process.env.NEXT_PUBLIC_PHOTOGRAPHER_EMAIL,
@@ -310,9 +366,12 @@ function GalleryViewContent() {
             imageCount: selectedItems.length,
             message,
             galleryId: id,
-            images: selectedItems.map(img => ({
+            images: selectedItems.map((img) => ({
               ...img,
-              ratingStars: showRatingAndHide ? '★'.repeat(Math.round(img.rating || 0)) + '☆'.repeat(5 - Math.round(img.rating || 0)) : '',
+              ratingStars: showRatingAndHide
+                ? '★'.repeat(Math.round(img.rating || 0)) +
+                  '☆'.repeat(5 - Math.round(img.rating || 0))
+                : '',
             })),
             appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://futura.now',
           },
@@ -334,10 +393,14 @@ function GalleryViewContent() {
       // Clear selection after successful send
       setSelectedImages([]);
     } catch (error) {
-      fatLogger.error('Error sending selection', 'fe', { error, selectedCount: selectedImages.length });
+      fatLogger.error('Error sending selection', 'fe', {
+        error,
+        selectedCount: selectedImages.length,
+      });
       toast({
         title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to send selection',
+        description:
+          error instanceof Error ? error.message : 'Failed to send selection',
         variant: 'destructive',
       });
       throw error;
@@ -345,11 +408,16 @@ function GalleryViewContent() {
   };
 
   const handleImageError = useCallback((imageUrl: string) => {
-    setFailedImages(prev => new Set(prev).add(imageUrl));
+    setFailedImages((prev) => new Set(prev).add(imageUrl));
   }, []);
 
   const handleDeleteGallery = async () => {
-    if (!gallery || !confirm('Are you sure you want to delete this gallery? This action cannot be undone.')) {
+    if (
+      !gallery ||
+      !confirm(
+        'Are you sure you want to delete this gallery? This action cannot be undone.'
+      )
+    ) {
       return;
     }
 
@@ -381,7 +449,9 @@ function GalleryViewContent() {
       );
       setGallery(updatedGallery);
     } catch (err) {
-      fatLogger.error('Error updating gallery privacy', 'fe', { data: err as Error });
+      fatLogger.error('Error updating gallery privacy', 'fe', {
+        data: err as Error,
+      });
       setError('Failed to update gallery privacy');
     } finally {
       setIsUpdating(false);
@@ -426,7 +496,7 @@ function GalleryViewContent() {
     _index: number
   ) => {
     // Extract assets from the memory object if they exist
-    const assets: MemoryAsset[] = (item.memory.assets || []).map(asset => ({
+    const assets: MemoryAsset[] = (item.memory.assets || []).map((asset) => ({
       assetType: asset.assetType,
       url: asset.url,
       mimeType: asset.mimeType,
@@ -441,7 +511,9 @@ function GalleryViewContent() {
     });
 
     // Find the index of the item in the filtered items array
-    const itemIndex = filteredItems.findIndex(i => i.memory.id === item.memory.id);
+    const itemIndex = filteredItems.findIndex(
+      (i) => i.memory.id === item.memory.id
+    );
     setCurrentImageIndex(itemIndex);
     setIsImageModalOpen(true);
   };
@@ -452,7 +524,7 @@ function GalleryViewContent() {
       const nextItem = filteredItems[nextIndex];
       // Extract assets from the memory object if they exist
       const assets: MemoryAsset[] =
-        (nextItem.memory as GalleryItemMemory).assets?.map(asset => ({
+        (nextItem.memory as GalleryItemMemory).assets?.map((asset) => ({
           assetType: asset.assetType,
           url: asset.url,
           mimeType: asset.mimeType,
@@ -475,7 +547,7 @@ function GalleryViewContent() {
       const prevItem = filteredItems[prevIndex];
       // Extract assets from the memory object if they exist
       const assets: MemoryAsset[] =
-        (prevItem.memory as GalleryItemMemory).assets?.map(asset => ({
+        (prevItem.memory as GalleryItemMemory).assets?.map((asset) => ({
           assetType: asset.assetType,
           url: asset.url,
           mimeType: asset.mimeType,
@@ -512,7 +584,9 @@ function GalleryViewContent() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <h2 className="text-2xl font-semibold mb-4">Access Denied</h2>
-          <p className="text-muted-foreground mb-6">You need to be logged in to view this gallery</p>
+          <p className="text-muted-foreground mb-6">
+            You need to be logged in to view this gallery
+          </p>
         </div>
       </div>
     );
@@ -562,13 +636,21 @@ function GalleryViewContent() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Button variant="ghost" size="sm" onClick={() => router.back()} className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.back()}
+                className="flex items-center gap-2"
+              >
                 ← Back
               </Button>
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-bold">{gallery.title}</h1>
                 {!gallery.isOwner && (
-                  <Badge variant="outline" className="border-blue-300 text-blue-700 bg-blue-50 dark:border-blue-700 dark:text-blue-300 dark:bg-blue-950">
+                  <Badge
+                    variant="outline"
+                    className="border-blue-300 text-blue-700 bg-blue-50 dark:border-blue-700 dark:text-blue-300 dark:bg-blue-950"
+                  >
                     <Share2 className="h-3 w-3 mr-1" />
                     Shared with you
                   </Badge>
@@ -601,8 +683,14 @@ function GalleryViewContent() {
                   disabled={isUpdating}
                   className="flex items-center gap-2"
                 >
-                  {gallery.sharingStatus === 'public' ? <Globe className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-                  {gallery.sharingStatus === 'public' ? 'Make Private' : 'Make Public'}
+                  {gallery.sharingStatus === 'public' ? (
+                    <Globe className="h-4 w-4" />
+                  ) : (
+                    <Lock className="h-4 w-4" />
+                  )}
+                  {gallery.sharingStatus === 'public'
+                    ? 'Make Private'
+                    : 'Make Public'}
                 </Button>
               )}
 
@@ -628,56 +716,68 @@ function GalleryViewContent() {
                 <Check className="h-4 w-4" />
                 {isSelecting ? 'Cancel' : 'Select'}
               </Button>
-              <Button variant="outline" size="sm" onClick={handleFullScreenView} className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleFullScreenView}
+                className="flex items-center gap-2"
+              >
                 <Maximize2 className="h-4 w-4" />
                 Full Screen
               </Button>
-              
+
               {/* Only show store forever and delete for gallery owners */}
-              {gallery.isOwner && (() => {
-                const buttonState = getStoreForeverButtonState();
-                return (
-                  <>
-                    <div className="relative group">
-                      <Button
-                        variant={buttonState.variant}
-                        size="sm"
-                        onClick={handleStoreForever}
-                        disabled={buttonState.disabled}
-                        className={buttonState.className}
-                      >
-                        <HardDrive className="h-4 w-4 mr-2" />
-                        {buttonState.text}
-                      </Button>
-                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                        {gallery?.storageStatus?.status === 'stored_forever'
-                          ? 'This gallery is already permanently stored on the Internet Computer'
-                          : gallery?.storageStatus?.status === 'partially_stored'
-                            ? 'Continue storing the remaining items on the Internet Computer'
-                            : 'Store this gallery permanently on the Internet Computer blockchain'}
+              {gallery.isOwner &&
+                (() => {
+                  const buttonState = getStoreForeverButtonState();
+                  return (
+                    <>
+                      <div className="relative group">
+                        <Button
+                          variant={buttonState.variant}
+                          size="sm"
+                          onClick={handleStoreForever}
+                          disabled={buttonState.disabled}
+                          className={buttonState.className}
+                        >
+                          <HardDrive className="h-4 w-4 mr-2" />
+                          {buttonState.text}
+                        </Button>
+                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                          {gallery?.storageStatus?.status === 'stored_forever'
+                            ? 'This gallery is already permanently stored on the Internet Computer'
+                            : gallery?.storageStatus?.status ===
+                                'partially_stored'
+                              ? 'Continue storing the remaining items on the Internet Computer'
+                              : 'Store this gallery permanently on the Internet Computer blockchain'}
+                        </div>
                       </div>
-                    </div>
-                    {gallery?.storageStatus?.status === 'stored_forever' && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          // TODO: Open ICP explorer or gallery viewer
-                          // fatLogger.info("View gallery on ICP:", gallery.id);
-                        }}
-                        className="border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-300 dark:hover:bg-purple-950"
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        View on ICP
-                      </Button>
-                    )}
-                  </>
-                );
-              })()}
-              
+                      {gallery?.storageStatus?.status === 'stored_forever' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            // TODO: Open ICP explorer or gallery viewer
+                            // fatLogger.info("View gallery on ICP:", gallery.id);
+                          }}
+                          className="border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-300 dark:hover:bg-purple-950"
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          View on ICP
+                        </Button>
+                      )}
+                    </>
+                  );
+                })()}
+
               {/* Only show delete button for gallery owners */}
               {gallery.isOwner && (
-                <Button variant="outline" size="sm" onClick={handleDeleteGallery} disabled={isDeleting}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDeleteGallery}
+                  disabled={isDeleting}
+                >
                   {isDeleting ? (
                     <>
                       <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -719,7 +819,9 @@ function GalleryViewContent() {
       <div className="relative flex-1 overflow-hidden min-h-0 h-full">
         <div className={`flex h-full ${showSidePanel ? '' : 'justify-end'}`}>
           {/* Photo Grid */}
-          <div className={`overflow-y-auto h-full ${showSidePanel ? 'flex-1' : 'w-full'}`}>
+          <div
+            className={`overflow-y-auto h-full ${showSidePanel ? 'flex-1' : 'w-full'}`}
+          >
             <div className="container min-w-0 px-6 py-8 mx-auto h-full flex flex-col">
               <GalleryPhotoGrid
                 items={filteredItems}
@@ -735,9 +837,13 @@ function GalleryViewContent() {
                 onImageClick={handleImageClick}
                 onSelectionToggle={(imageId, checked) => {
                   if (checked) {
-                    setSelectedImages(prev => (prev.length < MAX_SELECTION ? [...prev, imageId] : prev));
+                    setSelectedImages((prev) =>
+                      prev.length < MAX_SELECTION ? [...prev, imageId] : prev
+                    );
                   } else {
-                    setSelectedImages(prev => prev.filter(id => id !== imageId));
+                    setSelectedImages((prev) =>
+                      prev.filter((id) => id !== imageId)
+                    );
                   }
                 }}
                 onRate={showRatingAndHide ? handleRateImage : undefined}
@@ -753,14 +859,20 @@ function GalleryViewContent() {
           {isSelecting && (
             <GallerySelectionPanel
               isOpen={showSidePanel}
-              selectedItems={gallery?.items.filter(item => selectedImages.includes(item.memory.id)) || []}
+              selectedItems={
+                gallery?.items.filter((item) =>
+                  selectedImages.includes(item.memory.id)
+                ) || []
+              }
               ratings={ratings}
               failedImages={failedImages}
               onImageClick={(item, index) => {
                 handleImageClick(item, index);
               }}
-              onRemoveFromSelection={imageId => {
-                setSelectedImages(prev => prev.filter(id => id !== imageId));
+              onRemoveFromSelection={(imageId) => {
+                setSelectedImages((prev) =>
+                  prev.filter((id) => id !== imageId)
+                );
               }}
             />
           )}
@@ -773,12 +885,18 @@ function GalleryViewContent() {
           isOpen={showForeverStorageModal}
           onClose={() => setShowForeverStorageModal(false)}
           gallery={gallery}
-          onSuccess={result => {
-            fatLogger.info('Gallery stored successfully', 'fe', { result, galleryId: gallery?.id });
+          onSuccess={(result) => {
+            fatLogger.info('Gallery stored successfully', 'fe', {
+              result,
+              galleryId: gallery?.id,
+            });
             setShowForeverStorageModal(false);
           }}
-          onError={error => {
-            fatLogger.error('Error storing gallery', 'fe', { error, galleryId: gallery?.id });
+          onError={(error) => {
+            fatLogger.error('Error storing gallery', 'fe', {
+              error,
+              galleryId: gallery?.id,
+            });
           }}
         />
       )}

@@ -17,7 +17,7 @@ export const VisuallyHidden = ({
       </span>
     );
   }
-  
+
   return (
     <span className="sr-only" {...props}>
       {children}

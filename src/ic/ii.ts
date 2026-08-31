@@ -20,9 +20,13 @@ export function getSessionTtlNs(): bigint | undefined {
   return BigInt(hours * 60 * 60 * 1000 * 1000 * 1000);
 }
 
-export async function loginWithII(): Promise<{ identity: Identity; principal: string }> {
+export async function loginWithII(): Promise<{
+  identity: Identity;
+  principal: string;
+}> {
   // icpLogger.info("loginWithII");
-  const provider = process.env.NEXT_PUBLIC_II_URL || process.env.NEXT_PUBLIC_II_URL_FALLBACK;
+  const provider =
+    process.env.NEXT_PUBLIC_II_URL || process.env.NEXT_PUBLIC_II_URL_FALLBACK;
   if (!provider) throw new Error('II URL not configured');
   // icpLogger.info("loginWithII", "provider", provider);
   const authClient = await getAuthClient();

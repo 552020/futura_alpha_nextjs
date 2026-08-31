@@ -10,7 +10,10 @@ interface DeleteAccountModalProps {
   onClose: () => void;
 }
 
-export function DeleteAccountModal({ isOpen, onClose }: DeleteAccountModalProps) {
+export function DeleteAccountModal({
+  isOpen,
+  onClose,
+}: DeleteAccountModalProps) {
   const handleDeleteAccount = async () => {
     try {
       const response = await fetch('/api/user/account', {
@@ -37,7 +40,10 @@ export function DeleteAccountModal({ isOpen, onClose }: DeleteAccountModalProps)
 
       toast({
         title: 'Delete Failed',
-        description: error instanceof Error ? error.message : 'Failed to delete account. Please try again.',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'Failed to delete account. Please try again.',
         variant: 'destructive',
       });
 

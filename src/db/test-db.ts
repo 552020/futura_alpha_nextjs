@@ -11,10 +11,13 @@ config({ path: '.env.local' });
 // This is specifically for testing purposes
 
 // Use test database URL if available, fallback to unpooled connection
-const testConnectionString = process.env.TEST_DATABASE_URL || process.env.DATABASE_URL_UNPOOLED;
+const testConnectionString =
+  process.env.TEST_DATABASE_URL || process.env.DATABASE_URL_UNPOOLED;
 
 if (!testConnectionString) {
-  throw new Error("❌ TEST_DATABASE_URL or DATABASE_URL_UNPOOLED is missing! Make sure it's set in .env.local");
+  throw new Error(
+    "❌ TEST_DATABASE_URL or DATABASE_URL_UNPOOLED is missing! Make sure it's set in .env.local"
+  );
 }
 
 // Create test database connection
@@ -31,7 +34,9 @@ export async function cleanupTestData() {
     fatLogger.info('🧹 Cleaning up test data...', 'be');
     // Add specific cleanup logic as needed
   } catch (error) {
-    fatLogger.error('❌ Error cleaning up test data:', 'be', { data: error instanceof Error ? error : undefined });
+    fatLogger.error('❌ Error cleaning up test data:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
   }
 }
 

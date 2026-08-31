@@ -8,7 +8,10 @@
  */
 
 import { getGrants, type GrantResponse } from './s3-grant';
-import { processImageDerivativesPure, uploadProcessedAssetsToS3 } from './image-derivatives';
+import {
+  processImageDerivativesPure,
+  uploadProcessedAssetsToS3,
+} from './image-derivatives';
 import { finalizeAllAssets, type ProcessedAssets } from './finalize';
 import { detectMemoryTypeFromFile } from '@/utils/memory-type';
 import {
@@ -31,7 +34,7 @@ async function uploadOriginalToS3(
   fatLogger.info('🚀 ENTERING: uploadOriginalToS3', 'be', {
     timestamp: new Date().toISOString(),
     fileCount: files.length,
-    fileNames: files.map(f => f.name),
+    fileNames: files.map((f) => f.name),
     grantCount: grants.length,
   });
   const isSingleFile = files.length === 1;
@@ -43,7 +46,7 @@ async function uploadOriginalToS3(
     }
 
     // Upload original file using grant
-    await uploadFileWithProgress(file, grant.original.uploadUrl, progress => {
+    await uploadFileWithProgress(file, grant.original.uploadUrl, (progress) => {
       if (isSingleFile) {
         onProgress?.(progress);
       } else {
@@ -124,19 +127,25 @@ export async function uploadToS3WithProcessing(
     const grant = grants[0];
 
     // 2. Start both lanes simultaneously
-    const laneAPromise = uploadOriginalToS3([file], [grant], onProgress).then(results => results[0]);
+    const laneAPromise = uploadOriginalToS3([file], [grant], onProgress).then(
+      (results) => results[0]
+    );
 
     let laneBPromise: Promise<ProcessedAssets> | null = null;
     if (detectMemoryTypeFromFile(file) === 'image') {
       // Lane B processes original File object immediately
-      laneBPromise = processImageDerivativesPure(file).then(processedBlobs =>
+      laneBPromise = processImageDerivativesPure(file).then((processedBlobs) =>
         uploadProcessedAssetsToS3(processedBlobs, grant)
       );
     }
 
     // 3. Wait for both lanes to complete
-    const laneAResult = await Promise.allSettled([laneAPromise]).then(results => results[0]);
-    const laneBResult = laneBPromise ? await Promise.allSettled([laneBPromise]).then(results => results[0]) : null;
+    const laneAResult = await Promise.allSettled([laneAPromise]).then(
+      (results) => results[0]
+    );
+    const laneBResult = laneBPromise
+      ? await Promise.allSettled([laneBPromise]).then((results) => results[0])
+      : null;
 
     // 4. Single finalize with all assets and precise statuses
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -151,11 +160,15 @@ export async function uploadToS3WithProcessing(
       });
       return laneAResult.value;
     } else {
-      fatLogger.info('❌ EXITING: uploadToS3WithProcessing (lane A failed)', 'be', {
-        timestamp: new Date().toISOString(),
-        fileName: file.name,
-        error: laneAResult.reason,
-      });
+      fatLogger.info(
+        '❌ EXITING: uploadToS3WithProcessing (lane A failed)',
+        'be',
+        {
+          timestamp: new Date().toISOString(),
+          fileName: file.name,
+          error: laneAResult.reason,
+        }
+      );
       throw laneAResult.reason;
     }
   } catch (error) {
@@ -181,7 +194,13 @@ export async function uploadMultipleToS3WithProcessing(
   mode: 'directory' | 'multiple-files',
   onProgress?: (file: File, progress: number) => void
 ): Promise<{
-  results?: Array<{ memoryId: string; size?: number; checksum_sha256?: string | null; name?: string; type?: string }>;
+  results?: Array<{
+    memoryId: string;
+    size?: number;
+    checksum_sha256?: string | null;
+    name?: string;
+    type?: string;
+  }>;
   userId?: string;
   successfulUploads?: number;
 }> {
@@ -192,13 +211,15 @@ export async function uploadMultipleToS3WithProcessing(
     const grants = await getGrants(files);
 
     // 2.1. Start Lane A: Upload original files to S3
-    const laneAPromise = uploadOriginalToS3(files, grants, progress => {
+    const laneAPromise = uploadOriginalToS3(files, grants, (progress) => {
       // Convert overall progress to per-file progress for compatibility
       onProgress?.(files[0], progress);
     });
 
     // 2.2. Start Lane B: Process derivatives for image files
-    const imageFiles = files.filter(file => detectMemoryTypeFromFile(file) === 'image');
+    const imageFiles = files.filter(
+      (file) => detectMemoryTypeFromFile(file) === 'image'
+    );
     let laneBPromise: Promise<ProcessedAssets[]> | null = null;
 
     if (imageFiles.length > 0) {
@@ -206,14 +227,21 @@ export async function uploadMultipleToS3WithProcessing(
     }
 
     // 3. Wait for both lanes to complete
-    const laneAResult = await Promise.allSettled([laneAPromise]).then(results => results[0]);
-    const laneBResult = laneBPromise ? await Promise.allSettled([laneBPromise]).then(results => results[0]) : null;
+    const laneAResult = await Promise.allSettled([laneAPromise]).then(
+      (results) => results[0]
+    );
+    const laneBResult = laneBPromise
+      ? await Promise.allSettled([laneBPromise]).then((results) => results[0])
+      : null;
 
     // 4. Create folder if needed (for directory mode)
     const parentFolderId = await createFolderIfNeeded(mode, files);
 
     // 5. Finalize all assets for each file
-    if (laneAResult.status === 'fulfilled' && laneBResult?.status === 'fulfilled') {
+    if (
+      laneAResult.status === 'fulfilled' &&
+      laneBResult?.status === 'fulfilled'
+    ) {
       // Finalize each file's assets
       const finalizePromises = files.map(async (file, index) => {
         const laneAResultForFile = {
@@ -226,8 +254,12 @@ export async function uploadMultipleToS3WithProcessing(
           value: laneBResult.value[index] || {},
         };
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await finalizeAllAssets(laneAResultForFile as any, laneBResultForFile, parentFolderId);
+                await finalizeAllAssets(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          laneAResultForFile as any,
+          laneBResultForFile,
+          parentFolderId
+        );
       });
 
       await Promise.all(finalizePromises);
@@ -236,18 +268,22 @@ export async function uploadMultipleToS3WithProcessing(
     return {
       results:
         laneAResult.status === 'fulfilled'
-          ? laneAResult.value.map(result => ({
+          ? laneAResult.value.map((result) => ({
               memoryId: result.results[0].memoryId,
               size: Number(result.results[0].size),
               checksum_sha256: result.results[0].checksumSha256
                 ? Array.from(result.results[0].checksumSha256)
-                    .map(b => b.toString(16).padStart(2, '0'))
+                    .map((b) => b.toString(16).padStart(2, '0'))
                     .join('')
                 : null,
             }))
           : [],
-      userId: laneAResult.status === 'fulfilled' ? laneAResult.value[0]?.userId || '' : '',
-      successfulUploads: laneAResult.status === 'fulfilled' ? laneAResult.value.length : 0,
+      userId:
+        laneAResult.status === 'fulfilled'
+          ? laneAResult.value[0]?.userId || ''
+          : '',
+      successfulUploads:
+        laneAResult.status === 'fulfilled' ? laneAResult.value.length : 0,
     };
   } catch (error) {
     throw error;
@@ -279,9 +315,18 @@ async function processMultipleImageDerivativesPure(
       return await uploadProcessedAssetsToS3(processedBlobs, grant);
     } catch (_error) {
       return {
-        display: { assetType: 'display' as const, processingStatus: 'failed' as const },
-        thumb: { assetType: 'thumb' as const, processingStatus: 'failed' as const },
-        placeholder: { assetType: 'placeholder' as const, processingStatus: 'failed' as const },
+        display: {
+          assetType: 'display' as const,
+          processingStatus: 'failed' as const,
+        },
+        thumb: {
+          assetType: 'thumb' as const,
+          processingStatus: 'failed' as const,
+        },
+        placeholder: {
+          assetType: 'placeholder' as const,
+          processingStatus: 'failed' as const,
+        },
       };
     }
   });

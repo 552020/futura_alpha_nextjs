@@ -31,9 +31,15 @@ async function processImageForMultipleAssetsBackend(file) {
   const thumbBuffer = Buffer.alloc(thumbSize, 0x03);
 
   // Create File objects for each processed image
-  const originalBlob = new File([originalBuffer], file.name, { type: 'image/webp' });
-  const displayBlob = new File([displayBuffer], `display_${file.name}`, { type: 'image/webp' });
-  const thumbBlob = new File([thumbBuffer], `thumb_${file.name}`, { type: 'image/webp' });
+  const originalBlob = new File([originalBuffer], file.name, {
+    type: 'image/webp',
+  });
+  const displayBlob = new File([displayBuffer], `display_${file.name}`, {
+    type: 'image/webp',
+  });
+  const thumbBlob = new File([thumbBuffer], `thumb_${file.name}`, {
+    type: 'image/webp',
+  });
 
   return {
     original: {
@@ -89,14 +95,19 @@ async function testImageProcessing() {
   try {
     // Check if token is available
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      throw new Error('BLOB_READ_WRITE_TOKEN not found in environment variables');
+      throw new Error(
+        'BLOB_READ_WRITE_TOKEN not found in environment variables'
+      );
     }
     console.log('✅ BLOB_READ_WRITE_TOKEN found');
 
     // Test with a real image file
     const testImages = [
       { path: '../../public/small/abstract-1.jpg', name: 'abstract-1.jpg' },
-      { path: '../../public/small/diana_charles.jpg', name: 'diana_charles.jpg' },
+      {
+        path: '../../public/small/diana_charles.jpg',
+        name: 'diana_charles.jpg',
+      },
       { path: '../../public/small/blue-sky.jpg', name: 'blue-sky.jpg' },
     ];
 
@@ -114,11 +125,14 @@ async function testImageProcessing() {
 
         // Read the image file
         const fileBuffer = fs.readFileSync(fullPath);
-        const file = new File([fileBuffer], imageInfo.name, { type: 'image/jpeg' });
+        const file = new File([fileBuffer], imageInfo.name, {
+          type: 'image/jpeg',
+        });
 
         // Process the image (simulate backend processing)
         console.log('🔄 Processing image derivatives...');
-        const processedAssets = await processImageForMultipleAssetsBackend(file);
+        const processedAssets =
+          await processImageForMultipleAssetsBackend(file);
 
         console.log('✅ Image processing complete:');
         console.log(

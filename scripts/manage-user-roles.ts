@@ -45,9 +45,15 @@ async function findUserByEmail(email: string): Promise<UserInfo | null> {
   }
 }
 
-async function updateUserRole(userId: string, newRole: UserRole): Promise<boolean> {
+async function updateUserRole(
+  userId: string,
+  newRole: UserRole
+): Promise<boolean> {
   try {
-    await db.update(users).set({ role: newRole, updatedAt: new Date() }).where(eq(users.id, userId));
+    await db
+      .update(users)
+      .set({ role: newRole, updatedAt: new Date() })
+      .where(eq(users.id, userId));
 
     return true;
   } catch (error) {
@@ -71,8 +77,10 @@ async function listAllUsers(): Promise<UserInfo[]> {
 
     // Filter out users without email and map to UserInfo
     return allUsers
-      .filter((user): user is typeof user & { email: string } => user.email !== null)
-      .map(user => ({
+      .filter(
+        (user): user is typeof user & { email: string } => user.email !== null
+      )
+      .map((user) => ({
         id: user.id,
         email: user.email,
         name: user.name,
@@ -120,15 +128,25 @@ async function main() {
 
     case 'update':
       if (!args[1] || !args[2]) {
-        console.log('❌ Usage: npm run manage-user-roles update <email> <role>');
-        console.log('   Available roles: user, moderator, admin, developer, superadmin');
+        console.log(
+          '❌ Usage: npm run manage-user-roles update <email> <role>'
+        );
+        console.log(
+          '   Available roles: user, moderator, admin, developer, superadmin'
+        );
         process.exit(1);
       }
       const updateEmail = args[1];
       const newRole = args[2] as UserRole;
 
-      if (!['user', 'moderator', 'admin', 'developer', 'superadmin'].includes(newRole)) {
-        console.log('❌ Invalid role. Available roles: user, moderator, admin, developer, superadmin');
+      if (
+        !['user', 'moderator', 'admin', 'developer', 'superadmin'].includes(
+          newRole
+        )
+      ) {
+        console.log(
+          '❌ Invalid role. Available roles: user, moderator, admin, developer, superadmin'
+        );
         process.exit(1);
       }
 
@@ -180,10 +198,14 @@ async function main() {
       console.log('  update <email> <role> - Update user role');
       console.log('  list             - List all users');
       console.log('  help             - Show this help');
-      console.log('\n🎭 Available roles: user, moderator, admin, developer, superadmin');
+      console.log(
+        '\n🎭 Available roles: user, moderator, admin, developer, superadmin'
+      );
       console.log('\n💡 Examples:');
       console.log('  npm run manage-user-roles find user@example.com');
-      console.log('  npm run manage-user-roles update user@example.com developer');
+      console.log(
+        '  npm run manage-user-roles update user@example.com developer'
+      );
       console.log('  npm run manage-user-roles list');
       break;
   }
@@ -191,7 +213,7 @@ async function main() {
   process.exit(0);
 }
 
-main().catch(error => {
+main().catch((error) => {
   console.error('❌ Script error:', error);
   process.exit(1);
 });

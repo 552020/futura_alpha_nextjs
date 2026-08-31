@@ -73,9 +73,19 @@ export function normalizeError(error: ApiError | Error): NormalizedError {
  * Determine if an error is retryable
  */
 function isRetryableError(error: ApiError): boolean {
-  const retryableCodes = ['NETWORK_ERROR', 'TIMEOUT', 'HTTP_500', 'HTTP_502', 'HTTP_503', 'HTTP_504'];
+  const retryableCodes = [
+    'NETWORK_ERROR',
+    'TIMEOUT',
+    'HTTP_500',
+    'HTTP_502',
+    'HTTP_503',
+    'HTTP_504',
+  ];
 
-  return retryableCodes.includes(error.code) || (error.statusCode !== undefined && error.statusCode >= 500);
+  return (
+    retryableCodes.includes(error.code) ||
+    (error.statusCode !== undefined && error.statusCode >= 500)
+  );
 }
 
 /**
@@ -83,10 +93,13 @@ function isRetryableError(error: ApiError): boolean {
  */
 function getUserFriendlyMessage(error: ApiError): string {
   const userMessages: Record<string, string> = {
-    PREFERENCE_DENIED: 'Your storage preference was denied. Please try a different option.',
-    QUOTA_EXCEEDED: 'You have reached your storage quota. Please upgrade your plan.',
+    PREFERENCE_DENIED:
+      'Your storage preference was denied. Please try a different option.',
+    QUOTA_EXCEEDED:
+      'You have reached your storage quota. Please upgrade your plan.',
     FEATURE_DISABLED: 'This feature is currently disabled for your account.',
-    INVALID_PREFERENCE: 'Invalid storage preference. Please select a valid option.',
+    INVALID_PREFERENCE:
+      'Invalid storage preference. Please select a valid option.',
     HTTP_401: 'Please sign in to continue.',
     HTTP_403: 'You do not have permission to perform this action.',
     HTTP_404: 'The requested resource was not found.',
@@ -99,7 +112,11 @@ function getUserFriendlyMessage(error: ApiError): string {
     HTTP_504: 'Request timeout. Please try again later.',
   };
 
-  return userMessages[error.code] || userMessages[`HTTP_${error.statusCode}`] || 'An error occurred. Please try again.';
+  return (
+    userMessages[error.code] ||
+    userMessages[`HTTP_${error.statusCode}`] ||
+    'An error occurred. Please try again.'
+  );
 }
 
 /**
@@ -115,7 +132,12 @@ export function createStoragePreferenceError(
     message,
     details,
     isRetryable: false,
-    userMessage: getUserFriendlyMessage({ code, message, details, statusCode: 400 }),
+    userMessage: getUserFriendlyMessage({
+      code,
+      message,
+      details,
+      statusCode: 400,
+    }),
   };
 }
 

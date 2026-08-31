@@ -120,7 +120,8 @@ export type DBFamilyRelationship = typeof familyRelationship.$inferSelect;
 export type NewDBFamilyRelationship = typeof familyRelationship.$inferInsert;
 
 export type DBBusinessRelationship = typeof businessRelationship.$inferSelect;
-export type NewDBBusinessRelationship = typeof businessRelationship.$inferInsert;
+export type NewDBBusinessRelationship =
+  typeof businessRelationship.$inferInsert;
 
 export type DBFamilyMember = typeof familyMember.$inferSelect;
 export type NewDBFamilyMember = typeof familyMember.$inferInsert;
@@ -145,7 +146,8 @@ export type NewDBStorageEdge = typeof storageEdges.$inferInsert;
 
 // Hosting preference types
 export type UserHostingPreference = typeof userHostingPreferences.$inferSelect;
-export type NewUserHostingPreference = typeof userHostingPreferences.$inferInsert;
+export type NewUserHostingPreference =
+  typeof userHostingPreferences.$inferInsert;
 
 // Service deployment types
 export type ServiceDeployment = typeof serviceDeployments.$inferSelect;

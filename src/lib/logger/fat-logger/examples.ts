@@ -18,15 +18,23 @@ export function demonstrateServiceLogging() {
   ]);
   uploadLog.info('File selected', { fileName: 'photo.jpg', size: '2MB' });
 
-  apiLog.warn('Upload taking longer than expected', { duration: 5000 }, [createTag('PERF', 'slow')]);
-  apiLog.error('Upload failed', { error: 'Network timeout' }, [createTag('ERROR', 'network')]);
+  apiLog.warn('Upload taking longer than expected', { duration: 5000 }, [
+    createTag('PERF', 'slow'),
+  ]);
+  apiLog.error('Upload failed', { error: 'Network timeout' }, [
+    createTag('ERROR', 'network'),
+  ]);
 }
 
 // Example 2: Direct logging without service context
 export function demonstrateDirectLogging() {
   fatLogger.info('Application started', 'be', { version: '1.0.0' });
-  fatLogger.warn('Memory usage high', 'be', { usage: '85%' }, [createTag('PERF', 'memory')]);
-  fatLogger.error('Database connection failed', 'be', { error: 'Connection timeout' });
+  fatLogger.warn('Memory usage high', 'be', { usage: '85%' }, [
+    createTag('PERF', 'memory'),
+  ]);
+  fatLogger.error('Database connection failed', 'be', {
+    error: 'Connection timeout',
+  });
 }
 
 // Example 3: Configuration changes

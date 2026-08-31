@@ -13,7 +13,12 @@ interface SetupOptions {
 }
 
 async function setupBusinessRelationshipCLI(options: SetupOptions) {
-  const { businessEmail, clientEmail, clearExisting = false, verbose = false } = options;
+  const {
+    businessEmail,
+    clientEmail,
+    clearExisting = false,
+    verbose = false,
+  } = options;
 
   try {
     if (verbose) {
@@ -26,32 +31,58 @@ async function setupBusinessRelationshipCLI(options: SetupOptions) {
     }
 
     // Get the business user ID
-    const [businessUser] = await db.select().from(users).where(eq(users.email, businessEmail)).limit(1);
+    const [businessUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, businessEmail))
+      .limit(1);
     if (!businessUser) {
-      throw new Error(`❌ Photographer with email ${businessEmail} not found. Please make sure they have an account.`);
+      throw new Error(
+        `❌ Photographer with email ${businessEmail} not found. Please make sure they have an account.`
+      );
     }
 
     // Get the client user ID
-    const [clientUser] = await db.select().from(users).where(eq(users.email, clientEmail)).limit(1);
+    const [clientUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, clientEmail))
+      .limit(1);
     if (!clientUser) {
-      throw new Error(`❌ Client with email ${clientEmail} not found. Please make sure they have an account.`);
+      throw new Error(
+        `❌ Client with email ${clientEmail} not found. Please make sure they have an account.`
+      );
     }
 
     // Get the all_user IDs for both users
-    const [businessAllUser] = await db.select().from(allUsers).where(eq(allUsers.userId, businessUser.id)).limit(1);
+    const [businessAllUser] = await db
+      .select()
+      .from(allUsers)
+      .where(eq(allUsers.userId, businessUser.id))
+      .limit(1);
     if (!businessAllUser) {
-      throw new Error(`❌ AllUser record not found for photographer ${businessEmail}`);
+      throw new Error(
+        `❌ AllUser record not found for photographer ${businessEmail}`
+      );
     }
 
-    const [clientAllUser] = await db.select().from(allUsers).where(eq(allUsers.userId, clientUser.id)).limit(1);
+    const [clientAllUser] = await db
+      .select()
+      .from(allUsers)
+      .where(eq(allUsers.userId, clientUser.id))
+      .limit(1);
     if (!clientAllUser) {
       throw new Error(`❌ AllUser record not found for client ${clientEmail}`);
     }
 
     if (verbose) {
       console.log('✅ Found users:');
-      console.log(`   📸 Photographer: ${businessUser.name || 'No name'} (${businessUser.email})`);
-      console.log(`   👤 Client: ${clientUser.name || 'No name'} (${clientUser.email})`);
+      console.log(
+        `   📸 Photographer: ${businessUser.name || 'No name'} (${businessUser.email})`
+      );
+      console.log(
+        `   👤 Client: ${clientUser.name || 'No name'} (${clientUser.email})`
+      );
       console.log('');
     }
 
@@ -88,7 +119,10 @@ async function setupBusinessRelationshipCLI(options: SetupOptions) {
       console.log(`   Created: ${newRelationship.createdAt}`);
     }
   } catch (error) {
-    console.error('❌ Error setting up business relationship:', error instanceof Error ? error.message : error);
+    console.error(
+      '❌ Error setting up business relationship:',
+      error instanceof Error ? error.message : error
+    );
     process.exit(1);
   }
 }

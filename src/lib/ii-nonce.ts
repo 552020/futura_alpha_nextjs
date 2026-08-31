@@ -1,7 +1,17 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
 import { db } from '@/db/db';
 import { iiNonces, type NewDBIINonce } from '@/db';
-import { eq, and, lt, gt, isNull, isNotNull, gte, count, sql } from 'drizzle-orm';
+import {
+  eq,
+  and,
+  lt,
+  gt,
+  isNull,
+  isNotNull,
+  gte,
+  count,
+  sql,
+} from 'drizzle-orm';
 
 import { fatLogger } from '@/lib/logger';
 /**
@@ -38,7 +48,8 @@ export const NONCE_CONFIG = {
   // Hash algorithm for storing nonces
   HASH_ALGORITHM: 'sha256' as const,
   // Server secret for HMAC (should be from env in production)
-  HMAC_SECRET: process.env.NONCE_HMAC_SECRET || 'fallback-secret-change-in-production',
+  HMAC_SECRET:
+    process.env.NONCE_HMAC_SECRET || 'fallback-secret-change-in-production',
   // Rate limiting configuration
   RATE_LIMIT_WINDOW_MS: 60 * 1000, // 1 minute window
   RATE_LIMIT_MAX_REQUESTS: 10, // Max 10 nonces per IP per minute
@@ -55,7 +66,9 @@ export function generateNonce(): string {
  * Hash a nonce for secure storage using HMAC-SHA-256
  */
 export function hashNonce(nonce: string): string {
-  return createHmac(NONCE_CONFIG.HASH_ALGORITHM, NONCE_CONFIG.HMAC_SECRET).update(nonce, 'utf8').digest('hex');
+  return createHmac(NONCE_CONFIG.HASH_ALGORITHM, NONCE_CONFIG.HMAC_SECRET)
+    .update(nonce, 'utf8')
+    .digest('hex');
 }
 
 /**
@@ -79,7 +92,10 @@ export function verifyNonceHash(nonce: string, storedHash: string): boolean {
  */
 function clampTTL(requestedTTL?: number): number {
   const ttl = requestedTTL ?? NONCE_CONFIG.DEFAULT_TTL_SECONDS;
-  return Math.max(NONCE_CONFIG.MIN_TTL_SECONDS, Math.min(NONCE_CONFIG.MAX_TTL_SECONDS, ttl));
+  return Math.max(
+    NONCE_CONFIG.MIN_TTL_SECONDS,
+    Math.min(NONCE_CONFIG.MAX_TTL_SECONDS, ttl)
+  );
 }
 
 /**
@@ -93,7 +109,12 @@ async function checkRateLimit(ipAddress?: string): Promise<boolean> {
   const recentCount = await db
     .select({ count: count() })
     .from(iiNonces)
-    .where(and(gte(iiNonces.createdAt, windowStart), sql`${iiNonces.context}->>'ipAddress' = ${ipAddress}`));
+    .where(
+      and(
+        gte(iiNonces.createdAt, windowStart),
+        sql`${iiNonces.context}->>'ipAddress' = ${ipAddress}`
+      )
+    );
 
   return (recentCount[0]?.count || 0) < NONCE_CONFIG.RATE_LIMIT_MAX_REQUESTS;
 }
@@ -131,7 +152,10 @@ export async function createNonce(context: {
     },
   };
 
-  const [inserted] = await db.insert(iiNonces).values(insertData).returning({ id: iiNonces.id });
+  const [inserted] = await db
+    .insert(iiNonces)
+    .values(insertData)
+    .returning({ id: iiNonces.id });
 
   // Run opportunistic cleanup to maintain database
   await opportunisticCleanup();
@@ -262,7 +286,10 @@ export async function consumeNonce(nonceId: string): Promise<boolean> {
  * Clean up expired nonces (should be run periodically)
  */
 export async function cleanupExpiredNonces(): Promise<number> {
-  const result = await db.delete(iiNonces).where(lt(iiNonces.expiresAt, new Date())).returning({ id: iiNonces.id });
+  const result = await db
+    .delete(iiNonces)
+    .where(lt(iiNonces.expiresAt, new Date()))
+    .returning({ id: iiNonces.id });
 
   return result.length;
 }
@@ -279,25 +306,29 @@ export async function getNonceStats(): Promise<{
   const now = new Date();
 
   // Use parallel COUNT queries for better performance
-  const [totalResult, usedResult, expiredResult, activeResult] = await Promise.all([
-    // Total count
-    db.select({ count: count() }).from(iiNonces),
+  const [totalResult, usedResult, expiredResult, activeResult] =
+    await Promise.all([
+      // Total count
+      db.select({ count: count() }).from(iiNonces),
 
-    // Used count (has usedAt timestamp)
-    db.select({ count: count() }).from(iiNonces).where(isNotNull(iiNonces.usedAt)),
+      // Used count (has usedAt timestamp)
+      db
+        .select({ count: count() })
+        .from(iiNonces)
+        .where(isNotNull(iiNonces.usedAt)),
 
-    // Expired count (not used AND expired)
-    db
-      .select({ count: count() })
-      .from(iiNonces)
-      .where(and(isNull(iiNonces.usedAt), lt(iiNonces.expiresAt, now))),
+      // Expired count (not used AND expired)
+      db
+        .select({ count: count() })
+        .from(iiNonces)
+        .where(and(isNull(iiNonces.usedAt), lt(iiNonces.expiresAt, now))),
 
-    // Active count (not used AND not expired)
-    db
-      .select({ count: count() })
-      .from(iiNonces)
-      .where(and(isNull(iiNonces.usedAt), gte(iiNonces.expiresAt, now))),
-  ]);
+      // Active count (not used AND not expired)
+      db
+        .select({ count: count() })
+        .from(iiNonces)
+        .where(and(isNull(iiNonces.usedAt), gte(iiNonces.expiresAt, now))),
+    ]);
 
   return {
     total: totalResult[0]?.count || 0,

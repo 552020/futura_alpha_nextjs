@@ -10,7 +10,9 @@ export type GalleryWithStorageStatus = DBGallery & {
 /**
  * Enhance a gallery with storage status from the gallery's own fields
  */
-export function addStorageStatusToGallery(gallery: DBGallery): GalleryWithStorageStatus {
+export function addStorageStatusToGallery(
+  gallery: DBGallery
+): GalleryWithStorageStatus {
   const totalMemories = gallery.totalMemories ?? 0;
 
   // Extract storage locations from storageLocation
@@ -28,6 +30,8 @@ export function addStorageStatusToGallery(gallery: DBGallery): GalleryWithStorag
 /**
  * Enhance multiple galleries with storage status
  */
-export function addStorageStatusToGalleries(galleries: DBGallery[]): GalleryWithStorageStatus[] {
-  return galleries.map(gallery => addStorageStatusToGallery(gallery));
+export function addStorageStatusToGalleries(
+  galleries: DBGallery[]
+): GalleryWithStorageStatus[] {
+  return galleries.map((gallery) => addStorageStatusToGallery(gallery));
 }

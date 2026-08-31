@@ -7,10 +7,19 @@ describe('POST /api/galleries - Gallery Creation Logic', () => {
   });
 
   it('should validate from-folder creation parameters', () => {
-    const validateFromFolderParams = (params: { type?: string; folderName?: string; title?: string }) => {
+    const validateFromFolderParams = (params: {
+      type?: string;
+      folderName?: string;
+      title?: string;
+    }) => {
       if (!params.type) return { valid: false, error: 'Type is required' };
-      if (params.type !== 'from-folder') return { valid: false, error: "Type must be 'from-folder'" };
-      if (!params.folderName) return { valid: false, error: 'Folder name is required for from-folder type' };
+      if (params.type !== 'from-folder')
+        return { valid: false, error: "Type must be 'from-folder'" };
+      if (!params.folderName)
+        return {
+          valid: false,
+          error: 'Folder name is required for from-folder type',
+        };
       return { valid: true };
     };
 
@@ -24,7 +33,10 @@ describe('POST /api/galleries - Gallery Creation Logic', () => {
     ).toEqual({ valid: true });
 
     // Invalid parameters
-    expect(validateFromFolderParams({})).toEqual({ valid: false, error: 'Type is required' });
+    expect(validateFromFolderParams({})).toEqual({
+      valid: false,
+      error: 'Type is required',
+    });
     expect(validateFromFolderParams({ type: 'invalid' })).toEqual({
       valid: false,
       error: "Type must be 'from-folder'",
@@ -42,9 +54,17 @@ describe('POST /api/galleries - Gallery Creation Logic', () => {
       title?: string;
     }) => {
       if (!params.type) return { valid: false, error: 'Type is required' };
-      if (params.type !== 'from-memories') return { valid: false, error: "Type must be 'from-memories'" };
-      if (!params.memories || !Array.isArray(params.memories) || params.memories.length === 0) {
-        return { valid: false, error: 'Memories array is required for from-memories type' };
+      if (params.type !== 'from-memories')
+        return { valid: false, error: "Type must be 'from-memories'" };
+      if (
+        !params.memories ||
+        !Array.isArray(params.memories) ||
+        params.memories.length === 0
+      ) {
+        return {
+          valid: false,
+          error: 'Memories array is required for from-memories type',
+        };
       }
       return { valid: true };
     };
@@ -59,7 +79,10 @@ describe('POST /api/galleries - Gallery Creation Logic', () => {
     ).toEqual({ valid: true });
 
     // Invalid parameters
-    expect(validateFromMemoriesParams({})).toEqual({ valid: false, error: 'Type is required' });
+    expect(validateFromMemoriesParams({})).toEqual({
+      valid: false,
+      error: 'Type is required',
+    });
     expect(validateFromMemoriesParams({ type: 'invalid' })).toEqual({
       valid: false,
       error: "Type must be 'from-memories'",
@@ -68,14 +91,19 @@ describe('POST /api/galleries - Gallery Creation Logic', () => {
       valid: false,
       error: 'Memories array is required for from-memories type',
     });
-    expect(validateFromMemoriesParams({ type: 'from-memories', memories: [] })).toEqual({
+    expect(
+      validateFromMemoriesParams({ type: 'from-memories', memories: [] })
+    ).toEqual({
       valid: false,
       error: 'Memories array is required for from-memories type',
     });
   });
 
   it('should process folder memories correctly', () => {
-    const processFolderMemories = (folderName: string, memories: { id: string; type: string }[]) => {
+    const processFolderMemories = (
+      folderName: string,
+      memories: { id: string; type: string }[]
+    ) => {
       return memories.map((memory, index) => ({
         id: memory.id,
         type: memory.type,
@@ -99,11 +127,21 @@ describe('POST /api/galleries - Gallery Creation Logic', () => {
 
   it('should create gallery with default values', () => {
     const createGalleryData = (
-      params: { type?: string; folderName?: string; title?: string; description?: string; isPublic?: boolean },
+      params: {
+        type?: string;
+        folderName?: string;
+        title?: string;
+        description?: string;
+        isPublic?: boolean;
+      },
       memoriesCount: number
     ) => {
       return {
-        title: params.title || (params.type === 'from-folder' ? `Gallery from ${params.folderName}` : 'My Gallery'),
+        title:
+          params.title ||
+          (params.type === 'from-folder'
+            ? `Gallery from ${params.folderName}`
+            : 'My Gallery'),
         description: params.description || '',
         isPublic: params.isPublic || false,
         memoriesCount,
@@ -111,7 +149,10 @@ describe('POST /api/galleries - Gallery Creation Logic', () => {
     };
 
     // From folder
-    const folderResult = createGalleryData({ type: 'from-folder', folderName: 'test-folder' }, 5);
+    const folderResult = createGalleryData(
+      { type: 'from-folder', folderName: 'test-folder' },
+      5
+    );
     expect(folderResult.title).toBe('Gallery from test-folder');
     expect(folderResult.description).toBe('');
     expect(folderResult.isPublic).toBe(false);
@@ -119,7 +160,12 @@ describe('POST /api/galleries - Gallery Creation Logic', () => {
 
     // From memories with custom values
     const memoriesResult = createGalleryData(
-      { type: 'from-memories', title: 'Custom Title', description: 'Custom Description', isPublic: true },
+      {
+        type: 'from-memories',
+        title: 'Custom Title',
+        description: 'Custom Description',
+        isPublic: true,
+      },
       3
     );
     expect(memoriesResult.title).toBe('Custom Title');

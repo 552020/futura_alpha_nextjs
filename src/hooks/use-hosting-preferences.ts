@@ -1,12 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { parseApiError, normalizeError, type NormalizedError } from '@/lib/error-handling';
+import {
+  parseApiError,
+  normalizeError,
+  type NormalizedError,
+} from '@/lib/error-handling';
 import { fatLogger } from '@/lib/logger';
 
 // Hosting preference types matching the database schema
 export type FrontendHosting = 'vercel' | 'icp';
 export type BackendHosting = 'vercel' | 'icp';
 export type DatabaseHosting = 'neon' | 'icp';
-export type BlobHosting = 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs' | 'neon';
+export type BlobHosting =
+  | 's3'
+  | 'vercel_blob'
+  | 'icp'
+  | 'arweave'
+  | 'ipfs'
+  | 'neon';
 
 export interface HostingPreferences {
   frontendHosting: FrontendHosting;
@@ -29,35 +39,65 @@ export function getDefaultHostingPreferences(): HostingPreferences {
   };
 }
 
-export function isHostingPreferenceValid(prefs: Partial<HostingPreferences>): prefs is HostingPreferences {
-  return !!(prefs.frontendHosting && prefs.backendHosting && prefs.databaseHosting && prefs.blobHosting);
+export function isHostingPreferenceValid(
+  prefs: Partial<HostingPreferences>
+): prefs is HostingPreferences {
+  return !!(
+    prefs.frontendHosting &&
+    prefs.backendHosting &&
+    prefs.databaseHosting &&
+    prefs.blobHosting
+  );
 }
 
 // ---- advanced database switching helpers ----
-export function isAdvancedDatabaseSwitchingEnabled(preferences?: HostingPreferences): boolean {
-  return !!(preferences?.advancedDatabaseSwitching && preferences?.databaseHosting?.length > 1);
+export function isAdvancedDatabaseSwitchingEnabled(
+  preferences?: HostingPreferences
+): boolean {
+  return !!(
+    preferences?.advancedDatabaseSwitching &&
+    preferences?.databaseHosting?.length > 1
+  );
 }
 
-export function getAvailableDatabases(preferences?: HostingPreferences): DatabaseHosting[] {
+export function getAvailableDatabases(
+  preferences?: HostingPreferences
+): DatabaseHosting[] {
   return preferences?.databaseHosting || ['neon'];
 }
 
-export function getCurrentDatabaseView(preferences?: HostingPreferences): DatabaseHosting {
-  return preferences?.currentDatabaseView || preferences?.databaseHosting?.[0] || 'neon';
+export function getCurrentDatabaseView(
+  preferences?: HostingPreferences
+): DatabaseHosting {
+  return (
+    preferences?.currentDatabaseView ||
+    preferences?.databaseHosting?.[0] ||
+    'neon'
+  );
 }
 
 export function canSwitchDatabase(preferences?: HostingPreferences): boolean {
-  return isAdvancedDatabaseSwitchingEnabled(preferences) && getAvailableDatabases(preferences).length > 1;
+  return (
+    isAdvancedDatabaseSwitchingEnabled(preferences) &&
+    getAvailableDatabases(preferences).length > 1
+  );
 }
 
 // Check if both data sources are available for switching in dashboard
-export function canSwitchDashboardDataSources(preferences?: HostingPreferences): boolean {
+export function canSwitchDashboardDataSources(
+  preferences?: HostingPreferences
+): boolean {
   if (!preferences) return false;
-  return preferences.databaseHosting.includes('neon') && preferences.databaseHosting.includes('icp');
+  return (
+    preferences.databaseHosting.includes('neon') &&
+    preferences.databaseHosting.includes('icp')
+  );
 }
 
 // ---- automatic data source selection for dashboard ----
-export function getRecommendedDashboardDataSource(preferences?: HostingPreferences): 'neon' | 'icp' {
+export function getRecommendedDashboardDataSource(
+  preferences?: HostingPreferences
+): 'neon' | 'icp' {
   if (!preferences) return 'neon';
 
   const { backendHosting, databaseHosting } = preferences;
@@ -68,7 +108,11 @@ export function getRecommendedDashboardDataSource(preferences?: HostingPreferenc
   }
 
   // If backend is Vercel but only ICP database is available, use ICP
-  if (backendHosting === 'vercel' && databaseHosting.length === 1 && databaseHosting[0] === 'icp') {
+  if (
+    backendHosting === 'vercel' &&
+    databaseHosting.length === 1 &&
+    databaseHosting[0] === 'icp'
+  ) {
     return 'icp';
   }
 
@@ -93,11 +137,17 @@ export function getRecommendedDashboardDataSource(preferences?: HostingPreferenc
 
 // ---- hosting stack helpers (for checkbox logic) ----
 export function getWeb2Enabled(preferences?: HostingPreferences): boolean {
-  return !!(preferences?.backendHosting === 'vercel' || preferences?.databaseHosting?.includes('neon'));
+  return !!(
+    preferences?.backendHosting === 'vercel' ||
+    preferences?.databaseHosting?.includes('neon')
+  );
 }
 
 export function getWeb3Enabled(preferences?: HostingPreferences): boolean {
-  return !!(preferences?.backendHosting === 'icp' || preferences?.databaseHosting?.includes('icp'));
+  return !!(
+    preferences?.backendHosting === 'icp' ||
+    preferences?.databaseHosting?.includes('icp')
+  );
 }
 
 export function createHostingPreferencesFromStacks(
@@ -164,7 +214,9 @@ export function useHostingPreferences(options?: { enabled?: boolean }) {
       // Log when preferences are loaded
       fatLogger.debug('🚀 [HOSTING PREFERENCES] Loaded from API:', 'fe', {
         preferences: data,
-        isDefault: JSON.stringify(data) === JSON.stringify(getDefaultHostingPreferences()),
+        isDefault:
+          JSON.stringify(data) ===
+          JSON.stringify(getDefaultHostingPreferences()),
         backendHosting: data.backendHosting,
         databaseHosting: data.databaseHosting,
         blobHosting: data.blobHosting,
@@ -172,7 +224,9 @@ export function useHostingPreferences(options?: { enabled?: boolean }) {
 
       fatLogger.info('🚀 Hosting preferences loaded', 'fe', {
         preferences: data,
-        isDefault: JSON.stringify(data) === JSON.stringify(getDefaultHostingPreferences()),
+        isDefault:
+          JSON.stringify(data) ===
+          JSON.stringify(getDefaultHostingPreferences()),
       });
 
       return data;
@@ -194,8 +248,12 @@ export function useUpdateHostingPreferences() {
   const qc = useQueryClient();
 
   return useMutation<HostingPreferences, NormalizedError, UpdateBody, Ctx>({
-    mutationFn: async body => {
-      fatLogger.debug('🔄 [HOSTING PREFERENCES] Updating preferences:', 'fe', body);
+    mutationFn: async (body) => {
+      fatLogger.debug(
+        '🔄 [HOSTING PREFERENCES] Updating preferences:',
+        'fe',
+        body
+      );
 
       const res = await fetch('/api/me/hosting-preferences', {
         method: 'PATCH',
@@ -211,9 +269,12 @@ export function useUpdateHostingPreferences() {
     },
 
     // optimistic update
-    onMutate: async newData => {
+    onMutate: async (newData) => {
       await qc.cancelQueries({ queryKey: ['me', 'hosting-preferences'] });
-      const previousData = qc.getQueryData<HostingPreferences>(['me', 'hosting-preferences']);
+      const previousData = qc.getQueryData<HostingPreferences>([
+        'me',
+        'hosting-preferences',
+      ]);
 
       if (previousData) {
         qc.setQueryData<HostingPreferences>(['me', 'hosting-preferences'], {
@@ -226,10 +287,11 @@ export function useUpdateHostingPreferences() {
     },
 
     onError: (_err, _vars, ctx) => {
-      if (ctx?.previousData) qc.setQueryData(['me', 'hosting-preferences'], ctx.previousData);
+      if (ctx?.previousData)
+        qc.setQueryData(['me', 'hosting-preferences'], ctx.previousData);
     },
 
-    onSuccess: data => {
+    onSuccess: (data) => {
       // Push authoritative server state; avoids a double flicker
       qc.setQueryData<HostingPreferences>(['me', 'hosting-preferences'], data);
 

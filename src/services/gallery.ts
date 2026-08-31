@@ -6,14 +6,20 @@ import {
   GalleryDetailResponse,
   UpdateGalleryRequest,
 } from '@/types/gallery';
-import { generatedGalleries, getGeneratedGallery } from '../../scripts/mock-data/generated-gallery-data';
+import {
+  generatedGalleries,
+  getGeneratedGallery,
+} from '../../scripts/mock-data/generated-gallery-data';
 // Lazy imports to avoid ICP actor creation during static generation
 // import { icpGalleryService, type GalleryData, type StoreGalleryResponse } from './icp-gallery';
 // import { Principal } from '@dfinity/principal';
 
 import { fatLogger } from '@/lib/logger';
 // Analytics tracking shim for future implementation
-export const trackGalleryEvent = (event: string, _properties: Record<string, unknown> = {}) => {
+export const trackGalleryEvent = (
+  event: string,
+  _properties: Record<string, unknown> = {}
+) => {
   // fatLogger.info("Gallery Analytics:", undefined, { event, properties: _properties, timestamp: new Date().toISOString() });
   // TODO: Implement actual analytics tracking
   // This could send data to PostHog, Google Analytics, or other analytics services
@@ -26,13 +32,19 @@ const mockFolders: FolderInfo[] = [
   {
     name: 'Vacation Photos',
     imageCount: 15,
-    previewImages: ['/mock/gallery/Amazing_Bridge_05.webp', '/mock/gallery/Beautiful_Festival_39.webp'],
+    previewImages: [
+      '/mock/gallery/Amazing_Bridge_05.webp',
+      '/mock/gallery/Beautiful_Festival_39.webp',
+    ],
     hasImages: true,
   },
   {
     name: 'Wedding 2024',
     imageCount: 25,
-    previewImages: ['/mock/gallery/Beautiful_Wedding_16.webp', '/mock/gallery/Gorgeous_Celebration_31.webp'],
+    previewImages: [
+      '/mock/gallery/Beautiful_Wedding_16.webp',
+      '/mock/gallery/Gorgeous_Celebration_31.webp',
+    ],
     hasImages: true,
   },
 ];
@@ -40,8 +52,12 @@ const mockFolders: FolderInfo[] = [
 // Helper function to handle API responses
 const handleApiResponse = async (response: Response) => {
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    const errorData = await response
+      .json()
+      .catch(() => ({ error: 'Unknown error' }));
+    throw new Error(
+      errorData.error || `HTTP error! status: ${response.status}`
+    );
   }
   return response.json();
 };
@@ -70,7 +86,9 @@ export const galleryService = {
     }
 
     try {
-      const response = await fetch(`/api/galleries?page=${page}&limit=${limit}`);
+      const response = await fetch(
+        `/api/galleries?page=${page}&limit=${limit}`
+      );
       return await handleApiResponse(response);
     } catch (error) {
       fatLogger.error('Error listing galleries', 'be', { error });
@@ -79,7 +97,10 @@ export const galleryService = {
   },
 
   // Get single gallery
-  getGallery: async (id: string, useMockData: boolean = false): Promise<GalleryDetailResponse> => {
+  getGallery: async (
+    id: string,
+    useMockData: boolean = false
+  ): Promise<GalleryDetailResponse> => {
     trackGalleryEvent('gallery_viewed', { galleryId: id });
 
     if (useMockData) {
@@ -124,7 +145,9 @@ export const galleryService = {
         updatedAt: new Date(),
         ownerId: 'mock-user-1',
         totalMemories: 0,
-        name: (title || `Gallery from ${folderName}`).toLowerCase().replace(/\s+/g, '-'),
+        name: (title || `Gallery from ${folderName}`)
+          .toLowerCase()
+          .replace(/\s+/g, '-'),
         sharedCount: 0,
         storageLocation: ['s3'],
         items: [],
@@ -171,7 +194,10 @@ export const galleryService = {
     isPublic: boolean = false,
     useMockData: boolean = false
   ): Promise<GalleryWithItems> => {
-    trackGalleryEvent('gallery_created_from_memories', { memoriesCount: memories.length, title });
+    trackGalleryEvent('gallery_created_from_memories', {
+      memoriesCount: memories.length,
+      title,
+    });
 
     if (useMockData) {
       const newGallery: GalleryWithItems = {
@@ -217,7 +243,10 @@ export const galleryService = {
   },
 
   // Create gallery (legacy function - now uses the specific functions above)
-  createGallery: async (request: CreateGalleryRequest, useMockData: boolean = false): Promise<GalleryWithItems> => {
+  createGallery: async (
+    request: CreateGalleryRequest,
+    useMockData: boolean = false
+  ): Promise<GalleryWithItems> => {
     trackGalleryEvent('gallery_created', { type: request.type });
 
     if (useMockData) {
@@ -230,7 +259,9 @@ export const galleryService = {
         updatedAt: new Date(),
         ownerId: 'mock-user-1',
         totalMemories: 0,
-        name: (request.title || 'My Gallery').toLowerCase().replace(/\s+/g, '-'),
+        name: (request.title || 'My Gallery')
+          .toLowerCase()
+          .replace(/\s+/g, '-'),
         sharedCount: 0,
         storageLocation: ['s3'],
         items: [],
@@ -292,7 +323,10 @@ export const galleryService = {
   },
 
   // Delete gallery
-  deleteGallery: async (id: string, useMockData: boolean = false): Promise<void> => {
+  deleteGallery: async (
+    id: string,
+    useMockData: boolean = false
+  ): Promise<void> => {
     trackGalleryEvent('gallery_deleted', { galleryId: id });
 
     if (useMockData) {
@@ -306,8 +340,12 @@ export const galleryService = {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        const errorData = await response
+          .json()
+          .catch(() => ({ error: 'Unknown error' }));
+        throw new Error(
+          errorData.error || `HTTP error! status: ${response.status}`
+        );
       }
     } catch (error) {
       fatLogger.error('Error deleting gallery', 'be', { error });
@@ -336,8 +374,12 @@ export const galleryService = {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        const errorData = await response
+          .json()
+          .catch(() => ({ error: 'Unknown error' }));
+        throw new Error(
+          errorData.error || `HTTP error! status: ${response.status}`
+        );
       }
     } catch (error) {
       fatLogger.error('Error sharing gallery', 'be', { error });
@@ -346,7 +388,9 @@ export const galleryService = {
   },
 
   // Get folders with images for gallery creation
-  getFoldersWithImages: async (useMockData: boolean = false): Promise<FolderInfo[]> => {
+  getFoldersWithImages: async (
+    useMockData: boolean = false
+  ): Promise<FolderInfo[]> => {
     trackGalleryEvent('folders_requested');
 
     if (useMockData) {
@@ -376,8 +420,14 @@ export const galleryService = {
   storeGalleryForever: async (
     gallery: GalleryWithItems,
     ownerPrincipal?: string
-  ): Promise<{ success: boolean; message: string; storage_location: unknown }> => {
-    trackGalleryEvent('gallery_store_forever_requested', { galleryId: gallery.id });
+  ): Promise<{
+    success: boolean;
+    message: string;
+    storage_location: unknown;
+  }> => {
+    trackGalleryEvent('gallery_store_forever_requested', {
+      galleryId: gallery.id,
+    });
 
     try {
       // Dynamic imports to avoid ICP actor creation during static generation
@@ -385,7 +435,9 @@ export const galleryService = {
       const { Principal } = await import('@dfinity/principal');
 
       // Convert Web2 gallery to ICP format
-      const principal = ownerPrincipal ? Principal.fromText(ownerPrincipal) : Principal.anonymous();
+      const principal = ownerPrincipal
+        ? Principal.fromText(ownerPrincipal)
+        : Principal.anonymous();
 
       const galleryData = icpGalleryService.convertWeb2GalleryToICP(
         gallery as unknown as Record<string, unknown>,
@@ -434,7 +486,7 @@ export const galleryService = {
       const icpGalleries = await icpGalleryService.getMyGalleries();
 
       // Convert ICP galleries to Web2 format for frontend compatibility
-      const web2Galleries = icpGalleries.map(icpGallery => ({
+      const web2Galleries = icpGalleries.map((icpGallery) => ({
         id: icpGallery.id,
         title: icpGallery.metadata.title[0] || '',
         description: icpGallery.metadata.description[0] || '',
@@ -444,7 +496,7 @@ export const galleryService = {
         imageCount: icpGallery.items.length,
         isOwner: true, // ICP galleries are owned by the current user
         ownerId: 'icp-user', // TODO: Get actual owner from access_entries
-        items: icpGallery.items.map(item => ({
+        items: icpGallery.items.map((item) => ({
           id: item.memory_id,
           position: item.position,
           caption: item.caption[0] || '',
@@ -461,14 +513,18 @@ export const galleryService = {
         })),
       })) as unknown as GalleryWithItems[];
 
-      trackGalleryEvent('icp_galleries_retrieved', { count: web2Galleries.length });
+      trackGalleryEvent('icp_galleries_retrieved', {
+        count: web2Galleries.length,
+      });
       return web2Galleries;
     } catch (error) {
       fatLogger.error('Error getting ICP galleries', 'be', { error });
       trackGalleryEvent('icp_galleries_failed', {
         error: error instanceof Error ? error.message : 'Unknown error',
       });
-      throw new Error(`Failed to get ICP galleries: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to get ICP galleries: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   },
 
@@ -495,7 +551,9 @@ export const galleryService = {
  * Update Web2 storage edges after successful ICP storage
  * This ensures storage status badges show correct "ICP" or "BOTH" status
  */
-async function updateStorageEdgesAfterICPSuccess(gallery: GalleryWithItems): Promise<void> {
+async function updateStorageEdgesAfterICPSuccess(
+  gallery: GalleryWithItems
+): Promise<void> {
   try {
     // Update storage edges for each memory in the gallery
     for (const item of gallery.items || []) {
@@ -530,7 +588,9 @@ async function updateStorageEdgesAfterICPSuccess(gallery: GalleryWithItems): Pro
 
     // fatLogger.info(`Updated storage edges for ${gallery.items?.length || 0} memories in gallery ${gallery.id}`);
   } catch (error) {
-    fatLogger.error('Error updating storage edges after ICP success', 'be', { error });
+    fatLogger.error('Error updating storage edges after ICP success', 'be', {
+      error,
+    });
     // Don't throw - this is a side effect, not critical to the main operation
   }
 }

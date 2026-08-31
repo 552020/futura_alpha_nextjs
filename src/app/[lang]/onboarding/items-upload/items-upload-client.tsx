@@ -20,7 +20,10 @@ interface ItemsUploadClientProps {
   dict: Dictionary;
 }
 
-export default function ItemsUploadClient({ lang, dict }: ItemsUploadClientProps) {
+export default function ItemsUploadClient({
+  lang,
+  dict,
+}: ItemsUploadClientProps) {
   const router = useRouter();
   const { setMode } = useInterface();
   const { status } = useSession();
@@ -67,15 +70,23 @@ export default function ItemsUploadClient({ lang, dict }: ItemsUploadClientProps
   const copy = dict[COMPONENT_PATH]?.variations?.[VARIATION];
 
   if (!copy) {
-    throw new Error(`Missing dictionary entries for ${COMPONENT_PATH} variation ${VARIATION}`);
+    throw new Error(
+      `Missing dictionary entries for ${COMPONENT_PATH} variation ${VARIATION}`
+    );
   }
 
   return (
     <div className="w-full max-w-[95%] sm:max-w-[90%] lg:max-w-[85%] mx-auto px-4 py-8 flex flex-col gap-16">
       {/* Title and subtitle container */}
       <div className="max-w-4xl">
-        <h1 className="text-6xl sm:text-7xl lg:text-8xl font-bold mb-8 tracking-tight">{copy.title}</h1>
-        {WITH_SUBTITLE && <p className="text-xl sm:text-2xl text-muted-foreground">{copy.subtitle}</p>}
+        <h1 className="text-6xl sm:text-7xl lg:text-8xl font-bold mb-8 tracking-tight">
+          {copy.title}
+        </h1>
+        {WITH_SUBTITLE && (
+          <p className="text-xl sm:text-2xl text-muted-foreground">
+            {copy.subtitle}
+          </p>
+        )}
       </div>
 
       {/* Component buttons - only shown when DOUBLE_BUTTON is true */}
@@ -99,12 +110,21 @@ export default function ItemsUploadClient({ lang, dict }: ItemsUploadClientProps
       {/* Upload button container - only shown when DOUBLE_BUTTON is false */}
       {!DOUBLE_BUTTON && (
         <div className="flex justify-center">
-          <ItemUploadButton isOnboarding={true} variant="large-icon" mode="directory" onSuccess={handleUploadSuccess} />
+          <ItemUploadButton
+            isOnboarding={true}
+            variant="large-icon"
+            mode="directory"
+            onSuccess={handleUploadSuccess}
+          />
         </div>
       )}
 
       {/* Onboarding Modal */}
-      <OnboardModal isOpen={showOnboardModal} onClose={handleModalClose} onComplete={handleOnboardingComplete} />
+      <OnboardModal
+        isOpen={showOnboardModal}
+        onClose={handleModalClose}
+        onComplete={handleOnboardingComplete}
+      />
     </div>
   );
 }

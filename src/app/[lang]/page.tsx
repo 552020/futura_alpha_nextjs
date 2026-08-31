@@ -45,7 +45,11 @@ export default async function LangPage({ params }: PageProps) {
       {showVault ? (
         <Hero dict={dict} lang={resolvedParams.lang} />
       ) : (
-        <HeroDemo dict={dict} lang={resolvedParams.lang} subdomain={subdomain} />
+        <HeroDemo
+          dict={dict}
+          lang={resolvedParams.lang}
+          subdomain={subdomain}
+        />
       )}
       {/* <ValueJourney dict={dict} lang={resolvedParams.lang} segment={segment} /> */}
     </main>

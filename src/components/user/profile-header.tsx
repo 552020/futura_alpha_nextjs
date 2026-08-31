@@ -32,7 +32,7 @@ export function ProfileHeader({ user }: ProfileHeaderProps) {
   const getInitials = (name: string) => {
     return name
       .split(' ')
-      .map(n => n[0])
+      .map((n) => n[0])
       .join('')
       .toUpperCase()
       .slice(0, 2);
@@ -47,7 +47,10 @@ export function ProfileHeader({ user }: ProfileHeaderProps) {
     });
   };
 
-  const isPremium = user.plan === 'premium' && user.premiumExpiresAt && new Date(user.premiumExpiresAt) > new Date();
+  const isPremium =
+    user.plan === 'premium' &&
+    user.premiumExpiresAt &&
+    new Date(user.premiumExpiresAt) > new Date();
 
   return (
     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-8 border border-slate-200 dark:border-slate-700">
@@ -55,7 +58,10 @@ export function ProfileHeader({ user }: ProfileHeaderProps) {
         {/* Avatar Section */}
         <div className="flex-shrink-0">
           <Avatar className="h-24 w-24 border-4 border-white dark:border-slate-700 shadow-lg">
-            <AvatarImage src={user.image || undefined} alt={user.name || 'User'} />
+            <AvatarImage
+              src={user.image || undefined}
+              alt={user.name || 'User'}
+            />
             <AvatarFallback className="text-2xl font-bold bg-gradient-to-br from-blue-500 to-purple-600 text-white">
               {user.name ? getInitials(user.name) : 'U'}
             </AvatarFallback>
@@ -84,12 +90,18 @@ export function ProfileHeader({ user }: ProfileHeaderProps) {
               </div>
 
               {user.metadata?.bio && (
-                <p className="text-slate-600 dark:text-slate-300 text-lg mb-4 max-w-2xl">{user.metadata.bio}</p>
+                <p className="text-slate-600 dark:text-slate-300 text-lg mb-4 max-w-2xl">
+                  {user.metadata.bio}
+                </p>
               )}
             </div>
 
             <div className="flex-shrink-0">
-              <Button variant="outline" onClick={() => setIsEditing(!isEditing)} className="hidden sm:flex">
+              <Button
+                variant="outline"
+                onClick={() => setIsEditing(!isEditing)}
+                className="hidden sm:flex"
+              >
                 <User className="h-4 w-4 mr-2" />
                 Edit Profile
               </Button>
@@ -130,7 +142,9 @@ export function ProfileHeader({ user }: ProfileHeaderProps) {
               <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
                 <Crown className="h-4 w-4" />
                 <span className="font-medium">Premium Plan</span>
-                <span className="text-sm">• Expires {formatDate(user.premiumExpiresAt)}</span>
+                <span className="text-sm">
+                  • Expires {formatDate(user.premiumExpiresAt)}
+                </span>
               </div>
             </div>
           )}

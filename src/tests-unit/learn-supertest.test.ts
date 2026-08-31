@@ -13,7 +13,9 @@ describe('Learning Supertest with NextAuth', () => {
       };
 
       expect(challenge.problem).toBe('NextAuth requires valid authentication');
-      expect(challenge.solution).toBe('We need to understand how to fake it properly');
+      expect(challenge.solution).toBe(
+        'We need to understand how to fake it properly'
+      );
     });
   });
 

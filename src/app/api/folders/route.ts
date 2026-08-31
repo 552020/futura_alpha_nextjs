@@ -9,7 +9,10 @@ export async function POST(request: NextRequest) {
     const { folderName, parentFolderId } = await request.json();
 
     if (!folderName) {
-      return NextResponse.json({ error: 'Missing folderName' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Missing folderName' },
+        { status: 400 }
+      );
     }
 
     const { allUserId, error } = await getUserIdForUpload({});
@@ -29,7 +32,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ folder: createdFolder });
   } catch (error) {
-    fatLogger.error('Error creating folder:', 'be', { data: error instanceof Error ? error : undefined });
-    return NextResponse.json({ error: 'Failed to create folder' }, { status: 500 });
+    fatLogger.error('Error creating folder:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
+    return NextResponse.json(
+      { error: 'Failed to create folder' },
+      { status: 500 }
+    );
   }
 }

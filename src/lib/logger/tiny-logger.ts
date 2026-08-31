@@ -26,12 +26,19 @@ export function toggleLogger(on: boolean) {
   enabled = on;
 }
 
-export function tinyLogger(message: string, { tags = [], data }: LogInput = {}) {
+export function tinyLogger(
+  message: string,
+  { tags = [], data }: LogInput = {}
+) {
   if (!enabled) return;
-  if (include.length && !tags.some(t => include.includes(t))) return;
+  if (include.length && !tags.some((t) => include.includes(t))) return;
 
-  const level = tags.find(t => LEVELS.includes(t as (typeof LEVELS)[number])) || 'info';
-  const sink = (console as unknown as Record<string, (...args: unknown[]) => void>)[level] || console.log;
+  const level =
+    tags.find((t) => LEVELS.includes(t as (typeof LEVELS)[number])) || 'info';
+  const sink =
+    (console as unknown as Record<string, (...args: unknown[]) => void>)[
+      level
+    ] || console.log;
   const timestamp = new Date().toISOString();
   sink(`[${timestamp}] [${tags.join(',')}]`, message, data ?? '');
 }

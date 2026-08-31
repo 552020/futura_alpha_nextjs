@@ -24,20 +24,24 @@ export default function CTAConclusion({
   if (!conclusion) return null;
 
   const isButtonRight = position === 'right';
-  const textSizeClass = 
-    textSize === 'feature' 
-      ? 'text-3xl md:text-4xl 2xl:text-6xl' 
+  const textSizeClass =
+    textSize === 'feature'
+      ? 'text-3xl md:text-4xl 2xl:text-6xl'
       : textSize === 'large'
-      ? 'text-3xl md:text-5xl 2xl:text-7xl'
-      : 'text-3xl md:text-5xl 2xl:text-8xl';
+        ? 'text-3xl md:text-5xl 2xl:text-7xl'
+        : 'text-3xl md:text-5xl 2xl:text-8xl';
   const textAlignClass = textAlign === 'center' ? 'text-center' : 'text-left';
 
   return (
     <div className="mt-16 pt-8 border-t border-gray-200 dark:border-gray-700">
-      <div className={`flex flex-col md:flex-row items-center gap-12 ${isButtonRight ? '' : 'md:flex-row-reverse'}`}>
+      <div
+        className={`flex flex-col md:flex-row items-center gap-12 ${isButtonRight ? '' : 'md:flex-row-reverse'}`}
+      >
         {/* Text Section */}
         <div className="flex-1">
-          <p className={`${textSizeClass} ${textAlignClass} font-bold text-neutral-900 dark:text-white leading-tight`}>
+          <p
+            className={`${textSizeClass} ${textAlignClass} font-bold text-neutral-900 dark:text-white leading-tight`}
+          >
             {conclusion}
           </p>
         </div>
@@ -59,4 +63,3 @@ export default function CTAConclusion({
     </div>
   );
 }
-

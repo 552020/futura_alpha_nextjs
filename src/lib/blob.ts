@@ -9,7 +9,11 @@ import { fatLogger } from '@/lib/logger';
  * @param folder Optional folder path within the blob storage
  * @returns The public URL of the uploaded file
  */
-export async function uploadFromPath(content: Buffer, filename: string, folder?: string): Promise<string> {
+export async function uploadFromPath(
+  content: Buffer,
+  filename: string,
+  folder?: string
+): Promise<string> {
   try {
     const pathname = folder ? join(folder, filename) : filename;
     const { url } = await put(pathname, content, {
@@ -17,7 +21,9 @@ export async function uploadFromPath(content: Buffer, filename: string, folder?:
     });
     return url;
   } catch (error) {
-    fatLogger.error('Error uploading to blob storage:', 'fe', { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Error uploading to blob storage:', 'fe', {
+      data: error instanceof Error ? error : undefined,
+    });
     throw error;
   }
 }

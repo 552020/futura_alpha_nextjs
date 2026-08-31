@@ -56,7 +56,9 @@ export interface AssetOperationResult<T = unknown> {
  * ⚠️  NOTE: This only creates a DATABASE record.
  * The actual file must be uploaded to storage separately.
  */
-export const createAssetRecord = async (params: CreateAssetParams): Promise<AssetOperationResult> => {
+export const createAssetRecord = async (
+  params: CreateAssetParams
+): Promise<AssetOperationResult> => {
   try {
     const assetId = randomUUID();
 
@@ -111,7 +113,10 @@ export const createAssetRecord = async (params: CreateAssetParams): Promise<Asse
  * ⚠️  NOTE: This only updates the DATABASE record.
  * The actual file in storage is not modified.
  */
-export const updateAssetRecord = async (assetId: string, params: UpdateAssetParams): Promise<AssetOperationResult> => {
+export const updateAssetRecord = async (
+  assetId: string,
+  params: UpdateAssetParams
+): Promise<AssetOperationResult> => {
   try {
     const [updatedAsset] = await db
       .update(memoryAssets)
@@ -153,7 +158,9 @@ export const updateAssetRecord = async (assetId: string, params: UpdateAssetPara
  * ⚠️  NOTE: This only handles DATABASE records.
  * The actual file in storage is not modified.
  */
-export const upsertAssetRecord = async (params: UpsertAssetParams): Promise<AssetOperationResult> => {
+export const upsertAssetRecord = async (
+  params: UpsertAssetParams
+): Promise<AssetOperationResult> => {
   try {
     const [upsertedAsset] = await db
       .insert(memoryAssets)
@@ -177,7 +184,11 @@ export const upsertAssetRecord = async (params: UpsertAssetParams): Promise<Asse
         updatedAt: new Date(),
       })
       .onConflictDoUpdate({
-        target: [memoryAssets.memoryId, memoryAssets.assetType, memoryAssets.variant],
+        target: [
+          memoryAssets.memoryId,
+          memoryAssets.assetType,
+          memoryAssets.variant,
+        ],
         set: {
           url: params.url,
           assetLocation: params.assetLocation,
@@ -220,7 +231,9 @@ export const upsertAssetRecord = async (params: UpsertAssetParams): Promise<Asse
 /**
  * Read a single asset record by ID
  */
-export const getAssetRecord = async (assetId: string): Promise<AssetOperationResult> => {
+export const getAssetRecord = async (
+  assetId: string
+): Promise<AssetOperationResult> => {
   try {
     const asset = await db.query.memoryAssets.findFirst({
       where: eq(memoryAssets.id, assetId),
@@ -247,7 +260,9 @@ export const getAssetRecord = async (assetId: string): Promise<AssetOperationRes
 /**
  * Read asset records by query parameters
  */
-export const getAssetRecords = async (params: AssetQueryParams): Promise<AssetOperationResult> => {
+export const getAssetRecords = async (
+  params: AssetQueryParams
+): Promise<AssetOperationResult> => {
   try {
     const whereConditions = [];
 
@@ -261,7 +276,9 @@ export const getAssetRecords = async (params: AssetQueryParams): Promise<AssetOp
       whereConditions.push(eq(memoryAssets.variant, params.variant));
     }
     if (params.processingStatus) {
-      whereConditions.push(eq(memoryAssets.processingStatus, params.processingStatus));
+      whereConditions.push(
+        eq(memoryAssets.processingStatus, params.processingStatus)
+      );
     }
 
     const assets = await db.query.memoryAssets.findMany({
@@ -285,7 +302,9 @@ export const getAssetRecords = async (params: AssetQueryParams): Promise<AssetOp
 /**
  * Get all asset records for a specific memory
  */
-export const getAssetRecordsByMemory = async (memoryId: string): Promise<AssetOperationResult> => {
+export const getAssetRecordsByMemory = async (
+  memoryId: string
+): Promise<AssetOperationResult> => {
   return getAssetRecords({ memoryId });
 };
 
@@ -307,7 +326,9 @@ export const getAssetRecordByType = async (
  * The actual file remains in storage (S3, ICP, Vercel Blob, etc.).
  * Use MemoryOrchestrationService.deleteMemory() for complete deletion.
  */
-export const deleteAssetRecord = async (assetId: string): Promise<AssetOperationResult> => {
+export const deleteAssetRecord = async (
+  assetId: string
+): Promise<AssetOperationResult> => {
   try {
     const [deletedAsset] = await db
       .update(memoryAssets)
@@ -349,9 +370,14 @@ export const deleteAssetRecord = async (assetId: string): Promise<AssetOperation
  * The actual file remains in storage (S3, ICP, Vercel Blob, etc.).
  * Use MemoryOrchestrationService.deleteMemory() for complete deletion.
  */
-export const hardDeleteAssetRecord = async (assetId: string): Promise<AssetOperationResult> => {
+export const hardDeleteAssetRecord = async (
+  assetId: string
+): Promise<AssetOperationResult> => {
   try {
-    const [deletedAsset] = await db.delete(memoryAssets).where(eq(memoryAssets.id, assetId)).returning();
+    const [deletedAsset] = await db
+      .delete(memoryAssets)
+      .where(eq(memoryAssets.id, assetId))
+      .returning();
 
     if (!deletedAsset) {
       return { success: false, error: 'Asset not found' };
@@ -383,9 +409,11 @@ export const hardDeleteAssetRecord = async (assetId: string): Promise<AssetOpera
  * ⚠️  NOTE: This only creates DATABASE records.
  * The actual files must be uploaded to storage separately.
  */
-export const createAssetRecords = async (assets: CreateAssetParams[]): Promise<AssetOperationResult> => {
+export const createAssetRecords = async (
+  assets: CreateAssetParams[]
+): Promise<AssetOperationResult> => {
   try {
-    const assetData = assets.map(asset => ({
+    const assetData = assets.map((asset) => ({
       id: randomUUID(),
       memoryId: asset.memoryId,
       assetType: asset.assetType,
@@ -405,12 +433,15 @@ export const createAssetRecords = async (assets: CreateAssetParams[]): Promise<A
       updatedAt: new Date(),
     }));
 
-    const createdAssets = await db.insert(memoryAssets).values(assetData).returning();
+    const createdAssets = await db
+      .insert(memoryAssets)
+      .values(assetData)
+      .returning();
 
     fatLogger.info('Created multiple assets', 'be', {
       operation: 'create_assets',
       count: createdAssets.length,
-      memoryIds: [...new Set(assets.map(a => a.memoryId))],
+      memoryIds: [...new Set(assets.map((a) => a.memoryId))],
     });
 
     return { success: true, data: createdAssets };

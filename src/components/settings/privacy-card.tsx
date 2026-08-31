@@ -11,13 +11,15 @@ export function PrivacyCard() {
         {
           id: 'profile-visibility',
           label: 'Public Profile',
-          description: 'Allow others to find your profile and see basic information.',
+          description:
+            'Allow others to find your profile and see basic information.',
           defaultChecked: false,
         },
         {
           id: 'memory-sharing',
           label: 'Memory Sharing',
-          description: 'Allow family members to share your memories with others.',
+          description:
+            'Allow family members to share your memories with others.',
           defaultChecked: true,
         },
       ]}

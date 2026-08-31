@@ -42,7 +42,12 @@ export function HostingToggleItem({
           <Label htmlFor={id}>{label}</Label>
           <p className="text-sm text-muted-foreground">{description}</p>
         </div>
-        <Switch id={id} checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} />
+        <Switch
+          id={id}
+          checked={checked}
+          onCheckedChange={onCheckedChange}
+          disabled={disabled}
+        />
       </div>
       {showSeparator && <Separator />}
     </>
@@ -64,7 +69,11 @@ export interface HostingToggleCardProps {
   isLoading?: boolean;
 }
 
-export function HostingToggleCard({ title, items, isLoading = false }: HostingToggleCardProps) {
+export function HostingToggleCard({
+  title,
+  items,
+  isLoading = false,
+}: HostingToggleCardProps) {
   return (
     <Card>
       <CardHeader>

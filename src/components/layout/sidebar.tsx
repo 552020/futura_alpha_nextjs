@@ -5,7 +5,11 @@ import { usePathname, useParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useInterface } from '@/contexts/interface-context';
 import UserButtonClient from '@/components/auth/user-button-client';
-import { mainNavItems, secondaryNavItems, getTranslatedLabel } from '@/utils/navigation';
+import {
+  mainNavItems,
+  secondaryNavItems,
+  getTranslatedLabel,
+} from '@/utils/navigation';
 import { Dictionary } from '@/utils/dictionaries';
 import { Separator } from '@/components/ui/separator';
 import { Settings, Infinity } from 'lucide-react';
@@ -29,7 +33,8 @@ export default function Sidebar({ dict }: SidebarProps) {
   }
 
   // Hide sidebar on gallery preview pages
-  const isGalleryPreview = pathname.includes('/gallery/') && pathname.includes('/preview');
+  const isGalleryPreview =
+    pathname.includes('/gallery/') && pathname.includes('/preview');
 
   if (isGalleryPreview) {
     return null;
@@ -45,9 +50,10 @@ export default function Sidebar({ dict }: SidebarProps) {
       <nav className="flex-1 overflow-y-auto py-4">
         {/* Main navigation items */}
         <div className="space-y-1">
-          {mainNavItems.map(item => {
+          {mainNavItems.map((item) => {
             const fullHref = getFullHref(item.href);
-            const isActive = pathname === fullHref || pathname.startsWith(`${fullHref}/`);
+            const isActive =
+              pathname === fullHref || pathname.startsWith(`${fullHref}/`);
             return (
               <Link
                 key={item.href}
@@ -83,7 +89,8 @@ export default function Sidebar({ dict }: SidebarProps) {
         <div className="space-y-1">
           {secondaryNavItems.map((item, index) => {
             const fullHref = getFullHref(item.href);
-            const isActive = pathname === fullHref || pathname.startsWith(`${fullHref}/`);
+            const isActive =
+              pathname === fullHref || pathname.startsWith(`${fullHref}/`);
             return (
               <div key={item.href}>
                 <Link
@@ -133,7 +140,9 @@ export default function Sidebar({ dict }: SidebarProps) {
             <div
               className={cn(
                 'absolute left-0 top-0 bottom-0 w-1 rounded-r-full transition-colors',
-                pathname === `/${lang}/user/settings` ? 'bg-primary' : 'bg-transparent'
+                pathname === `/${lang}/user/settings`
+                  ? 'bg-primary'
+                  : 'bg-transparent'
               )}
             />
             <Settings className="h-5 w-5" />
@@ -162,7 +171,9 @@ export default function Sidebar({ dict }: SidebarProps) {
             <div
               className={cn(
                 'absolute left-0 top-0 bottom-0 w-1 rounded-r-full transition-colors',
-                pathname === `/${lang}/user/icp` ? 'bg-primary' : 'bg-transparent'
+                pathname === `/${lang}/user/icp`
+                  ? 'bg-primary'
+                  : 'bg-transparent'
               )}
             />
             <Infinity className="h-5 w-5" />

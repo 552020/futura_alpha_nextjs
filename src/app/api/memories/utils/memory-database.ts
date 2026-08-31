@@ -19,7 +19,11 @@ import { NewDBMemory, NewDBMemoryAsset, DBMemory } from '@/db/types';
 import { randomUUID } from 'crypto';
 import type { AcceptedMimeType } from './file-processing';
 import { getMemoryType } from './file-processing';
-import { createStorageEdge, getStorageEdges, deleteStorageEdges } from '@/services/storage-edges';
+import {
+  createStorageEdge,
+  getStorageEdges,
+  deleteStorageEdges,
+} from '@/services/storage-edges';
 import {
   createMemoryRecord,
   createAssetRecords,
@@ -50,7 +54,12 @@ export function buildNewMemoryAndAsset(
 
   const memory: NewDBMemory = {
     ownerId: ownerId,
-    type: getMemoryType(file.type as AcceptedMimeType) as 'image' | 'video' | 'document' | 'note' | 'audio',
+    type: getMemoryType(file.type as AcceptedMimeType) as
+      | 'image'
+      | 'video'
+      | 'document'
+      | 'note'
+      | 'audio',
     title: name,
     description: '',
     createdAt: new Date(),
@@ -67,9 +76,9 @@ export function buildNewMemoryAndAsset(
     storageKey:
       assetLocation === 's3'
         ? url.replace(
-          `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_S3_REGION || 'eu-central-1'}.amazonaws.com/`,
-          ''
-        )
+            `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_S3_REGION || 'eu-central-1'}.amazonaws.com/`,
+            ''
+          )
         : url.split('/').pop() || '',
     bytes: file.size,
     width: null,
@@ -105,10 +114,15 @@ export async function processMultipleFilesBatch(params: {
 
   try {
     // Create memories using service layer
-    const memoryPromises = files.map(file => {
+    const memoryPromises = files.map((file) => {
       const memoryParams: CreateMemoryParams = {
         title: file.name.split('.')[0],
-        type: getMemoryType(file.type as AcceptedMimeType) as 'image' | 'video' | 'document' | 'note' | 'audio',
+        type: getMemoryType(file.type as AcceptedMimeType) as
+          | 'image'
+          | 'video'
+          | 'document'
+          | 'note'
+          | 'audio',
         ownerId,
         parentFolderId: parentFolderId || null,
         metadata: {
@@ -127,9 +141,9 @@ export async function processMultipleFilesBatch(params: {
     const memoryResults = await Promise.all(memoryPromises);
 
     // Check if any memory creation failed
-    const failedMemories = memoryResults.filter(result => !result.success);
+    const failedMemories = memoryResults.filter((result) => !result.success);
     if (failedMemories.length > 0) {
-      const error = `Failed to create ${failedMemories.length} memories: ${failedMemories.map(r => r.error).join(', ')}`;
+      const error = `Failed to create ${failedMemories.length} memories: ${failedMemories.map((r) => r.error).join(', ')}`;
       fatLogger.error('❌ Error creating memories:', 'be', { error });
       return {
         success: false,
@@ -139,8 +153,13 @@ export async function processMultipleFilesBatch(params: {
       };
     }
 
-    const createdMemories = memoryResults.map(result => result.data as DBMemory);
-    fatLogger.info(`✅ Batch created ${createdMemories.length} memories using service layer`, 'be');
+    const createdMemories = memoryResults.map(
+      (result) => result.data as DBMemory
+    );
+    fatLogger.info(
+      `✅ Batch created ${createdMemories.length} memories using service layer`,
+      'be'
+    );
 
     // Create assets using service layer
     const assetParams: CreateAssetParams[] = files.map((file, index) => ({
@@ -167,7 +186,9 @@ export async function processMultipleFilesBatch(params: {
 
     const assetResult = await createAssetRecords(assetParams);
     if (!assetResult.success) {
-      fatLogger.error('❌ Error creating assets:', 'be', { error: assetResult.error });
+      fatLogger.error('❌ Error creating assets:', 'be', {
+        error: assetResult.error,
+      });
       return {
         success: false,
         memories: createdMemories,
@@ -177,7 +198,10 @@ export async function processMultipleFilesBatch(params: {
     }
 
     const createdAssets = assetResult.data as any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
-    fatLogger.info(`✅ Batch created ${createdAssets.length} assets using service layer`, 'be');
+    fatLogger.info(
+      `✅ Batch created ${createdAssets.length} assets using service layer`,
+      'be'
+    );
 
     return {
       success: true,
@@ -213,7 +237,15 @@ export async function storeInNewDatabase(params: {
   parentFolderId?: string | null;
   assetLocation?: string;
 }) {
-  const { type, ownerId, url, file, metadata, parentFolderId, assetLocation = 's3' } = params;
+  const {
+    type,
+    ownerId,
+    url,
+    file,
+    metadata,
+    parentFolderId,
+    assetLocation = 's3',
+  } = params;
 
   // Create memory using service layer
   const memoryParams: CreateMemoryParams = {
@@ -245,13 +277,19 @@ export async function storeInNewDatabase(params: {
     assetType: 'original',
     variant: 'default',
     url,
-    assetLocation: assetLocation as 'vercel_blob' | 's3' | 'icp' | 'arweave' | 'ipfs' | 'neon',
+    assetLocation: assetLocation as
+      | 'vercel_blob'
+      | 's3'
+      | 'icp'
+      | 'arweave'
+      | 'ipfs'
+      | 'neon',
     storageKey:
       assetLocation === 's3'
         ? url.replace(
-          `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_S3_REGION || 'eu-central-1'}.amazonaws.com/`,
-          ''
-        )
+            `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_S3_REGION || 'eu-central-1'}.amazonaws.com/`,
+            ''
+          )
         : url.split('/').pop() || '',
     bytes: metadata.size,
     width: null, // Will be populated by client-side processing
@@ -362,7 +400,9 @@ export async function createStorageEdgesForMemory(params: {
       assetEdge: assetResult.data,
     };
   } catch (error) {
-    fatLogger.error('❌ Error creating storage edges:', 'be', { data: error instanceof Error ? error : undefined });
+    fatLogger.error('❌ Error creating storage edges:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
     return {
       success: false,
       error: error instanceof Error ? error.message : String(error),
@@ -439,7 +479,10 @@ export async function cleanupStorageEdgesForMemory(params: {
 
     // If we don't have memory data, we can't do proper cleanup
     if (!memory) {
-      fatLogger.error('❌ No memory data provided for cleanup - cannot determine S3 storage key', 'be');
+      fatLogger.error(
+        '❌ No memory data provided for cleanup - cannot determine S3 storage key',
+        'be'
+      );
       return {
         success: false,
         error: 'No memory data provided for cleanup',
@@ -485,7 +528,9 @@ export async function cleanupStorageEdgesForMemory(params: {
     // Also check memory_assets table and storage edges as before
     const assetsResult = await getAssetRecordsByMemory(memoryId);
     if (!assetsResult.success) {
-      fatLogger.error('❌ Failed to get assets for cleanup:', 'be', { error: assetsResult.error });
+      fatLogger.error('❌ Failed to get assets for cleanup:', 'be', {
+        error: assetsResult.error,
+      });
       return {
         success: false,
         error: `Failed to get assets: ${assetsResult.error}`,
@@ -494,7 +539,10 @@ export async function cleanupStorageEdgesForMemory(params: {
       };
     }
     const dbAssets = assetsResult.data as any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
-    fatLogger.info(`🔍 Found ${dbAssets.length} assets in memory_assets table`, 'be');
+    fatLogger.info(
+      `🔍 Found ${dbAssets.length} assets in memory_assets table`,
+      'be'
+    );
 
     // Type assertion for dbAssets
     const typedDbAssets = dbAssets as Array<{
@@ -510,7 +558,9 @@ export async function cleanupStorageEdgesForMemory(params: {
       memoryType,
     });
     if (!edgesResult.success) {
-      fatLogger.error('❌ Failed to get storage edges for cleanup:', 'be', { error: edgesResult.error });
+      fatLogger.error('❌ Failed to get storage edges for cleanup:', 'be', {
+        error: edgesResult.error,
+      });
       return {
         success: false,
         error: `Failed to get storage edges: ${edgesResult.error}`,
@@ -522,7 +572,7 @@ export async function cleanupStorageEdgesForMemory(params: {
     fatLogger.info(`🔍 Found ${edges.length} storage edges`, 'be');
 
     // Filter and add S3 assets from database
-    const s3DbAssets = typedDbAssets.filter(asset => {
+    const s3DbAssets = typedDbAssets.filter((asset) => {
       const backend = String(asset.assetLocation || '')
         .toLowerCase()
         .trim();
@@ -530,14 +580,14 @@ export async function cleanupStorageEdgesForMemory(params: {
     });
 
     // Add S3 edges - using new storage edges structure
-    const s3Edges = edges.filter(edge => {
+    const s3Edges = edges.filter((edge) => {
       return edge.locationAsset === 's3';
     });
 
     // Combine all S3 assets
     const allS3Assets = [
       ...s3Assets,
-      ...s3DbAssets.map(asset => ({
+      ...s3DbAssets.map((asset) => ({
         id: asset.id,
         memoryId: asset.memoryId,
         storageKey: asset.storageKey,
@@ -545,7 +595,7 @@ export async function cleanupStorageEdgesForMemory(params: {
         bytes: asset.bytes,
         mimeType: asset.mimeType,
       })),
-      ...s3Edges.map(edge => ({
+      ...s3Edges.map((edge) => ({
         id: `edge-${edge.id}`,
         memoryId,
         storageKey: extractS3KeyFromUrl(edge.locationUrl || ''),
@@ -558,7 +608,10 @@ export async function cleanupStorageEdgesForMemory(params: {
     // Remove duplicates based on storageKey
     const uniqueS3Assets = allS3Assets.reduce(
       (unique, asset) => {
-        if (asset.storageKey && !unique.find(u => u.storageKey === asset.storageKey)) {
+        if (
+          asset.storageKey &&
+          !unique.find((u) => u.storageKey === asset.storageKey)
+        ) {
           unique.push(asset);
         }
         return unique;
@@ -566,20 +619,30 @@ export async function cleanupStorageEdgesForMemory(params: {
       [] as typeof allS3Assets
     );
 
-    fatLogger.info(`🗑️ Found ${uniqueS3Assets.length} unique S3 assets to delete:`, 'be', {
-      assets: uniqueS3Assets.map(a => ({ id: a.id, key: a.storageKey })),
-    });
+    fatLogger.info(
+      `🗑️ Found ${uniqueS3Assets.length} unique S3 assets to delete:`,
+      'be',
+      {
+        assets: uniqueS3Assets.map((a) => ({ id: a.id, key: a.storageKey })),
+      }
+    );
 
     // Delete S3 objects
-    const s3DeletePromises = uniqueS3Assets.map(async asset => {
+    const s3DeletePromises = uniqueS3Assets.map(async (asset) => {
       if (!asset.storageKey) return;
 
       try {
-        fatLogger.info(`🔄 Attempting to delete S3 object: ${asset.storageKey}`, 'be');
+        fatLogger.info(
+          `🔄 Attempting to delete S3 object: ${asset.storageKey}`,
+          'be'
+        );
         const success = await deleteS3Object(asset.storageKey);
 
         if (success) {
-          fatLogger.info(`✅ Successfully deleted S3 object: ${asset.storageKey}`, 'be');
+          fatLogger.info(
+            `✅ Successfully deleted S3 object: ${asset.storageKey}`,
+            'be'
+          );
           results.deletedS3Objects.push(asset.storageKey);
         } else {
           const msg = `Failed to delete S3 object: ${asset.storageKey}`;
@@ -602,21 +665,31 @@ export async function cleanupStorageEdgesForMemory(params: {
     });
 
     if (!deletedEdgesResult.success) {
-      fatLogger.error('❌ Failed to delete storage edges:', 'be', { error: deletedEdgesResult.error });
-      results.errors.push(`Failed to delete storage edges: ${deletedEdgesResult.error}`);
+      fatLogger.error('❌ Failed to delete storage edges:', 'be', {
+        error: deletedEdgesResult.error,
+      });
+      results.errors.push(
+        `Failed to delete storage edges: ${deletedEdgesResult.error}`
+      );
     } else {
       results.deletedEdges = deletedEdgesResult.data as any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
     }
 
     // Delete memory assets using service layer
-    const deletedAssetsPromises = dbAssets.map(asset => hardDeleteAssetRecord(asset.id));
+    const deletedAssetsPromises = dbAssets.map((asset) =>
+      hardDeleteAssetRecord(asset.id)
+    );
     const deletedAssetsResults = await Promise.all(deletedAssetsPromises);
 
-    const deletedAssets = deletedAssetsResults.filter(result => result.success).map(result => result.data);
+    const deletedAssets = deletedAssetsResults
+      .filter((result) => result.success)
+      .map((result) => result.data);
 
-    const failedAssetDeletions = deletedAssetsResults.filter(result => !result.success);
+    const failedAssetDeletions = deletedAssetsResults.filter(
+      (result) => !result.success
+    );
     if (failedAssetDeletions.length > 0) {
-      const error = `Failed to delete ${failedAssetDeletions.length} assets: ${failedAssetDeletions.map(r => r.error).join(', ')}`;
+      const error = `Failed to delete ${failedAssetDeletions.length} assets: ${failedAssetDeletions.map((r) => r.error).join(', ')}`;
       fatLogger.error('❌ Failed to delete some assets:', 'be', { error });
       results.errors.push(error);
     }
@@ -635,7 +708,9 @@ export async function cleanupStorageEdgesForMemory(params: {
       errors: results.errors.length > 0 ? results.errors : undefined,
     };
   } catch (error) {
-    fatLogger.error('❌ Error cleaning up storage:', 'be', { data: error instanceof Error ? error : undefined });
+    fatLogger.error('❌ Error cleaning up storage:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
     return {
       success: false,
       error: error instanceof Error ? error.message : String(error),
@@ -673,7 +748,10 @@ export async function getMemoryDataForCleanup(memoryId: string) {
     const memoryResult = await getMemoryRecord(memoryId, true); // includeAssets = true
 
     if (!memoryResult.success) {
-      fatLogger.warn(`❌ Memory ${memoryId} not found for cleanup data retrieval: ${memoryResult.error}`, 'be');
+      fatLogger.warn(
+        `❌ Memory ${memoryId} not found for cleanup data retrieval: ${memoryResult.error}`,
+        'be'
+      );
       return null;
     }
 
@@ -683,9 +761,14 @@ export async function getMemoryDataForCleanup(memoryId: string) {
       id: memory.id,
       type: memory.type,
       hasMetadata: !!memory.metadata,
-      hasCustomMetadata: !!(memory.metadata as { custom?: Record<string, unknown> })?.custom,
-      storageBackend: (memory.metadata as { custom?: { storageBackend?: string } })?.custom?.storageBackend,
-      storageKey: (memory.metadata as { custom?: { storageKey?: string } })?.custom?.storageKey,
+      hasCustomMetadata: !!(
+        memory.metadata as { custom?: Record<string, unknown> }
+      )?.custom,
+      storageBackend: (
+        memory.metadata as { custom?: { storageBackend?: string } }
+      )?.custom?.storageBackend,
+      storageKey: (memory.metadata as { custom?: { storageKey?: string } })
+        ?.custom?.storageKey,
       assetsCount: memory.assets?.length || 0,
     });
 

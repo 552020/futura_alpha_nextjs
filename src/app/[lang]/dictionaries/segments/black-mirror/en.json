@@ -41,15 +41,28 @@
   "variations": {
     "valueJourney": {
       "scene1": {
-        "titles": ["Wedding Day", "The Beginning", "A Moment in Time", "The First Memory"],
-        "subtitles": ["Some moments never fade", "Some moments never pass", "Some moments are meant to last forever"],
+        "titles": [
+          "Wedding Day",
+          "The Beginning",
+          "A Moment in Time",
+          "The First Memory"
+        ],
+        "subtitles": [
+          "Some moments never fade",
+          "Some moments never pass",
+          "Some moments are meant to last forever"
+        ],
         "descriptions": [
           "A couple getting married, capturing a moment that should endure through time.",
           "The beginning of a family story, captured in a photograph meant to last generations."
         ]
       },
       "scene2": {
-        "titles": ["Photo Album Across Generations", "Family Legacy", "Generations Together"],
+        "titles": [
+          "Photo Album Across Generations",
+          "Family Legacy",
+          "Generations Together"
+        ],
         "subtitles": [
           "Three generations, one photograph, a lifetime of stories",
           "We collect these moments, cherish them, and pass them on—generation after generation",
@@ -57,7 +70,11 @@
         ]
       },
       "scene3": {
-        "titles": ["Grandmother's Deathbed", "Life's Final Chapter", "The Circle Closes"],
+        "titles": [
+          "Grandmother's Deathbed",
+          "Life's Final Chapter",
+          "The Circle Closes"
+        ],
         "subtitles": [
           "Time passes, and we with it. Family remains",
           "We follow the passing time. Family remains",
@@ -65,7 +82,11 @@
         ]
       },
       "scene4": {
-        "titles": ["Grandmother's House Burning", "Physical Loss", "When Disaster Strikes"],
+        "titles": [
+          "Grandmother's House Burning",
+          "Physical Loss",
+          "When Disaster Strikes"
+        ],
         "subtitles": [
           "Memories are fragile. Houses burn down. Ashes to ashes",
           "Fire doesn't discriminate between walls and wedding photos",
@@ -73,7 +94,11 @@
         ]
       },
       "scene5": {
-        "titles": ["AWS Shutdown and Storage Deletion", "Digital Betrayal", "When the Cloud Evaporates"],
+        "titles": [
+          "AWS Shutdown and Storage Deletion",
+          "Digital Betrayal",
+          "When the Cloud Evaporates"
+        ],
         "subtitles": [
           "You trusted Jeff's cloud. Now it's vaporized",
           "The cloud: just someone else's computer that can be turned off",
@@ -81,7 +106,11 @@
         ]
       },
       "scene6": {
-        "titles": ["Resolution through Futura", "The Solution", "After the Storm"],
+        "titles": [
+          "Resolution through Futura",
+          "The Solution",
+          "After the Storm"
+        ],
         "subtitles": [
           "We are your happy end",
           "After the fire. After the shutdown. Futura remains",

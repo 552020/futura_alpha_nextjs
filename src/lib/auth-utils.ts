@@ -31,7 +31,9 @@ export async function getUserId(req: NextRequest): Promise<string | null> {
     const session = await requireAuth(req);
     return session?.user?.id || null;
   } catch (error) {
-    fatLogger.error('Error getting user ID:', 'fe', { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Error getting user ID:', 'fe', {
+      data: error instanceof Error ? error : undefined,
+    });
     return null;
   }
 }
@@ -46,7 +48,9 @@ export async function getUser(req: NextRequest): Promise<User | null> {
     const session = await requireAuth(req);
     return session?.user || null;
   } catch (error) {
-    fatLogger.error('Error getting user:', 'fe', { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Error getting user:', 'fe', {
+      data: error instanceof Error ? error : undefined,
+    });
     return null;
   }
 }
@@ -57,7 +61,10 @@ export async function getUser(req: NextRequest): Promise<User | null> {
  * @param role The role to check for
  * @returns True if the user has the role, false otherwise
  */
-export async function hasRole(req: NextRequest, role: string): Promise<boolean> {
+export async function hasRole(
+  req: NextRequest,
+  role: string
+): Promise<boolean> {
   const user = await getUser(req);
   return user?.role === role;
 }
@@ -78,12 +85,19 @@ export async function getAuthToken(): Promise<string | null> {
 export async function requireAuth(req: Request): Promise<SessionLike> {
   // 🧪 TEST MODE: Bypass NextAuth for automated testing
   if (process.env.TEST_AUTH_BYPASS === '1') {
-    const testUserId = req.headers.get('x-test-user-id')?.toString() || 'test-user-id';
-    const testEmail = req.headers.get('x-test-user-email')?.toString() || 'test@example.com';
-    const testName = req.headers.get('x-test-user-name')?.toString() || 'Test User';
+    const testUserId =
+      req.headers.get('x-test-user-id')?.toString() || 'test-user-id';
+    const testEmail =
+      req.headers.get('x-test-user-email')?.toString() || 'test@example.com';
+    const testName =
+      req.headers.get('x-test-user-name')?.toString() || 'Test User';
     const testRole = req.headers.get('x-test-user-role')?.toString() || 'user';
-    const testLinkedPrincipal = req.headers.get('x-test-linked-principal')?.toString();
-    const testActivePrincipal = req.headers.get('x-test-active-principal')?.toString();
+    const testLinkedPrincipal = req.headers
+      .get('x-test-linked-principal')
+      ?.toString();
+    const testActivePrincipal = req.headers
+      .get('x-test-active-principal')
+      ?.toString();
 
     return {
       user: {

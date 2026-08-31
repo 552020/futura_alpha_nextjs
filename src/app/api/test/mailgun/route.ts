@@ -19,7 +19,10 @@ export async function POST(request: NextRequest) {
 
   // Check if user is admin or dev
   //   if (!session?.user?.role || !["admin", "developer", "superadmin"].includes(session.user.role)) {
-  if (!session?.user.role || !['admin', 'developer', 'superadmin'].includes(session.user.role)) {
+  if (
+    !session?.user.role ||
+    !['admin', 'developer', 'superadmin'].includes(session.user.role)
+  ) {
     // fatLogger.info("Current session role:", session?.user?.role);
     // fatLogger.info("Current session user:", session?.user);
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -30,7 +33,10 @@ export async function POST(request: NextRequest) {
 
     // Basic validation
     if (!to || !subject || !content) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      );
     }
 
     const response = await mg.messages.create(DOMAIN, {
@@ -42,7 +48,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, id: response.id });
   } catch (error) {
-    fatLogger.error('Mailgun test error:', 'be', { data: error instanceof Error ? error : undefined });
-    return NextResponse.json({ error: 'Failed to send email' }, { status: 500 });
+    fatLogger.error('Mailgun test error:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
+    return NextResponse.json(
+      { error: 'Failed to send email' },
+      { status: 500 }
+    );
   }
 }

@@ -19,7 +19,11 @@ interface MemoryStatusMap {
 }
 
 // Hook for single memory storage status
-export function useMemoryStorageStatus(memoryId: string, memoryType: string, dataSource?: 'neon' | 'icp') {
+export function useMemoryStorageStatus(
+  memoryId: string,
+  memoryType: string,
+  dataSource?: 'neon' | 'icp'
+) {
   const [status, setStatus] = useState<MemoryStorageStatus>('loading');
   const [data, setData] = useState<MemoryPresenceData | null>(null);
 
@@ -41,12 +45,16 @@ export function useMemoryStorageStatus(memoryId: string, memoryType: string, dat
           if (response.ok) {
             const result = await response.json();
 
-            fatLogger.debug(`🔍 [STORAGE STATUS HOOK] Memory ${memoryId} - Neon API Response:`, 'fe', {
-              success: result.success,
-              hasData: !!result.data,
-              hasStorageStatus: !!result.data?.storageStatus,
-              storageStatus: result.data?.storageStatus,
-            });
+            fatLogger.debug(
+              `🔍 [STORAGE STATUS HOOK] Memory ${memoryId} - Neon API Response:`,
+              'fe',
+              {
+                success: result.success,
+                hasData: !!result.data,
+                hasStorageStatus: !!result.data?.storageStatus,
+                storageStatus: result.data?.storageStatus,
+              }
+            );
 
             if (result.success && result.data && result.data.storageStatus) {
               // Transform the response to match the expected format
@@ -70,14 +78,19 @@ export function useMemoryStorageStatus(memoryId: string, memoryType: string, dat
           }
         } else if (dataSource === 'icp') {
           // For ICP memories, go directly to storage edges API
-          const storageResponse = await fetch(`/api/storage/edges?memoryId=${memoryId}`);
+          const storageResponse = await fetch(
+            `/api/storage/edges?memoryId=${memoryId}`
+          );
           if (storageResponse.ok) {
             const storageResult = await storageResponse.json();
             if (storageResult.success && storageResult.data) {
               const storageLocations = (
-                storageResult.data as Array<{ locationMetadata?: string; locationAsset?: string }>
+                storageResult.data as Array<{
+                  locationMetadata?: string;
+                  locationAsset?: string;
+                }>
               )
-                .map(edge => edge.locationMetadata || edge.locationAsset)
+                .map((edge) => edge.locationMetadata || edge.locationAsset)
                 .filter(
                   (location: string | undefined): location is string =>
                     typeof location === 'string' && location.length > 0
@@ -96,7 +109,10 @@ export function useMemoryStorageStatus(memoryId: string, memoryType: string, dat
           }
         } else {
           // Fallback: Check if this is a UUID format (our new universal format)
-          const isUuidV7 = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(memoryId);
+          const isUuidV7 =
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+              memoryId
+            );
 
           if (isUuidV7) {
             // For UUID v7 format without dataSource, try the Neon API first (most memories will be in Neon)
@@ -122,14 +138,19 @@ export function useMemoryStorageStatus(memoryId: string, memoryType: string, dat
             }
 
             // If Neon API fails, try ICP storage edges API
-            const storageResponse = await fetch(`/api/storage/edges?memoryId=${memoryId}`);
+            const storageResponse = await fetch(
+              `/api/storage/edges?memoryId=${memoryId}`
+            );
             if (storageResponse.ok) {
               const storageResult = await storageResponse.json();
               if (storageResult.success && storageResult.data) {
                 const storageLocations = (
-                  storageResult.data as Array<{ locationMetadata?: string; locationAsset?: string }>
+                  storageResult.data as Array<{
+                    locationMetadata?: string;
+                    locationAsset?: string;
+                  }>
                 )
-                  .map(edge => edge.locationMetadata || edge.locationAsset)
+                  .map((edge) => edge.locationMetadata || edge.locationAsset)
                   .filter(
                     (location: string | undefined): location is string =>
                       typeof location === 'string' && location.length > 0
@@ -148,14 +169,19 @@ export function useMemoryStorageStatus(memoryId: string, memoryType: string, dat
             }
           } else {
             // For old compound ID format, try storage edges API directly
-            const storageResponse = await fetch(`/api/storage/edges?memoryId=${memoryId}`);
+            const storageResponse = await fetch(
+              `/api/storage/edges?memoryId=${memoryId}`
+            );
             if (storageResponse.ok) {
               const storageResult = await storageResponse.json();
               if (storageResult.success && storageResult.data) {
                 const storageLocations = (
-                  storageResult.data as Array<{ locationMetadata?: string; locationAsset?: string }>
+                  storageResult.data as Array<{
+                    locationMetadata?: string;
+                    locationAsset?: string;
+                  }>
                 )
-                  .map(edge => edge.locationMetadata || edge.locationAsset)
+                  .map((edge) => edge.locationMetadata || edge.locationAsset)
                   .filter(
                     (location: string | undefined): location is string =>
                       typeof location === 'string' && location.length > 0
@@ -176,14 +202,20 @@ export function useMemoryStorageStatus(memoryId: string, memoryType: string, dat
         }
 
         // If all else fails, set error status
-        fatLogger.debug(`❌ [STORAGE STATUS HOOK] Memory ${memoryId} - No storage status data found`, 'fe');
+        fatLogger.debug(
+          `❌ [STORAGE STATUS HOOK] Memory ${memoryId} - No storage status data found`,
+          'fe'
+        );
         setStatus('error');
       } catch (error) {
         // Handle different types of errors gracefully
         if (error instanceof Error) {
           // Don't log 404s or 400s for deleted/non-existent memories
           if (error.message.includes('404') || error.message.includes('400')) {
-            fatLogger.debug(`Memory ${memoryId} not found (likely deleted)`, 'fe');
+            fatLogger.debug(
+              `Memory ${memoryId} not found (likely deleted)`,
+              'fe'
+            );
             setStatus('error');
             return;
           }
@@ -206,13 +238,15 @@ export function useMemoryStorageStatus(memoryId: string, memoryType: string, dat
 }
 
 // Hook for batch memory storage status (optimized for galleries)
-export function useBatchMemoryStorageStatus(memories: Array<{ id: string; type: string }>) {
+export function useBatchMemoryStorageStatus(
+  memories: Array<{ id: string; type: string }>
+) {
   const [statusMap, setStatusMap] = useState<MemoryStatusMap>({});
   const [isLoading, setIsLoading] = useState(true);
 
   // Create a stable key from memories array to prevent infinite re-renders
   const memoriesKey = memories
-    .map(m => `${m.id}:${m.type}`)
+    .map((m) => `${m.id}:${m.type}`)
     .sort()
     .join(',');
 
@@ -228,14 +262,14 @@ export function useBatchMemoryStorageStatus(memories: Array<{ id: string; type: 
 
         // Initialize loading state for all memories
         const initialMap: MemoryStatusMap = {};
-        memories.forEach(memory => {
+        memories.forEach((memory) => {
           const key = `${memory.id}:${memory.type}`;
           initialMap[key] = { status: 'loading', data: null };
         });
         setStatusMap(initialMap);
 
         // For now, fetch individually (can be optimized with batch endpoint later)
-        const promises = memories.map(async memory => {
+        const promises = memories.map(async (memory) => {
           const key = `${memory.id}:${memory.type}`;
           try {
             const response = await fetch(`/api/memories/${memory.id}`);
@@ -262,22 +296,40 @@ export function useBatchMemoryStorageStatus(memories: Array<{ id: string; type: 
                 data: presenceData,
               };
             } else {
-              return { key, status: 'error' as MemoryStorageStatus, data: null };
+              return {
+                key,
+                status: 'error' as MemoryStorageStatus,
+                data: null,
+              };
             }
           } catch (error) {
             // Handle different types of errors gracefully
             if (error instanceof Error) {
               // Don't log 404s or 400s for deleted/non-existent memories
-              if (error.message.includes('404') || error.message.includes('400')) {
-                fatLogger.debug(`Memory ${memory.id} not found (likely deleted)`, 'fe');
-                return { key, status: 'error' as MemoryStorageStatus, data: null };
+              if (
+                error.message.includes('404') ||
+                error.message.includes('400')
+              ) {
+                fatLogger.debug(
+                  `Memory ${memory.id} not found (likely deleted)`,
+                  'fe'
+                );
+                return {
+                  key,
+                  status: 'error' as MemoryStorageStatus,
+                  data: null,
+                };
               }
 
               // Log other unexpected errors
-              fatLogger.error(`Error fetching status for memory ${memory.id}:`, 'fe', {
-                error: error.message,
-                stack: error.stack,
-              });
+              fatLogger.error(
+                `Error fetching status for memory ${memory.id}:`,
+                'fe',
+                {
+                  error: error.message,
+                  stack: error.stack,
+                }
+              );
             }
             return { key, status: 'error' as MemoryStorageStatus, data: null };
           }
@@ -286,9 +338,9 @@ export function useBatchMemoryStorageStatus(memories: Array<{ id: string; type: 
         const results = await Promise.all(promises);
 
         // Update status map with results
-        setStatusMap(prevMap => {
+        setStatusMap((prevMap) => {
           const newMap = { ...prevMap };
-          results.forEach(result => {
+          results.forEach((result) => {
             newMap[result.key] = {
               status: result.status,
               data: result.data,
@@ -302,9 +354,9 @@ export function useBatchMemoryStorageStatus(memories: Array<{ id: string; type: 
           stack: error instanceof Error ? error.stack : undefined,
         });
         // Set all to error state
-        setStatusMap(prevMap => {
+        setStatusMap((prevMap) => {
           const newMap = { ...prevMap };
-          Object.keys(newMap).forEach(key => {
+          Object.keys(newMap).forEach((key) => {
             newMap[key] = { status: 'error', data: null };
           });
           return newMap;
@@ -319,14 +371,19 @@ export function useBatchMemoryStorageStatus(memories: Array<{ id: string; type: 
 
   const getMemoryStatus = (memoryId: string, memoryType: string) => {
     const key = `${memoryId}:${memoryType}`;
-    return statusMap[key] || { status: 'loading' as MemoryStorageStatus, data: null };
+    return (
+      statusMap[key] || { status: 'loading' as MemoryStorageStatus, data: null }
+    );
   };
 
   return { statusMap, isLoading, getMemoryStatus };
 }
 
 // Helper to get storage status summary for a gallery
-export function getGalleryStorageSummary(statusMap: MemoryStatusMap, memories: Array<{ id: string; type: string }>) {
+export function getGalleryStorageSummary(
+  statusMap: MemoryStatusMap,
+  memories: Array<{ id: string; type: string }>
+) {
   const total = memories.length;
   let hasIcp = 0;
   let hasNeon = 0;
@@ -334,7 +391,7 @@ export function getGalleryStorageSummary(statusMap: MemoryStatusMap, memories: A
   let loading = 0;
   let error = 0;
 
-  memories.forEach(memory => {
+  memories.forEach((memory) => {
     const key = `${memory.id}:${memory.type}`;
     const status = statusMap[key]?.status || 'loading';
 
@@ -346,7 +403,7 @@ export function getGalleryStorageSummary(statusMap: MemoryStatusMap, memories: A
       // Check what storage locations are present
       if (status.includes('icp')) hasIcp++;
       if (status.includes('neon')) hasNeon++;
-      if (status.some(loc => !['icp', 'neon'].includes(loc))) hasOther++;
+      if (status.some((loc) => !['icp', 'neon'].includes(loc))) hasOther++;
     }
   });
 
@@ -367,7 +424,7 @@ export function getGalleryStorageSummary(statusMap: MemoryStatusMap, memories: A
     storageLocations: Array.from(
       new Set(
         memories
-          .map(memory => {
+          .map((memory) => {
             const key = `${memory.id}:${memory.type}`;
             const status = statusMap[key]?.status;
             return Array.isArray(status) ? status : [];

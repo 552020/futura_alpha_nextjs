@@ -26,7 +26,12 @@ interface PresignParams {
   fileSize: number;
 }
 
-export async function generatePresignedUrl({ userId, fileName, fileType, fileSize }: PresignParams) {
+export async function generatePresignedUrl({
+  userId,
+  fileName,
+  fileType,
+  fileSize,
+}: PresignParams) {
   // Use unified S3 key generation for consistent folder structure
   const s3Key = generateS3Key(fileName, userId);
 
@@ -38,10 +43,14 @@ export async function generatePresignedUrl({ userId, fileName, fileType, fileSiz
   });
 
   try {
-    const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 }); // URL expires in 1 hour
+    const signedUrl = await getSignedUrl(s3Client, command, {
+      expiresIn: 3600,
+    }); // URL expires in 1 hour
     return { signedUrl, s3Key };
   } catch (error) {
-    fatLogger.error('Error generating presigned URL:', 'be', { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Error generating presigned URL:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
     throw new Error('Could not generate presigned URL');
   }
 }

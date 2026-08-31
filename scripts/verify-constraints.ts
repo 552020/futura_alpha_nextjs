@@ -37,7 +37,8 @@ const REQUIRED_CONSTRAINTS: ConstraintCheck[] = [
   {
     name: 'memory_assets_bytes_positive',
     table: 'memory_assets',
-    description: 'Ensures memory asset bytes are positive (> 0) - defined in schema.ts but Drizzle cannot verify',
+    description:
+      'Ensures memory asset bytes are positive (> 0) - defined in schema.ts but Drizzle cannot verify',
   },
   {
     name: 'memory_assets_dimensions_positive',
@@ -75,7 +76,10 @@ async function verifyConstraints() {
         allConstraintsPresent = false;
       }
     } catch (error: any) {
-      console.error(`❌ Error checking constraint ${constraint.name}:`, error.message);
+      console.error(
+        `❌ Error checking constraint ${constraint.name}:`,
+        error.message
+      );
       allConstraintsPresent = false;
     }
   }
@@ -88,7 +92,9 @@ async function verifyConstraints() {
     return 0;
   } else {
     console.log('❌ One or more required constraints are missing!');
-    console.log('Run the appropriate migration scripts to add missing constraints.');
+    console.log(
+      'Run the appropriate migration scripts to add missing constraints.'
+    );
     return 1;
   }
 }
@@ -96,10 +102,10 @@ async function verifyConstraints() {
 // Run the verification
 if (require.main === module) {
   verifyConstraints()
-    .then(exitCode => {
+    .then((exitCode) => {
       process.exit(exitCode);
     })
-    .catch(error => {
+    .catch((error) => {
       console.error('❌ Constraint verification failed:', error);
       process.exit(1);
     });

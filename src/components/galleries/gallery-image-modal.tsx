@@ -3,7 +3,13 @@ import Image from 'next/image';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
 import { Button } from '@/components/ui/button';
-import { Download, X, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import {
+  Download,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+} from 'lucide-react';
 import { generateBestAssetUrl } from '@/lib/presigned-url-utils';
 
 import { fatLogger } from '@/lib/logger';
@@ -41,8 +47,12 @@ export function GalleryImageModal({
   hasPrevious = false,
   assets = [],
 }: GalleryImageModalProps) {
-  const [displaySize, setDisplaySize] = React.useState<'display' | 'original'>('display');
-  const [currentImageUrl, setCurrentImageUrl] = React.useState(image?.url || '');
+  const [displaySize, setDisplaySize] = React.useState<'display' | 'original'>(
+    'display'
+  );
+  const [currentImageUrl, setCurrentImageUrl] = React.useState(
+    image?.url || ''
+  );
   const [isDownloading, setIsDownloading] = React.useState(false);
   const [showSizeDropdown, setShowSizeDropdown] = React.useState(false);
   const [shouldDropUp, setShouldDropUp] = React.useState(false);
@@ -61,10 +71,12 @@ export function GalleryImageModal({
       try {
         // Try to find the best asset for display
         const preferredOrder =
-          displaySize === 'display' ? ['display', 'original', 'thumb'] : ['original', 'display', 'thumb'];
+          displaySize === 'display'
+            ? ['display', 'original', 'thumb']
+            : ['original', 'display', 'thumb'];
 
         for (const assetType of preferredOrder) {
-          const asset = assets.find(a => a.assetType === assetType);
+          const asset = assets.find((a) => a.assetType === assetType);
           if (asset) {
             const formattedAsset = {
               url: asset.url,
@@ -133,7 +145,8 @@ export function GalleryImageModal({
   // Add event listener for keyboard navigation
   React.useEffect(() => {
     if (isOpen) {
-      const keyDownHandler = (e: Event) => handleKeyDown(e as unknown as KeyboardEvent);
+      const keyDownHandler = (e: Event) =>
+        handleKeyDown(e as unknown as KeyboardEvent);
       window.addEventListener('keydown', keyDownHandler);
       return () => {
         window.removeEventListener('keydown', keyDownHandler);
@@ -152,10 +165,12 @@ export function GalleryImageModal({
 
     // For downloads, we'll use the same logic as display but with the downloadSize
     const preferredOrder =
-      displaySize === 'display' ? ['display', 'original', 'thumb'] : ['original', 'display', 'thumb'];
+      displaySize === 'display'
+        ? ['display', 'original', 'thumb']
+        : ['original', 'display', 'thumb'];
 
     for (const assetType of preferredOrder) {
-      const asset = assets.find(a => a.assetType === assetType);
+      const asset = assets.find((a) => a.assetType === assetType);
       if (asset) {
         try {
           const formattedAsset = {
@@ -166,7 +181,11 @@ export function GalleryImageModal({
           };
           return await generateBestAssetUrl(formattedAsset);
         } catch (error) {
-          fatLogger.error(`Error generating URL for asset type ${assetType}`, 'fe', { error, assetType });
+          fatLogger.error(
+            `Error generating URL for asset type ${assetType}`,
+            'fe',
+            { error, assetType }
+          );
           continue;
         }
       }
@@ -212,7 +231,9 @@ export function GalleryImageModal({
 
         blob = await response.blob();
       } catch (fetchError) {
-        fatLogger.warn('Fetch failed, trying direct download', 'fe', { error: fetchError });
+        fatLogger.warn('Fetch failed, trying direct download', 'fe', {
+          error: fetchError,
+        });
         // If fetch fails, try direct download
         const link = document.createElement('a');
         link.href = downloadUrl;
@@ -258,7 +279,10 @@ export function GalleryImageModal({
           }
         }
       } catch (e) {
-        fatLogger.warn('Could not parse URL for filename', 'fe', { error: e, downloadUrl });
+        fatLogger.warn('Could not parse URL for filename', 'fe', {
+          error: e,
+          downloadUrl,
+        });
         const ext = blob.type.split('/')[1] || 'jpg';
         filename = `download-${displaySize}.${ext}`;
       }
@@ -277,7 +301,10 @@ export function GalleryImageModal({
         URL.revokeObjectURL(blobUrl);
       }, 100);
     } catch (error) {
-      fatLogger.error('Error in download handler', 'fe', { error, imageUrl: image?.url });
+      fatLogger.error('Error in download handler', 'fe', {
+        error,
+        imageUrl: image?.url,
+      });
       // Final fallback - try direct download with the image URL
       const link = document.createElement('a');
       link.href = image.url;
@@ -316,7 +343,7 @@ export function GalleryImageModal({
               variant="ghost"
               size="icon"
               className="absolute left-4 z-10 h-12 w-12 rounded-full bg-black/50 text-white hover:bg-black/70 transition-all"
-              onClick={e => {
+              onClick={(e) => {
                 e.stopPropagation();
                 onPrevious();
               }}
@@ -333,7 +360,7 @@ export function GalleryImageModal({
               variant="ghost"
               size="icon"
               className="absolute right-4 z-10 h-12 w-12 rounded-full bg-black/50 text-white hover:bg-black/70 transition-all"
-              onClick={e => {
+              onClick={(e) => {
                 e.stopPropagation();
                 onNext();
               }}
@@ -372,18 +399,20 @@ export function GalleryImageModal({
                   disabled={isDownloading}
                 >
                   <Download className="h-4 w-4 mr-2" />
-                  {isDownloading ? 'Downloading...' : `Download (${displaySize})`}
+                  {isDownloading
+                    ? 'Downloading...'
+                    : `Download (${displaySize})`}
                 </Button>
                 <div className="relative">
                   <Button
                     variant="ghost"
                     size="icon"
                     className="text-white hover:bg-white/20 h-9 w-6"
-                    onClick={e => {
+                    onClick={(e) => {
                       e.stopPropagation();
                       setShowSizeDropdown(!showSizeDropdown);
                     }}
-                    ref={el => {
+                    ref={(el) => {
                       if (el) {
                         const rect = el.getBoundingClientRect();
                         const spaceBelow = window.innerHeight - rect.bottom;
@@ -391,11 +420,15 @@ export function GalleryImageModal({
                         const dropdownHeight = 100; // Approximate height of the dropdown
 
                         // Position dropdown below if there's enough space, otherwise above
-                        setShouldDropUp(spaceBelow < dropdownHeight && spaceAbove > spaceBelow);
+                        setShouldDropUp(
+                          spaceBelow < dropdownHeight && spaceAbove > spaceBelow
+                        );
                       }
                     }}
                   >
-                    <ChevronDown className={`h-4 w-4 transition-transform ${showSizeDropdown ? 'rotate-180' : ''}`} />
+                    <ChevronDown
+                      className={`h-4 w-4 transition-transform ${showSizeDropdown ? 'rotate-180' : ''}`}
+                    />
                     <span className="sr-only">Select download size</span>
                   </Button>
                   {showSizeDropdown && (
@@ -417,7 +450,7 @@ export function GalleryImageModal({
                           className={`w-full text-left px-4 py-2 text-sm text-white hover:bg-white/20 ${
                             displaySize === 'display' ? 'bg-white/30' : ''
                           }`}
-                          onClick={e => {
+                          onClick={(e) => {
                             e.stopPropagation();
                             setDisplaySize('display');
                             setShowSizeDropdown(false);
@@ -429,7 +462,7 @@ export function GalleryImageModal({
                           className={`w-full text-left px-4 py-2 text-sm text-white hover:bg-white/20 ${
                             displaySize === 'original' ? 'bg-white/30' : ''
                           }`}
-                          onClick={e => {
+                          onClick={(e) => {
                             e.stopPropagation();
                             setDisplaySize('original');
                             setShowSizeDropdown(false);

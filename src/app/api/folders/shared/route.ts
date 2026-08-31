@@ -47,7 +47,10 @@ export async function GET(request: NextRequest) {
     });
 
     // Get folders shared with the user using service function
-    const sharedResourcesResult = await getSharedResources(allUserRecord.id, 'folder');
+    const sharedResourcesResult = await getSharedResources(
+      allUserRecord.id,
+      'folder'
+    );
 
     if (!sharedResourcesResult.success) {
       fatLogger.error('Failed to get shared resources', 'be', {
@@ -79,23 +82,28 @@ export async function GET(request: NextRequest) {
     });
 
     // Get folder IDs from memberships
-    const folderIds = sharedFolders.map(membership => membership.resourceId);
+    const folderIds = sharedFolders.map((membership) => membership.resourceId);
 
     // Get folder details using service function
     const foldersResult = await getFoldersByIds(folderIds);
 
     if (!foldersResult.success || !foldersResult.data) {
-      fatLogger.error('Failed to get folder details', 'be', { error: foldersResult.error });
-      return NextResponse.json({ error: 'Failed to get folder details' }, { status: 500 });
+      fatLogger.error('Failed to get folder details', 'be', {
+        error: foldersResult.error,
+      });
+      return NextResponse.json(
+        { error: 'Failed to get folder details' },
+        { status: 500 }
+      );
     }
 
     const folders = foldersResult.data;
 
     // Create a map for quick lookup
-    const folderMap = new Map(folders.map(folder => [folder.id, folder]));
+    const folderMap = new Map(folders.map((folder) => [folder.id, folder]));
 
     // Combine membership data with folder details
-    const folderDetails = sharedFolders.map(membership => {
+    const folderDetails = sharedFolders.map((membership) => {
       const folder = folderMap.get(membership.resourceId);
 
       if (!folder) {
@@ -131,7 +139,9 @@ export async function GET(request: NextRequest) {
     });
 
     // Filter out null results (folders that no longer exist)
-    const validFolders = folderDetails.filter((folder): folder is NonNullable<typeof folder> => folder !== null);
+    const validFolders = folderDetails.filter(
+      (folder): folder is NonNullable<typeof folder> => folder !== null
+    );
 
     fatLogger.info('✅ Shared folders retrieved successfully:', 'be', {
       totalFound: validFolders.length,

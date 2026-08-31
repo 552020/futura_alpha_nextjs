@@ -8,7 +8,12 @@ export class ServiceLogger {
     private engine: LogEngine
   ) {}
 
-  private log(level: LogLevel, message: string, data?: unknown, tags?: string[]) {
+  private log(
+    level: LogLevel,
+    message: string,
+    data?: unknown,
+    tags?: string[]
+  ) {
     const entry: LogEntry = {
       ts: Date.now(),
       level,

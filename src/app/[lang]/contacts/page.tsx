@@ -116,7 +116,7 @@ export default function ContactsPage() {
   const getInitials = (name: string) => {
     return name
       .split(' ')
-      .map(n => n[0])
+      .map((n) => n[0])
       .join('')
       .slice(0, 2)
       .toUpperCase();
@@ -127,7 +127,9 @@ export default function ContactsPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold">Family & Friends</h1>
-          <p className="text-muted-foreground mt-2">Manage your family connections and share memories together.</p>
+          <p className="text-muted-foreground mt-2">
+            Manage your family connections and share memories together.
+          </p>
         </div>
         <Button>
           <UserPlus className="h-4 w-4 mr-2" />
@@ -136,7 +138,7 @@ export default function ContactsPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {sampleContacts.map(contact => (
+        {sampleContacts.map((contact) => (
           <Card key={contact.id} className="hover:shadow-md transition-shadow">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3">
@@ -145,12 +147,20 @@ export default function ContactsPage() {
                   <AvatarFallback>{getInitials(contact.name)}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <CardTitle className="text-lg truncate">{contact.name}</CardTitle>
+                  <CardTitle className="text-lg truncate">
+                    {contact.name}
+                  </CardTitle>
                   <div className="flex gap-2 mt-1">
-                    <Badge variant="secondary" className={getRelationshipColor(contact.relationship)}>
+                    <Badge
+                      variant="secondary"
+                      className={getRelationshipColor(contact.relationship)}
+                    >
                       {contact.relationship}
                     </Badge>
-                    <Badge variant="outline" className={getStatusColor(contact.status)}>
+                    <Badge
+                      variant="outline"
+                      className={getStatusColor(contact.status)}
+                    >
                       {contact.status}
                     </Badge>
                   </div>
@@ -189,7 +199,9 @@ export default function ContactsPage() {
         <div className="text-center py-12">
           <UserPlus className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-xl font-semibold mb-2">No contacts yet</h3>
-          <p className="text-muted-foreground mb-6">Start building your family network by inviting your loved ones.</p>
+          <p className="text-muted-foreground mb-6">
+            Start building your family network by inviting your loved ones.
+          </p>
           <Button>
             <UserPlus className="h-4 w-4 mr-2" />
             Invite Your First Contact

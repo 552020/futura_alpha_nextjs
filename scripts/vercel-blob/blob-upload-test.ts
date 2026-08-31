@@ -18,7 +18,9 @@ async function main() {
   // Check if token is available
   const token = process.env.BLOB_READ_WRITE_TOKEN;
   if (!token) {
-    console.error('❌ BLOB_READ_WRITE_TOKEN not found in environment variables');
+    console.error(
+      '❌ BLOB_READ_WRITE_TOKEN not found in environment variables'
+    );
     console.log('Please set BLOB_READ_WRITE_TOKEN in your .env.local file');
     process.exit(1);
   }
@@ -51,7 +53,11 @@ async function main() {
     if (response.ok) {
       console.log('✅ File is accessible at:', result.url);
     } else {
-      console.log('❌ File is not accessible:', response.status, response.statusText);
+      console.log(
+        '❌ File is not accessible:',
+        response.status,
+        response.statusText
+      );
     }
 
     // Cleanup

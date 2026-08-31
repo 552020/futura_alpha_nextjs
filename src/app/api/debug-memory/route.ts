@@ -13,7 +13,11 @@ export async function GET(_request: NextRequest) {
     });
 
     // Check if the memory exists
-    const memory = await db.select().from(memories).where(eq(memories.id, memoryId)).limit(1);
+    const memory = await db
+      .select()
+      .from(memories)
+      .where(eq(memories.id, memoryId))
+      .limit(1);
 
     fatLogger.info('🔍 Debug: Memory query result', 'be', {
       memoryId,

@@ -44,7 +44,13 @@ export interface CreateMemoryParams {
 
 // Based on NewDBMemoryAsset from schema.ts (maintained for backward compatibility)
 export interface CreateMemoryAssetParams {
-  assetType: 'original' | 'display' | 'thumb' | 'placeholder' | 'poster' | 'waveform';
+  assetType:
+    | 'original'
+    | 'display'
+    | 'thumb'
+    | 'placeholder'
+    | 'poster'
+    | 'waveform';
   variant?: string;
   url: string;
   assetLocation: 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs' | 'neon';
@@ -60,7 +66,9 @@ export interface CreateMemoryAssetParams {
 }
 
 // Simple return type (maintained for backward compatibility)
-export type CreateMemoryResult = { success: true; memoryId: string } | { success: false; error: string };
+export type CreateMemoryResult =
+  | { success: true; memoryId: string }
+  | { success: false; error: string };
 
 /**
  * Unified memory creation function
@@ -71,7 +79,9 @@ export type CreateMemoryResult = { success: true; memoryId: string } | { success
  *
  * Note: No runtime validation - relies on TypeScript types for type safety
  */
-export async function createMemory(params: CreateMemoryParams): Promise<CreateMemoryResult> {
+export async function createMemory(
+  params: CreateMemoryParams
+): Promise<CreateMemoryResult> {
   try {
     fatLogger.info('Creating memory with assets', 'be', {
       operation: 'create_memory',
@@ -108,7 +118,10 @@ export async function createMemory(params: CreateMemoryParams): Promise<CreateMe
         title: params.title,
         error: result.error,
       });
-      return { success: false, error: result.error || 'Failed to create memory' };
+      return {
+        success: false,
+        error: result.error || 'Failed to create memory',
+      };
     }
 
     fatLogger.info('Successfully created memory with assets', 'be', {
@@ -145,7 +158,9 @@ import { detectMemoryType } from '@/utils/memory-type';
  * Extract memory type from MIME type
  * @deprecated Use detectMemoryType from @/utils/memory-type instead
  */
-function extractMemoryType(contentType: string): 'image' | 'video' | 'document' | 'note' | 'audio' {
+function extractMemoryType(
+  contentType: string
+): 'image' | 'video' | 'document' | 'note' | 'audio' {
   return detectMemoryType(contentType);
 }
 

@@ -14,7 +14,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
@@ -28,12 +36,25 @@ import { useGalleryShare } from '@/hooks/useGalleryShare';
 import { fatLogger } from '@/lib/logger';
 // Form validation schema
 const createGallerySchema = z.object({
-  title: z.string().min(1, 'Title is required').max(100, 'Title must be less than 100 characters'),
-  description: z.string().max(500, 'Description must be less than 500 characters').optional(),
+  title: z
+    .string()
+    .min(1, 'Title is required')
+    .max(100, 'Title must be less than 100 characters'),
+  description: z
+    .string()
+    .max(500, 'Description must be less than 500 characters')
+    .optional(),
   folderName: z.string().min(1, 'Please select a folder'),
   isPublic: z.boolean(),
-  shareEmail: z.string().email('Invalid email address').optional().or(z.literal('')),
-  shareMessage: z.string().max(200, 'Message must be less than 200 characters').optional(),
+  shareEmail: z
+    .string()
+    .email('Invalid email address')
+    .optional()
+    .or(z.literal('')),
+  shareMessage: z
+    .string()
+    .max(200, 'Message must be less than 200 characters')
+    .optional(),
 });
 
 type CreateGalleryFormData = z.infer<typeof createGallerySchema>;
@@ -112,7 +133,9 @@ export function CreateGalleryModal({
       const folderList = await galleryService.getFoldersWithImages(false); // Use real data
       setFolders(folderList);
     } catch (error) {
-      fatLogger.error('Error loading folders:', 'fe', { data: error instanceof Error ? error : undefined });
+      fatLogger.error('Error loading folders:', 'fe', {
+        data: error instanceof Error ? error : undefined,
+      });
       setError('Failed to load folders. Please try again.');
     } finally {
       setIsLoadingFolders(false);
@@ -156,13 +179,17 @@ export function CreateGalleryModal({
             message: data.shareMessage,
           });
 
-          fatLogger.info('Gallery shared successfully on creation', 'fe', { data: { galleryId: gallery.id } });
+          fatLogger.info('Gallery shared successfully on creation', 'fe', {
+            data: { galleryId: gallery.id },
+          });
         } catch (shareError) {
           fatLogger.error('Error sharing gallery on creation', 'fe', {
             data: shareError instanceof Error ? shareError : undefined,
           });
           // Don't fail the entire operation if sharing fails
-          setError('Gallery created but failed to share. You can share it later from the gallery page.');
+          setError(
+            'Gallery created but failed to share. You can share it later from the gallery page.'
+          );
         }
       }
 
@@ -171,8 +198,12 @@ export function CreateGalleryModal({
       form.reset();
       onGalleryCreated?.(gallery.id);
     } catch (error) {
-      fatLogger.error('Error creating gallery:', 'fe', { data: error instanceof Error ? error : undefined });
-      setError(error instanceof Error ? error.message : 'Failed to create gallery');
+      fatLogger.error('Error creating gallery:', 'fe', {
+        data: error instanceof Error ? error : undefined,
+      });
+      setError(
+        error instanceof Error ? error.message : 'Failed to create gallery'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -200,13 +231,16 @@ export function CreateGalleryModal({
         <DialogHeader>
           <DialogTitle>Create Gallery from Folder</DialogTitle>
           <DialogDescription>
-            Create a new gallery from an existing folder of memories. The gallery will include all items from the
-            selected folder.
+            Create a new gallery from an existing folder of memories. The
+            gallery will include all items from the selected folder.
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 overflow-y-auto flex-1 pr-2">
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-6 overflow-y-auto flex-1 pr-2"
+          >
             {/* Error Alert */}
             {error && (
               <Alert variant="destructive">
@@ -245,14 +279,18 @@ export function CreateGalleryModal({
                 <FormField
                   control={form.control}
                   name="folderName"
-                  render={({ field }) => <input type="hidden" {...field} value={prefillFolderName} />}
+                  render={({ field }) => (
+                    <input type="hidden" {...field} value={prefillFolderName} />
+                  )}
                 />
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Selected Folder</label>
                   <div className="p-3 bg-muted rounded-md border">
                     <p className="text-sm font-medium">{prefillFolderName}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Gallery will be created from this folder</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Gallery will be created from this folder
+                    </p>
                   </div>
                 </div>
               </>
@@ -269,7 +307,8 @@ export function CreateGalleryModal({
                     <Input placeholder="Enter gallery title..." {...field} />
                   </FormControl>
                   <FormDescription>
-                    Give your gallery a descriptive name to help you organize your memories.
+                    Give your gallery a descriptive name to help you organize
+                    your memories.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -284,9 +323,15 @@ export function CreateGalleryModal({
                 <FormItem>
                   <FormLabel>Description (Optional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter gallery description..." {...field} />
+                    <Input
+                      placeholder="Enter gallery description..."
+                      {...field}
+                    />
                   </FormControl>
-                  <FormDescription>Add a description to provide more context about this gallery.</FormDescription>
+                  <FormDescription>
+                    Add a description to provide more context about this
+                    gallery.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -301,11 +346,15 @@ export function CreateGalleryModal({
                   <div className="space-y-0.5">
                     <FormLabel className="text-base">Public Gallery</FormLabel>
                     <FormDescription>
-                      Make this gallery visible to other users. Private galleries are only visible to you.
+                      Make this gallery visible to other users. Private
+                      galleries are only visible to you.
                     </FormDescription>
                   </div>
                   <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
                   </FormControl>
                 </FormItem>
               )}
@@ -320,16 +369,22 @@ export function CreateGalleryModal({
               >
                 <div className="flex items-center justify-center gap-2 text-gray-600 group-hover:text-blue-600">
                   <Send className="h-4 w-4" />
-                  <span className="font-medium text-sm">Share with someone after creation</span>
+                  <span className="font-medium text-sm">
+                    Share with someone after creation
+                  </span>
                 </div>
-                <p className="text-xs text-gray-500 mt-1 group-hover:text-blue-500">Click to add a recipient</p>
+                <p className="text-xs text-gray-500 mt-1 group-hover:text-blue-500">
+                  Click to add a recipient
+                </p>
               </button>
             ) : (
               <div className="border-2 border-blue-300 rounded-lg p-4 bg-blue-50 dark:bg-blue-950/20 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Send className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                    <span className="font-medium text-sm text-blue-900 dark:text-blue-100">Share this gallery</span>
+                    <span className="font-medium text-sm text-blue-900 dark:text-blue-100">
+                      Share this gallery
+                    </span>
                   </div>
                   <button
                     type="button"
@@ -361,7 +416,8 @@ export function CreateGalleryModal({
                         />
                       </FormControl>
                       <FormDescription className="text-xs">
-                        The gallery will be shared with this email address after creation.
+                        The gallery will be shared with this email address after
+                        creation.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -396,7 +452,12 @@ export function CreateGalleryModal({
             )}
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isLoading}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpen(false)}
+                disabled={isLoading}
+              >
                 Cancel
               </Button>
               <Button type="submit" disabled={isLoading || isLoadingFolders}>

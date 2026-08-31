@@ -12,8 +12,12 @@ describe('Learning JWT Token Generation', () => {
         realism: 'Tests real authentication flow, not just mocks',
       };
 
-      expect(purpose.authentication).toBe('NextAuth uses JWT for session management');
-      expect(purpose.testing).toBe('We need valid tokens to test authenticated endpoints');
+      expect(purpose.authentication).toBe(
+        'NextAuth uses JWT for session management'
+      );
+      expect(purpose.testing).toBe(
+        'We need valid tokens to test authenticated endpoints'
+      );
     });
   });
 

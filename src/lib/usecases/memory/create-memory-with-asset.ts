@@ -52,8 +52,18 @@ export interface CreateMemoryWithAssetResult {
  * @param params - Parameters for creating the memory with asset
  * @returns Result containing the created memory data
  */
-export async function createMemoryWithAsset(params: CreateMemoryWithAssetParams): Promise<CreateMemoryWithAssetResult> {
-  const { type, ownerId, url, file, metadata, parentFolderId, assetLocation = 's3' } = params;
+export async function createMemoryWithAsset(
+  params: CreateMemoryWithAssetParams
+): Promise<CreateMemoryWithAssetResult> {
+  const {
+    type,
+    ownerId,
+    url,
+    file,
+    metadata,
+    parentFolderId,
+    assetLocation = 's3',
+  } = params;
 
   // Create memory using service layer
   const memoryParams: CreateMemoryParams = {
@@ -85,8 +95,23 @@ export async function createMemoryWithAsset(params: CreateMemoryWithAssetParams)
     assetType: 'original',
     variant: 'default',
     url,
-    assetLocation: assetLocation as 'vercel_blob' | 's3' | 'icp' | 'arweave' | 'ipfs' | 'neon',
-    storageKey: buildStorageKey(url, assetLocation as 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs' | 'neon'),
+    assetLocation: assetLocation as
+      | 'vercel_blob'
+      | 's3'
+      | 'icp'
+      | 'arweave'
+      | 'ipfs'
+      | 'neon',
+    storageKey: buildStorageKey(
+      url,
+      assetLocation as
+        | 's3'
+        | 'vercel_blob'
+        | 'icp'
+        | 'arweave'
+        | 'ipfs'
+        | 'neon'
+    ),
     bytes: metadata.size,
     width: null, // Will be populated by client-side processing
     height: null, // Will be populated by client-side processing

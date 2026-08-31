@@ -17,7 +17,9 @@ async function testOnboardingFlow() {
   console.log('🧪 Testing Complete Onboarding Flow...\n');
 
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    console.error('❌ BLOB_READ_WRITE_TOKEN not found in environment variables');
+    console.error(
+      '❌ BLOB_READ_WRITE_TOKEN not found in environment variables'
+    );
     console.log('Please set BLOB_READ_WRITE_TOKEN in your .env.local file');
     process.exit(1);
   }
@@ -26,7 +28,10 @@ async function testOnboardingFlow() {
   try {
     // Step 1: Upload file to Vercel Blob (simulating frontend upload)
     console.log('📤 Step 1: Uploading file to Vercel Blob...');
-    const testFilePath = path.join(__dirname, '../../public/small/diana_charles.jpg');
+    const testFilePath = path.join(
+      __dirname,
+      '../../public/small/diana_charles.jpg'
+    );
     const fileBuffer = fs.readFileSync(testFilePath);
     const fileName = 'onboarding-test-' + Date.now() + '.jpg';
 
@@ -42,24 +47,29 @@ async function testOnboardingFlow() {
     console.log('\n📝 Step 2: Creating memory record...');
     const baseURL = process.env.BASE_URL || 'http://localhost:3000';
 
-    const commitResponse = await fetch(`${baseURL}/api/upload/complete?onboarding=true`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        blobUrl: uploadResult.url,
-        metadata: {
-          title: 'Onboarding Test Image',
-          mimeType: 'image/jpeg',
-          size: fileBuffer.length,
-          width: 1920,
-          height: 1080,
-        },
-      }),
-    });
+    const commitResponse = await fetch(
+      `${baseURL}/api/upload/complete?onboarding=true`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          blobUrl: uploadResult.url,
+          metadata: {
+            title: 'Onboarding Test Image',
+            mimeType: 'image/jpeg',
+            size: fileBuffer.length,
+            width: 1920,
+            height: 1080,
+          },
+        }),
+      }
+    );
 
     if (!commitResponse.ok) {
       const error = await commitResponse.json();
-      throw new Error(`Commit failed: ${error.error || commitResponse.statusText}`);
+      throw new Error(
+        `Commit failed: ${error.error || commitResponse.statusText}`
+      );
     }
 
     const commitResult = await commitResponse.json();
@@ -71,10 +81,16 @@ async function testOnboardingFlow() {
 
     if (headResponse.ok) {
       console.log('✅ Blob is accessible and ready');
-      console.log(`📊 Content-Type: ${headResponse.headers.get('content-type')}`);
-      console.log(`📊 Content-Length: ${headResponse.headers.get('content-length')} bytes`);
+      console.log(
+        `📊 Content-Type: ${headResponse.headers.get('content-type')}`
+      );
+      console.log(
+        `📊 Content-Length: ${headResponse.headers.get('content-length')} bytes`
+      );
     } else {
-      throw new Error(`Blob verification failed: ${headResponse.status} ${headResponse.statusText}`);
+      throw new Error(
+        `Blob verification failed: ${headResponse.status} ${headResponse.statusText}`
+      );
     }
 
     console.log('\n🎉 Onboarding flow test completed successfully!');

@@ -48,13 +48,19 @@ const CONFIG = {
 const getRandomDate = (): string => {
   const now = new Date();
   const sixMonthsAgo = new Date(now.getTime() - 6 * 30 * 24 * 60 * 60 * 1000);
-  const randomTime = sixMonthsAgo.getTime() + Math.random() * (now.getTime() - sixMonthsAgo.getTime());
+  const randomTime =
+    sixMonthsAgo.getTime() +
+    Math.random() * (now.getTime() - sixMonthsAgo.getTime());
   return new Date(randomTime).toISOString();
 };
 
 // Helper function to generate random status
 const getRandomStatus = (): 'private' | 'shared' | 'public' => {
-  const statuses: ('private' | 'shared' | 'public')[] = ['private', 'shared', 'public'];
+  const statuses: ('private' | 'shared' | 'public')[] = [
+    'private',
+    'shared',
+    'public',
+  ];
   return statuses[Math.floor(Math.random() * statuses.length)];
 };
 
@@ -81,7 +87,9 @@ const generateIndividualMemories = (): DashboardMemory[] => {
       noDescriptionCount++;
       return '';
     }
-    if (longDescriptionCount < CONFIG.INDIVIDUAL_CHARACTERISTICS.longDescription) {
+    if (
+      longDescriptionCount < CONFIG.INDIVIDUAL_CHARACTERISTICS.longDescription
+    ) {
       longDescriptionCount++;
       return `This is a very long description that should test how the memory card handles lengthy descriptions. It contains multiple sentences and should demonstrate whether the footer stays properly aligned at the bottom regardless of the description length. The description should wrap to multiple lines and we want to see if the layout remains consistent across all cards in the grid. ${baseDescription} ${index}`;
     }

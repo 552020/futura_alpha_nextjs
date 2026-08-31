@@ -40,7 +40,9 @@ export function LinkedAccounts() {
         description: 'Principal ID copied to clipboard',
       });
     } catch (error) {
-      fatLogger.error('Failed to copy:', 'fe', { data: error instanceof Error ? error : undefined });
+      fatLogger.error('Failed to copy:', 'fe', {
+        data: error instanceof Error ? error : undefined,
+      });
       toast({
         title: 'Copy Failed',
         description: 'Failed to copy principal ID to clipboard',
@@ -96,12 +98,19 @@ export function LinkedAccounts() {
       <CardContent className="space-y-4">
         {/* Linked Principals Display */}
         <div className="space-y-2">
-          {linkedIcPrincipals.map(principal => (
+          {linkedIcPrincipals.map((principal) => (
             <div key={principal} className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground w-2 shrink-0">•</span>
-              <code className="flex-1 bg-muted px-2 py-1 rounded text-sm font-mono truncate min-w-0">{principal}</code>
+              <span className="text-xs text-muted-foreground w-2 shrink-0">
+                •
+              </span>
+              <code className="flex-1 bg-muted px-2 py-1 rounded text-sm font-mono truncate min-w-0">
+                {principal}
+              </code>
               {principal === displayPrincipal && (
-                <Badge variant="outline" className="text-xs text-green-600 shrink-0">
+                <Badge
+                  variant="outline"
+                  className="text-xs text-green-600 shrink-0"
+                >
                   Active
                 </Badge>
               )}

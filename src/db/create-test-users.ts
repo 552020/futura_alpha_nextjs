@@ -39,7 +39,9 @@ async function createTestUsers() {
 
     // fatLogger.info("✅ Test users created successfully");
   } catch (error) {
-    fatLogger.error('❌ Error creating test users:', 'be', { data: error instanceof Error ? error : undefined });
+    fatLogger.error('❌ Error creating test users:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
   }
 }
 

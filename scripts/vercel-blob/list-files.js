@@ -23,7 +23,9 @@ async function listBlobFiles() {
   try {
     // Check if token is available
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      throw new Error('BLOB_READ_WRITE_TOKEN not found in environment variables');
+      throw new Error(
+        'BLOB_READ_WRITE_TOKEN not found in environment variables'
+      );
     }
     console.log('✅ BLOB_READ_WRITE_TOKEN found\n');
 
@@ -44,7 +46,9 @@ async function listBlobFiles() {
     console.log(`📊 Storage Statistics:`);
     console.log(`   Total files: ${files.length}`);
     console.log(`   Total size: ${totalSizeMB} MB`);
-    console.log(`   Average file size: ${(totalSize / files.length / 1024).toFixed(2)} KB\n`);
+    console.log(
+      `   Average file size: ${(totalSize / files.length / 1024).toFixed(2)} KB\n`
+    );
 
     // Group files by type
     const filesByType = files.reduce((acc, file) => {
@@ -77,24 +81,35 @@ async function listBlobFiles() {
     Object.entries(filesByFolder)
       .sort(([, a], [, b]) => b.length - a.length)
       .forEach(([folder, folderFiles]) => {
-        const folderSize = folderFiles.reduce((sum, file) => sum + file.size, 0);
+        const folderSize = folderFiles.reduce(
+          (sum, file) => sum + file.size,
+          0
+        );
         const folderSizeMB = (folderSize / (1024 * 1024)).toFixed(2);
-        console.log(`   ${folder}: ${folderFiles.length} files (${folderSizeMB} MB)`);
+        console.log(
+          `   ${folder}: ${folderFiles.length} files (${folderSizeMB} MB)`
+        );
       });
 
     // Recent uploads (last 10)
-    const recentFiles = files.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt)).slice(0, 10);
+    const recentFiles = files
+      .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt))
+      .slice(0, 10);
 
     console.log('\n🕒 Recent uploads (last 10):');
     recentFiles.forEach((file, index) => {
       const sizeKB = (file.size / 1024).toFixed(2);
       const uploadedAt = new Date(file.uploadedAt).toLocaleString();
       console.log(`   ${index + 1}. ${file.pathname}`);
-      console.log(`      Size: ${sizeKB} KB | Type: ${file.contentType || 'unknown'} | Uploaded: ${uploadedAt}`);
+      console.log(
+        `      Size: ${sizeKB} KB | Type: ${file.contentType || 'unknown'} | Uploaded: ${uploadedAt}`
+      );
     });
 
     // Large files (> 1MB)
-    const largeFiles = files.filter(file => file.size > 1024 * 1024).sort((a, b) => b.size - a.size);
+    const largeFiles = files
+      .filter((file) => file.size > 1024 * 1024)
+      .sort((a, b) => b.size - a.size);
 
     if (largeFiles.length > 0) {
       console.log(`\n📦 Large files (> 1MB):`);
@@ -130,11 +145,16 @@ async function listBlobFiles() {
           {
             count: typeFiles.length,
             size: typeFiles.reduce((sum, file) => sum + file.size, 0),
-            sizeMB: parseFloat((typeFiles.reduce((sum, file) => sum + file.size, 0) / (1024 * 1024)).toFixed(2)),
+            sizeMB: parseFloat(
+              (
+                typeFiles.reduce((sum, file) => sum + file.size, 0) /
+                (1024 * 1024)
+              ).toFixed(2)
+            ),
           },
         ])
       ),
-      files: files.map(file => ({
+      files: files.map((file) => ({
         pathname: file.pathname,
         size: file.size,
         contentType: file.contentType,

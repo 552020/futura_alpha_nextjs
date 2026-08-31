@@ -24,7 +24,11 @@ async function checkBusinessRelationships(options: CheckOptions) {
     }
 
     // First, check if the user exists
-    const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
     if (!user) {
       console.log(`❌ User with email ${email} not found in the system.`);
       process.exit(0);
@@ -41,7 +45,11 @@ async function checkBusinessRelationships(options: CheckOptions) {
     }
 
     // Get the all_user record
-    const [allUser] = await db.select().from(allUsers).where(eq(allUsers.userId, user.id)).limit(1);
+    const [allUser] = await db
+      .select()
+      .from(allUsers)
+      .where(eq(allUsers.userId, user.id))
+      .limit(1);
     if (!allUser) {
       console.log(`❌ AllUser record not found for ${email}`);
       process.exit(0);
@@ -66,7 +74,9 @@ async function checkBusinessRelationships(options: CheckOptions) {
       .where(eq(businessRelationship.clientId, allUser.id));
 
     console.log('📊 Business Relationship Summary:');
-    console.log(`   As Photographer: ${businessRelationships.length} relationship(s)`);
+    console.log(
+      `   As Photographer: ${businessRelationships.length} relationship(s)`
+    );
     console.log(`   As Client: ${clientRelationships.length} relationship(s)`);
     console.log('');
 
@@ -87,7 +97,11 @@ async function checkBusinessRelationships(options: CheckOptions) {
       console.log('👤 As Client:');
       for (const [index, rel] of clientRelationships.entries()) {
         // Get the photographer's email
-        const [photographerAllUser] = await db.select().from(allUsers).where(eq(allUsers.id, rel.businessId)).limit(1);
+        const [photographerAllUser] = await db
+          .select()
+          .from(allUsers)
+          .where(eq(allUsers.id, rel.businessId))
+          .limit(1);
 
         let photographerEmail = 'Unknown';
         if (photographerAllUser) {
@@ -107,20 +121,28 @@ async function checkBusinessRelationships(options: CheckOptions) {
     }
 
     // Summary
-    const totalRelationships = businessRelationships.length + clientRelationships.length;
+    const totalRelationships =
+      businessRelationships.length + clientRelationships.length;
     if (totalRelationships === 0) {
       console.log('⚠️  No business relationships found for this user.');
       console.log('   This means:');
-      console.log('   - If this user is a client, they cannot send photos to a photographer');
+      console.log(
+        '   - If this user is a client, they cannot send photos to a photographer'
+      );
       console.log('   - If this user is a photographer, they have no clients');
       console.log('');
       console.log('💡 To create relationships, use:');
       console.log('   npm run setup-business-relationship');
     } else {
-      console.log(`✅ Found ${totalRelationships} business relationship(s) for ${email}`);
+      console.log(
+        `✅ Found ${totalRelationships} business relationship(s) for ${email}`
+      );
     }
   } catch (error) {
-    console.error('❌ Error checking business relationships:', error instanceof Error ? error.message : error);
+    console.error(
+      '❌ Error checking business relationships:',
+      error instanceof Error ? error.message : error
+    );
     process.exit(1);
   } finally {
     process.exit(0);

@@ -34,8 +34,14 @@ export default function TestUpload() {
         const filename = uploadedFile.filename?.toLowerCase() || '';
 
         // Force image display if URL or filename has image extensions
-        if (url.match(/\.(jpg|jpeg|png|gif|webp)($|\?)/) || filename.match(/\.(jpg|jpeg|png|gif|webp)$/)) {
-          fatLogger.info('Forcing image display based on URL or filename pattern', 'fe');
+        if (
+          url.match(/\.(jpg|jpeg|png|gif|webp)($|\?)/) ||
+          filename.match(/\.(jpg|jpeg|png|gif|webp)$/)
+        ) {
+          fatLogger.info(
+            'Forcing image display based on URL or filename pattern',
+            'fe'
+          );
           setForceShowAsImage(true);
 
           // Also set a detected type for display purposes
@@ -50,7 +56,10 @@ export default function TestUpload() {
         }
 
         // Still perform standard detection for display purposes
-        if (!uploadedFile.mimeType || uploadedFile.mimeType === 'unknown type') {
+        if (
+          !uploadedFile.mimeType ||
+          uploadedFile.mimeType === 'unknown type'
+        ) {
           let extension = null;
 
           if (uploadedFile.filename) {
@@ -62,12 +71,16 @@ export default function TestUpload() {
 
           let detectedMimeType = 'application/octet-stream';
 
-          if (extension === 'jpg' || extension === 'jpeg') detectedMimeType = 'image/jpeg';
+          if (extension === 'jpg' || extension === 'jpeg')
+            detectedMimeType = 'image/jpeg';
           else if (extension === 'png') detectedMimeType = 'image/png';
           else if (extension === 'gif') detectedMimeType = 'image/gif';
           else if (extension === 'pdf') detectedMimeType = 'application/pdf';
 
-          fatLogger.info('Auto-detected mime type:', 'fe', { detectedMimeType, extension });
+          fatLogger.info('Auto-detected mime type:', 'fe', {
+            detectedMimeType,
+            extension,
+          });
           setDetectedType(detectedMimeType);
         }
       } catch (err) {
@@ -80,7 +93,10 @@ export default function TestUpload() {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
       setFile(selectedFile);
-      fatLogger.info('Selected file:', 'fe', { type: selectedFile.type, name: selectedFile.name });
+      fatLogger.info('Selected file:', 'fe', {
+        type: selectedFile.type,
+        name: selectedFile.name,
+      });
       setError(null);
     }
   };
@@ -126,7 +142,9 @@ export default function TestUpload() {
     return (
       <div className="p-8 max-w-xl mx-auto text-center">
         <h1 className="text-2xl font-bold mb-6">Test File Upload</h1>
-        <div className="bg-yellow-50 text-yellow-800 p-4 rounded mb-6">You must be logged in to upload files</div>
+        <div className="bg-yellow-50 text-yellow-800 p-4 rounded mb-6">
+          You must be logged in to upload files
+        </div>
         <Button onClick={() => signIn()}>Sign In</Button>
       </div>
     );
@@ -155,7 +173,9 @@ export default function TestUpload() {
         </Button>
       </form>
 
-      {error && <div className="bg-red-50 text-red-700 p-4 rounded mb-6">{error}</div>}
+      {error && (
+        <div className="bg-red-50 text-red-700 p-4 rounded mb-6">{error}</div>
+      )}
 
       {uploadedFile && (
         <div className="bg-green-50 p-6 rounded">
@@ -196,9 +216,13 @@ export default function TestUpload() {
 
             <p className="font-medium">{uploadedFile.filename}</p>
             <p className="text-sm text-gray-500">
-              {uploadedFile.size} • {uploadedFile.mimeType || detectedType || 'unknown type'}
+              {uploadedFile.size} •{' '}
+              {uploadedFile.mimeType || detectedType || 'unknown type'}
               {!uploadedFile.mimeType && detectedType && (
-                <span className="text-xs text-orange-600"> (auto-detected)</span>
+                <span className="text-xs text-orange-600">
+                  {' '}
+                  (auto-detected)
+                </span>
               )}
             </p>
             <p className="text-sm truncate mt-2">

@@ -20,8 +20,13 @@ export async function GET() {
     });
 
     if (!allUserRecord) {
-      fatLogger.error('No allUsers record found for user:', 'be', { data: session.user.id });
-      return NextResponse.json({ error: 'User record not found' }, { status: 404 });
+      fatLogger.error('No allUsers record found for user:', 'be', {
+        data: session.user.id,
+      });
+      return NextResponse.json(
+        { error: 'User record not found' },
+        { status: 404 }
+      );
     }
 
     // fatLogger.info("Fetching folders for user:", undefined, {
@@ -90,11 +95,11 @@ export async function GET() {
 
     // Combine all memories and group by folder name
     const allMemories = [
-      ...folderImages.map(img => ({ ...img, type: 'image' as const })),
-      ...folderVideos.map(vid => ({ ...vid, type: 'video' as const })),
-      ...folderDocuments.map(doc => ({ ...doc, type: 'document' as const })),
-      ...folderNotes.map(note => ({ ...note, type: 'note' as const })),
-      ...folderAudio.map(aud => ({ ...aud, type: 'audio' as const })),
+      ...folderImages.map((img) => ({ ...img, type: 'image' as const })),
+      ...folderVideos.map((vid) => ({ ...vid, type: 'video' as const })),
+      ...folderDocuments.map((doc) => ({ ...doc, type: 'document' as const })),
+      ...folderNotes.map((note) => ({ ...note, type: 'note' as const })),
+      ...folderAudio.map((aud) => ({ ...aud, type: 'audio' as const })),
     ];
 
     // Group memories by folder name
@@ -102,7 +107,7 @@ export async function GET() {
 
     // TODO: Update this logic to use the new unified schema with parentFolderId
     // For now, group all memories under "All Files" to make build pass
-    allMemories.forEach(memory => {
+    allMemories.forEach((memory) => {
       const folderName = 'All Files'; // Temporary fallback
       if (!folderMap.has(folderName)) {
         folderMap.set(folderName, []);
@@ -111,18 +116,20 @@ export async function GET() {
     });
 
     // Convert to FolderInfo format
-    const folders: FolderInfo[] = Array.from(folderMap.entries()).map(([folderName, memories]) => {
-      // TODO: Update this to fetch preview images from memoryAssets table
-      // For now, return empty array to make build pass
-      const previewImages: string[] = [];
+    const folders: FolderInfo[] = Array.from(folderMap.entries()).map(
+      ([folderName, memories]) => {
+        // TODO: Update this to fetch preview images from memoryAssets table
+        // For now, return empty array to make build pass
+        const previewImages: string[] = [];
 
-      return {
-        name: folderName,
-        imageCount: memories.length,
-        previewImages: previewImages.length > 0 ? previewImages : [],
-        hasImages: memories.some(memory => memory.type === 'image'),
-      };
-    });
+        return {
+          name: folderName,
+          imageCount: memories.length,
+          previewImages: previewImages.length > 0 ? previewImages : [],
+          hasImages: memories.some((memory) => memory.type === 'image'),
+        };
+      }
+    );
 
     // Sort folders by name
     folders.sort((a, b) => a.name.localeCompare(b.name));
@@ -134,7 +141,12 @@ export async function GET() {
 
     return NextResponse.json(folders);
   } catch (error) {
-    fatLogger.error('Error fetching folders:', 'be', { data: error instanceof Error ? error : undefined });
-    return NextResponse.json({ error: 'Failed to fetch folders' }, { status: 500 });
+    fatLogger.error('Error fetching folders:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
+    return NextResponse.json(
+      { error: 'Failed to fetch folders' },
+      { status: 500 }
+    );
   }
 }

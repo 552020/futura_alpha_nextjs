@@ -1,6 +1,9 @@
 // import { normalizeMemories } from "@/utils/normalizeMemories"; // Unused
 import { Memory } from '@/types/memory';
-import type { MemoryHeader, MemoryType } from '@/ic/declarations/backend/backend.did.d';
+import type {
+  MemoryHeader,
+  MemoryType,
+} from '@/ic/declarations/backend/backend.did.d';
 
 import { fatLogger } from '@/lib/logger';
 import { getHttpBaseUrl } from '@/lib/http-token-manager';
@@ -31,7 +34,9 @@ function formatBytes(bytes: number | bigint | [] | [bigint]): string {
 /**
  * Debug function to check asset sizes for all memories in a page
  */
-async function debugMemoriesPage(memoriesPage: { items: MemoryHeader[] }): Promise<void> {
+async function debugMemoriesPage(memoriesPage: {
+  items: MemoryHeader[];
+}): Promise<void> {
   const assetSummary: Array<{
     memoryId: string;
     display: { bytes: number; size: string } | null;
@@ -111,7 +116,9 @@ async function debugMemoriesPage(memoriesPage: { items: MemoryHeader[] }): Promi
     // Debug placeholder data
     if (header.placeholder_data.length > 0) {
       const placeholderData = header.placeholder_data[0];
-      fatLogger.info('🔍 [DEBUG] Placeholder data found for memory', 'be', { memoryId: header.id });
+      fatLogger.info('🔍 [DEBUG] Placeholder data found for memory', 'be', {
+        memoryId: header.id,
+      });
       fatLogger.info('🔍 [DEBUG] Placeholder data length', 'be', {
         length: placeholderData!.length,
         unit: 'characters',
@@ -120,7 +127,9 @@ async function debugMemoriesPage(memoriesPage: { items: MemoryHeader[] }): Promi
       try {
         const placeholderBytes = atob(placeholderData!);
         const placeholderSize = formatBytes(placeholderBytes.length);
-        fatLogger.info('🔍 [ASSET SIZE CHECK] PLACEHOLDER for memory', 'be', { memoryId: header.id });
+        fatLogger.info('🔍 [ASSET SIZE CHECK] PLACEHOLDER for memory', 'be', {
+          memoryId: header.id,
+        });
         fatLogger.info('🔍 [ASSET SIZE CHECK] Base64 length', 'be', {
           length: placeholderData!.length,
           unit: 'characters',
@@ -129,14 +138,25 @@ async function debugMemoriesPage(memoriesPage: { items: MemoryHeader[] }): Promi
           size: placeholderSize,
           bytes: placeholderBytes.length,
         });
-        fatLogger.info('🔍 [ASSET SIZE CHECK] Data URL', 'be', { preview: placeholderData!.substring(0, 50) + '...' });
+        fatLogger.info('🔍 [ASSET SIZE CHECK] Data URL', 'be', {
+          preview: placeholderData!.substring(0, 50) + '...',
+        });
 
-        memoryAssets.placeholder = { bytes: placeholderBytes.length, size: placeholderSize };
+        memoryAssets.placeholder = {
+          bytes: placeholderBytes.length,
+          size: placeholderSize,
+        };
       } catch (error) {
-        fatLogger.error('❌ [ASSET SIZE CHECK] Failed to decode placeholder data', 'be', { error });
+        fatLogger.error(
+          '❌ [ASSET SIZE CHECK] Failed to decode placeholder data',
+          'be',
+          { error }
+        );
       }
     } else {
-      fatLogger.info('🔍 [DEBUG] No placeholder data found for memory', 'be', { memoryId: header.id });
+      fatLogger.info('🔍 [DEBUG] No placeholder data found for memory', 'be', {
+        memoryId: header.id,
+      });
     }
 
     // Check actual asset sizes by fetching URLs
@@ -149,14 +169,22 @@ async function debugMemoriesPage(memoriesPage: { items: MemoryHeader[] }): Promi
   // Print asset size summary before exiting
   fatLogger.info('🔍 [DEBUG] === ASSET SIZE SUMMARY ===', 'be');
   assetSummary.forEach((assets, index) => {
-    fatLogger.info(`🔍 [SUMMARY] Memory ${index + 1}`, 'be', { memoryId: assets.memoryId });
+    fatLogger.info(`🔍 [SUMMARY] Memory ${index + 1}`, 'be', {
+      memoryId: assets.memoryId,
+    });
     if (assets.display) {
-      fatLogger.info('🔍 [SUMMARY] Display', 'be', { size: assets.display.size, bytes: assets.display.bytes });
+      fatLogger.info('🔍 [SUMMARY] Display', 'be', {
+        size: assets.display.size,
+        bytes: assets.display.bytes,
+      });
     } else {
       fatLogger.info('🔍 [SUMMARY] Display: MISSING', 'be');
     }
     if (assets.thumbnail) {
-      fatLogger.info('🔍 [SUMMARY] Thumbnail', 'be', { size: assets.thumbnail.size, bytes: assets.thumbnail.bytes });
+      fatLogger.info('🔍 [SUMMARY] Thumbnail', 'be', {
+        size: assets.thumbnail.size,
+        bytes: assets.thumbnail.bytes,
+      });
     } else {
       fatLogger.info('🔍 [SUMMARY] Thumbnail: MISSING', 'be');
     }
@@ -174,7 +202,7 @@ async function debugMemoriesPage(memoriesPage: { items: MemoryHeader[] }): Promi
   // Fetch and compare actual vs expected sizes
   fatLogger.info('🔍 [DEBUG] === FETCHING ACTUAL ASSET SIZES ===', 'be');
   for (const assets of assetSummary) {
-    const memory = memoriesPage.items.find(h => h.id === assets.memoryId);
+    const memory = memoriesPage.items.find((h) => h.id === assets.memoryId);
     if (!memory) continue;
 
     fatLogger.info('🔍 [FETCH] Memory', 'be', { memoryId: assets.memoryId });
@@ -194,7 +222,10 @@ async function debugMemoriesPage(memoriesPage: { items: MemoryHeader[] }): Promi
           bytes: blob.size,
         });
         if (blob.size <= 2000) {
-          fatLogger.warn('🚨 [FETCH] Display appears to be placeholder-sized!', 'be');
+          fatLogger.warn(
+            '🚨 [FETCH] Display appears to be placeholder-sized!',
+            'be'
+          );
         }
       } catch (error) {
         fatLogger.error('❌ [FETCH] Failed to fetch display', 'be', { error });
@@ -216,10 +247,15 @@ async function debugMemoriesPage(memoriesPage: { items: MemoryHeader[] }): Promi
           bytes: blob.size,
         });
         if (blob.size <= 2000) {
-          fatLogger.warn('🚨 [FETCH] Thumbnail appears to be placeholder-sized!', 'be');
+          fatLogger.warn(
+            '🚨 [FETCH] Thumbnail appears to be placeholder-sized!',
+            'be'
+          );
         }
       } catch (error) {
-        fatLogger.error('❌ [FETCH] Failed to fetch thumbnail', 'be', { error });
+        fatLogger.error('❌ [FETCH] Failed to fetch thumbnail', 'be', {
+          error,
+        });
       }
     }
   }
@@ -235,27 +271,39 @@ function checkAllAssetSizes(header: MemoryHeader): void {
   // Check thumbnail
   if (header.assets.thumbnail.length > 0 && header.assets.thumbnail[0]) {
     const thumbnailUrl = `${getHttpBaseUrl()}${header.assets.thumbnail[0].path}?token=${header.assets.thumbnail[0].token}`;
-    fatLogger.info('🔍 [Transform] Generated thumbnail URL for memory', 'be', { memoryId: header.id });
+    fatLogger.info('🔍 [Transform] Generated thumbnail URL for memory', 'be', {
+      memoryId: header.id,
+    });
     fatLogger.info('🔍 [Transform] Full URL', 'be', { url: thumbnailUrl });
-    fatLogger.info('🔍 [Transform] 🧪 TEST THIS URL IN BROWSER', 'be', { url: thumbnailUrl });
+    fatLogger.info('🔍 [Transform] 🧪 TEST THIS URL IN BROWSER', 'be', {
+      url: thumbnailUrl,
+    });
     checkAssetSize(thumbnailUrl, 'THUMBNAIL', header.id);
   }
 
   // Check display
   if (header.assets.display.length > 0 && header.assets.display[0]) {
     const displayUrl = `${getHttpBaseUrl()}${header.assets.display[0].path}?token=${header.assets.display[0].token}`;
-    fatLogger.info('🔍 [Transform] Generated display URL for memory', 'be', { memoryId: header.id });
+    fatLogger.info('🔍 [Transform] Generated display URL for memory', 'be', {
+      memoryId: header.id,
+    });
     fatLogger.info('🔍 [Transform] Full URL', 'be', { url: displayUrl });
-    fatLogger.info('🔍 [Transform] 🧪 TEST THIS URL IN BROWSER', 'be', { url: displayUrl });
+    fatLogger.info('🔍 [Transform] 🧪 TEST THIS URL IN BROWSER', 'be', {
+      url: displayUrl,
+    });
     checkAssetSize(displayUrl, 'DISPLAY', header.id);
   }
 
   // Check original
   if (header.assets.original.length > 0 && header.assets.original[0]) {
     const originalUrl = `${getHttpBaseUrl()}${header.assets.original[0].path}?token=${header.assets.original[0].token}`;
-    fatLogger.info('🔍 [Transform] Generated original URL for memory', 'be', { memoryId: header.id });
+    fatLogger.info('🔍 [Transform] Generated original URL for memory', 'be', {
+      memoryId: header.id,
+    });
     fatLogger.info('🔍 [Transform] Full URL', 'be', { url: originalUrl });
-    fatLogger.info('🔍 [Transform] 🧪 TEST THIS URL IN BROWSER', 'be', { url: originalUrl });
+    fatLogger.info('🔍 [Transform] 🧪 TEST THIS URL IN BROWSER', 'be', {
+      url: originalUrl,
+    });
     checkAssetSize(originalUrl, 'ORIGINAL', header.id);
   }
 }
@@ -263,7 +311,11 @@ function checkAllAssetSizes(header: MemoryHeader): void {
 /**
  * Check the actual size of an asset by fetching it
  */
-async function checkAssetSize(url: string, assetType: string, memoryId: string): Promise<void> {
+async function checkAssetSize(
+  url: string,
+  assetType: string,
+  memoryId: string
+): Promise<void> {
   try {
     const response = await fetch(url);
     const blob = await response.blob();
@@ -271,7 +323,9 @@ async function checkAssetSize(url: string, assetType: string, memoryId: string):
     // Create image element to get dimensions
     const img = document.createElement('img');
     img.onload = () => {
-      fatLogger.info(`🔍 [ASSET SIZE CHECK] ${assetType} for memory`, 'be', { memoryId });
+      fatLogger.info(`🔍 [ASSET SIZE CHECK] ${assetType} for memory`, 'be', {
+        memoryId,
+      });
       fatLogger.info('🔍 [ASSET SIZE CHECK] URL', 'be', { url });
       fatLogger.info('🔍 [ASSET SIZE CHECK] Actual dimensions', 'be', {
         width: img.naturalWidth,
@@ -281,18 +335,34 @@ async function checkAssetSize(url: string, assetType: string, memoryId: string):
         size: formatBytes(blob.size),
         bytes: blob.size,
       });
-      fatLogger.info('🔍 [ASSET SIZE CHECK] Content type', 'be', { contentType: blob.type });
+      fatLogger.info('🔍 [ASSET SIZE CHECK] Content type', 'be', {
+        contentType: blob.type,
+      });
 
       // Check if this looks like a placeholder
-      if (img.naturalWidth <= 32 && img.naturalHeight <= 32 && blob.size <= 2000) {
-        fatLogger.warn(`🚨 [ASSET SIZE CHECK] PLACEHOLDER DETECTED for ${assetType}!`, 'be');
+      if (
+        img.naturalWidth <= 32 &&
+        img.naturalHeight <= 32 &&
+        blob.size <= 2000
+      ) {
+        fatLogger.warn(
+          `🚨 [ASSET SIZE CHECK] PLACEHOLDER DETECTED for ${assetType}!`,
+          'be'
+        );
       } else {
-        fatLogger.info(`✅ [ASSET SIZE CHECK] ${assetType} looks correct`, 'be');
+        fatLogger.info(
+          `✅ [ASSET SIZE CHECK] ${assetType} looks correct`,
+          'be'
+        );
       }
     };
     img.src = URL.createObjectURL(blob);
   } catch (error) {
-    fatLogger.error(`❌ [ASSET SIZE CHECK] Failed to check ${assetType} for memory`, 'be', { memoryId, error });
+    fatLogger.error(
+      `❌ [ASSET SIZE CHECK] Failed to check ${assetType} for memory`,
+      'be',
+      { memoryId, error }
+    );
   }
 }
 
@@ -350,7 +420,10 @@ export const fetchMemories = async (
   page: number,
   dataSource: 'neon' | 'icp' = 'neon'
 ): Promise<FetchMemoriesResult> => {
-  fatLogger.info(`🔍 Fetching memories for page ${page} from ${dataSource}...`, 'be');
+  fatLogger.info(
+    `🔍 Fetching memories for page ${page} from ${dataSource}...`,
+    'be'
+  );
 
   if (dataSource === 'icp') {
     return await fetchMemoriesFromICP(page);
@@ -360,9 +433,16 @@ export const fetchMemories = async (
 };
 
 // Fetch memories from Neon database via API (current implementation)
-const fetchMemoriesFromNeon = async (page: number): Promise<FetchMemoriesResult> => {
-  const response = await fetch(`/api/memories?page=${page}`, { cache: 'no-store' });
-  fatLogger.info(`🔍 API response status: ${response.status} ${response.statusText}`, 'be');
+const fetchMemoriesFromNeon = async (
+  page: number
+): Promise<FetchMemoriesResult> => {
+  const response = await fetch(`/api/memories?page=${page}`, {
+    cache: 'no-store',
+  });
+  fatLogger.info(
+    `🔍 API response status: ${response.status} ${response.statusText}`,
+    'be'
+  );
 
   if (!response.ok) {
     // Try to get error details from the response
@@ -380,12 +460,27 @@ const fetchMemoriesFromNeon = async (page: number): Promise<FetchMemoriesResult>
 
     const error = new Error(errorMessage);
     // Attach additional error details for debugging
-    (error as Error & { status?: number; statusText?: string; details?: Record<string, unknown> }).status =
-      response.status;
-    (error as Error & { status?: number; statusText?: string; details?: Record<string, unknown> }).statusText =
-      response.statusText;
-    (error as Error & { status?: number; statusText?: string; details?: Record<string, unknown> }).details =
-      errorDetails;
+    (
+      error as Error & {
+        status?: number;
+        statusText?: string;
+        details?: Record<string, unknown>;
+      }
+    ).status = response.status;
+    (
+      error as Error & {
+        status?: number;
+        statusText?: string;
+        details?: Record<string, unknown>;
+      }
+    ).statusText = response.statusText;
+    (
+      error as Error & {
+        status?: number;
+        statusText?: string;
+        details?: Record<string, unknown>;
+      }
+    ).details = errorDetails;
 
     throw error;
   }
@@ -398,12 +493,14 @@ const fetchMemoriesFromNeon = async (page: number): Promise<FetchMemoriesResult>
   });
 
   // Use new unified format - memories already have status and sharedWithCount
-  const memories = data.data.map((memory: Memory & { status?: string; sharedWithCount?: number }) => ({
-    ...memory,
-    // Ensure we have the expected properties
-    status: memory.status || 'private',
-    sharedWithCount: memory.sharedWithCount || 0,
-  }));
+  const memories = data.data.map(
+    (memory: Memory & { status?: string; sharedWithCount?: number }) => ({
+      ...memory,
+      // Ensure we have the expected properties
+      status: memory.status || 'private',
+      sharedWithCount: memory.sharedWithCount || 0,
+    })
+  );
 
   return {
     memories,
@@ -412,7 +509,9 @@ const fetchMemoriesFromNeon = async (page: number): Promise<FetchMemoriesResult>
 };
 
 // Fetch memories from ICP canister directly
-const fetchMemoriesFromICP = async (page: number): Promise<FetchMemoriesResult> => {
+const fetchMemoriesFromICP = async (
+  page: number
+): Promise<FetchMemoriesResult> => {
   try {
     const { backendActor } = await import('@/ic/backend');
     const { getAuthClient } = await import('@/ic/ii');
@@ -420,7 +519,9 @@ const fetchMemoriesFromICP = async (page: number): Promise<FetchMemoriesResult> 
     // Get authenticated identity
     const authClient = await getAuthClient();
     if (!authClient.isAuthenticated()) {
-      throw new Error('Please connect your Internet Identity to fetch ICP memories');
+      throw new Error(
+        'Please connect your Internet Identity to fetch ICP memories'
+      );
     }
 
     const identity = authClient.getIdentity();
@@ -432,7 +533,11 @@ const fetchMemoriesFromICP = async (page: number): Promise<FetchMemoriesResult> 
       // Handle capsule not found (expected for new users)
 
       // Check if this is a "no capsule" error (expected for new users)
-      if (capsuleResult.Err && typeof capsuleResult.Err === 'object' && 'NotFound' in capsuleResult.Err) {
+      if (
+        capsuleResult.Err &&
+        typeof capsuleResult.Err === 'object' &&
+        'NotFound' in capsuleResult.Err
+      ) {
         // No capsule found - user likely has no memories yet
         return {
           memories: [],
@@ -451,10 +556,15 @@ const fetchMemoriesFromICP = async (page: number): Promise<FetchMemoriesResult> 
 
     // Calculate cursor from page (ICP uses cursor-based pagination)
     const limit: [] | [number] = [12];
-    const cursor: [] | [string] = page > 1 ? [((page - 1) * 12).toString()] : [];
+    const cursor: [] | [string] =
+      page > 1 ? [((page - 1) * 12).toString()] : [];
 
     // Call ICP canister using the new memories_list_by_capsule function
-    const result = await actor.memories_list_by_capsule(capsuleId, cursor, limit);
+    const result = await actor.memories_list_by_capsule(
+      capsuleId,
+      cursor,
+      limit
+    );
 
     if ('Ok' in result) {
       const memoriesPage = result.Ok;
@@ -463,7 +573,9 @@ const fetchMemoriesFromICP = async (page: number): Promise<FetchMemoriesResult> 
       await debugMemoriesPage(memoriesPage);
 
       // Transform ICP MemoryHeader to Neon MemoryWithFolder format
-      const memories = memoriesPage.items.map((header: MemoryHeader) => transformICPMemoryHeaderToNeon(header));
+      const memories = memoriesPage.items.map((header: MemoryHeader) =>
+        transformICPMemoryHeaderToNeon(header)
+      );
 
       return {
         memories,
@@ -473,7 +585,11 @@ const fetchMemoriesFromICP = async (page: number): Promise<FetchMemoriesResult> 
       // Handle ICP canister errors (expected for new users)
 
       // Check if this is a "no capsule" error (expected for new users)
-      if (result.Err && typeof result.Err === 'object' && 'NotFound' in result.Err) {
+      if (
+        result.Err &&
+        typeof result.Err === 'object' &&
+        'NotFound' in result.Err
+      ) {
         // No capsule found - user likely has no memories yet
         return {
           memories: [],
@@ -506,7 +622,9 @@ const fetchMemoriesFromICP = async (page: number): Promise<FetchMemoriesResult> 
 };
 
 // Transform ICP MemoryHeader to Neon MemoryWithFolder format
-const transformICPMemoryHeaderToNeon = (header: MemoryHeader): MemoryWithFolder => {
+const transformICPMemoryHeaderToNeon = (
+  header: MemoryHeader
+): MemoryWithFolder => {
   return {
     // Core identification
     id: header.id,
@@ -514,18 +632,29 @@ const transformICPMemoryHeaderToNeon = (header: MemoryHeader): MemoryWithFolder 
 
     // Memory metadata
     type: mapICPMemoryTypeToNeon(header.memory_type),
-    title: (header.title.length > 0 ? header.title[0] : null) || header.name || 'Untitled',
-    description: header.description.length > 0 ? header.description[0] : undefined,
+    title:
+      (header.title.length > 0 ? header.title[0] : null) ||
+      header.name ||
+      'Untitled',
+    description:
+      header.description.length > 0 ? header.description[0] : undefined,
     isPublic: 'Public' in header.sharing_status,
 
     // Organization
-    parentFolderId: header.parent_folder_id.length > 0 ? header.parent_folder_id[0] : undefined,
+    parentFolderId:
+      header.parent_folder_id.length > 0
+        ? header.parent_folder_id[0]
+        : undefined,
     tags: header.tags || [],
     recipients: [], // TODO: Extract from access if needed
 
     // Timestamps (convert nanoseconds to ISO strings)
-    createdAt: new Date(Number(header.created_at / BigInt(1000000))).toISOString(),
-    updatedAt: new Date(Number(header.updated_at / BigInt(1000000))).toISOString(),
+    createdAt: new Date(
+      Number(header.created_at / BigInt(1000000))
+    ).toISOString(),
+    updatedAt: new Date(
+      Number(header.updated_at / BigInt(1000000))
+    ).toISOString(),
     fileCreatedAt: undefined, // Not available in MemoryHeader
     unlockDate: undefined, // ICP doesn't have unlock dates
     deletedAt: undefined, // Not available in MemoryHeader
@@ -536,7 +665,12 @@ const transformICPMemoryHeaderToNeon = (header: MemoryHeader): MemoryWithFolder 
     },
 
     // Sharing information (from pre-computed fields)
-    status: 'Public' in header.sharing_status ? 'public' : 'Private' in header.sharing_status ? 'private' : 'shared',
+    status:
+      'Public' in header.sharing_status
+        ? 'public'
+        : 'Private' in header.sharing_status
+          ? 'private'
+          : 'shared',
     sharedWithCount: header.shared_count,
 
     // Folder information
@@ -564,9 +698,14 @@ const transformICPMemoryHeaderToNeon = (header: MemoryHeader): MemoryWithFolder 
 
     // NEW: Placeholder data for instant loading
     placeholder: (() => {
-      const placeholderData = header.placeholder_data.length > 0 ? header.placeholder_data[0] : undefined;
+      const placeholderData =
+        header.placeholder_data.length > 0
+          ? header.placeholder_data[0]
+          : undefined;
       if (placeholderData) {
-        fatLogger.info('🔍 [DEBUG] Placeholder data found for memory', 'be', { memoryId: header.id });
+        fatLogger.info('🔍 [DEBUG] Placeholder data found for memory', 'be', {
+          memoryId: header.id,
+        });
         fatLogger.info('🔍 [DEBUG] Placeholder data length', 'be', {
           length: placeholderData.length,
           unit: 'characters',
@@ -575,7 +714,9 @@ const transformICPMemoryHeaderToNeon = (header: MemoryHeader): MemoryWithFolder 
         // Check placeholder size (it's base64 encoded)
         try {
           const placeholderBytes = atob(placeholderData);
-          fatLogger.info('🔍 [ASSET SIZE CHECK] PLACEHOLDER for memory', 'be', { memoryId: header.id });
+          fatLogger.info('🔍 [ASSET SIZE CHECK] PLACEHOLDER for memory', 'be', {
+            memoryId: header.id,
+          });
           fatLogger.info('🔍 [ASSET SIZE CHECK] Base64 length', 'be', {
             length: placeholderData.length,
             unit: 'characters',
@@ -584,12 +725,22 @@ const transformICPMemoryHeaderToNeon = (header: MemoryHeader): MemoryWithFolder 
             size: formatBytes(placeholderBytes.length),
             bytes: placeholderBytes.length,
           });
-          fatLogger.info('🔍 [ASSET SIZE CHECK] Data URL', 'be', { preview: placeholderData.substring(0, 50) + '...' });
+          fatLogger.info('🔍 [ASSET SIZE CHECK] Data URL', 'be', {
+            preview: placeholderData.substring(0, 50) + '...',
+          });
         } catch (error) {
-          fatLogger.error('❌ [ASSET SIZE CHECK] Failed to decode placeholder data', 'be', { error });
+          fatLogger.error(
+            '❌ [ASSET SIZE CHECK] Failed to decode placeholder data',
+            'be',
+            { error }
+          );
         }
       } else {
-        fatLogger.info('🔍 [DEBUG] No placeholder data found for memory', 'be', { memoryId: header.id });
+        fatLogger.info(
+          '🔍 [DEBUG] No placeholder data found for memory',
+          'be',
+          { memoryId: header.id }
+        );
       }
       return placeholderData;
     })(),
@@ -601,13 +752,23 @@ const transformICPMemoryHeaderToNeon = (header: MemoryHeader): MemoryWithFolder 
           ? `${getHttpBaseUrl()}${header.assets.original[0].path}?token=${header.assets.original[0].token}`
           : undefined;
       if (originalUrl && header.assets.original[0]) {
-        fatLogger.info('🔍 [Transform] Generated original URL for memory', 'be', { memoryId: header.id });
-        fatLogger.info('🔍 [Transform] Token', 'be', { token: header.assets.original[0].token });
+        fatLogger.info(
+          '🔍 [Transform] Generated original URL for memory',
+          'be',
+          { memoryId: header.id }
+        );
+        fatLogger.info('🔍 [Transform] Token', 'be', {
+          token: header.assets.original[0].token,
+        });
         fatLogger.info('🔍 [Transform] Expires at', 'be', {
-          expiresAt: new Date(Number(header.assets.original[0].expires_at_ns / BigInt(1000000))),
+          expiresAt: new Date(
+            Number(header.assets.original[0].expires_at_ns / BigInt(1000000))
+          ),
         });
         fatLogger.info('🔍 [Transform] Full URL', 'be', { url: originalUrl });
-        fatLogger.info('🔍 [Transform] 🧪 TEST THIS URL IN BROWSER', 'be', { url: originalUrl });
+        fatLogger.info('🔍 [Transform] 🧪 TEST THIS URL IN BROWSER', 'be', {
+          url: originalUrl,
+        });
 
         // Check actual asset size
         checkAssetSize(originalUrl, 'ORIGINAL', header.id);
@@ -618,16 +779,21 @@ const transformICPMemoryHeaderToNeon = (header: MemoryHeader): MemoryWithFolder 
     // NEW: Storage location information
     storageStatus: (() => {
       // Process storage edges data
-      const storageLocations = header.database_storage_edges.map(edge => {
+      const storageLocations = header.database_storage_edges.map((edge) => {
         return 'Icp' in edge ? 'icp' : 'Neon' in edge ? 'neon' : 'unknown';
       });
 
       // TEMPORARY FIX: If this is an ICP memory (UUID v7 format) and we get 'neon' storage locations,
       // it's likely a backend bug where ICP memories are incorrectly marked as Neon.
       // For now, force ICP memories to show as 'icp' storage.
-      const isUuidV7 = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(header.id);
+      const isUuidV7 =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          header.id
+        );
       const finalStorageLocations =
-        isUuidV7 && storageLocations.includes('neon') && !storageLocations.includes('icp')
+        isUuidV7 &&
+        storageLocations.includes('neon') &&
+        !storageLocations.includes('icp')
           ? ['icp'] // Force ICP memories to show as 'icp' storage
           : storageLocations;
 
@@ -641,7 +807,9 @@ const transformICPMemoryHeaderToNeon = (header: MemoryHeader): MemoryWithFolder 
 };
 
 // Helper function to map ICP memory types to Neon types
-const mapICPMemoryTypeToNeon = (icpType: MemoryType): 'image' | 'video' | 'note' | 'document' | 'audio' => {
+const mapICPMemoryTypeToNeon = (
+  icpType: MemoryType
+): 'image' | 'video' | 'note' | 'document' | 'audio' => {
   // Handle ICP enum format: { Image: null }, { Video: null }, etc.
   if (typeof icpType === 'object' && icpType !== null) {
     if ('Image' in icpType) return 'image';
@@ -671,7 +839,8 @@ export const deleteAllMemories = async (options?: {
 }): Promise<{ success: boolean; message: string; deletedCount: number }> => {
   // Check if we should use ICP backend
   const useICP =
-    options?.hostingPreferences?.backendHosting === 'icp' || options?.hostingPreferences?.blobHosting?.includes('icp');
+    options?.hostingPreferences?.backendHosting === 'icp' ||
+    options?.hostingPreferences?.blobHosting?.includes('icp');
 
   if (useICP) {
     // Use ICP backend for deletion
@@ -723,7 +892,9 @@ const deleteAllMemoriesFromICP = async (_options?: {
     // Get authenticated actor
     const authClient = await getAuthClient();
     if (!authClient.isAuthenticated()) {
-      throw new Error('Please connect your Internet Identity to delete ICP memories');
+      throw new Error(
+        'Please connect your Internet Identity to delete ICP memories'
+      );
     }
 
     const identity = authClient.getIdentity();
@@ -742,29 +913,49 @@ const deleteAllMemoriesFromICP = async (_options?: {
 
       if (capsuleInfo) {
         capsuleId = capsuleInfo.capsule_id;
-        fatLogger.info('🔍 [Delete All Dev] Found existing capsule', 'be', { capsuleId });
+        fatLogger.info('🔍 [Delete All Dev] Found existing capsule', 'be', {
+          capsuleId,
+        });
       } else {
         // No capsule found, create one
-        fatLogger.info('🔍 [Delete All Dev] No capsule found, creating one...', 'be');
+        fatLogger.info(
+          '🔍 [Delete All Dev] No capsule found, creating one...',
+          'be'
+        );
         const createResult = await backend.capsules_create([]);
         if ('Ok' in createResult) {
           capsuleId = createResult.Ok.id;
-          fatLogger.info('🔍 [Delete All Dev] Created new capsule', 'be', { capsuleId });
+          fatLogger.info('🔍 [Delete All Dev] Created new capsule', 'be', {
+            capsuleId,
+          });
         } else {
-          throw new Error(`Failed to create capsule: ${JSON.stringify(createResult.Err)}`);
+          throw new Error(
+            `Failed to create capsule: ${JSON.stringify(createResult.Err)}`
+          );
         }
       }
     } catch (error) {
-      fatLogger.error('🔍 [Delete All Dev] Error getting/creating capsule', 'be', { error });
+      fatLogger.error(
+        '🔍 [Delete All Dev] Error getting/creating capsule',
+        'be',
+        { error }
+      );
       throw new Error(
         `Failed to get or create user capsule: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     }
 
     // Use the new dev method for efficient deletion
-    fatLogger.info('🔍 [Delete All Dev] Calling dev_clear_all_memories_in_capsule for capsule', 'be', { capsuleId });
+    fatLogger.info(
+      '🔍 [Delete All Dev] Calling dev_clear_all_memories_in_capsule for capsule',
+      'be',
+      { capsuleId }
+    );
     try {
-      const deleteAllResult = await backend.dev_clear_all_memories_in_capsule(capsuleId, true); // true = delete assets
+      const deleteAllResult = await backend.dev_clear_all_memories_in_capsule(
+        capsuleId,
+        true
+      ); // true = delete assets
 
       if ('Ok' in deleteAllResult) {
         const result = deleteAllResult.Ok;
@@ -775,26 +966,40 @@ const deleteAllMemoriesFromICP = async (_options?: {
           deletedCount: result.deleted_count,
         };
       } else {
-        fatLogger.error('🔍 [Delete All Dev] Failed', 'be', { error: deleteAllResult.Err });
-        throw new Error(`Failed to delete all memories: ${JSON.stringify(deleteAllResult.Err)}`);
+        fatLogger.error('🔍 [Delete All Dev] Failed', 'be', {
+          error: deleteAllResult.Err,
+        });
+        throw new Error(
+          `Failed to delete all memories: ${JSON.stringify(deleteAllResult.Err)}`
+        );
       }
     } catch (error) {
-      fatLogger.error('🔍 [Delete All Dev] Error calling dev_clear_all_memories_in_capsule', 'be', { error });
+      fatLogger.error(
+        '🔍 [Delete All Dev] Error calling dev_clear_all_memories_in_capsule',
+        'be',
+        { error }
+      );
       throw new Error(
         `Failed to call dev_clear_all_memories_in_capsule: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     }
   } catch (error) {
     fatLogger.error('Failed to delete memories from ICP', 'be', { error });
-    throw new Error(`Failed to delete ICP memories: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      `Failed to delete ICP memories: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
 };
 
-export const processDashboardItems = (memories: MemoryWithFolder[]): DashboardItem[] => {
+export const processDashboardItems = (
+  memories: MemoryWithFolder[]
+): DashboardItem[] => {
   fatLogger.info('🚀 LINE 129: ENTERING processDashboardItems', 'be');
-  fatLogger.info('🔍 processDashboardItems - Received memories:', 'be', { count: memories.length });
+  fatLogger.info('🔍 processDashboardItems - Received memories:', 'be', {
+    count: memories.length,
+  });
   fatLogger.info('🔍 All memories with folder info:', 'be', {
-    memories: memories.map(m => ({
+    memories: memories.map((m) => ({
       id: m.id,
       title: m.title,
       parentFolderId: m.parentFolderId,
@@ -806,11 +1011,17 @@ export const processDashboardItems = (memories: MemoryWithFolder[]): DashboardIt
   const folderGroups = memories.reduce(
     (groups, memory) => {
       const parentFolderId = memory.parentFolderId;
-      fatLogger.info(`🔍 Processing memory "${memory.title}" with parentFolderId: ${parentFolderId}`, 'be');
+      fatLogger.info(
+        `🔍 Processing memory "${memory.title}" with parentFolderId: ${parentFolderId}`,
+        'be'
+      );
       if (parentFolderId) {
         if (!groups[parentFolderId]) {
           groups[parentFolderId] = [];
-          fatLogger.info(`📁 Created new folder group for: ${parentFolderId}`, 'be');
+          fatLogger.info(
+            `📁 Created new folder group for: ${parentFolderId}`,
+            'be'
+          );
         }
         groups[parentFolderId].push(memory);
         fatLogger.info(
@@ -818,7 +1029,10 @@ export const processDashboardItems = (memories: MemoryWithFolder[]): DashboardIt
           'be'
         );
       } else {
-        fatLogger.info(`🔍 Memory "${memory.title}" has no parentFolderId - will be individual`, 'be');
+        fatLogger.info(
+          `🔍 Memory "${memory.title}" has no parentFolderId - will be individual`,
+          'be'
+        );
       }
       return groups;
     },
@@ -830,65 +1044,82 @@ export const processDashboardItems = (memories: MemoryWithFolder[]): DashboardIt
       folderId,
       folderName: memories[0]?.folder?.name || 'Unknown',
       count: memories.length,
-      memories: memories.map(m => m.title),
+      memories: memories.map((m) => m.title),
     })),
   });
 
   // Step 2: Create FolderItems for each group
-  const folderItems: FolderItem[] = Object.entries(folderGroups).map(([folderId, folderMemories]) => {
-    // Compute storage summary from existing memory data (using NEW array approach)
-    const allStorageLocations = new Set<string>();
+  const folderItems: FolderItem[] = Object.entries(folderGroups).map(
+    ([folderId, folderMemories]) => {
+      // Compute storage summary from existing memory data (using NEW array approach)
+      const allStorageLocations = new Set<string>();
 
-    folderMemories.forEach(memory => {
-      // Check if memory has storageStatus with storageLocations
-      if (memory.storageStatus?.storageLocations) {
-        memory.storageStatus.storageLocations.forEach(location => allStorageLocations.add(location));
-      }
-    });
+      folderMemories.forEach((memory) => {
+        // Check if memory has storageStatus with storageLocations
+        if (memory.storageStatus?.storageLocations) {
+          memory.storageStatus.storageLocations.forEach((location) =>
+            allStorageLocations.add(location)
+          );
+        }
+      });
 
-    const folderName = folderMemories[0]?.folder?.name || 'Unknown Folder';
-    return {
-      id: `folder-${folderId}`,
-      type: 'folder' as const,
-      title: folderName,
-      description: '',
-      itemCount: folderMemories.length,
-      memories: folderMemories,
-      folderId: folderId, // Store actual folder ID
-      createdAt: folderMemories[0]?.createdAt || new Date().toISOString(),
-      url: folderMemories[0]?.url || '',
-      // Prefer the first memory's best available asset for a folder thumbnail
-      thumbnail:
-        (
-          folderMemories[0] as (typeof folderMemories)[0] & { assets?: Array<{ assetType: string; url: string }> }
-        )?.assets?.find?.(a => a.assetType === 'thumb')?.url ||
-        (
-          folderMemories[0] as (typeof folderMemories)[0] & { assets?: Array<{ assetType: string; url: string }> }
-        )?.assets?.find?.(a => a.assetType === 'display')?.url ||
-        (
-          folderMemories[0] as (typeof folderMemories)[0] & { assets?: Array<{ assetType: string; url: string }> }
-        )?.assets?.find?.(a => a.assetType === 'original')?.url ||
-        folderMemories[0]?.thumbnail ||
-        '',
-      status: 'private' as const,
-      sharedWithCount: 0,
-      storageSummary: {
-        storageLocations: Array.from(allStorageLocations),
-      },
-    };
-  });
+      const folderName = folderMemories[0]?.folder?.name || 'Unknown Folder';
+      return {
+        id: `folder-${folderId}`,
+        type: 'folder' as const,
+        title: folderName,
+        description: '',
+        itemCount: folderMemories.length,
+        memories: folderMemories,
+        folderId: folderId, // Store actual folder ID
+        createdAt: folderMemories[0]?.createdAt || new Date().toISOString(),
+        url: folderMemories[0]?.url || '',
+        // Prefer the first memory's best available asset for a folder thumbnail
+        thumbnail:
+          (
+            folderMemories[0] as (typeof folderMemories)[0] & {
+              assets?: Array<{ assetType: string; url: string }>;
+            }
+          )?.assets?.find?.((a) => a.assetType === 'thumb')?.url ||
+          (
+            folderMemories[0] as (typeof folderMemories)[0] & {
+              assets?: Array<{ assetType: string; url: string }>;
+            }
+          )?.assets?.find?.((a) => a.assetType === 'display')?.url ||
+          (
+            folderMemories[0] as (typeof folderMemories)[0] & {
+              assets?: Array<{ assetType: string; url: string }>;
+            }
+          )?.assets?.find?.((a) => a.assetType === 'original')?.url ||
+          folderMemories[0]?.thumbnail ||
+          '',
+        status: 'private' as const,
+        sharedWithCount: 0,
+        storageSummary: {
+          storageLocations: Array.from(allStorageLocations),
+        },
+      };
+    }
+  );
 
   fatLogger.info('🔍 Created folder items:', 'be', { folderItems });
 
   // Step 3: Get individual memories (not in folders)
-  const individualMemories = memories.filter(memory => !memory.parentFolderId);
+  const individualMemories = memories.filter(
+    (memory) => !memory.parentFolderId
+  );
 
   // fatLogger.info("🔍 Individual memories:", individualMemories.length);
 
   // Step 4: Combine and return
   const result = [...individualMemories, ...folderItems];
-  fatLogger.info('🔍 Final result:', 'be', { count: result.length, type: 'items' });
-  fatLogger.info('🔍 Individual memories count:', 'be', { count: individualMemories.length });
+  fatLogger.info('🔍 Final result:', 'be', {
+    count: result.length,
+    type: 'items',
+  });
+  fatLogger.info('🔍 Individual memories count:', 'be', {
+    count: individualMemories.length,
+  });
   fatLogger.info('🔍 Folder items count:', 'be', { count: folderItems.length });
 
   fatLogger.info('✅ LINE 180: EXITING processDashboardItems', 'be');

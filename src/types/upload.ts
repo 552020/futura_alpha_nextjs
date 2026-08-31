@@ -29,7 +29,13 @@ export interface UseFileUploadProps {
  * Storage backend types - canonical domain representation
  * Matches database schema and includes all supported providers
  */
-export type StorageBackend = 's3' | 'vercel_blob' | 'icp' | 'arweave' | 'ipfs' | 'neon';
+export type StorageBackend =
+  | 's3'
+  | 'vercel_blob'
+  | 'icp'
+  | 'arweave'
+  | 'ipfs'
+  | 'neon';
 
 /**
  * Upload result - domain representation of completed upload

@@ -5,7 +5,14 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { useAuthGuard } from '@/utils/authentication';
 import { Button } from '@/components/ui/button';
-import { X, ChevronLeft, ChevronRight, Download, Share2, HardDrive } from 'lucide-react';
+import {
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Share2,
+  HardDrive,
+} from 'lucide-react';
 import { galleryService } from '@/services/gallery';
 import { GalleryWithItems } from '@/types/gallery';
 import { ForeverStorageProgressModal } from '@/components/galleries/forever-storage-progress-modal';
@@ -27,7 +34,8 @@ function GalleryHeroCover({
   return (
     <div className="relative w-full h-screen bg-black">
       {/* Cover image */}
-      {gallery.items[0]?.memory.url && !failedImages.has(gallery.items[0].memory.url) ? (
+      {gallery.items[0]?.memory.url &&
+      !failedImages.has(gallery.items[0].memory.url) ? (
         <Image
           src={gallery.items[0].memory.url}
           alt={gallery.items[0].memory.title || 'Gallery Cover'}
@@ -46,7 +54,9 @@ function GalleryHeroCover({
               <span className="text-4xl">📷</span>
             </div>
             <h1 className="text-2xl font-semibold mb-2">{gallery.title}</h1>
-            {gallery.description && <p className="text-gray-300">{gallery.description}</p>}
+            {gallery.description && (
+              <p className="text-gray-300">{gallery.description}</p>
+            )}
           </div>
         </div>
       )}
@@ -87,7 +97,9 @@ function StickyHeader({
           <div className="text-gray-900 dark:text-white min-w-0">
             <h1 className="text-lg font-semibold truncate">{gallery.title}</h1>
             {gallery.description && (
-              <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-1">{gallery.description}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-1">
+                {gallery.description}
+              </p>
             )}
           </div>
           <div className="flex items-center space-x-2">
@@ -109,7 +121,9 @@ function StickyHeader({
               {isPublishing ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
-                  {gallery.sharingStatus === 'public' ? 'Hiding...' : 'Publishing...'}
+                  {gallery.sharingStatus === 'public'
+                    ? 'Hiding...'
+                    : 'Publishing...'}
                 </>
               ) : gallery.sharingStatus === 'public' ? (
                 'Hide'
@@ -226,7 +240,9 @@ function GalleryGrid({
                     </div>
                     <span className="text-sm">Photo {index + 1}</span>
                     {failedImages.has(item.memory.url!) && (
-                      <span className="text-xs text-gray-500 mt-1">Failed to load</span>
+                      <span className="text-xs text-gray-500 mt-1">
+                        Failed to load
+                      </span>
                     )}
                   </div>
                 </div>
@@ -247,8 +263,12 @@ function GalleryGrid({
         </div>
       ) : (
         <div className="text-center py-16 text-white">
-          <h3 className="text-xl font-semibold mb-2">No photos in this gallery yet</h3>
-          <p className="text-gray-300 mb-6">Add photos to this gallery to see them here.</p>
+          <h3 className="text-xl font-semibold mb-2">
+            No photos in this gallery yet
+          </h3>
+          <p className="text-gray-300 mb-6">
+            Add photos to this gallery to see them here.
+          </p>
         </div>
       )}
     </div>
@@ -266,7 +286,9 @@ function GalleryPreviewContent() {
   const [gallery, setGallery] = useState<GalleryWithItems | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(
+    null
+  );
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   const [showCover] = useState(true);
   const [isPublishing, setIsPublishing] = useState(false);
@@ -278,7 +300,10 @@ function GalleryPreviewContent() {
     try {
       setIsLoading(true);
       setError(null);
-      const result = await galleryService.getGallery(id as string, USE_MOCK_DATA);
+      const result = await galleryService.getGallery(
+        id as string,
+        USE_MOCK_DATA
+      );
       setGallery(result.gallery);
     } catch (err) {
       fatLogger.error('Error loading gallery', 'fe', { data: err as Error });
@@ -316,18 +341,26 @@ function GalleryPreviewContent() {
 
   const handlePreviousImage = useCallback(() => {
     if (selectedImageIndex !== null && gallery) {
-      setSelectedImageIndex(selectedImageIndex > 0 ? selectedImageIndex - 1 : gallery.items.length - 1);
+      setSelectedImageIndex(
+        selectedImageIndex > 0
+          ? selectedImageIndex - 1
+          : gallery.items.length - 1
+      );
     }
   }, [selectedImageIndex, gallery]);
 
   const handleNextImage = useCallback(() => {
     if (selectedImageIndex !== null && gallery) {
-      setSelectedImageIndex(selectedImageIndex < gallery.items.length - 1 ? selectedImageIndex + 1 : 0);
+      setSelectedImageIndex(
+        selectedImageIndex < gallery.items.length - 1
+          ? selectedImageIndex + 1
+          : 0
+      );
     }
   }, [selectedImageIndex, gallery]);
 
   const handleImageError = useCallback((imageUrl: string) => {
-    setFailedImages(prev => new Set(prev).add(imageUrl));
+    setFailedImages((prev) => new Set(prev).add(imageUrl));
   }, []);
 
   const handleExitPreview = useCallback(() => {
@@ -339,14 +372,17 @@ function GalleryPreviewContent() {
 
     try {
       setIsPublishing(true);
-      await galleryService.updateGallery(gallery.id, { isPublic: gallery.sharingStatus !== 'public' });
+      await galleryService.updateGallery(gallery.id, {
+        isPublic: gallery.sharingStatus !== 'public',
+      });
 
       // Update local state
-      setGallery(prev =>
+      setGallery((prev) =>
         prev
           ? {
               ...prev,
-              sharingStatus: prev.sharingStatus === 'public' ? 'private' : 'public',
+              sharingStatus:
+                prev.sharingStatus === 'public' ? 'private' : 'public',
             }
           : null
       );
@@ -358,7 +394,9 @@ function GalleryPreviewContent() {
         description: `Gallery ${gallery.sharingStatus === 'public' ? 'hidden' : 'published'} successfully`,
       });
     } catch (error) {
-      fatLogger.error('Failed to update gallery', 'fe', { data: error as Error });
+      fatLogger.error('Failed to update gallery', 'fe', {
+        data: error as Error,
+      });
       // Show error message (you can add toast notification here)
     } finally {
       setIsPublishing(false);
@@ -375,13 +413,17 @@ function GalleryPreviewContent() {
         // Create a temporary link and trigger download
         const link = document.createElement('a');
         link.href = currentImage.memory.url;
-        link.download = currentImage.memory.title || `gallery-image-${selectedImageIndex + 1}.jpg`;
+        link.download =
+          currentImage.memory.title ||
+          `gallery-image-${selectedImageIndex + 1}.jpg`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
       }
     } catch (error) {
-      fatLogger.error('Failed to download image', 'fe', { data: error as Error });
+      fatLogger.error('Failed to download image', 'fe', {
+        data: error as Error,
+      });
     } finally {
       setIsDownloading(false);
     }
@@ -404,7 +446,9 @@ function GalleryPreviewContent() {
         description: 'Gallery shared successfully',
       });
     } catch (error) {
-      fatLogger.error('Failed to share gallery', 'fe', { data: error as Error });
+      fatLogger.error('Failed to share gallery', 'fe', {
+        data: error as Error,
+      });
       // Show error message (you can add toast notification here)
     } finally {
       setIsSharing(false);
@@ -425,7 +469,9 @@ function GalleryPreviewContent() {
   };
 
   const handleForeverStorageError = (error: Error) => {
-    fatLogger.error('Error storing gallery forever', 'fe', { data: error as Error });
+    fatLogger.error('Error storing gallery forever', 'fe', {
+      data: error as Error,
+    });
     setError('Failed to store gallery forever');
   };
 
@@ -455,7 +501,13 @@ function GalleryPreviewContent() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedImageIndex, handleCloseLightbox, handlePreviousImage, handleNextImage, handleExitPreview]);
+  }, [
+    selectedImageIndex,
+    handleCloseLightbox,
+    handlePreviousImage,
+    handleNextImage,
+    handleExitPreview,
+  ]);
 
   if (authLoading || isLoading) {
     return (
@@ -473,7 +525,9 @@ function GalleryPreviewContent() {
       <div className="flex items-center justify-center min-h-screen bg-white dark:bg-slate-950">
         <div className="text-center text-gray-900 dark:text-white">
           <h2 className="text-2xl font-semibold mb-4">Access Denied</h2>
-          <p className="text-gray-600 dark:text-gray-300 mb-6">You need to be logged in to view this gallery</p>
+          <p className="text-gray-600 dark:text-gray-300 mb-6">
+            You need to be logged in to view this gallery
+          </p>
           <Button onClick={handleExitPreview} variant="outline">
             Go Back
           </Button>
@@ -500,7 +554,11 @@ function GalleryPreviewContent() {
     <div className="bg-white dark:bg-slate-950">
       {/* Hero Cover Section */}
       {showCover && gallery && gallery.items.length > 0 && (
-        <GalleryHeroCover gallery={gallery} failedImages={failedImages} onImageError={handleImageError} />
+        <GalleryHeroCover
+          gallery={gallery}
+          failedImages={failedImages}
+          onImageError={handleImageError}
+        />
       )}
 
       {/* Sticky Header */}
@@ -557,10 +615,15 @@ function GalleryPreviewContent() {
             {/* Image */}
             <div className="max-w-5xl max-h-full p-8">
               {gallery.items[selectedImageIndex]?.memory.url &&
-              !failedImages.has(gallery.items[selectedImageIndex].memory.url!) ? (
+              !failedImages.has(
+                gallery.items[selectedImageIndex].memory.url!
+              ) ? (
                 <Image
                   src={gallery.items[selectedImageIndex].memory.url}
-                  alt={gallery.items[selectedImageIndex].memory.title || `Photo ${selectedImageIndex + 1}`}
+                  alt={
+                    gallery.items[selectedImageIndex].memory.title ||
+                    `Photo ${selectedImageIndex + 1}`
+                  }
                   fill
                   className="object-contain"
                   sizes={IMAGE_SIZES.lightbox}

@@ -10,7 +10,12 @@ import { ItemUploadButton } from '@/components/memory/item-upload-button';
 import { Button } from '@/components/ui/button';
 import { FolderTopBar } from '@/components/dashboard/folder-top-bar';
 // import { TawkChat } from '@/components/chat/tawk-chat';
-import { fetchMemories, deleteMemory, type MemoryWithFolder, type DashboardItem } from '@/services/memories';
+import {
+  fetchMemories,
+  deleteMemory,
+  type MemoryWithFolder,
+  type DashboardItem,
+} from '@/services/memories';
 import { Memory } from '@/types/memory';
 import { sampleDashboardMemories } from '../../../../../../scripts/mock-data/create-dashboard-sample-data';
 import { fatLogger } from '@/lib/logger';
@@ -46,10 +51,15 @@ export default function FolderPage() {
 
   const fetchFolderMemories = useCallback(async () => {
     fatLogger.info('🚀 ENTERING fetchFolderMemories function', 'fe');
-    
+
     // Strip 'folder-' prefix if present to get the actual UUID
-    const cleanFolderId = folderId.startsWith('folder-') ? folderId.replace('folder-', '') : folderId;
-    fatLogger.info('🔍 Folder IDs:', 'fe', { original: folderId, clean: cleanFolderId });
+    const cleanFolderId = folderId.startsWith('folder-')
+      ? folderId.replace('folder-', '')
+      : folderId;
+    fatLogger.info('🔍 Folder IDs:', 'fe', {
+      original: folderId,
+      clean: cleanFolderId,
+    });
 
     if (USE_MOCK_DATA) {
       // fatLogger.info("🎭 MOCK DATA - Using sample data for folder");
@@ -64,7 +74,9 @@ export default function FolderPage() {
 
       // Filter mock memories by parentFolderId (for new structure) or fallback to folderName (for old structure)
       const folderMemories = sampleDashboardMemories.filter(
-        memory => memory.parentFolderId === cleanFolderId || memory.metadata?.folderName === cleanFolderId
+        (memory) =>
+          memory.parentFolderId === cleanFolderId ||
+          memory.metadata?.folderName === cleanFolderId
       );
 
       // fatLogger.info("🔍 Mock folder memories found:", folderMemories.length);
@@ -72,7 +84,9 @@ export default function FolderPage() {
       if (folderMemories.length > 0) {
         // Use folder name from new structure or fallback to old structure
         const folderName =
-          (folderMemories[0] as MemoryWithFolder)?.folder?.name || folderMemories[0]?.metadata?.folderName || cleanFolderId;
+          (folderMemories[0] as MemoryWithFolder)?.folder?.name ||
+          folderMemories[0]?.metadata?.folderName ||
+          cleanFolderId;
         setFolderName(folderName);
         setMemories(folderMemories);
       } else {
@@ -95,7 +109,9 @@ export default function FolderPage() {
 
       // Filter memories by parentFolderId (new structure) or fallback to folderName (old structure)
       const folderMemories = allMemories.filter(
-        memory => memory.parentFolderId === cleanFolderId || memory.metadata?.folderName === cleanFolderId
+        (memory) =>
+          memory.parentFolderId === cleanFolderId ||
+          memory.metadata?.folderName === cleanFolderId
       );
 
       // fatLogger.info("🔍 Folder memories found:", folderMemories.length);
@@ -106,7 +122,9 @@ export default function FolderPage() {
       if (folderMemories.length > 0) {
         // Use folder name from new structure or fallback to old structure
         const actualFolderName =
-          (folderMemories[0] as MemoryWithFolder)?.folder?.name || folderMemories[0]?.metadata?.folderName || cleanFolderId;
+          (folderMemories[0] as MemoryWithFolder)?.folder?.name ||
+          folderMemories[0]?.metadata?.folderName ||
+          cleanFolderId;
         // fatLogger.info("🔍 Setting folder name to:", actualFolderName);
         setFolderName(actualFolderName);
         setMemories(folderMemories);
@@ -120,7 +138,9 @@ export default function FolderPage() {
         router.push(`/${params.lang}/dashboard`);
       }
     } catch (error) {
-      fatLogger.error('FETCH FOLDER MEMORIES ERROR', 'fe', { data: error as Error });
+      fatLogger.error('FETCH FOLDER MEMORIES ERROR', 'fe', {
+        data: error as Error,
+      });
       toast({
         title: 'Error',
         description: 'Failed to load folder contents. Please try again.',
@@ -152,7 +172,7 @@ export default function FolderPage() {
   const handleDelete = async (id: string) => {
     try {
       await deleteMemory(id);
-      setMemories(prev => prev.filter(memory => memory.id !== id));
+      setMemories((prev) => prev.filter((memory) => memory.id !== id));
       toast({
         title: 'Success',
         description: 'Memory deleted successfully.',
@@ -233,7 +253,12 @@ export default function FolderPage() {
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Button variant="ghost" size="sm" onClick={handleBackToDashboard} className="p-0 h-auto text-sm">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleBackToDashboard}
+                className="p-0 h-auto text-sm"
+              >
                 Dashboard
               </Button>
             </BreadcrumbLink>
@@ -258,11 +283,18 @@ export default function FolderPage() {
 
       {memories.length === 0 && !isLoadingMemories ? (
         <div className="flex flex-col items-center justify-center rounded-lg border-2 border-gray-300 p-16 text-center bg-gray-50 shadow-lg">
-          <h3 className="text-4xl font-bold text-gray-800 mb-4">Folder is empty</h3>
+          <h3 className="text-4xl font-bold text-gray-800 mb-4">
+            Folder is empty
+          </h3>
           <p className="mt-2 text-base text-gray-600 mb-6 max-w-md">
-            This folder doesn&apos;t contain any memories yet. Start by uploading your first memory.
+            This folder doesn&apos;t contain any memories yet. Start by
+            uploading your first memory.
           </p>
-          <ItemUploadButton variant="large-icon" onSuccess={handleUploadSuccess} onError={handleUploadError} />
+          <ItemUploadButton
+            variant="large-icon"
+            onSuccess={handleUploadSuccess}
+            onError={handleUploadError}
+          />
         </div>
       ) : (
         <MemoryGrid

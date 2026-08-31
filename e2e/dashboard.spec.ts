@@ -1,7 +1,9 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Dashboard', () => {
-  test('dashboard page loads and shows authentication state', async ({ page }) => {
+  test('dashboard page loads and shows authentication state', async ({
+    page,
+  }) => {
     // Set desktop viewport to ensure navigation is visible
     await page.setViewportSize({ width: 1280, height: 720 });
 
@@ -32,20 +34,26 @@ test.describe('Dashboard', () => {
     }
 
     // Check for user-related elements (if authenticated)
-    const userMenu = page.locator('[data-testid="user-menu"], [aria-label*="user"], [aria-label*="profile"]');
+    const userMenu = page.locator(
+      '[data-testid="user-menu"], [aria-label*="user"], [aria-label*="profile"]'
+    );
     if ((await userMenu.count()) > 0) {
       await expect(userMenu.first()).toBeVisible();
     }
   });
 
-  test('dashboard shows appropriate content for unauthenticated users', async ({ page }) => {
+  test('dashboard shows appropriate content for unauthenticated users', async ({
+    page,
+  }) => {
     await page.goto('/en/dashboard');
 
     // Wait for page to load
     await page.waitForLoadState('networkidle');
 
     // Check if there's a sign-in prompt or redirect
-    const signInHeading = page.getByRole('heading', { name: /please sign in/i });
+    const signInHeading = page.getByRole('heading', {
+      name: /please sign in/i,
+    });
     const redirectToSignIn = page.url().includes('/signin');
 
     // Either we should see a sign-in prompt or be redirected to signin
@@ -62,7 +70,9 @@ test.describe('Dashboard', () => {
     // Look for any navigation elements (header, nav, or links)
     const hasNavigation =
       (await page
-        .locator('header, nav, [role="navigation"], a[href*="/dashboard"], a[href*="/memories"], a[href*="/settings"]')
+        .locator(
+          'header, nav, [role="navigation"], a[href*="/dashboard"], a[href*="/memories"], a[href*="/settings"]'
+        )
         .count()) > 0;
 
     // Just check that some navigation exists (don't require visibility)

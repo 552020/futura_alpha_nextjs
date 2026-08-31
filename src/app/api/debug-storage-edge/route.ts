@@ -13,7 +13,10 @@ export async function GET(_request: NextRequest) {
     });
 
     // First, let's see what records exist for this memory
-    const allEdges = await db.select().from(storageEdges).where(eq(storageEdges.memoryId, memoryId));
+    const allEdges = await db
+      .select()
+      .from(storageEdges)
+      .where(eq(storageEdges.memoryId, memoryId));
 
     fatLogger.info('🔍 Debug: Found existing edges', 'be', {
       memoryId,

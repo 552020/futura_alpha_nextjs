@@ -59,7 +59,10 @@ import { fatLogger } from '@/lib/logger';
  *   ]
  * }
  */
-export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+export async function PUT(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -75,7 +78,10 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
     });
 
     if (!allUserRecord) {
-      return NextResponse.json({ error: 'User record not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'User record not found' },
+        { status: 404 }
+      );
     }
 
     // Check if user has write access to this memory
@@ -85,7 +91,10 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
     });
 
     if (!accessLevel || (accessLevel !== 'owner' && accessLevel !== 'write')) {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Insufficient permissions' },
+        { status: 403 }
+      );
     }
 
     // Verify memory exists
@@ -102,19 +111,34 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
     const { assets } = body;
 
     if (!assets || !Array.isArray(assets)) {
-      return NextResponse.json({ error: 'Invalid request: assets array is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid request: assets array is required' },
+        { status: 400 }
+      );
     }
 
     // Validate asset data
     for (const asset of assets) {
       if (!asset.assetType || !asset.url || !asset.bytes || !asset.mimeType) {
         return NextResponse.json(
-          { error: 'Invalid asset: assetType, url, bytes, and mimeType are required' },
+          {
+            error:
+              'Invalid asset: assetType, url, bytes, and mimeType are required',
+          },
           { status: 400 }
         );
       }
 
-      if (!['original', 'display', 'thumb', 'placeholder', 'poster', 'waveform'].includes(asset.assetType)) {
+      if (
+        ![
+          'original',
+          'display',
+          'thumb',
+          'placeholder',
+          'poster',
+          'waveform',
+        ].includes(asset.assetType)
+      ) {
         return NextResponse.json(
           {
             error: `Invalid assetType: ${asset.assetType}. Must be one of: original, display, thumb, placeholder, poster, waveform`,
@@ -128,11 +152,19 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
     const upsertedAssets = [];
 
     for (const asset of assets) {
-      const { upsertAssetRecord } = await import('@/services/memory/asset-operations');
+      const { upsertAssetRecord } = await import(
+        '@/services/memory/asset-operations'
+      );
 
       const assetResult = await upsertAssetRecord({
         memoryId,
-        assetType: asset.assetType as 'original' | 'display' | 'thumb' | 'placeholder' | 'poster' | 'waveform',
+        assetType: asset.assetType as
+          | 'original'
+          | 'display'
+          | 'thumb'
+          | 'placeholder'
+          | 'poster'
+          | 'waveform',
         variant: asset.variant || null,
         url: asset.url,
         assetLocation: asset.assetLocation || 'vercel_blob',
@@ -160,37 +192,52 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
 
     // Create storage edges for the new assets
     try {
-      const { createMemoryStorageEdges } = await import('@/lib/usecases/memory/create-memory-storage-edges');
+      const { createMemoryStorageEdges } = await import(
+        '@/lib/usecases/memory/create-memory-storage-edges'
+      );
 
       for (const asset of assets) {
         const storageEdgeResult = await createMemoryStorageEdges({
           memoryId,
-          memoryType: memory.type as 'image' | 'video' | 'note' | 'document' | 'audio',
+          memoryType: memory.type as
+            | 'image'
+            | 'video'
+            | 'note'
+            | 'document'
+            | 'audio',
           url: asset.url,
           size: asset.bytes,
           contentHash: asset.sha256,
         });
 
         if (!storageEdgeResult.success) {
-          fatLogger.warn('Failed to create storage edges for added asset', 'be', {
-            operation: 'add_asset_to_memory',
-            memoryId,
-            assetType: asset.assetType,
-            error: storageEdgeResult.error,
-          });
+          fatLogger.warn(
+            'Failed to create storage edges for added asset',
+            'be',
+            {
+              operation: 'add_asset_to_memory',
+              memoryId,
+              assetType: asset.assetType,
+              error: storageEdgeResult.error,
+            }
+          );
           // Don't fail the entire operation if storage edges fail
         } else {
-          fatLogger.info('Successfully created storage edges for added asset', 'be', {
-            operation: 'add_asset_to_memory',
-            memoryId,
-            assetType: asset.assetType,
-            metadataEdge: Array.isArray(storageEdgeResult.metadataEdge)
-              ? storageEdgeResult.metadataEdge[0]?.id
-              : storageEdgeResult.metadataEdge?.id,
-            assetEdge: Array.isArray(storageEdgeResult.assetEdge)
-              ? storageEdgeResult.assetEdge[0]?.id
-              : storageEdgeResult.assetEdge?.id,
-          });
+          fatLogger.info(
+            'Successfully created storage edges for added asset',
+            'be',
+            {
+              operation: 'add_asset_to_memory',
+              memoryId,
+              assetType: asset.assetType,
+              metadataEdge: Array.isArray(storageEdgeResult.metadataEdge)
+                ? storageEdgeResult.metadataEdge[0]?.id
+                : storageEdgeResult.metadataEdge?.id,
+              assetEdge: Array.isArray(storageEdgeResult.assetEdge)
+                ? storageEdgeResult.assetEdge[0]?.id
+                : storageEdgeResult.assetEdge?.id,
+            }
+          );
         }
       }
     } catch (error) {
@@ -210,15 +257,23 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
       },
     });
   } catch (error) {
-    fatLogger.error('Error managing assets:', 'be', { data: error instanceof Error ? error : undefined });
-    return NextResponse.json({ error: 'Failed to manage assets' }, { status: 500 });
+    fatLogger.error('Error managing assets:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
+    return NextResponse.json(
+      { error: 'Failed to manage assets' },
+      { status: 500 }
+    );
   }
 }
 
 /**
  * GET /api/memories/:id/assets - Get all assets for a memory
  */
-export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -234,7 +289,10 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     });
 
     if (!allUserRecord) {
-      return NextResponse.json({ error: 'User record not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'User record not found' },
+        { status: 404 }
+      );
     }
 
     // Check if user has read access to this memory
@@ -244,7 +302,10 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     });
 
     if (!accessLevel) {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Insufficient permissions' },
+        { status: 403 }
+      );
     }
 
     // Get all assets for the memory
@@ -261,8 +322,13 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       },
     });
   } catch (error) {
-    fatLogger.error('Error fetching assets:', 'be', { data: error instanceof Error ? error : undefined });
-    return NextResponse.json({ error: 'Failed to fetch assets' }, { status: 500 });
+    fatLogger.error('Error fetching assets:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
+    return NextResponse.json(
+      { error: 'Failed to fetch assets' },
+      { status: 500 }
+    );
   }
 }
 
@@ -275,7 +341,10 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
  * }
  * If no assetTypes provided, deletes all assets for the memory
  */
-export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -291,7 +360,10 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
     });
 
     if (!allUserRecord) {
-      return NextResponse.json({ error: 'User record not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'User record not found' },
+        { status: 404 }
+      );
     }
 
     // Check if user has write access to this memory
@@ -301,7 +373,10 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
     });
 
     if (!accessLevel || (accessLevel !== 'owner' && accessLevel !== 'write')) {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Insufficient permissions' },
+        { status: 403 }
+      );
     }
 
     // Verify memory exists
@@ -332,41 +407,61 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
     }
 
     // Delete assets
-    const deletedAssets = await db.delete(memoryAssets).where(deleteCondition).returning();
+    const deletedAssets = await db
+      .delete(memoryAssets)
+      .where(deleteCondition)
+      .returning();
 
     // Filter by asset types if specified
     const filteredDeletedAssets =
       assetTypes.length > 0
-        ? deletedAssets.filter((asset: DBMemoryAsset) => assetTypes.includes(asset.assetType))
+        ? deletedAssets.filter((asset: DBMemoryAsset) =>
+            assetTypes.includes(asset.assetType)
+          )
         : deletedAssets;
 
     // Clean up storage edges for deleted assets
     try {
-      const { deleteStorageEdges } = await import('@/services/storage-edges/storage-edge-operations');
+      const { deleteStorageEdges } = await import(
+        '@/services/storage-edges/storage-edge-operations'
+      );
 
       // Delete storage edges for the memory (since assets are being removed)
       const storageEdgeResult = await deleteStorageEdges({
         memoryId,
-        memoryType: memory.type as 'image' | 'video' | 'note' | 'document' | 'audio',
+        memoryType: memory.type as
+          | 'image'
+          | 'video'
+          | 'note'
+          | 'document'
+          | 'audio',
       });
 
       if (!storageEdgeResult.success) {
-        fatLogger.warn('Failed to delete storage edges for deleted assets', 'be', {
-          operation: 'delete_assets_from_memory',
-          memoryId,
-          error: storageEdgeResult.error,
-        });
+        fatLogger.warn(
+          'Failed to delete storage edges for deleted assets',
+          'be',
+          {
+            operation: 'delete_assets_from_memory',
+            memoryId,
+            error: storageEdgeResult.error,
+          }
+        );
         // Don't fail the entire operation if storage edge deletion fails
       } else {
-        fatLogger.info('Successfully deleted storage edges for deleted assets', 'be', {
-          operation: 'delete_assets_from_memory',
-          memoryId,
-          deletedEdgesCount: Array.isArray(storageEdgeResult.data)
-            ? storageEdgeResult.data.length
-            : storageEdgeResult.data
-              ? 1
-              : 0,
-        });
+        fatLogger.info(
+          'Successfully deleted storage edges for deleted assets',
+          'be',
+          {
+            operation: 'delete_assets_from_memory',
+            memoryId,
+            deletedEdgesCount: Array.isArray(storageEdgeResult.data)
+              ? storageEdgeResult.data.length
+              : storageEdgeResult.data
+                ? 1
+                : 0,
+          }
+        );
       }
     } catch (error) {
       fatLogger.warn('Error deleting storage edges for deleted assets', 'be', {
@@ -386,7 +481,12 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
       },
     });
   } catch (error) {
-    fatLogger.error('Error deleting assets:', 'be', { data: error instanceof Error ? error : undefined });
-    return NextResponse.json({ error: 'Failed to delete assets' }, { status: 500 });
+    fatLogger.error('Error deleting assets:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
+    return NextResponse.json(
+      { error: 'Failed to delete assets' },
+      { status: 500 }
+    );
   }
 }

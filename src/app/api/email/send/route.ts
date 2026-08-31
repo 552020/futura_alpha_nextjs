@@ -19,14 +19,20 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized', requestId }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Unauthorized', requestId },
+        { status: 401 }
+      );
     }
 
     const body: EmailRequest = await request.json();
     const { to, subject, text, html, templateName, templateVars } = body;
 
     if (!to || !subject || (!text && !html)) {
-      return NextResponse.json({ error: 'Missing required fields', requestId }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Missing required fields', requestId },
+        { status: 400 }
+      );
     }
 
     const emailData: {
@@ -59,9 +65,13 @@ export async function POST(request: NextRequest) {
       emailId: emailResponse.id,
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error';
     fatLogger.error(`[${requestId}] Error: ${errorMessage}`, 'be');
 
-    return NextResponse.json({ error: 'Failed to process request', requestId }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to process request', requestId },
+      { status: 500 }
+    );
   }
 }

@@ -24,8 +24,10 @@ const isIcpAvailable = async () => {
 };
 
 // Patch the createActor functions to add health checks
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const patchCreateActor = (originalCreateActor: (canisterId: string, options?: any) => any) => {
+const patchCreateActor = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  originalCreateActor: (canisterId: string, options?: any) => any
+) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (canisterId: string, options: any = {}) => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -41,14 +43,16 @@ const patchCreateActor = (originalCreateActor: (canisterId: string, options?: an
     // SAFE fetchRootKey with health check - only call if ICP is available
     if (process.env.NEXT_PUBLIC_DFX_NETWORK !== 'ic') {
       // Check if ICP is available before calling fetchRootKey
-      isIcpAvailable().then(available => {
+      isIcpAvailable().then((available) => {
         if (available) {
           agent.fetchRootKey().catch((err: unknown) => {
             console.warn('Unable to fetch root key. ICP may be unavailable');
             console.error(err);
           });
         } else {
-          console.warn('ICP network unavailable, skipping fetchRootKey to prevent crashes');
+          console.warn(
+            'ICP network unavailable, skipping fetchRootKey to prevent crashes'
+          );
         }
       });
     }

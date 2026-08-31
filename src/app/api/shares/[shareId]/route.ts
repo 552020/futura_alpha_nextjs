@@ -5,7 +5,10 @@ import { getAllUserRecord } from '@/services/user';
 import type { allUsers } from '@/db';
 import { fatLogger } from '@/lib/logger';
 
-export async function DELETE(request: NextRequest, context: { params: Promise<{ shareId: string }> }) {
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ shareId: string }> }
+) {
   const { shareId } = await context.params;
 
   try {
@@ -83,5 +86,3 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
     );
   }
 }
-
-

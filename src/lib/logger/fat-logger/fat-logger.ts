@@ -25,7 +25,13 @@ export class FatLogger {
 
   // Backward-compatible API: fatLogger.debug(message, context, data, tags)
   // where context can be 'fe', 'be', or 'service:context' format
-  log(level: LogLevel, message: string, context: Context | string, data?: unknown, tags?: string[]) {
+  log(
+    level: LogLevel,
+    message: string,
+    context: Context | string,
+    data?: unknown,
+    tags?: string[]
+  ) {
     const { parsedContext, service } = this.parseContext(context);
 
     this.engine.emit({
@@ -39,24 +45,47 @@ export class FatLogger {
     });
   }
 
-  debug(message: string, context: Context | string, data?: unknown, tags?: string[]) {
+  debug(
+    message: string,
+    context: Context | string,
+    data?: unknown,
+    tags?: string[]
+  ) {
     this.log('debug', message, context, data, tags);
   }
 
-  info(message: string, context: Context | string, data?: unknown, tags?: string[]) {
+  info(
+    message: string,
+    context: Context | string,
+    data?: unknown,
+    tags?: string[]
+  ) {
     this.log('info', message, context, data, tags);
   }
 
-  warn(message: string, context: Context | string, data?: unknown, tags?: string[]) {
+  warn(
+    message: string,
+    context: Context | string,
+    data?: unknown,
+    tags?: string[]
+  ) {
     this.log('warn', message, context, data, tags);
   }
 
-  error(message: string, context: Context | string, data?: unknown, tags?: string[]) {
+  error(
+    message: string,
+    context: Context | string,
+    data?: unknown,
+    tags?: string[]
+  ) {
     this.log('error', message, context, data, tags);
   }
 
   // Parse context to support both 'fe'/'be' and 'service:context' formats
-  private parseContext(context: Context | string): { parsedContext: Context; service?: string } {
+  private parseContext(context: Context | string): {
+    parsedContext: Context;
+    service?: string;
+  } {
     // If it's already a valid context, return as-is
     if (context === 'fe' || context === 'be') {
       return { parsedContext: context };
@@ -65,7 +94,8 @@ export class FatLogger {
     // Handle service:context format (e.g., "upload:be", "database:fe")
     if (typeof context === 'string' && context.includes(':')) {
       const [service, ctx] = context.split(':');
-      const parsedContext = ctx === 'fe' || ctx === 'be' ? (ctx as Context) : 'fe';
+      const parsedContext =
+        ctx === 'fe' || ctx === 'be' ? (ctx as Context) : 'fe';
       return { parsedContext, service };
     }
 

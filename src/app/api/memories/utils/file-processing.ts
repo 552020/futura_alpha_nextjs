@@ -71,9 +71,11 @@ export type FileValidationResult = {
 };
 
 export function isAcceptedMimeType(mime: string): mime is AcceptedMimeType {
-  return [...ACCEPTED_MIME_TYPES.image, ...ACCEPTED_MIME_TYPES.document, ...ACCEPTED_MIME_TYPES.video].includes(
-    mime as AcceptedMimeType
-  );
+  return [
+    ...ACCEPTED_MIME_TYPES.image,
+    ...ACCEPTED_MIME_TYPES.document,
+    ...ACCEPTED_MIME_TYPES.video,
+  ].includes(mime as AcceptedMimeType);
 }
 
 /**
@@ -89,11 +91,15 @@ export function toAcceptedMimeType(mime: string): AcceptedMimeType {
 
 import { detectMemoryType } from '@/utils/memory-type';
 
-export function getMemoryType(mime: AcceptedMimeType): 'document' | 'image' | 'video' {
+export function getMemoryType(
+  mime: AcceptedMimeType
+): 'document' | 'image' | 'video' {
   return detectMemoryType(mime) as 'document' | 'image' | 'video';
 }
 
-export async function validateFile(file: File): Promise<{ isValid: boolean; error?: string; buffer?: Buffer }> {
+export async function validateFile(
+  file: File
+): Promise<{ isValid: boolean; error?: string; buffer?: Buffer }> {
   // Check file size
   const isVideo = file.type.startsWith('video/');
   const maxSize = isVideo ? MAX_VIDEO_SIZE : MAX_FILE_SIZE;
@@ -140,7 +146,10 @@ export async function validateFile(file: File): Promise<{ isValid: boolean; erro
  * Validate file MIME type
  * Returns error response if file type is not accepted
  */
-export function validateFileType(file: File, isAcceptedMimeType: (mime: string) => boolean): { error: string | null } {
+export function validateFileType(
+  file: File,
+  isAcceptedMimeType: (mime: string) => boolean
+): { error: string | null } {
   if (!isAcceptedMimeType(file.type)) {
     return { error: 'Invalid file type' };
   }
@@ -153,9 +162,15 @@ export function validateFileType(file: File, isAcceptedMimeType: (mime: string) 
  */
 export async function validateFileWithErrorHandling(
   file: File,
-  validateFile: (file: File) => Promise<{ isValid: boolean; error?: string; buffer?: Buffer }>
+  validateFile: (
+    file: File
+  ) => Promise<{ isValid: boolean; error?: string; buffer?: Buffer }>
 ): Promise<{
-  validationResult: { isValid: boolean; error?: string; buffer?: Buffer } | null;
+  validationResult: {
+    isValid: boolean;
+    error?: string;
+    buffer?: Buffer;
+  } | null;
   error: string | null;
 }> {
   let validationResult;
@@ -163,7 +178,9 @@ export async function validateFileWithErrorHandling(
     // fatLogger.info("🔍 Starting file validation...");
     validationResult = await validateFile(file);
     if (!validationResult.isValid) {
-      fatLogger.error('❌ File validation failed:', 'be', { data: validationResult.error });
+      fatLogger.error('❌ File validation failed:', 'be', {
+        data: validationResult.error,
+      });
       return {
         validationResult: null,
         error: validationResult.error || 'File validation failed',
@@ -178,7 +195,10 @@ export async function validateFileWithErrorHandling(
     fatLogger.error('❌ Validation error:', 'be', { data: validationError });
     return {
       validationResult: null,
-      error: validationError instanceof Error ? validationError.message : String(validationError),
+      error:
+        validationError instanceof Error
+          ? validationError.message
+          : String(validationError),
     };
   }
 }
@@ -210,7 +230,10 @@ export function logMultipleFileDetails(files: File[]): void {
  * Extract folder information from file path
  * Used for folder uploads to determine folder name and preserve original path
  */
-export function extractFolderInfo(fileName: string): { originalPath: string; folderName: string } {
+export function extractFolderInfo(fileName: string): {
+  originalPath: string;
+  folderName: string;
+} {
   // When using webkitdirectory, fileName contains the full relative path
   // e.g., "Wedding Photos/ceremony/img001.jpg" -> folderName: "Wedding Photos"
   const pathParts = fileName.split('/');

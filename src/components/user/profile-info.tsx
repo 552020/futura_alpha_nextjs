@@ -67,11 +67,15 @@ export function ProfileInfo({ user }: ProfileInfoProps) {
         {/* Basic Information */}
         <div className="space-y-3">
           <div className="flex items-center">
-            <span className="text-slate-600 dark:text-slate-400 w-24 flex-shrink-0">Name:</span>
+            <span className="text-slate-600 dark:text-slate-400 w-24 flex-shrink-0">
+              Name:
+            </span>
             <span className="font-medium">{user.name || 'Not set'}</span>
           </div>
           <div className="flex items-center">
-            <span className="text-slate-600 dark:text-slate-400 w-24 flex-shrink-0">Email:</span>
+            <span className="text-slate-600 dark:text-slate-400 w-24 flex-shrink-0">
+              Email:
+            </span>
             <span className="font-medium">{user.email || 'Not set'}</span>
           </div>
           {/* <div className="flex items-center">
@@ -94,17 +98,29 @@ export function ProfileInfo({ user }: ProfileInfoProps) {
           </div> */}
           {user.premiumExpiresAt && (
             <div className="flex items-center">
-              <span className="text-slate-600 dark:text-slate-400 w-24 flex-shrink-0">Premium until:</span>
-              <span className="font-medium text-sm">{formatDate(user.premiumExpiresAt)}</span>
+              <span className="text-slate-600 dark:text-slate-400 w-24 flex-shrink-0">
+                Premium until:
+              </span>
+              <span className="font-medium text-sm">
+                {formatDate(user.premiumExpiresAt)}
+              </span>
             </div>
           )}
           <div className="flex items-center">
-            <span className="text-slate-600 dark:text-slate-400 w-24 flex-shrink-0">Bio:</span>
-            <span className="font-medium truncate">{user.metadata?.bio || 'No bio added'}</span>
+            <span className="text-slate-600 dark:text-slate-400 w-24 flex-shrink-0">
+              Bio:
+            </span>
+            <span className="font-medium truncate">
+              {user.metadata?.bio || 'No bio added'}
+            </span>
           </div>
           <div className="flex items-center">
-            <span className="text-slate-600 dark:text-slate-400 w-24 flex-shrink-0">Location:</span>
-            <span className="font-medium truncate">{user.metadata?.location || 'Not specified'}</span>
+            <span className="text-slate-600 dark:text-slate-400 w-24 flex-shrink-0">
+              Location:
+            </span>
+            <span className="font-medium truncate">
+              {user.metadata?.location || 'Not specified'}
+            </span>
           </div>
         </div>
 

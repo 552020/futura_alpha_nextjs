@@ -1,6 +1,9 @@
 import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
-import { useMemoryStorageStatus, type MemoryStorageStatus } from '@/hooks/use-memory-storage-status';
+import {
+  useMemoryStorageStatus,
+  type MemoryStorageStatus,
+} from '@/hooks/use-memory-storage-status';
 
 interface MemoryStorageBadgeProps {
   memoryId: string;
@@ -34,7 +37,9 @@ export function MemoryStorageBadge({
   );
 
   // Use provided storageStatus if available, otherwise use hook result
-  const finalStatus: MemoryStorageStatus = storageStatus ? storageStatus.storageLocations : status;
+  const finalStatus: MemoryStorageStatus = storageStatus
+    ? storageStatus.storageLocations
+    : status;
 
   // DEBUG: Log the final status (only in development and when needed)
   // Removed excessive logging to reduce console noise
@@ -58,7 +63,8 @@ export function MemoryStorageBadge({
       return {
         text: '?',
         variant: 'secondary' as const,
-        className: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900 dark:text-red-100 dark:border-red-800',
+        className:
+          'bg-red-100 text-red-700 border-red-200 dark:bg-red-900 dark:text-red-100 dark:border-red-800',
         tooltip: 'Error loading storage status',
       };
     }
@@ -68,7 +74,7 @@ export function MemoryStorageBadge({
       const locations = finalStatus;
       const hasIcp = locations.includes('icp');
       const hasNeon = locations.includes('neon');
-      const hasOther = locations.some(loc => !['icp', 'neon'].includes(loc));
+      const hasOther = locations.some((loc) => !['icp', 'neon'].includes(loc));
 
       if (hasIcp && hasNeon) {
         return {
@@ -133,7 +139,11 @@ export function MemoryStorageBadge({
       variant={config.variant}
       className={`${sizeClasses[size]} font-mono font-medium ${config.className} ${className} flex items-center justify-center`}
     >
-      {finalStatus === 'loading' ? <Loader2 className="h-2 w-2 animate-spin" /> : config.text}
+      {finalStatus === 'loading' ? (
+        <Loader2 className="h-2 w-2 animate-spin" />
+      ) : (
+        config.text
+      )}
     </Badge>
   );
 
@@ -146,9 +156,13 @@ export function MemoryStorageBadge({
       {badge}
       <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 text-xs text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-20">
         {config.tooltip}
-        {presenceData && Array.isArray(finalStatus) && finalStatus.length > 0 && (
-          <div className="text-[10px] text-gray-300 mt-1">Locations: {finalStatus.join(', ')}</div>
-        )}
+        {presenceData &&
+          Array.isArray(finalStatus) &&
+          finalStatus.length > 0 && (
+            <div className="text-[10px] text-gray-300 mt-1">
+              Locations: {finalStatus.join(', ')}
+            </div>
+          )}
       </div>
     </div>
   );

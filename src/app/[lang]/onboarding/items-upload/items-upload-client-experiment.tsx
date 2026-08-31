@@ -17,11 +17,16 @@ interface ItemsUploadClientProps {
   dict: Dictionary;
 }
 
-export default function ItemsUploadClientExperiment({ lang, dict }: ItemsUploadClientProps) {
+export default function ItemsUploadClientExperiment({
+  lang,
+  dict,
+}: ItemsUploadClientProps) {
   const router = useRouter();
   const { setMode } = useInterface();
   const [showOnboardModal, setShowOnboardModal] = useState(false);
-  const [uploadMode, setUploadMode] = useState<'directory' | 'multiple-files'>('directory');
+  const [uploadMode, setUploadMode] = useState<'directory' | 'multiple-files'>(
+    'directory'
+  );
 
   const handleUploadSuccess = () => {
     setShowOnboardModal(true);
@@ -40,7 +45,9 @@ export default function ItemsUploadClientExperiment({ lang, dict }: ItemsUploadC
   const copy = dict[COMPONENT_PATH]?.variations?.[VARIATION];
 
   if (!copy) {
-    throw new Error(`Missing dictionary entries for ${COMPONENT_PATH} variation ${VARIATION}`);
+    throw new Error(
+      `Missing dictionary entries for ${COMPONENT_PATH} variation ${VARIATION}`
+    );
   }
 
   return (
@@ -76,11 +83,20 @@ export default function ItemsUploadClientExperiment({ lang, dict }: ItemsUploadC
 
       {/* Plus button */}
       <div className="flex justify-center">
-        <ItemUploadButton isOnboarding variant="large-icon" mode={uploadMode} onSuccess={handleUploadSuccess} />
+        <ItemUploadButton
+          isOnboarding
+          variant="large-icon"
+          mode={uploadMode}
+          onSuccess={handleUploadSuccess}
+        />
       </div>
 
       {/* Onboarding Modal */}
-      <OnboardModal isOpen={showOnboardModal} onClose={handleModalClose} onComplete={handleOnboardingComplete} />
+      <OnboardModal
+        isOpen={showOnboardModal}
+        onClose={handleModalClose}
+        onComplete={handleOnboardingComplete}
+      />
     </div>
   );
 }

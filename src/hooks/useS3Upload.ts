@@ -19,13 +19,19 @@ export interface UseS3UploadResult {
   reset: () => void;
 }
 
-export function useS3Upload({ onComplete, onError }: Omit<UploadOptions, 'onProgress'> = {}): UseS3UploadResult {
+export function useS3Upload({
+  onComplete,
+  onError,
+}: Omit<UploadOptions, 'onProgress'> = {}): UseS3UploadResult {
   const [progress, setProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
   const upload = useCallback(
-    async (file: File, metadata: FileMetadata = {}): Promise<string | undefined> => {
+    async (
+      file: File,
+      metadata: FileMetadata = {}
+    ): Promise<string | undefined> => {
       if (!file) {
         const error = new Error('No file provided');
         setError(error);
@@ -45,11 +51,13 @@ export function useS3Upload({ onComplete, onError }: Omit<UploadOptions, 'onProg
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            files: [{
-              fileName: file.name,
-              fileType: file.type,
-              fileSize: file.size,
-            }],
+            files: [
+              {
+                fileName: file.name,
+                fileType: file.type,
+                fileSize: file.size,
+              },
+            ],
           }),
         });
 

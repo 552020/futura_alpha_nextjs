@@ -1,4 +1,13 @@
-import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  vi,
+  beforeEach,
+  afterEach,
+  beforeAll,
+  afterAll,
+} from 'vitest';
 
 import { fatLogger } from '@/lib/logger';
 // ============================================================================
@@ -102,7 +111,9 @@ describe('Advanced Testing Patterns', () => {
       mockDatabase.getUser.mockResolvedValue(null);
 
       // Act & Assert: Check that the function throws an error
-      await expect(getUserProfile('nonexistent-user')).rejects.toThrow('User not found');
+      await expect(getUserProfile('nonexistent-user')).rejects.toThrow(
+        'User not found'
+      );
     });
   });
 
@@ -159,10 +170,14 @@ describe('Advanced Testing Patterns', () => {
   describe('Error Handling', () => {
     it('should handle database errors gracefully', async () => {
       // Arrange: Mock database to throw an error
-      mockDatabase.getUser.mockRejectedValue(new Error('Database connection failed'));
+      mockDatabase.getUser.mockRejectedValue(
+        new Error('Database connection failed')
+      );
 
       // Act & Assert: Check that the error is properly thrown
-      await expect(getUserProfile('user-123')).rejects.toThrow('Database connection failed');
+      await expect(getUserProfile('user-123')).rejects.toThrow(
+        'Database connection failed'
+      );
     });
   });
 
@@ -192,7 +207,8 @@ describe('Advanced Testing Patterns', () => {
       const largeUser = {
         id: 'user-123',
         name: 'Very Long Name That Exceeds Normal Length',
-        email: 'very.long.email.address.that.might.cause.issues@very.long.domain.com',
+        email:
+          'very.long.email.address.that.might.cause.issues@very.long.domain.com',
         metadata: {
           preferences: Array(1000).fill('preference'),
           history: Array(5000).fill('action'),

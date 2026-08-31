@@ -52,14 +52,19 @@ export function BaseCard<T>({
 
         {/* Title */}
         {renderTitle && (
-          <h3 className="mt-2 text-sm font-medium truncate" title={String(renderTitle(item))}>
+          <h3
+            className="mt-2 text-sm font-medium truncate"
+            title={String(renderTitle(item))}
+          >
             {renderTitle(item)}
           </h3>
         )}
 
         {/* Description (optional) */}
         {renderDescription && (
-          <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{renderDescription(item)}</p>
+          <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
+            {renderDescription(item)}
+          </p>
         )}
 
         {/* Storage Badge (optional) */}
@@ -75,7 +80,9 @@ export function BaseCard<T>({
       <CardFooter className="p-2">
         <div className="flex w-full items-center justify-between">
           {/* Left side - Status items */}
-          <div className="flex items-center gap-3">{renderLeftStatus(item)}</div>
+          <div className="flex items-center gap-3">
+            {renderLeftStatus(item)}
+          </div>
 
           {/* Right side - Action buttons */}
           <div className="flex items-center gap-0.5">
@@ -83,7 +90,7 @@ export function BaseCard<T>({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={e => {
+                onClick={(e) => {
                   e.stopPropagation();
                   onEdit(item);
                 }}
@@ -95,7 +102,7 @@ export function BaseCard<T>({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={e => {
+                onClick={(e) => {
                   e.stopPropagation();
                   onShare(item);
                 }}
@@ -107,7 +114,7 @@ export function BaseCard<T>({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={e => {
+                onClick={(e) => {
                   e.stopPropagation();
                   onDelete(item);
                 }}

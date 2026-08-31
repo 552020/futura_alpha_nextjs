@@ -20,7 +20,9 @@ config({ path: '.env.local' });
 
 // Ensure DATABASE_URL is set
 if (!process.env.DATABASE_URL_UNPOOLED) {
-  throw new Error("❌ DATABASE_URL_UNPOOLED is missing! Make sure it's set in .env.local");
+  throw new Error(
+    "❌ DATABASE_URL_UNPOOLED is missing! Make sure it's set in .env.local"
+  );
 }
 
 // Create database connection

@@ -41,7 +41,9 @@ export async function POST(request: Request) {
     const bucket = process.env.AWS_S3_BUCKET;
     fatLogger.info('🪣 Using S3 bucket:', 'be', { bucket });
     fatLogger.info('🔑 Using S3 key:', 'be', { key });
-    fatLogger.info('🌍 S3 region:', 'be', { region: process.env.AWS_S3_REGION || 'eu-central-1' });
+    fatLogger.info('🌍 S3 region:', 'be', {
+      region: process.env.AWS_S3_REGION || 'eu-central-1',
+    });
     fatLogger.info('🔐 AWS credentials available:', 'be', {
       hasAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
       hasSecretKey: !!process.env.AWS_SECRET_ACCESS_KEY,
@@ -86,7 +88,8 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error: 'Failed to generate presigned URL',
-        details: process.env.NODE_ENV === 'development' ? errorObj.message : undefined,
+        details:
+          process.env.NODE_ENV === 'development' ? errorObj.message : undefined,
       },
       { status: 500 }
     );

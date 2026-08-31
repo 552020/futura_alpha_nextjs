@@ -43,7 +43,9 @@ export interface StorageEdgeQueryParams {
 /**
  * Create a new storage edge record in the database
  */
-export const createStorageEdge = async (params: CreateStorageEdgeParams): Promise<StorageEdgeOperationResult> => {
+export const createStorageEdge = async (
+  params: CreateStorageEdgeParams
+): Promise<StorageEdgeOperationResult> => {
   try {
     fatLogger.info('🚀 Starting storage edge creation', 'be', {
       memoryId: params.memoryId,
@@ -65,22 +67,31 @@ export const createStorageEdge = async (params: CreateStorageEdgeParams): Promis
 
     // Validate that at least one location field is provided
     if (!params.locationMetadata && !params.locationAsset) {
-      fatLogger.error('❌ Validation failed: No location fields provided', 'be', {
-        memoryId: params.memoryId,
-        artifact: params.artifact,
-      });
+      fatLogger.error(
+        '❌ Validation failed: No location fields provided',
+        'be',
+        {
+          memoryId: params.memoryId,
+          artifact: params.artifact,
+        }
+      );
       return {
         success: false,
-        error: 'At least one location field must be provided: locationMetadata or locationAsset',
+        error:
+          'At least one location field must be provided: locationMetadata or locationAsset',
       };
     }
 
     // Validate artifact-specific location fields
     if (params.artifact === 'metadata' && !params.locationMetadata) {
-      fatLogger.error('❌ Validation failed: Missing locationMetadata for metadata artifact', 'be', {
-        memoryId: params.memoryId,
-        artifact: params.artifact,
-      });
+      fatLogger.error(
+        '❌ Validation failed: Missing locationMetadata for metadata artifact',
+        'be',
+        {
+          memoryId: params.memoryId,
+          artifact: params.artifact,
+        }
+      );
       return {
         success: false,
         error: 'locationMetadata is required for metadata artifacts',
@@ -88,10 +99,14 @@ export const createStorageEdge = async (params: CreateStorageEdgeParams): Promis
     }
 
     if (params.artifact === 'asset' && !params.locationAsset) {
-      fatLogger.error('❌ Validation failed: Missing locationAsset for asset artifact', 'be', {
-        memoryId: params.memoryId,
-        artifact: params.artifact,
-      });
+      fatLogger.error(
+        '❌ Validation failed: Missing locationAsset for asset artifact',
+        'be',
+        {
+          memoryId: params.memoryId,
+          artifact: params.artifact,
+        }
+      );
       return {
         success: false,
         error: 'locationAsset is required for asset artifacts',
@@ -133,13 +148,17 @@ export const createStorageEdge = async (params: CreateStorageEdgeParams): Promis
 
       // Add location conditions based on what's provided
       if (params.locationMetadata) {
-        whereConditions.push(eq(storageEdges.locationMetadata, params.locationMetadata));
+        whereConditions.push(
+          eq(storageEdges.locationMetadata, params.locationMetadata)
+        );
       } else {
         whereConditions.push(isNull(storageEdges.locationMetadata));
       }
 
       if (params.locationAsset) {
-        whereConditions.push(eq(storageEdges.locationAsset, params.locationAsset));
+        whereConditions.push(
+          eq(storageEdges.locationAsset, params.locationAsset)
+        );
       } else {
         whereConditions.push(isNull(storageEdges.locationAsset));
       }
@@ -168,7 +187,8 @@ export const createStorageEdge = async (params: CreateStorageEdgeParams): Promis
     } catch (queryError) {
       fatLogger.error('❌ Database query failed', 'be', {
         memoryId: params.memoryId,
-        error: queryError instanceof Error ? queryError.message : 'Unknown error',
+        error:
+          queryError instanceof Error ? queryError.message : 'Unknown error',
         stack: queryError instanceof Error ? queryError.stack : undefined,
       });
       throw queryError;
@@ -214,7 +234,10 @@ export const createStorageEdge = async (params: CreateStorageEdgeParams): Promis
         fatLogger.error('❌ Failed to update existing storage edge', 'be', {
           memoryId: params.memoryId,
           existingEdgeId: existingEdge[0].id,
-          error: updateError instanceof Error ? updateError.message : 'Unknown error',
+          error:
+            updateError instanceof Error
+              ? updateError.message
+              : 'Unknown error',
           stack: updateError instanceof Error ? updateError.stack : undefined,
         });
         throw updateError;
@@ -230,7 +253,10 @@ export const createStorageEdge = async (params: CreateStorageEdgeParams): Promis
       });
 
       try {
-        const [newEdge] = await db.insert(storageEdges).values(edgeData).returning();
+        const [newEdge] = await db
+          .insert(storageEdges)
+          .values(edgeData)
+          .returning();
 
         fatLogger.info('✅ Successfully created new storage edge', 'be', {
           memoryId: params.memoryId,
@@ -244,7 +270,10 @@ export const createStorageEdge = async (params: CreateStorageEdgeParams): Promis
           memoryId: params.memoryId,
           memoryType: params.memoryType,
           artifact: params.artifact,
-          error: insertError instanceof Error ? insertError.message : 'Unknown error',
+          error:
+            insertError instanceof Error
+              ? insertError.message
+              : 'Unknown error',
           stack: insertError instanceof Error ? insertError.stack : undefined,
         });
 
@@ -255,10 +284,14 @@ export const createStorageEdge = async (params: CreateStorageEdgeParams): Promis
             insertError.message.includes('violates foreign key') ||
             insertError.message.includes('referential integrity'))
         ) {
-          fatLogger.error('❌ Foreign key constraint violation - memory does not exist', 'be', {
-            memoryId: params.memoryId,
-            error: insertError.message,
-          });
+          fatLogger.error(
+            '❌ Foreign key constraint violation - memory does not exist',
+            'be',
+            {
+              memoryId: params.memoryId,
+              error: insertError.message,
+            }
+          );
           return {
             success: false,
             error: `Memory with ID ${params.memoryId} does not exist. Cannot create storage edge for non-existent memory.`,
@@ -270,13 +303,17 @@ export const createStorageEdge = async (params: CreateStorageEdgeParams): Promis
     }
 
     if (!createdEdge) {
-      fatLogger.error('Failed to create storage edge - no result returned', 'be', {
-        memoryId: params.memoryId,
-        memoryType: params.memoryType,
-        artifact: params.artifact,
-        locationMetadata: params.locationMetadata,
-        locationAsset: params.locationAsset,
-      });
+      fatLogger.error(
+        'Failed to create storage edge - no result returned',
+        'be',
+        {
+          memoryId: params.memoryId,
+          memoryType: params.memoryType,
+          artifact: params.artifact,
+          locationMetadata: params.locationMetadata,
+          locationAsset: params.locationAsset,
+        }
+      );
       return { success: false, error: 'Failed to create storage edge' };
     }
 
@@ -291,16 +328,20 @@ export const createStorageEdge = async (params: CreateStorageEdgeParams): Promis
 
     return { success: true, data: createdEdge };
   } catch (error) {
-    fatLogger.error('❌ Failed to create storage edge - unexpected error', 'be', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
-      operation: 'create_storage_edge',
-      memoryId: params.memoryId,
-      memoryType: params.memoryType,
-      artifact: params.artifact,
-      locationMetadata: params.locationMetadata,
-      locationAsset: params.locationAsset,
-    });
+    fatLogger.error(
+      '❌ Failed to create storage edge - unexpected error',
+      'be',
+      {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        operation: 'create_storage_edge',
+        memoryId: params.memoryId,
+        memoryType: params.memoryType,
+        artifact: params.artifact,
+        locationMetadata: params.locationMetadata,
+        locationAsset: params.locationAsset,
+      }
+    );
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -311,7 +352,9 @@ export const createStorageEdge = async (params: CreateStorageEdgeParams): Promis
 /**
  * Create multiple storage edges for a memory (e.g., metadata + multiple assets)
  */
-export const createStorageEdges = async (edges: CreateStorageEdgeParams[]): Promise<StorageEdgeOperationResult[]> => {
+export const createStorageEdges = async (
+  edges: CreateStorageEdgeParams[]
+): Promise<StorageEdgeOperationResult[]> => {
   const results: StorageEdgeOperationResult[] = [];
 
   for (const edge of edges) {
@@ -333,7 +376,9 @@ export const createStorageEdges = async (edges: CreateStorageEdgeParams[]): Prom
 /**
  * Get storage edges by query parameters
  */
-export const getStorageEdges = async (params: StorageEdgeQueryParams): Promise<StorageEdgeOperationResult> => {
+export const getStorageEdges = async (
+  params: StorageEdgeQueryParams
+): Promise<StorageEdgeOperationResult> => {
   try {
     const conditions = [];
 
@@ -347,7 +392,9 @@ export const getStorageEdges = async (params: StorageEdgeQueryParams): Promise<S
       conditions.push(eq(storageEdges.artifact, params.artifact));
     }
     if (params.locationMetadata) {
-      conditions.push(eq(storageEdges.locationMetadata, params.locationMetadata));
+      conditions.push(
+        eq(storageEdges.locationMetadata, params.locationMetadata)
+      );
     }
     if (params.locationAsset) {
       conditions.push(eq(storageEdges.locationAsset, params.locationAsset));
@@ -381,7 +428,9 @@ export const getStorageEdges = async (params: StorageEdgeQueryParams): Promise<S
 /**
  * Delete storage edges by query parameters
  */
-export const deleteStorageEdges = async (params: StorageEdgeQueryParams): Promise<StorageEdgeOperationResult> => {
+export const deleteStorageEdges = async (
+  params: StorageEdgeQueryParams
+): Promise<StorageEdgeOperationResult> => {
   try {
     const conditions = [];
 
@@ -395,7 +444,9 @@ export const deleteStorageEdges = async (params: StorageEdgeQueryParams): Promis
       conditions.push(eq(storageEdges.artifact, params.artifact));
     }
     if (params.locationMetadata) {
-      conditions.push(eq(storageEdges.locationMetadata, params.locationMetadata));
+      conditions.push(
+        eq(storageEdges.locationMetadata, params.locationMetadata)
+      );
     }
     if (params.locationAsset) {
       conditions.push(eq(storageEdges.locationAsset, params.locationAsset));

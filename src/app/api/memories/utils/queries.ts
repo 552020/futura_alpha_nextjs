@@ -10,7 +10,10 @@
  * - Provides proper error handling and logging
  */
 
-import { getMemoryRecordsWithGalleries, type MemoryWithGalleries } from '@/services/memory';
+import {
+  getMemoryRecordsWithGalleries,
+  type MemoryWithGalleries,
+} from '@/services/memory';
 import { fatLogger } from '@/lib/logger';
 
 /**
@@ -19,7 +22,9 @@ import { fatLogger } from '@/lib/logger';
  * This function now uses the service layer instead of direct database operations.
  * The complex SQL query has been moved to the memory service layer.
  */
-export async function fetchMemoriesWithGalleries(ownerAllUserId: string): Promise<MemoryWithGalleries[]> {
+export async function fetchMemoriesWithGalleries(
+  ownerAllUserId: string
+): Promise<MemoryWithGalleries[]> {
   try {
     fatLogger.info('Fetching memories with galleries', 'be', {
       operation: 'fetch_memories_with_galleries',
@@ -34,7 +39,9 @@ export async function fetchMemoriesWithGalleries(ownerAllUserId: string): Promis
         ownerId: ownerAllUserId,
         error: result.error,
       });
-      throw new Error(result.error || 'Failed to fetch memories with galleries');
+      throw new Error(
+        result.error || 'Failed to fetch memories with galleries'
+      );
     }
 
     fatLogger.info('Successfully fetched memories with galleries', 'be', {

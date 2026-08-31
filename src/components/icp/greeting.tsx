@@ -46,7 +46,8 @@ export function Greeting() {
       });
     } catch (error) {
       fatLogger.error('Greeting failed', 'fe', { data: error as Error });
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
 
       toast({
         title: 'Greeting Failed',
@@ -71,10 +72,22 @@ export function Greeting() {
         </div>
       ) : (
         <div className="flex gap-4">
-          <Button type="submit" disabled={busy} onClick={handleGreetSubmit} className="w-32">
+          <Button
+            type="submit"
+            disabled={busy}
+            onClick={handleGreetSubmit}
+            className="w-32"
+          >
             {busy ? 'Sending...' : 'Send Greeting'}
           </Button>
-          <Input id="name" name="name" type="text" placeholder="Enter your name" className="w-64" disabled={busy} />
+          <Input
+            id="name"
+            name="name"
+            type="text"
+            placeholder="Enter your name"
+            className="w-64"
+            disabled={busy}
+          />
         </div>
       )}
     </div>

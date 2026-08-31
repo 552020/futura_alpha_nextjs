@@ -68,7 +68,13 @@ interface GalleryItem extends BaseItem {
   itemsCount?: number;
 }
 
-type FlexibleItem = MemoryItem | GalleryPhotoItem | GalleryItem | Memory | DashboardItem | GalleryWithItems;
+type FlexibleItem =
+  | MemoryItem
+  | GalleryPhotoItem
+  | GalleryItem
+  | Memory
+  | DashboardItem
+  | GalleryWithItems;
 
 interface ContentCardProps {
   item: FlexibleItem;
@@ -128,20 +134,30 @@ function renderPreview(item: FlexibleItem) {
     const memory = item as MemoryItem;
 
     // For grid view, prefer display image over thumbnail for better quality
-    const memoryWithAssets = memory as typeof memory & { assets?: Array<{ assetType: string; url: string }> };
+    const memoryWithAssets = memory as typeof memory & {
+      assets?: Array<{ assetType: string; url: string }>;
+    };
     const derivedThumb =
-      memoryWithAssets?.assets?.find?.(a => a.assetType === 'display')?.url ||
-      memoryWithAssets?.assets?.find?.(a => a.assetType === 'thumb')?.url ||
-      memoryWithAssets?.assets?.find?.(a => a.assetType === 'original')?.url;
+      memoryWithAssets?.assets?.find?.((a) => a.assetType === 'display')?.url ||
+      memoryWithAssets?.assets?.find?.((a) => a.assetType === 'thumb')?.url ||
+      memoryWithAssets?.assets?.find?.((a) => a.assetType === 'original')?.url;
 
     // Look for placeholder asset for better blur effect
-    const placeholderAsset = memoryWithAssets?.assets?.find?.(a => a.assetType === 'placeholder');
+    const placeholderAsset = memoryWithAssets?.assets?.find?.(
+      (a) => a.assetType === 'placeholder'
+    );
     const blurDataURL = placeholderAsset?.url || getBlurPlaceholder();
 
-    if (memory.type === 'image' && (memory.url || memory.thumbnail || derivedThumb)) {
+    if (
+      memory.type === 'image' &&
+      (memory.url || memory.thumbnail || derivedThumb)
+    ) {
       // Prefer display URL (memory.url) over thumbnail for better quality in grid view
       const imageSrc = memory.url || memory.thumbnail || derivedThumb || '';
-      fatLogger.info('Image src for memory:', 'be', { memoryId: memory.id, url: imageSrc });
+      fatLogger.info('Image src for memory:', 'be', {
+        memoryId: memory.id,
+        url: imageSrc,
+      });
 
       return (
         <Image
@@ -153,7 +169,10 @@ function renderPreview(item: FlexibleItem) {
           placeholder="blur"
           blurDataURL={blurDataURL}
           onLoad={async () => {
-            fatLogger.info('Image loaded successfully for memory:', 'be', { memoryId: memory.id, url: imageSrc });
+            fatLogger.info('Image loaded successfully for memory:', 'be', {
+              memoryId: memory.id,
+              url: imageSrc,
+            });
 
             // Check actual image dimensions and file size
             try {
@@ -164,16 +183,28 @@ function renderPreview(item: FlexibleItem) {
               img.onload = () => {
                 fatLogger.info('Memory:', 'be', { memoryId: memory.id });
                 fatLogger.info('URL:', 'be', { url: imageSrc });
-                fatLogger.info('Dimensions:', 'be', { width: img.naturalWidth, height: img.naturalHeight });
+                fatLogger.info('Dimensions:', 'be', {
+                  width: img.naturalWidth,
+                  height: img.naturalHeight,
+                });
                 fatLogger.info('File size:', 'be', { size: blob.size });
-                fatLogger.info('Expected: Display ~2048px, Thumbnail ~512px, Placeholder 32px', 'be');
+                fatLogger.info(
+                  'Expected: Display ~2048px, Thumbnail ~512px, Placeholder 32px',
+                  'be'
+                );
 
                 // Determine what type of image this is based on dimensions
                 if (img.naturalWidth <= 50 && img.naturalHeight <= 50) {
                   fatLogger.warn('PLACEHOLDER IMAGE DETECTED!', 'be');
-                } else if (img.naturalWidth >= 1000 || img.naturalHeight >= 1000) {
+                } else if (
+                  img.naturalWidth >= 1000 ||
+                  img.naturalHeight >= 1000
+                ) {
                   fatLogger.info('Display image detected', 'be');
-                } else if (img.naturalWidth >= 400 || img.naturalHeight >= 400) {
+                } else if (
+                  img.naturalWidth >= 400 ||
+                  img.naturalHeight >= 400
+                ) {
                   fatLogger.info('Thumbnail image detected', 'be');
                 } else {
                   fatLogger.info('Unknown image type', 'be');
@@ -181,11 +212,16 @@ function renderPreview(item: FlexibleItem) {
               };
               img.src = URL.createObjectURL(blob);
             } catch (error) {
-              fatLogger.error('Failed to check image dimensions:', 'be', { error });
+              fatLogger.error('Failed to check image dimensions:', 'be', {
+                error,
+              });
             }
           }}
           onError={() => {
-            fatLogger.error('Image error for memory:', 'be', { memoryId: memory.id, url: imageSrc });
+            fatLogger.error('Image error for memory:', 'be', {
+              memoryId: memory.id,
+              url: imageSrc,
+            });
           }}
         />
       );
@@ -311,7 +347,7 @@ function FolderStorageBadge({
   // Simple logic: show badge for each storage location
   return (
     <div className="flex gap-1">
-      {storageLocations.map(location => (
+      {storageLocations.map((location) => (
         <Badge key={location} variant="secondary" className="text-xs">
           {location.toUpperCase()}
         </Badge>
@@ -324,15 +360,24 @@ function renderStorageBadge(item: FlexibleItem) {
   if ('type' in item && item.type) {
     if (item.type === 'folder') {
       // Handle folder storage badge
-      const folderItem = item as MemoryItem & { storageSummary?: { storageLocations: string[] } };
-      return <FolderStorageBadge storageSummary={folderItem.storageSummary} size="xs" />;
+      const folderItem = item as MemoryItem & {
+        storageSummary?: { storageLocations: string[] };
+      };
+      return (
+        <FolderStorageBadge
+          storageSummary={folderItem.storageSummary}
+          size="xs"
+        />
+      );
     } else {
       // Handle individual memory storage badge
       return (
         <MemoryStorageBadge
           memoryId={item.id}
           memoryType={item.type}
-          storageStatus={'storageStatus' in item ? item.storageStatus : undefined}
+          storageStatus={
+            'storageStatus' in item ? item.storageStatus : undefined
+          }
           size="xs"
         />
       );
@@ -351,7 +396,11 @@ function renderLeftStatus(item: FlexibleItem) {
         <div className="flex-shrink-0">{getMemoryIcon(memory.type)}</div>
 
         {/* Visibility status */}
-        <MemoryStatus status={memory.status} sharedWithCount={memory.sharedWithCount} sharedBy={memory.sharedBy} />
+        <MemoryStatus
+          status={memory.status}
+          sharedWithCount={memory.sharedWithCount}
+          sharedBy={memory.sharedBy}
+        />
       </>
     );
   }
@@ -393,14 +442,22 @@ export function ContentCard({
             <h3 className="font-medium truncate" title={memory.title}>
               {shortenTitle(memory.title)}
             </h3>
-            {memory.description && <p className="text-sm text-muted-foreground truncate">{memory.description}</p>}
+            {memory.description && (
+              <p className="text-sm text-muted-foreground truncate">
+                {memory.description}
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-2">
-            <MemoryStatus status={memory.status} sharedWithCount={memory.sharedWithCount} sharedBy={memory.sharedBy} />
+            <MemoryStatus
+              status={memory.status}
+              sharedWithCount={memory.sharedWithCount}
+              sharedBy={memory.sharedBy}
+            />
             {onEdit && (
               <button
                 className="p-2 hover:bg-accent rounded"
-                onClick={e => {
+                onClick={(e) => {
                   e.stopPropagation();
                   onEdit(item);
                 }}
@@ -411,7 +468,7 @@ export function ContentCard({
             {onShare && (
               <button
                 className="p-2 hover:bg-accent rounded"
-                onClick={e => {
+                onClick={(e) => {
                   e.stopPropagation();
                   onShare(item);
                 }}
@@ -422,12 +479,16 @@ export function ContentCard({
             {onDelete && (
               <button
                 className="p-2 hover:bg-accent rounded"
-                onClick={e => {
+                onClick={(e) => {
                   e.stopPropagation();
                   onDelete(item);
                 }}
               >
-                {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                {isDeleting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
               </button>
             )}
           </div>
@@ -491,7 +552,7 @@ export function ContentCard({
                   <Checkbox
                     checked={isSelected}
                     onCheckedChange={onSelectionToggle}
-                    onClick={e => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
                     className="bg-white/90 border-white shadow-sm"
                   />
                 </div>
@@ -516,7 +577,7 @@ export function ContentCard({
                 <Button
                   size="sm"
                   variant="secondary"
-                  onClick={e => {
+                  onClick={(e) => {
                     e.stopPropagation();
                     if (isHidden && onUnhide) {
                       onUnhide();
@@ -526,7 +587,11 @@ export function ContentCard({
                   }}
                   className="h-8 w-8 p-0 bg-white/90 hover:bg-white border border-gray-300"
                 >
-                  {isHidden ? <Eye className="h-4 w-4 text-gray-700" /> : <EyeOff className="h-4 w-4 text-gray-700" />}
+                  {isHidden ? (
+                    <Eye className="h-4 w-4 text-gray-700" />
+                  ) : (
+                    <EyeOff className="h-4 w-4 text-gray-700" />
+                  )}
                 </Button>
               )}
             </div>
@@ -535,12 +600,12 @@ export function ContentCard({
               {/* Rating stars */}
               {onRate && (
                 <div className="flex items-center gap-0.5 bg-white/90 rounded-full px-2 py-1 border border-gray-300">
-                  {[1, 2, 3, 4, 5].map(star => (
+                  {[1, 2, 3, 4, 5].map((star) => (
                     <Button
                       key={star}
                       size="sm"
                       variant="ghost"
-                      onClick={e => {
+                      onClick={(e) => {
                         e.stopPropagation();
                         onRate(star);
                       }}
@@ -577,7 +642,8 @@ export function ContentCard({
             <span className="text-sm">Gallery</span>
             {gallery.imageCount > 0 && (
               <span className="text-xs text-muted-foreground mt-1">
-                {gallery.imageCount} {gallery.imageCount === 1 ? 'photo' : 'photos'}
+                {gallery.imageCount}{' '}
+                {gallery.imageCount === 1 ? 'photo' : 'photos'}
               </span>
             )}
           </div>
@@ -603,7 +669,12 @@ export function ContentCard({
                 Shared
               </Badge>
             ) : null}
-            <Badge variant={gallery.sharingStatus === 'public' ? 'default' : 'secondary'} className="text-xs">
+            <Badge
+              variant={
+                gallery.sharingStatus === 'public' ? 'default' : 'secondary'
+              }
+              className="text-xs"
+            >
               {gallery.sharingStatus === 'public' ? (
                 <>
                   <Globe className="h-3 w-3 mr-1" />
@@ -637,7 +708,12 @@ export function ContentCard({
                 Shared
               </Badge>
             ) : null}
-            <Badge variant={gallery.sharingStatus === 'public' ? 'default' : 'secondary'} className="text-xs">
+            <Badge
+              variant={
+                gallery.sharingStatus === 'public' ? 'default' : 'secondary'
+              }
+              className="text-xs"
+            >
               {gallery.sharingStatus === 'public' ? (
                 <>
                   <Globe className="h-3 w-3 mr-1" />

@@ -5,7 +5,10 @@ import { ExtendedMemory } from '@/types/dashboard';
 import { ItemUploadButton } from '@/components/memory/item-upload-button';
 import { BaseTopBar } from '@/components/common/base-top-bar';
 import { Switch } from '@/components/ui/switch';
-import { canSwitchDashboardDataSources, type HostingPreferences } from '@/hooks/use-hosting-preferences';
+import {
+  canSwitchDashboardDataSources,
+  type HostingPreferences,
+} from '@/hooks/use-hosting-preferences';
 
 interface SearchAndFilterBarProps {
   memories: ExtendedMemory[];
@@ -59,25 +62,37 @@ export function DashboardTopBar({
         </>
       )}
       {/* Clear All button - show when multiple data sources are available */}
-      {canSwitchDashboardDataSources(hostingPreferences) && onClearAllMemories && (
-        <Button variant="destructive" size="sm" onClick={onClearAllMemories} className="h-9 px-4 py-1 text-sm shrink-0">
-          Clear All
-        </Button>
-      )}
+      {canSwitchDashboardDataSources(hostingPreferences) &&
+        onClearAllMemories && (
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={onClearAllMemories}
+            className="h-9 px-4 py-1 text-sm shrink-0"
+          >
+            Clear All
+          </Button>
+        )}
 
       {/* Database Toggle Switch - show when multiple data sources are available */}
       {canSwitchDashboardDataSources(hostingPreferences) && (
         <div
           className={`flex items-center gap-2 px-3 py-1 border rounded-md ${
-            !canSwitchDashboardDataSources(hostingPreferences) ? 'bg-muted' : 'bg-background'
+            !canSwitchDashboardDataSources(hostingPreferences)
+              ? 'bg-muted'
+              : 'bg-background'
           }`}
         >
           <Switch
             checked={dataSource === 'icp'}
-            onCheckedChange={checked => onDataSourceChange(checked ? 'icp' : 'neon')}
+            onCheckedChange={(checked) =>
+              onDataSourceChange(checked ? 'icp' : 'neon')
+            }
             disabled={!canSwitchDashboardDataSources(hostingPreferences)}
           />
-          <span className="text-xs font-medium">{dataSource === 'icp' ? 'ICP' : 'Neon'}</span>
+          <span className="text-xs font-medium">
+            {dataSource === 'icp' ? 'ICP' : 'Neon'}
+          </span>
         </div>
       )}
     </>
@@ -93,7 +108,11 @@ export function DashboardTopBar({
       className={className}
       leftActions={leftActions}
       searchPlaceholder="Search memories, tags, or descriptions..."
-      searchFields={memory => [memory.title, memory.description || '', ...(memory.tags || [])]}
+      searchFields={(memory) => [
+        memory.title,
+        memory.description || '',
+        ...(memory.tags || []),
+      ]}
       filterOptions={[
         { value: 'all', label: 'All Types' },
         { value: 'image', label: 'Images' },
@@ -114,13 +133,23 @@ export function DashboardTopBar({
       sortLogic={(a, b, sortBy) => {
         switch (sortBy) {
           case 'newest':
-            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            return (
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
           case 'oldest':
-            return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+            return (
+              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+            );
           case 'most-viewed':
-            return ((b as ExtendedMemory).views || 0) - ((a as ExtendedMemory).views || 0);
+            return (
+              ((b as ExtendedMemory).views || 0) -
+              ((a as ExtendedMemory).views || 0)
+            );
           case 'favorites':
-            return ((b as ExtendedMemory).isFavorite ? 1 : 0) - ((a as ExtendedMemory).isFavorite ? 1 : 0);
+            return (
+              ((b as ExtendedMemory).isFavorite ? 1 : 0) -
+              ((a as ExtendedMemory).isFavorite ? 1 : 0)
+            );
           default:
             return 0;
         }

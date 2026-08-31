@@ -31,7 +31,9 @@ export async function findCommonAncestor(userAId: string, userBId: string) {
 
     return result.rows.length > 0 ? result.rows[0] : null;
   } catch (error) {
-    fatLogger.error('Error finding common ancestor:', 'be', { data: error instanceof Error ? error : undefined });
+    fatLogger.error('Error finding common ancestor:', 'be', {
+      data: error instanceof Error ? error : undefined,
+    });
     throw new Error('Database error.');
   }
 }
@@ -39,7 +41,10 @@ export async function findCommonAncestor(userAId: string, userBId: string) {
 /**
  * Automatically resolves fuzzy family relationships.
  */
-export async function resolveFuzzyRelationship(userAId: string, userBId: string) {
+export async function resolveFuzzyRelationship(
+  userAId: string,
+  userBId: string
+) {
   const ancestorData = await findCommonAncestor(userAId, userBId);
   if (!ancestorData) {
     // fatLogger.info(`No common ancestor found for ${userAId} and ${userBId}`);
@@ -47,7 +52,8 @@ export async function resolveFuzzyRelationship(userAId: string, userBId: string)
   }
 
   const { commonAncestor, totalDepth } = ancestorData;
-  const newFamilyRole = totalDepth === 1 ? 'sibling' : totalDepth === 2 ? 'uncle_aunt' : 'cousin';
+  const newFamilyRole =
+    totalDepth === 1 ? 'sibling' : totalDepth === 2 ? 'uncle_aunt' : 'cousin';
 
   await db.execute(sql`
     UPDATE family_relationship

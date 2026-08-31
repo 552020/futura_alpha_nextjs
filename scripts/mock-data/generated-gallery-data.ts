@@ -1,7 +1,11 @@
 import type { Memory } from '@/types/memory';
 
 // Generate a memory object
-function generateMemory(id: string, title: string, description: string): Memory {
+function generateMemory(
+  id: string,
+  title: string,
+  description: string
+): Memory {
   return {
     id,
     title,
@@ -24,7 +28,12 @@ function generateMemory(id: string, title: string, description: string): Memory 
 }
 
 // Generate a gallery item
-function generateGalleryItem(galleryId: string, index: number, title: string, description: string) {
+function generateGalleryItem(
+  galleryId: string,
+  index: number,
+  title: string,
+  description: string
+) {
   const memoryId = `memory-${galleryId}-${index + 1}`;
   return {
     id: `item-${galleryId}-${index}`,
@@ -40,9 +49,19 @@ function generateGalleryItem(galleryId: string, index: number, title: string, de
 }
 
 // Generate a gallery with items
-function generateGallery(id: string, title: string, description: string, itemCount: number = 15) {
+function generateGallery(
+  id: string,
+  title: string,
+  description: string,
+  itemCount: number = 15
+) {
   const items = Array.from({ length: itemCount }, (_, i) =>
-    generateGalleryItem(id, i, `Photo ${i + 1}`, `Beautiful ${title.toLowerCase()} photo ${i + 1}`)
+    generateGalleryItem(
+      id,
+      i,
+      `Photo ${i + 1}`,
+      `Beautiful ${title.toLowerCase()} photo ${i + 1}`
+    )
   );
 
   return {
@@ -77,9 +96,24 @@ export const generatedGalleries = [
     'Stunning landscape photography featuring nature and scenery',
     15
   ),
-  generateGallery('mixed-gallery', 'Mixed Media Gallery', 'A diverse collection of different photography styles', 20),
-  generateGallery('wild-gallery', 'Wild & Free', 'Capturing the untamed beauty of nature and wildlife', 25),
-  generateGallery('small-gallery', 'Small Moments', 'Intimate moments and close-up photography', 5),
+  generateGallery(
+    'mixed-gallery',
+    'Mixed Media Gallery',
+    'A diverse collection of different photography styles',
+    20
+  ),
+  generateGallery(
+    'wild-gallery',
+    'Wild & Free',
+    'Capturing the untamed beauty of nature and wildlife',
+    25
+  ),
+  generateGallery(
+    'small-gallery',
+    'Small Moments',
+    'Intimate moments and close-up photography',
+    5
+  ),
   generateGallery(
     'large-gallery',
     'Large Collection',
@@ -96,5 +130,5 @@ export const generatedGalleries = [
 
 // Export function to get a specific gallery by ID
 export function getGeneratedGallery(id: string) {
-  return generatedGalleries.find(gallery => gallery.id === id);
+  return generatedGalleries.find((gallery) => gallery.id === id);
 }

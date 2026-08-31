@@ -12,7 +12,9 @@ async function handleCompleteSignOut() {
     await clearIiSession();
   } catch (error) {
     // Ignore II cleanup errors - proceed with NextAuth signOut
-    fatLogger.warn('II cleanup failed:', 'fe', { error: error instanceof Error ? error : undefined });
+    fatLogger.warn('II cleanup failed:', 'fe', {
+      error: error instanceof Error ? error : undefined,
+    });
   }
 
   // Clear NextAuth session completely
@@ -23,7 +25,10 @@ async function handleCompleteSignOut() {
   });
 }
 
-export function SignIn({ provider, ...props }: { provider?: string } & React.ComponentPropsWithRef<typeof Button>) {
+export function SignIn({
+  provider,
+  ...props
+}: { provider?: string } & React.ComponentPropsWithRef<typeof Button>) {
   return (
     <Button {...props} onClick={() => signIn(provider)}>
       Sign In
@@ -33,7 +38,12 @@ export function SignIn({ provider, ...props }: { provider?: string } & React.Com
 
 export function SignOut(props: React.ComponentPropsWithRef<typeof Button>) {
   return (
-    <Button variant="ghost" className="w-full p-0" {...props} onClick={handleCompleteSignOut}>
+    <Button
+      variant="ghost"
+      className="w-full p-0"
+      {...props}
+      onClick={handleCompleteSignOut}
+    >
       Sign Out
     </Button>
   );

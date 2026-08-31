@@ -39,7 +39,9 @@ export function generateTestJWT(user: TestUserJWT): string {
   const secret = process.env.AUTH_SECRET;
 
   if (!secret) {
-    throw new Error("❌ AUTH_SECRET is missing! Make sure it's set in .env.local");
+    throw new Error(
+      "❌ AUTH_SECRET is missing! Make sure it's set in .env.local"
+    );
   }
 
   const now = Math.floor(Date.now() / 1000);
@@ -74,7 +76,10 @@ export function generateGoogleUserJWT(user: TestUserJWT): string {
 /**
  * Generate a JWT token for a user with linked Internet Identity
  */
-export function generateIIUserJWT(user: TestUserJWT, linkedPrincipal: string): string {
+export function generateIIUserJWT(
+  user: TestUserJWT,
+  linkedPrincipal: string
+): string {
   return generateTestJWT({
     ...user,
     linkedIcPrincipal: linkedPrincipal,
@@ -84,7 +89,10 @@ export function generateIIUserJWT(user: TestUserJWT, linkedPrincipal: string): s
 /**
  * Generate a JWT token for a user with active II co-authentication
  */
-export function generateActiveIIUserJWT(user: TestUserJWT, activePrincipal: string): string {
+export function generateActiveIIUserJWT(
+  user: TestUserJWT,
+  activePrincipal: string
+): string {
   return generateTestJWT({
     ...user,
     linkedIcPrincipal: activePrincipal,
@@ -99,7 +107,9 @@ export function generateExpiredJWT(user: TestUserJWT): string {
   const secret = process.env.AUTH_SECRET;
 
   if (!secret) {
-    throw new Error("❌ AUTH_SECRET is missing! Make sure it's set in .env.local");
+    throw new Error(
+      "❌ AUTH_SECRET is missing! Make sure it's set in .env.local"
+    );
   }
 
   const now = Math.floor(Date.now() / 1000);
@@ -127,7 +137,9 @@ export function verifyTestJWT(token: string): JWTPayload {
   const secret = process.env.AUTH_SECRET;
 
   if (!secret) {
-    throw new Error("❌ AUTH_SECRET is missing! Make sure it's set in .env.local");
+    throw new Error(
+      "❌ AUTH_SECRET is missing! Make sure it's set in .env.local"
+    );
   }
 
   try {

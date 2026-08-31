@@ -5,7 +5,11 @@ import Negotiator from 'negotiator';
 export const locales = ['en', 'de', 'tr'];
 export const defaultLocale = 'en';
 
-const allowedOrigins = ['https://www.futura.now', 'https://futura.now', 'https://peek.futura.now'];
+const allowedOrigins = [
+  'https://www.futura.now',
+  'https://futura.now',
+  'https://peek.futura.now',
+];
 
 function getLocale(request: NextRequest): string | undefined {
   try {
@@ -13,7 +17,9 @@ function getLocale(request: NextRequest): string | undefined {
     request.headers.forEach((value, key) => {
       negotiatorHeaders[key] = value;
     });
-    const languages = new Negotiator({ headers: negotiatorHeaders }).languages();
+    const languages = new Negotiator({
+      headers: negotiatorHeaders,
+    }).languages();
     const locale = matchLocale(languages, locales, defaultLocale);
     return locale;
   } catch (error) {
@@ -54,8 +60,14 @@ export function middleware(request: NextRequest) {
 
       if (origin && allowedOrigins.includes(origin)) {
         response.headers.set('Access-Control-Allow-Origin', origin);
-        response.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-        response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        response.headers.set(
+          'Access-Control-Allow-Methods',
+          'GET, POST, OPTIONS'
+        );
+        response.headers.set(
+          'Access-Control-Allow-Headers',
+          'Content-Type, Authorization'
+        );
         response.headers.set('Access-Control-Allow-Credentials', 'true');
         response.headers.set('Access-Control-Max-Age', '86400');
       }
@@ -68,8 +80,14 @@ export function middleware(request: NextRequest) {
 
     if (origin && allowedOrigins.includes(origin)) {
       response.headers.set('Access-Control-Allow-Origin', origin);
-      response.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-      response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      response.headers.set(
+        'Access-Control-Allow-Methods',
+        'GET, POST, OPTIONS'
+      );
+      response.headers.set(
+        'Access-Control-Allow-Headers',
+        'Content-Type, Authorization'
+      );
       response.headers.set('Access-Control-Allow-Credentials', 'true');
       response.headers.set('Access-Control-Expose-Headers', '*');
     }
@@ -89,11 +107,18 @@ export function middleware(request: NextRequest) {
   }
 
   // Handle localization for all other paths
-  const missingLocale = locales.every(locale => !pathname.startsWith(`/${locale}/`) && pathname !== `/${locale}`);
+  const missingLocale = locales.every(
+    (locale) => !pathname.startsWith(`/${locale}/`) && pathname !== `/${locale}`
+  );
 
   if (missingLocale) {
     const locale = getLocale(request);
-    return NextResponse.redirect(new URL(`/${locale}${pathname.startsWith('/') ? '' : '/'}${pathname}`, request.url));
+    return NextResponse.redirect(
+      new URL(
+        `/${locale}${pathname.startsWith('/') ? '' : '/'}${pathname}`,
+        request.url
+      )
+    );
   }
 
   return NextResponse.next();

@@ -24,7 +24,13 @@ export const fatLogger = new FatLogger({
 });
 
 // Export types for external use
-export type { LogLevel, Context, LogEntry, LoggerConfig, ServiceFlags } from './types';
+export type {
+  LogLevel,
+  Context,
+  LogEntry,
+  LoggerConfig,
+  ServiceFlags,
+} from './types';
 export { FatLogger } from './fat-logger';
 export { ServiceLogger } from './service-logger';
 export { LogEngine } from './engine';
