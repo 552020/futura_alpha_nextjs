@@ -80,19 +80,19 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "dotenv": "^16.6.1",
-    "drizzle-orm": "^0.44.5",
+    "drizzle-orm": "^0.45.2",
     "esbuild": "^0.25.9",
     "faker-js": "^1.0.0",
-    "file-type": "^18.7.0",
-    "form-data": "^4.0.4",
+    "file-type": "^21.3.1",
+    "form-data": "^4.0.6",
     "gray-matter": "^4.0.3",
     "jsonwebtoken": "^9.0.2",
     "list": "^2.0.19",
     "lucide-react": "^0.475.0",
     "mailgun.js": "^12.0.3",
     "negotiator": "^1.0.0",
-    "next": "15.5.9",
-    "next-auth": "5.0.0-beta.25",
+    "next": "15.5.25",
+    "next-auth": "5.0.0-beta.32",
     "next-themes": "^0.4.6",
     "p-limit": "^7.1.1",
     "posthog-js": "^1.266.0",
@@ -110,11 +110,11 @@
     "remark-gfm": "^4.0.0",
     "remark-html": "^16.0.1",
     "remark-rehype": "^11.1.1",
-    "sharp": "^0.34.3",
+    "sharp": "^0.35.0",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
     "unstorage": "^1.17.1",
-    "uuid": "^11.1.0",
+    "uuid": "^11.1.1",
     "zod": "^4.1.8"
   },
   "devDependencies": {
@@ -135,13 +135,13 @@
     "@types/react-dom": "^19.1.9",
     "@types/supertest": "^6.0.3",
     "@types/uuid": "^10.0.0",
-    "@vitest/ui": "^3.2.4",
+    "@vitest/ui": "^3.2.7",
     "concurrently": "^9.2.1",
     "drizzle-kit": "^0.31.4",
     "esbuild": "^0.25.0",
     "eslint": "^9.35.0",
     "eslint-config-next": "15.1.7",
-    "glob": "^11.0.3",
+    "glob": "^11.1.0",
     "jsdom": "^26.1.0",
     "pg": "^8.16.3",
     "postcss": "^8.5.6",
@@ -150,7 +150,7 @@
     "tailwindcss": "^4.1.13",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.7"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -160,8 +160,36 @@
     ],
     "overrides": {
       "esbuild": "^0.25.0",
-      "tar": ">=7.5.7",
-      "fast-xml-parser": ">=5.3.4"
+      "tar": ">=7.5.8 <8",
+      "fast-xml-parser": ">=5.3.5 <6",
+      "vite": ">=7.3.5 <8",
+      "jws": ">=3.2.3 <4",
+      "preact": ">=10.27.3 <11",
+      "@smithy/config-resolver": ">=4.4.0 <5",
+      "undici": ">=6.28.0 <7",
+      "js-yaml@>=4.0.0 <5.0.0": ">=4.3.1 <5",
+      "js-yaml@>=3.0.0 <4.0.0": ">=3.15.1 <4",
+      "qs": ">=6.15.2 <7",
+      "minimatch@>=3.0.0 <4.0.0": ">=3.1.4 <4",
+      "minimatch@>=9.0.0 <10.0.0": ">=9.0.7 <10",
+      "rollup": ">=4.59.0 <5",
+      "ajv": ">=6.14.0 <7",
+      "flatted": ">=3.4.2 <4",
+      "h3": ">=1.15.9 <2",
+      "effect": ">=3.20.0 <4",
+      "brace-expansion@>=1.0.0 <2.0.0": ">=1.1.18 <2",
+      "brace-expansion@>=2.0.0 <3.0.0": ">=2.1.4 <3",
+      "picomatch@>=2.0.0 <3.0.0": ">=2.3.2 <3",
+      "picomatch@>=4.0.0 <5.0.0": ">=4.0.4 <5",
+      "defu": ">=6.1.5 <7",
+      "follow-redirects": ">=1.16.0 <2",
+      "axios": ">=1.18.0 <2",
+      "postcss": ">=8.5.23 <9",
+      "ws": ">=8.21.0 <9",
+      "shell-quote": ">=1.9.0 <2",
+      "nanoid": ">=3.3.18 <4",
+      "@auth/core": ">=0.41.3 <1",
+      "deepmerge-ts": ">=8.0.0 <9"
     },
     "ignoredBuiltDependencies": [
       "@prisma/client",
@@ -173,7 +201,7 @@
     ]
   },
   "overrides": {
-    "tar": ">=7.5.7",
-    "fast-xml-parser": ">=5.3.4"
+    "tar": ">=7.5.8 <8",
+    "fast-xml-parser": ">=5.3.5 <6"
   }
 }
