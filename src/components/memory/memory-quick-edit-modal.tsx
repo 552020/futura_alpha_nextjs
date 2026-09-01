@@ -140,4 +140,3 @@ export function MemoryQuickEditModal({
   );
 }
 
-export default MemoryQuickEditModal;
