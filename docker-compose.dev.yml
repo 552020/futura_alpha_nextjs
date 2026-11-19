@@ -14,7 +14,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: futura
     ports:
-      - '127.0.0.1:5442:5432'
+      - '127.0.0.1:5452:5432'
     volumes:
       - futura_db_data:/var/lib/postgresql/data
     healthcheck:

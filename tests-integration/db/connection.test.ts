@@ -9,7 +9,7 @@ describe('buildConnection (TLS handling)', () => {
 
   it('connects in plain text when the URL has no sslmode (local Docker)', () => {
     vi.stubEnv('DATABASE_CA_CERT', '');
-    const conn = buildConnection('postgres://u:p@localhost:5442/futura');
+    const conn = buildConnection('postgres://u:p@localhost:5452/futura');
     expect(conn.ssl).toBeUndefined();
   });
 
