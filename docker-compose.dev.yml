@@ -1,0 +1,40 @@
+# Local database for development and integration tests.
+# Postgres plus Neon's local HTTP proxy, so the @neondatabase/serverless
+# driver (neon-http) works against a container instead of Neon cloud.
+#
+#   docker compose -f docker-compose.dev.yml up -d
+#   cp .env.test.local.example .env.local   (or merge the DB lines)
+#   pnpm db:push
+services:
+  postgres:
+    image: postgres:17
+    container_name: futura-dev-db
+    command: '-d 1'
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: futura
+    ports:
+      - '127.0.0.1:5442:5432'
+    volumes:
+      - futura_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d futura']
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  neon-proxy:
+    # Pinned by digest: third-party image, only ever runs locally.
+    image: ghcr.io/timowilhelm/local-neon-http-proxy@sha256:cd2ae14edf2feafbc3330492de5c80506f77274c3bd013154cdef697bdeb768a
+    container_name: futura-dev-neon-proxy
+    environment:
+      PG_CONNECTION_STRING: postgres://postgres:postgres@postgres:5432/futura
+    ports:
+      - '127.0.0.1:4444:4444'
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  futura_db_data:

@@ -39,6 +39,7 @@ dev_new.log
 # env files (can opt-in for committing if needed)
 .env*
 !.env.local.example
+!.env.test.local.example
 # vercel
 .vercel
 

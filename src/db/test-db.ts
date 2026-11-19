@@ -1,5 +1,6 @@
 import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
+import '@/db/neon-local';
 import { config } from 'dotenv';
 import { fatLogger } from '@/lib/logger';
 import * as schema from './index'; // Import the SAME schema

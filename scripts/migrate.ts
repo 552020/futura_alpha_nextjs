@@ -13,6 +13,7 @@
 
 import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
+import '../src/db/neon-local';
 import { sql } from 'drizzle-orm';
 import { config } from 'dotenv';
 import { readFileSync } from 'fs';

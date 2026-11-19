@@ -1,4 +1,5 @@
 import { vi } from 'vitest';
+import '@/db/neon-local';
 
 // Mock Next.js router
 vi.mock('next/navigation', () => ({

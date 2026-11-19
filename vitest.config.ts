@@ -10,7 +10,16 @@ export default defineConfig({
       'src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
       'tests-integration/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
     ],
-    exclude: ['node_modules', 'dist', '.idea', '.git', '.cache'],
+    exclude: [
+      'node_modules',
+      'dist',
+      '.idea',
+      '.git',
+      '.cache',
+      // Fully commented out (pre-Clerk-removal / old storage-edges API); kept for reference.
+      'tests-integration/db/storage-edges.test.ts',
+      'tests-integration/api/memories/create-memory.test.ts',
+    ],
   },
   resolve: {
     alias: {
