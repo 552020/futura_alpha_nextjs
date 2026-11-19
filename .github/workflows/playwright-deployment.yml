@@ -4,7 +4,7 @@ on:
 jobs:
   test:
     timeout-minutes: 60
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # Playwright 1.56 does not support ubuntu-latest (26.04)
     if: github.event.deployment_status.state == 'success'
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
