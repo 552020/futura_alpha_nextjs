@@ -112,7 +112,9 @@ function SignIIOnlyContent() {
         callbackUrl: safeCallbackUrl,
       });
       await signIn('ii', {
-        principal: '', // authorize() will validate via /api/ii/verify-nonce
+        // authorize() requires the principal and checks it against the one
+        // the backend canister proved for this nonce (verify_nonce)
+        principal: identity.getPrincipal().toText(),
         nonceId: challenge.nonceId,
         nonce: challenge.nonce,
         redirect: true,

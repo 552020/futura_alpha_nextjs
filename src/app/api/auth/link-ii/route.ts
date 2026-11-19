@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 import { db } from '@/db/db';
 import { accounts } from '@/db';
 import { createServerSideActor } from '@/lib/server-actor';
+import { getLinkedPrincipalsFromDB } from '@/lib/get-linked-principals';
 
 import { fatLogger } from '@/lib/logger';
 export async function POST(request: NextRequest) {
@@ -35,7 +36,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    const principal = (nonceResult as { Ok: { toString(): string } }).Ok.toString();
+    const principal = (
+      nonceResult as { Ok: { toString(): string } }
+    ).Ok.toString();
 
     // Check if this Principal is already linked to another user
     const existingAccount = await db.query.accounts.findFirst({
@@ -72,7 +75,10 @@ export async function POST(request: NextRequest) {
         set: { userId: session.user.id },
       });
 
-    return NextResponse.json({ success: true, principal });
+    // Return the fresh list: the client writes it into the session via
+    // update(), so omitting it reset linkedIcPrincipals to [] after linking
+    const linkedIcPrincipals = await getLinkedPrincipalsFromDB(session.user.id);
+    return NextResponse.json({ success: true, principal, linkedIcPrincipals });
   } catch (error) {
     fatLogger.error('/api/auth/link-ii error:', 'be', {
       data: error instanceof Error ? error : undefined,

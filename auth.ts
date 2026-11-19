@@ -2,6 +2,7 @@
 
 import NextAuth, { type DefaultSession } from 'next-auth';
 import 'next-auth/jwt';
+import { resolveAuthRedirect } from '@/lib/auth-redirect';
 import GitHub from 'next-auth/providers/github';
 import Google from 'next-auth/providers/google';
 import { DrizzleAdapter } from '@auth/drizzle-adapter';
@@ -293,15 +294,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           }
 
           // Create a new user and account mapping (fallback)
-          const insertedUsers = await db
-            .insert(users)
-            .values({})
-            .returning({
-              id: users.id,
-              email: users.email,
-              name: users.name,
-              role: users.role,
-            });
+          const insertedUsers = await db.insert(users).values({}).returning({
+            id: users.id,
+            email: users.email,
+            name: users.name,
+            role: users.role,
+          });
           const newUser = insertedUsers[0];
 
           await db.insert(accounts).values({
@@ -341,27 +339,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     //   return `${baseUrl}/user/profile`;
     // },
     redirect({ url, baseUrl }) {
-      const isLoginFlow =
-        url.includes('/api/auth/signin') || url.includes('/api/auth/callback');
-
-      if (isLoginFlow) {
-        // Extract language from URL if available, default to 'en'
-        let lang = 'en'; // default fallback
-
-        try {
-          const urlObj = new URL(url);
-          lang = urlObj.searchParams.get('lang') || 'en';
-        } catch (_error) {
-          // Fallback to default language if URL is invalid
-          lang = 'en';
-        }
-
-        const redirectTo = `${baseUrl}/${lang}/dashboard`;
-        return redirectTo;
-      }
-
-      // Otherwise just return the same URL (no redirect)
-      return url;
+      return resolveAuthRedirect(url, baseUrl);
     },
 
     authorized({ request, auth }) {
