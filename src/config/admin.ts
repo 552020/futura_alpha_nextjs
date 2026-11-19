@@ -7,12 +7,11 @@
 
 /**
  * Get list of admin emails from environment variables
- * Falls back to default admin email if not set
+ * No fallback: futura.now is no longer ours, so a hard-coded address there
+ * would hand admin to whoever registers the domain. Unset means role-only.
  */
 export function getAdminEmails(): string[] {
-  const adminEmails = process.env.ADMIN_EMAILS?.split(',') || [
-    'hello@futura.now',
-  ];
+  const adminEmails = process.env.ADMIN_EMAILS?.split(',') || [];
   return adminEmails.map((email) => email.trim()).filter(Boolean);
 }
 

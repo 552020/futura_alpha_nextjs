@@ -83,8 +83,10 @@ export async function getAuthToken(): Promise<string | null> {
  * This allows us to test ICP endpoints without complex session mocking
  */
 export async function requireAuth(req: Request): Promise<SessionLike> {
-  // 🧪 TEST MODE: Bypass NextAuth for automated testing
-  if (process.env.TEST_AUTH_BYPASS === '1') {
+  // 🧪 TEST MODE: Bypass NextAuth for automated testing.
+  // Never active on Vercel (VERCEL_ENV is set on every Vercel deployment),
+  // so a stray TEST_AUTH_BYPASS there cannot open protected endpoints.
+  if (process.env.TEST_AUTH_BYPASS === '1' && !process.env.VERCEL_ENV) {
     const testUserId =
       req.headers.get('x-test-user-id')?.toString() || 'test-user-id';
     const testEmail =

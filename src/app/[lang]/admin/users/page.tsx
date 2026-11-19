@@ -69,9 +69,7 @@ export default function AdminUsersPage() {
     }
 
     // Check if user is admin (server-side check will be done in API calls)
-    const isAdmin =
-      session.user?.role === 'admin' ||
-      session.user?.email?.includes('@futura.now');
+    const isAdmin = session.user?.role === 'admin';
 
     if (!isAdmin) {
       router.push(`/${lang}`);

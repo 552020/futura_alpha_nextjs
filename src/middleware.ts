@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { match as matchLocale } from '@formatjs/intl-localematcher';
 import Negotiator from 'negotiator';
+import { APP_URL, PRODUCTION_URL } from '@/config/app-url';
 
 export const locales = ['en', 'de', 'tr'];
 export const defaultLocale = 'en';
 
-const allowedOrigins = [
-  'https://www.futura.now',
-  'https://futura.now',
-  'https://peek.futura.now',
-];
+// futura.now is no longer ours: never trust it as an origin again.
+const allowedOrigins = [...new Set([PRODUCTION_URL, APP_URL])];
 
 function getLocale(request: NextRequest): string | undefined {
   try {

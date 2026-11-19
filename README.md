@@ -5,63 +5,84 @@
 Futura combines **ICP** and **blockchain technologies** to safeguard the most meaningful memories of a person for the long term, ensuring they can be passed down across generations.
 
 ---
-futura.now
+
+Production: https://futura-alpha-552020s-projects.vercel.app
 
 ## How to
 
 ### Web3
-1. **Create an account and login with web2**  
-2. Go to **Settings** and select **Web3** instead of **Web2**  
-3. Go to **ICP** and connect your **Internet Identity**  
-4. Go to the **Dashboard** to add or delete files and folders  
+
+1. **Create an account and login with web2**
+2. Go to **Settings** and select **Web3** instead of **Web2**
+3. Go to **ICP** and connect your **Internet Identity**
+4. Go to the **Dashboard** to add or delete files and folders
 
 ### Web2
-1. **Create an account and login with web2**  
-2. Go to the **Dashboard** to add or delete files and folders  
+
+1. **Create an account and login with web2**
+2. Go to the **Dashboard** to add or delete files and folders
 
 ### Switch
+
 You can switch between web2 and web3, data is not migrated.
 
 ### Other Features
-- **Gallery Sharing** – Easily share image galleries with others.  
-- **Gallery Selection with Email Notification** – Allows clients to make selections from a gallery, and notifies the photographer via email.  
-  > ⚠️ This feature only works if you have an existing **business–client relationship** set up in the database.
 
+- **Gallery Sharing** – Easily share image galleries with others.
+- **Gallery Selection with Email Notification** – Allows clients to make selections from a gallery, and notifies the photographer via email.
+  > ⚠️ This feature only works if you have an existing **business–client relationship** set up in the database.
 
 ---
 
 ## Current Offering
+
 At this stage, users can choose between **Web2** and **Web3 storage** options.  
 Our initial go-to-market strategy focuses on **wedding photography**:
 
-1. We facilitate the transfer of ownership from the photographer to the newlyweds.  
-2. Newlyweds are then offered the option to **store their memories forever**.  
-3. From there, they can expand to preserving other significant data they wish to pass on to future generations—such as autobiographies, personal documents, and cherished memories.  
+1. We facilitate the transfer of ownership from the photographer to the newlyweds.
+2. Newlyweds are then offered the option to **store their memories forever**.
+3. From there, they can expand to preserving other significant data they wish to pass on to future generations—such as autobiographies, personal documents, and cherished memories.
 
 We’ve recently partnered with a professional photographer [Salih, our Partner](https://www.instagram.com/salih_kurbet_films/) and are eager to gather feedback from clients and measure conversion rates over the coming months.
 
 ---
 
 ## Long-Term Vision
+
 While weddings are our starting point, Futura’s mission goes beyond photography.  
 We are building a future of **digital inheritance**, ensuring your legacy endures:
 
-- Your descendants will inherit your **digital archive**—photos, texts, documents, and more.  
+- Your descendants will inherit your **digital archive**—photos, texts, documents, and more.
 - They will be able to **interact with your data** through an AI-driven project called **Transcendance**, enabling conversations with the digital reflection of your life.
 
 ---
 
 ## Technology Approach
+
 Futura leverages **ICP’s storage innovations** and the security of decentralized infrastructure:
 
-- [Dom](https://x.com/dominic_w/status/1955447139347337491) (ICP) has announced unprecedented reductions in storage costs, supporting projects like **Caffeine**. We build upon this strategy to make **long-term, highly accessible storage** possible.  
-- Decentralization ensures the **longevity and security** of hosted files.  
-- We focus on **data ownership and ownership transfer**, particularly in the delivery of digital files.  
+- [Dom](https://x.com/dominic_w/status/1955447139347337491) (ICP) has announced unprecedented reductions in storage costs, supporting projects like **Caffeine**. We build upon this strategy to make **long-term, highly accessible storage** possible.
+- Decentralization ensures the **longevity and security** of hosted files.
+- We focus on **data ownership and ownership transfer**, particularly in the delivery of digital files.
 
-Our active canister:  
+Our active canister:
+
 ```json
 "ic": "izhgj-eiaaa-aaaaj-a2f7q-cai"
 ```
 
+<img width="1030" height="680" alt="Futura Demo Screenshot" src="https://github.com/user-attachments/assets/ce6ca146-34b8-446c-a42e-0004c7ac8087" />
 
-<img width="1030" height="680" alt="Futura Demo Screenshot" src="https://github.com/user-attachments/assets/ce6ca146-34b8-446c-a42e-0004c7ac8087" /> 
+## Local database
+
+The app uses Neon's HTTP driver. For local work and integration tests, run
+Postgres plus Neon's local HTTP proxy in Docker:
+
+```bash
+docker compose -f docker-compose.dev.yml up -d
+cat .env.test.local.example >> .env.local
+pnpm db:push
+```
+
+Any connection string pointing at `localhost` is routed through the proxy
+(see `src/db/neon-local.ts`); cloud Neon URLs are unaffected.

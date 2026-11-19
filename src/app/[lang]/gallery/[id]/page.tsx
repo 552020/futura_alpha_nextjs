@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
+import { APP_URL } from '@/config/app-url';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useAuthGuard } from '@/utils/authentication';
 import { Button } from '@/components/ui/button';
@@ -373,7 +374,7 @@ function GalleryViewContent() {
                   '☆'.repeat(5 - Math.round(img.rating || 0))
                 : '',
             })),
-            appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://futura.now',
+            appUrl: APP_URL,
           },
         }),
       });
