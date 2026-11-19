@@ -18,6 +18,8 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: '24'
+          # pnpm is installed in the next step; caching is handled below.
+          package-manager-cache: false
       - name: Install pnpm
         uses: pnpm/action-setup@v4
       - name: Cache dependencies
