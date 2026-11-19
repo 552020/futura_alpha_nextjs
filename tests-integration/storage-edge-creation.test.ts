@@ -1,144 +1,108 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+// @vitest-environment node
+/**
+ * createMemoryStorageEdges against a real local Postgres.
+ *
+ * The previous version mocked db.insert() and drifted from the service's
+ * real query chain (lookup + insert/update on the uq_edge index), so it
+ * could never pass. Running it against the database checks the actual SQL.
+ */
+import { randomUUID } from 'node:crypto';
+import { afterAll, describe, expect, it } from 'vitest';
+import { eq, inArray } from 'drizzle-orm';
+import { hasLocalDb } from './local-db';
 
-// Mock the database module
-vi.mock('@/db/db', () => ({
-  db: {
-    insert: vi.fn(),
-    select: vi.fn(),
-    delete: vi.fn(),
-  },
-}));
+describe.skipIf(!hasLocalDb)(
+  'createMemoryStorageEdges (local Postgres)',
+  () => {
+    const createdMemoryIds: string[] = [];
 
-// Mock the schema module
-vi.mock('@/db', () => ({
-  storageEdges: {
-    id: 'id',
-    memoryId: 'memory_id',
-    memoryType: 'memory_type',
-    artifact: 'artifact',
-    backend: 'backend',
-    present: 'present',
-    location: 'location',
-    contentHash: 'content_hash',
-    sizeBytes: 'size_bytes',
-    syncState: 'sync_state',
-    syncError: 'sync_error',
-    lastSyncedAt: 'last_synced_at',
-    createdAt: 'created_at',
-    updatedAt: 'updated_at',
-  },
-  images: { id: 'id' },
-  videos: { id: 'id' },
-  documents: { id: 'id' },
-}));
-
-// Mock drizzle-orm
-vi.mock('drizzle-orm', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('drizzle-orm')>()),
-  eq: vi.fn(),
-}));
-
-describe('Storage Edge Creation Logic', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  afterEach(() => {
-    vi.resetAllMocks();
-  });
-
-  it('should create correct storage edge data structure for image memory', async () => {
-    // Import the function after mocking
-    const { createMemoryStorageEdges } = await import(
-      '@/lib/usecases/memory/create-memory-storage-edges'
-    );
-    const { db } = await import('@/db/db');
-
-    // Mock the database insert to return success
-    const mockInsert = vi.fn().mockReturnValue({
-      values: vi.fn().mockReturnValue({
-        returning: vi.fn().mockResolvedValue([
-          {
-            id: 'edge-1',
-            memoryId: 'test-memory',
-            artifact: 'metadata',
-            backend: 'neon-db',
-          },
-          {
-            id: 'edge-2',
-            memoryId: 'test-memory',
-            artifact: 'asset',
-            backend: 'vercel-blob',
-          },
-        ]),
-      }),
-    });
-    db.insert = mockInsert;
-
-    const result = await createMemoryStorageEdges({
-      memoryId: 'test-memory',
-      memoryType: 'image',
-      url: 'https://test-url.com/image.jpg',
-      size: 1024,
+    afterAll(async () => {
+      if (!createdMemoryIds.length) return;
+      const { db, storageEdges } = await import('@/db/db');
+      await db
+        .delete(storageEdges)
+        .where(inArray(storageEdges.memoryId, createdMemoryIds));
     });
 
-    expect(result.success).toBe(true);
-    expect(result.metadataEdge).toBeDefined();
-    expect(result.assetEdge).toBeDefined();
+    async function edgesFor(memoryId: string) {
+      const { db, storageEdges } = await import('@/db/db');
+      return db
+        .select()
+        .from(storageEdges)
+        .where(eq(storageEdges.memoryId, memoryId));
+    }
 
-    // Verify the function was called with correct parameters
-    expect(mockInsert).toHaveBeenCalledTimes(2);
-  });
+    it('creates a metadata edge and an asset edge for a new image', async () => {
+      const { createMemoryStorageEdges } = await import(
+        '@/lib/usecases/memory/create-memory-storage-edges'
+      );
+      const memoryId = randomUUID();
+      createdMemoryIds.push(memoryId);
 
-  it('should handle different memory types correctly', async () => {
-    const { createMemoryStorageEdges } = await import(
-      '@/lib/usecases/memory/create-memory-storage-edges'
-    );
-    const { db } = await import('@/db/db');
-
-    const mockInsert = vi.fn().mockReturnValue({
-      values: vi.fn().mockReturnValue({
-        returning: vi.fn().mockResolvedValue([{ id: 'edge-1' }]),
-      }),
-    });
-    db.insert = mockInsert;
-
-    const memoryTypes = ['image', 'video', 'document'] as const;
-
-    for (const memoryType of memoryTypes) {
       const result = await createMemoryStorageEdges({
-        memoryId: `test-${memoryType}`,
-        memoryType,
-        url: 'https://test-url.com/file',
+        memoryId,
+        memoryType: 'image',
+        url: 'https://blob.example.test/image.jpg',
         size: 1024,
+        contentHash: 'sha256-abc',
       });
 
       expect(result.success).toBe(true);
-    }
-  });
+      const edges = await edgesFor(memoryId);
+      expect(edges).toHaveLength(2);
 
-  it('should handle database errors gracefully', async () => {
-    const { createMemoryStorageEdges } = await import(
-      '@/lib/usecases/memory/create-memory-storage-edges'
-    );
-    const { db } = await import('@/db/db');
-
-    // Mock database to throw an error
-    const mockInsert = vi.fn().mockReturnValue({
-      values: vi.fn().mockReturnValue({
-        returning: vi.fn().mockRejectedValue(new Error('Database error')),
-      }),
-    });
-    db.insert = mockInsert;
-
-    const result = await createMemoryStorageEdges({
-      memoryId: 'test-memory',
-      memoryType: 'image',
-      url: 'https://test-url.com/image.jpg',
-      size: 1024,
+      const metadata = edges.find((e) => e.artifact === 'metadata');
+      const asset = edges.find((e) => e.artifact === 'asset');
+      expect(metadata).toMatchObject({
+        memoryType: 'image',
+        locationMetadata: 'neon',
+        present: true,
+        syncState: 'idle',
+      });
+      expect(asset).toMatchObject({
+        memoryType: 'image',
+        locationAsset: 'vercel_blob',
+        locationUrl: 'https://blob.example.test/image.jpg',
+        sizeBytes: 1024,
+        contentHash: 'sha256-abc',
+        present: true,
+      });
     });
 
-    expect(result.success).toBe(false);
-    expect(result.error).toContain('Database error');
-  });
-});
+    it('is idempotent: calling twice does not duplicate edges', async () => {
+      const { createMemoryStorageEdges } = await import(
+        '@/lib/usecases/memory/create-memory-storage-edges'
+      );
+      const memoryId = randomUUID();
+      createdMemoryIds.push(memoryId);
+      const params = {
+        memoryId,
+        memoryType: 'video' as const,
+        url: 'https://blob.example.test/clip.mp4',
+        size: 2048,
+      };
+
+      expect((await createMemoryStorageEdges(params)).success).toBe(true);
+      expect(
+        (await createMemoryStorageEdges({ ...params, size: 4096 })).success
+      ).toBe(true);
+
+      const edges = await edgesFor(memoryId);
+      expect(edges).toHaveLength(2);
+      expect(edges.find((e) => e.artifact === 'asset')?.sizeBytes).toBe(4096);
+    });
+
+    it('reports failure instead of throwing for an invalid memory id', async () => {
+      const { createMemoryStorageEdges } = await import(
+        '@/lib/usecases/memory/create-memory-storage-edges'
+      );
+      const result = await createMemoryStorageEdges({
+        memoryId: 'not-a-uuid',
+        memoryType: 'note',
+        url: 'https://blob.example.test/n.txt',
+        size: 1,
+      });
+      expect(result.success).toBe(false);
+    });
+  }
+);
