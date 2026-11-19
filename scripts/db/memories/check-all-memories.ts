@@ -9,8 +9,7 @@
  *   npx tsx scripts/db/memories/check-all-memories.ts
  */
 
-import { drizzle } from 'drizzle-orm/neon-http';
-import { neon } from '@neondatabase/serverless';
+import { createDb } from '../../../src/db/pg-pool';
 import { config } from 'dotenv';
 import { eq, desc } from 'drizzle-orm';
 import { memories, storageEdges } from '../../../src/db/index';
@@ -26,8 +25,7 @@ if (!process.env.DATABASE_URL_UNPOOLED) {
 }
 
 // Create database connection
-const sql = neon(process.env.DATABASE_URL_UNPOOLED!);
-const db = drizzle(sql, { schema: { memories, storageEdges } });
+const db = createDb(process.env.DATABASE_URL_UNPOOLED!);
 
 async function checkAllMemories() {
   console.log('🔍 Checking all memories in database...');

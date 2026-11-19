@@ -13,8 +13,7 @@
  *   npx tsx scripts/db/memories/list-user-memories.ts stefanolombardo@posteo.de
  */
 
-import { drizzle } from 'drizzle-orm/neon-http';
-import { neon } from '@neondatabase/serverless';
+import { createDb } from '../../../src/db/pg-pool';
 import { config } from 'dotenv';
 import { eq, and, isNull, desc } from 'drizzle-orm';
 import { users, allUsers, memories, storageEdges } from '../../../src/db/index';
@@ -30,10 +29,7 @@ if (!process.env.DATABASE_URL_UNPOOLED) {
 }
 
 // Create database connection
-const sql = neon(process.env.DATABASE_URL_UNPOOLED!);
-const db = drizzle(sql, {
-  schema: { users, allUsers, memories, storageEdges },
-});
+const db = createDb(process.env.DATABASE_URL_UNPOOLED!);
 
 interface MemoryWithStorage {
   id: string;

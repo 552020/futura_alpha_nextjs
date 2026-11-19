@@ -11,9 +11,7 @@
  *   npm run db:migrate:full
  */
 
-import { drizzle } from 'drizzle-orm/neon-http';
-import { neon } from '@neondatabase/serverless';
-import '../src/db/neon-local';
+import { createDb } from '../src/db/pg-pool';
 import { sql } from 'drizzle-orm';
 import { config } from 'dotenv';
 import { readFileSync } from 'fs';
@@ -42,8 +40,7 @@ async function runDrizzleMigrations(): Promise<void> {
 async function applyCustomConstraints(): Promise<void> {
   console.log('🔧 Applying custom constraints...');
 
-  const sqlClient = neon(process.env.DATABASE_URL_UNPOOLED!);
-  const db = drizzle(sqlClient);
+  const db = createDb(process.env.DATABASE_URL_UNPOOLED!);
 
   // Find all custom constraint migration files
   const migrationFiles = await glob('src/db/migrations/*_constraint.sql');
@@ -83,8 +80,7 @@ async function applyCustomConstraints(): Promise<void> {
 async function verifyDatabaseIntegrity(): Promise<void> {
   console.log('🔍 Verifying database integrity...');
 
-  const sqlClient = neon(process.env.DATABASE_URL_UNPOOLED!);
-  const db = drizzle(sqlClient);
+  const db = createDb(process.env.DATABASE_URL_UNPOOLED!);
 
   // Check that all required constraints exist
   const requiredConstraints = [

@@ -19,8 +19,7 @@
  *   1 - One or more constraints missing
  */
 
-import { drizzle } from 'drizzle-orm/neon-http';
-import { neon } from '@neondatabase/serverless';
+import { createDb } from '../src/db/pg-pool';
 import { sql } from 'drizzle-orm';
 import { config } from 'dotenv';
 
@@ -49,8 +48,7 @@ const REQUIRED_CONSTRAINTS: ConstraintCheck[] = [
 ];
 
 async function verifyConstraints() {
-  const sqlClient = neon(process.env.DATABASE_URL_UNPOOLED!);
-  const db = drizzle(sqlClient);
+  const db = createDb(process.env.DATABASE_URL_UNPOOLED!);
 
   console.log('🔍 Verifying database constraints...');
   console.log('=====================================');

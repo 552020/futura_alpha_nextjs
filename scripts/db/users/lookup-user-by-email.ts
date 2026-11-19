@@ -13,8 +13,7 @@
  *   npx tsx scripts/db/users/lookup-user-by-email.ts user@example.com
  */
 
-import { drizzle } from 'drizzle-orm/neon-http';
-import { neon } from '@neondatabase/serverless';
+import { createDb } from '../../../src/db/pg-pool';
 import { config } from 'dotenv';
 import { eq, and, isNull } from 'drizzle-orm';
 import { users, allUsers, temporaryUsers } from '../../../src/db/index';
@@ -30,8 +29,7 @@ if (!process.env.DATABASE_URL_UNPOOLED) {
 }
 
 // Create database connection
-const sql = neon(process.env.DATABASE_URL_UNPOOLED!);
-const db = drizzle(sql, { schema: { users, allUsers, temporaryUsers } });
+const db = createDb(process.env.DATABASE_URL_UNPOOLED!);
 
 interface UserLookupResult {
   email: string;

@@ -13,11 +13,10 @@
  *   npx tsx scripts/db/memories/check-storage-edges.ts 123e4567-e89b-12d3-a456-426614174000
  */
 
-import { drizzle } from 'drizzle-orm/neon-http';
-import { neon } from '@neondatabase/serverless';
+import { createDb } from '../../../src/db/pg-pool';
 import { config } from 'dotenv';
 import { eq } from 'drizzle-orm';
-import { storageEdges, memories, allUsers } from '../../../src/db/index';
+import { storageEdges, memories } from '../../../src/db/index';
 
 // Load environment variables
 config({ path: '.env.local' });
@@ -30,8 +29,7 @@ if (!process.env.DATABASE_URL_UNPOOLED) {
 }
 
 // Create database connection
-const sql = neon(process.env.DATABASE_URL_UNPOOLED!);
-const db = drizzle(sql, { schema: { storageEdges, memories, allUsers } });
+const db = createDb(process.env.DATABASE_URL_UNPOOLED!);
 
 async function checkStorageEdges(memoryId: string) {
   console.log(`🔍 Checking storage edges for memory: ${memoryId}`);

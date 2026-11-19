@@ -73,16 +73,24 @@ Our active canister:
 
 <img width="1030" height="680" alt="Futura Demo Screenshot" src="https://github.com/user-attachments/assets/ce6ca146-34b8-446c-a42e-0004c7ac8087" />
 
-## Local database
+## Database
 
-The app uses Neon's HTTP driver. For local work and integration tests, run
-Postgres plus Neon's local HTTP proxy in Docker:
+The app talks to Postgres over the standard wire protocol (node-postgres via
+Drizzle, `src/db/pg-pool.ts`). The same code works with Neon, a local Docker
+Postgres, or a self-hosted server such as Hetzner behind PgBouncer.
+
+| Variable                | Purpose                                                         |
+| ----------------------- | --------------------------------------------------------------- |
+| `DATABASE_URL`          | Runtime connection (pooled endpoint / PgBouncer)                |
+| `DATABASE_URL_UNPOOLED` | Direct connection for scripts and `drizzle-kit`                 |
+| `DATABASE_CA_CERT`      | Optional PEM of a private CA; pins TLS for self-hosted Postgres |
+| `TEST_DATABASE_URL`     | Integration tests; they only run when it points at localhost    |
+
+Local setup:
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d
 cat .env.test.local.example >> .env.local
 pnpm db:push
+pnpm test:run   # integration tests run because the DB is local
 ```
-
-Any connection string pointing at `localhost` is routed through the proxy
-(see `src/db/neon-local.ts`); cloud Neon URLs are unaffected.

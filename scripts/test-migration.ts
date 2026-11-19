@@ -6,8 +6,7 @@
  * This script tests that the migration can be run multiple times safely.
  */
 
-import { drizzle } from 'drizzle-orm/neon-http';
-import { neon } from '@neondatabase/serverless';
+import { createDb } from '../src/db/pg-pool';
 import { sql } from 'drizzle-orm';
 import { config } from 'dotenv';
 import { readFileSync } from 'fs';
@@ -17,8 +16,7 @@ import { join } from 'path';
 config({ path: '.env.local' });
 
 async function testMigration() {
-  const sqlClient = neon(process.env.DATABASE_URL_UNPOOLED!);
-  const db = drizzle(sqlClient);
+  const db = createDb(process.env.DATABASE_URL_UNPOOLED!);
 
   console.log('🧪 Testing idempotent migration...');
   console.log('==================================');

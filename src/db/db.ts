@@ -1,30 +1,24 @@
-import { drizzle } from 'drizzle-orm/neon-http';
-import { neon } from '@neondatabase/serverless';
-import '@/db/neon-local';
 import { config } from 'dotenv';
-import * as schema from './index'; // Import from new index file
+import { createDb } from './pg-pool';
 
-config({ path: '.env.local' }); // or .env.local
+config({ path: '.env.local' });
 
 if (typeof window !== 'undefined') {
   throw new Error('❌ db.ts should NEVER be imported in a client component!');
 }
 
-// Ensure DATABASE_URL is set
-if (!process.env.DATABASE_URL && !process.env.DATABASE_URL_UNPOOLED) {
+// DATABASE_URL is the runtime connection (Neon pooler or PgBouncer).
+// DATABASE_URL_UNPOOLED is accepted as a fallback for older env setups.
+const connectionString =
+  process.env.DATABASE_URL || process.env.DATABASE_URL_UNPOOLED;
+
+if (!connectionString) {
   throw new Error(
-    "❌ DATABASE_URL or DATABASE_URL_UNPOOLED is missing! Make sure it's set in .env.local"
+    "❌ DATABASE_URL is missing! Make sure it's set in .env.local"
   );
 }
 
-// Use unpooled connection for non-browser environments (like seeding)
-const connectionString =
-  typeof window === 'undefined'
-    ? process.env.DATABASE_URL_UNPOOLED
-    : process.env.DATABASE_URL;
-
-const sql = neon(connectionString!);
-export const db = drizzle(sql, { schema }); // Pass schema as second parameter
+export const db = createDb(connectionString);
 
 // Export everything from new schema structure
 export * from './index';

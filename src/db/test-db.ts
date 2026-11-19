@@ -1,6 +1,4 @@
-import { drizzle } from 'drizzle-orm/neon-http';
-import { neon } from '@neondatabase/serverless';
-import '@/db/neon-local';
+import { createDb } from './pg-pool';
 import { config } from 'dotenv';
 import { fatLogger } from '@/lib/logger';
 import * as schema from './index'; // Import the SAME schema
@@ -13,7 +11,9 @@ config({ path: '.env.local' });
 
 // Use test database URL if available, fallback to unpooled connection
 const testConnectionString =
-  process.env.TEST_DATABASE_URL || process.env.DATABASE_URL_UNPOOLED;
+  process.env.TEST_DATABASE_URL ||
+  process.env.DATABASE_URL_UNPOOLED ||
+  process.env.DATABASE_URL;
 
 if (!testConnectionString) {
   throw new Error(
@@ -22,8 +22,7 @@ if (!testConnectionString) {
 }
 
 // Create test database connection
-const testSql = neon(testConnectionString);
-export const testDb = drizzle(testSql, { schema });
+export const testDb = createDb(testConnectionString);
 
 // Export schema for convenience in tests
 export { schema };
