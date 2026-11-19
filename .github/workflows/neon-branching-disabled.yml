@@ -21,7 +21,7 @@ jobs:
     steps:
       - name: Get branch name
         id: branch_name
-        uses: tj-actions/branch-names@v8
+        uses: tj-actions/branch-names@dde14ac574a8b9b1cedc59a1cf312788af43d8d8 # v8.2.1
 
   create_neon_branch:
     name: Create Neon Branch
@@ -40,13 +40,11 @@ jobs:
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: latest
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '24'
           cache: 'pnpm'
 
       - name: Install dependencies
