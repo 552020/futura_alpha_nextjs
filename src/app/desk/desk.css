@@ -1,0 +1,82 @@
+/* Rendering of the markdown body on a desk page (mechanism, not site styling). */
+.desk-prose {
+  line-height: 1.6;
+}
+.desk-prose h2 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin: 1.6em 0 0.4em;
+}
+.desk-prose h3 {
+  font-weight: 600;
+  margin: 1.2em 0 0.3em;
+}
+.desk-prose p {
+  margin: 0.7em 0;
+}
+.desk-prose ul,
+.desk-prose ol {
+  margin: 0.7em 0;
+  padding-left: 1.4em;
+  list-style: revert;
+}
+.desk-prose li {
+  margin: 0.2em 0;
+}
+.desk-prose a {
+  text-decoration: underline;
+}
+.desk-prose strong {
+  font-weight: 600;
+}
+.desk-prose code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9em;
+  background: rgba(0, 0, 0, 0.06);
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+}
+.desk-prose hr {
+  margin: 1.5em 0;
+  border: 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+}
+/* Tables: cells apart, a line under each row, the head left-aligned; wide tables scroll sideways on a phone
+   instead of squeezing the cells. No measure: a table uses the page width. */
+.desk-prose table {
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
+  margin: 1em 0;
+  font-size: 0.95em;
+}
+.desk-prose th,
+.desk-prose td {
+  padding: 0.45em 1.1em 0.45em 0;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+.desk-prose th {
+  font-weight: 600;
+  white-space: nowrap;
+  border-bottom-color: rgba(0, 0, 0, 0.3);
+}
+.desk-prose td:first-child {
+  min-width: 10em;
+}
+.desk-prose h4 {
+  font-weight: 600;
+  margin: 1em 0 0.3em;
+}
+.desk-prose img {
+  max-width: 100%;
+  height: auto;
+  margin: 1em 0;
+}
+.desk-prose blockquote {
+  border-left: 3px solid rgba(0, 0, 0, 0.15);
+  padding-left: 1em;
+  color: rgba(0, 0, 0, 0.7);
+  margin: 1em 0;
+}

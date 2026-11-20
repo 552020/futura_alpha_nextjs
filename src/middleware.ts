@@ -99,6 +99,7 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/images') ||
     pathname.startsWith('/assets') ||
     pathname.startsWith('/tests') ||
+    pathname.startsWith('/desk') ||
     pathname.match(/\.(png|jpg|jpeg|svg|ico|css|js|webp)$/)
   ) {
     return NextResponse.next();
