@@ -73,6 +73,25 @@ export async function registerWithNonce(nonce: string, identity: Identity) {
  */
 export async function markBoundOnCanister(identity: Identity) {
   const actor = await backendActor(identity);
-  // Use the new flexible binding function to bind the caller's capsule to Neon
-  return actor.capsules_bind_neon({ Capsule: null }, '', true);
+  // capsules_bind_neon needs an explicit capsule id (an empty id is rejected),
+  // so look up the caller's own capsule first.
+  const capsule = (await actor.capsules_read_basic([])) as
+    | { Ok: { capsule_id: string } }
+    | { Err: unknown };
+  if ('Err' in capsule) {
+    throw new Error(
+      `No capsule to bind for this identity: ${JSON.stringify(capsule.Err)}`
+    );
+  }
+  const result = (await actor.capsules_bind_neon(
+    { Capsule: null },
+    capsule.Ok.capsule_id,
+    true
+  )) as { Ok: null } | { Err: unknown };
+  if ('Err' in result) {
+    throw new Error(
+      `Binding capsule to Web2 failed: ${JSON.stringify(result.Err)}`
+    );
+  }
+  return result;
 }

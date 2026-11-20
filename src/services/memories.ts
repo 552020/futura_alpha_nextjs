@@ -6,7 +6,7 @@ import type {
 } from '@/ic/declarations/backend/backend.did.d';
 
 import { fatLogger } from '@/lib/logger';
-import { getHttpBaseUrl } from '@/lib/http-token-manager';
+import { assetLinkUrl, getHttpBaseUrl } from '@/lib/http-token-manager';
 // Removed old interfaces - now using unified format
 
 /**
@@ -209,7 +209,10 @@ async function debugMemoriesPage(memoriesPage: {
 
     // Fetch display asset
     if (memory.assets.display.length > 0 && memory.assets.display[0]) {
-      const displayUrl = `${getHttpBaseUrl()}${memory.assets.display[0].path}?token=${memory.assets.display[0].token}`;
+      const displayUrl = assetLinkUrl(
+        getHttpBaseUrl(),
+        memory.assets.display[0]
+      );
       fatLogger.info('🔍 [FETCH] Display URL', 'be', { url: displayUrl });
       try {
         const response = await fetch(displayUrl);
@@ -234,7 +237,10 @@ async function debugMemoriesPage(memoriesPage: {
 
     // Fetch thumbnail asset
     if (memory.assets.thumbnail.length > 0 && memory.assets.thumbnail[0]) {
-      const thumbnailUrl = `${getHttpBaseUrl()}${memory.assets.thumbnail[0].path}?token=${memory.assets.thumbnail[0].token}`;
+      const thumbnailUrl = assetLinkUrl(
+        getHttpBaseUrl(),
+        memory.assets.thumbnail[0]
+      );
       fatLogger.info('🔍 [FETCH] Thumbnail URL', 'be', { url: thumbnailUrl });
       try {
         const response = await fetch(thumbnailUrl);
@@ -270,7 +276,10 @@ async function debugMemoriesPage(memoriesPage: {
 function checkAllAssetSizes(header: MemoryHeader): void {
   // Check thumbnail
   if (header.assets.thumbnail.length > 0 && header.assets.thumbnail[0]) {
-    const thumbnailUrl = `${getHttpBaseUrl()}${header.assets.thumbnail[0].path}?token=${header.assets.thumbnail[0].token}`;
+    const thumbnailUrl = assetLinkUrl(
+      getHttpBaseUrl(),
+      header.assets.thumbnail[0]
+    );
     fatLogger.info('🔍 [Transform] Generated thumbnail URL for memory', 'be', {
       memoryId: header.id,
     });
@@ -283,7 +292,7 @@ function checkAllAssetSizes(header: MemoryHeader): void {
 
   // Check display
   if (header.assets.display.length > 0 && header.assets.display[0]) {
-    const displayUrl = `${getHttpBaseUrl()}${header.assets.display[0].path}?token=${header.assets.display[0].token}`;
+    const displayUrl = assetLinkUrl(getHttpBaseUrl(), header.assets.display[0]);
     fatLogger.info('🔍 [Transform] Generated display URL for memory', 'be', {
       memoryId: header.id,
     });
@@ -296,7 +305,10 @@ function checkAllAssetSizes(header: MemoryHeader): void {
 
   // Check original
   if (header.assets.original.length > 0 && header.assets.original[0]) {
-    const originalUrl = `${getHttpBaseUrl()}${header.assets.original[0].path}?token=${header.assets.original[0].token}`;
+    const originalUrl = assetLinkUrl(
+      getHttpBaseUrl(),
+      header.assets.original[0]
+    );
     fatLogger.info('🔍 [Transform] Generated original URL for memory', 'be', {
       memoryId: header.id,
     });
@@ -689,11 +701,11 @@ const transformICPMemoryHeaderToNeon = (
     // Asset URLs - using new AssetLinks structure
     thumbnail:
       header.assets.thumbnail.length > 0 && header.assets.thumbnail[0]
-        ? `${getHttpBaseUrl()}${header.assets.thumbnail[0].path}?token=${header.assets.thumbnail[0].token}`
+        ? assetLinkUrl(getHttpBaseUrl(), header.assets.thumbnail[0])
         : undefined,
     url:
       header.assets.display.length > 0 && header.assets.display[0]
-        ? `${getHttpBaseUrl()}${header.assets.display[0].path}?token=${header.assets.display[0].token}`
+        ? assetLinkUrl(getHttpBaseUrl(), header.assets.display[0])
         : undefined,
 
     // NEW: Placeholder data for instant loading
@@ -749,7 +761,7 @@ const transformICPMemoryHeaderToNeon = (
     originalUrl: (() => {
       const originalUrl =
         header.assets.original.length > 0 && header.assets.original[0]
-          ? `${getHttpBaseUrl()}${header.assets.original[0].path}?token=${header.assets.original[0].token}`
+          ? assetLinkUrl(getHttpBaseUrl(), header.assets.original[0])
           : undefined;
       if (originalUrl && header.assets.original[0]) {
         fatLogger.info(

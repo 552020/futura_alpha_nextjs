@@ -381,3 +381,16 @@ export function getHttpTokenCacheStats() {
     },
   };
 }
+
+/**
+ * Absolute URL for an asset link returned by the backend canister.
+ * Link paths may already carry a query (inline assets use
+ * `/asset/{id}/inline?id={assetId}`), so the token is joined with `&` then.
+ */
+export function assetLinkUrl(
+  baseUrl: string,
+  link: { path: string; token: string }
+): string {
+  const sep = link.path.includes('?') ? '&' : '?';
+  return `${baseUrl}${link.path}${sep}token=${encodeURIComponent(link.token)}`;
+}
