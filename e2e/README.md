@@ -66,3 +66,41 @@ The tests are configured in `playwright.config.ts`:
 - **Screenshots**: Taken on failure
 - **Videos**: Recorded on failure
 - **Traces**: Collected on retry
+
+## Internet Identity tests against a local replica
+
+`auth.internet-identity.spec.ts` drives the real II flow (popup, backend
+canister nonce, NextAuth, Postgres). It needs the local ICP stack from
+`futura_alpha_icp` and this app built for it.
+
+1. In `futura_alpha_icp` (dfx 0.31.0 is pinned in `dfx.json`):
+
+   ```bash
+   dfx start --clean --background
+   dfx deploy backend && dfx deploy canister_factory && dfx deploy internet_identity
+   ```
+
+   Deployed in this order on a clean replica, the IDs are the ones below.
+   The local II is the dev build with captcha disabled (`init_arg`).
+
+2. Local Postgres: `docker compose -f docker-compose.dev.yml up -d`, then
+   `pnpm db:push` (see the README).
+
+3. Build and start the app for the local replica (other secrets can be
+   placeholders):
+
+   ```bash
+   export NEXT_PUBLIC_DFX_NETWORK=local
+   export NEXT_PUBLIC_IC_HOST=http://127.0.0.1:4943
+   export NEXT_PUBLIC_CANISTER_ID_BACKEND=uxrrr-q7777-77774-qaaaq-cai
+   export NEXT_PUBLIC_CANISTER_ID_FACTORY=uzt4z-lp777-77774-qaabq-cai
+   export NEXT_PUBLIC_CANISTER_ID_INTERNET_IDENTITY=umunu-kh777-77774-qaaca-cai
+   export NEXT_PUBLIC_II_URL=http://umunu-kh777-77774-qaaca-cai.localhost:4943
+   export PLAYWRIGHT=true
+   pnpm build && pnpm start
+   ```
+
+4. `pnpm exec playwright test e2e/auth.internet-identity.spec.ts --project=ui`
+
+If `playwright install` hangs while extracting on Node 24, run it with
+Node 20.
