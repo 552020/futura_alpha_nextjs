@@ -15,7 +15,9 @@ This repository is the web app. The canisters (the ICP side) live in [futura_alp
 
 ## How it is built
 
-![How Futura is built](public/architecture.svg)
+![Futura running: who talks to whom](public/diagrams/futura-running.png)
+
+Step by step: [signing in with Internet Identity](public/diagrams/signin-ii-steps.png), [uploading to S3](public/diagrams/upload-web2-steps.png), [uploading to ICP](public/diagrams/upload-icp-steps.png), [the local test setup](public/diagrams/local-test-setup-running.png). All drawn by `docs/diagrams/tools/gen.py`; captions on the desk page [Sketches](docs/desk/sketches.md).
 
 - **Web app:** Next.js on Vercel, in English, German and Turkish. Login with Google, GitHub, e-mail and password, or Internet Identity.
 - **Web2 side (default):** Postgres for accounts, memory details, galleries and shares; Vercel Blob or Amazon S3 for the files.
@@ -48,6 +50,7 @@ The desk is the project's working material, rendered at `/desk` for admins (the 
 
 - [Futura: where it stands and what it could be](docs/desk/stand.md)
 - [How Futura is built](docs/desk/architecture.md)
+- [Sketches](docs/desk/sketches.md)
 - [ICP and blockchain in November 2026: alive, or eaten by AI?](docs/desk/icp-and-blockchain.md)
 
 ## Development
@@ -93,3 +96,7 @@ pnpm test:run   # integration tests run because the DB is local
 ### ICP
 
 The canisters, their interface files and the local ICP network setup are in [futura_alpha_icp](https://github.com/552020/futura_alpha_icp). The app reads the canister IDs and the ICP host from `NEXT_PUBLIC_*` variables at build time; the values for a local network are in [e2e/README.md](e2e/README.md).
+
+## License
+
+MIT, see [LICENSE](LICENSE). The ICP side is MIT too: [futura_alpha_icp](https://github.com/552020/futura_alpha_icp).

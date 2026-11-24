@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap">
+<title>Signing in with Internet Identity, step by step</title>
+<style>
+  :root { --paper:#fbfaf6; --ink:#1d1d1b; --soft:#6b6a66; --accent:#b4531a; }
+  html, body { margin:0; background:var(--paper); color:var(--ink); }
+  body { padding:16px; font-family:"Patrick Hand","Bradley Hand","Segoe Print","Comic Sans MS","Chalkboard SE",cursive; }
+  svg { display:block; width:100%; height:auto; max-width:1500px; margin:0 auto; }
+  .line  { fill:none; stroke:var(--ink); stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; }
+  .thin  { fill:none; stroke:var(--ink); stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .plan  { stroke-dasharray:9 7; }
+  .svc   { stroke:var(--accent); stroke-width:2.2; }
+  .acc   { stroke:var(--accent); }
+  .fill  { fill:var(--paper); }
+  .dot   { fill:var(--accent); stroke:none; }
+  .door  { fill:var(--accent); stroke:var(--ink); stroke-width:1.6; }
+  .ca { fill:var(--accent); stroke:var(--ink); stroke-width:1; }
+  .cb { fill:var(--ink); stroke:var(--ink); stroke-width:1; }
+  .cc { fill:#c9c6bd; stroke:var(--ink); stroke-width:1; }
+  .cs { fill:url(#hatch); stroke:var(--ink); stroke-width:1; }
+  .ce { fill:none; stroke:#cfcdc6; stroke-width:1; }
+  .pw { fill:#f3d9c6; stroke:var(--accent); stroke-width:2; }
+  .pa { fill:#ffffff; stroke:var(--ink); stroke-width:2.2; }
+  .pk { fill:#dedbd2; stroke:var(--ink); stroke-width:1.4; }
+  .ps { fill:url(#hatch); stroke:var(--ink); stroke-width:1.4; }
+  .cn { fill:#fbfaf6; stroke:var(--ink); stroke-width:1.3; }
+  .cz { fill:none; stroke:var(--accent); stroke-width:3; }
+  .t     { font-size:22px; fill:var(--ink); }
+  .h     { font-size:30px; fill:var(--ink); }
+  .col   { font-size:24px; fill:var(--soft); letter-spacing:1px; }
+  .s     { font-size:18px; fill:var(--soft); }
+  .xs    { font-size:16px; fill:var(--soft); }
+  .a     { font-size:18px; fill:var(--accent); }
+  .mono  { font-family:ui-monospace,"SF Mono",Menlo,"DejaVu Sans Mono",monospace; font-size:17px; fill:var(--ink); }
+  .monoa { font-family:ui-monospace,"SF Mono",Menlo,"DejaVu Sans Mono",monospace; font-size:16px; fill:var(--accent); }
+</style>
+</head>
+<body>
+<svg viewBox="0 0 1500 960" role="img" aria-label="Sign-in with Internet Identity: a passkey gives the browser a key; the web app makes a one-time code; the browser registers it on the canister with that key; the server asks the canister who registered it and signs the person in">
+  <defs>
+    <filter id="hand" x="-2%" y="-2%" width="104%" height="104%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="2" seed="7" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="4"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+      <path d="M1,1 L11,6 L1,11" fill="none" stroke="#1d1d1b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    
+  </defs>
+  <g filter="url(#hand)">
+    <rect x="20" y="70" width="1460" height="790" rx="10" class="line fill"/>
+    <rect x="30" y="200" width="240" height="188" rx="6" class="line fill"/>
+    <rect x="330" y="190" width="700" height="650" rx="6" class="line fill"/>
+    <rect x="346" y="200" width="668" height="76" rx="6" class="thin fill"/>
+    <rect x="1060" y="200" width="400" height="76" rx="6" class="thin fill"/>
+    <path d="M1016,238 L1056,238" class="line" marker-end="url(#arrow)"/>
+    <rect x="346" y="290" width="668" height="76" rx="6" class="thin fill"/>
+    <rect x="1060" y="290" width="400" height="76" rx="6" class="thin fill"/>
+    <path d="M1016,328 L1056,328" class="line" marker-end="url(#arrow)"/>
+    <rect x="346" y="380" width="668" height="76" rx="6" class="thin fill"/>
+    <rect x="1060" y="380" width="400" height="76" rx="6" class="thin fill"/>
+    <path d="M1016,418 L1056,418" class="line" marker-end="url(#arrow)"/>
+    <rect x="346" y="470" width="668" height="76" rx="6" class="thin fill"/>
+    <rect x="1060" y="470" width="400" height="76" rx="6" class="thin fill"/>
+    <path d="M1016,508 L1056,508" class="line" marker-end="url(#arrow)"/>
+    <rect x="346" y="560" width="668" height="76" rx="6" class="thin fill"/>
+    <rect x="1060" y="560" width="400" height="76" rx="6" class="thin fill"/>
+    <path d="M1016,598 L1056,598" class="line" marker-end="url(#arrow)"/>
+    <rect x="346" y="650" width="668" height="76" rx="6" class="thin fill"/>
+    <rect x="1060" y="650" width="400" height="76" rx="6" class="thin fill"/>
+    <path d="M1016,688 L1056,688" class="line" marker-end="url(#arrow)"/>
+    <rect x="346" y="740" width="668" height="76" rx="6" class="thin fill"/>
+    <rect x="1060" y="740" width="400" height="76" rx="6" class="thin fill"/>
+    <path d="M1016,778 L1056,778" class="line" marker-end="url(#arrow)"/>
+    <path d="M274,230 L328,230" class="line" marker-end="url(#arrow)"/>
+  </g>
+  <circle cx="280" cy="230" r="6" class="dot"/>
+  <circle cx="46" cy="40" r="6" class="dot"/>
+  <text x="750" y="46" class="h" text-anchor="middle">Signing in with Internet Identity, step by step</text>
+  <text x="150" y="122" class="col" text-anchor="middle">THE BROWSER</text>
+  <text x="150" y="150" class="s" text-anchor="middle">where you click</text>
+  <text x="680" y="122" class="col" text-anchor="middle">THE STEPS</text>
+  <text x="680" y="150" class="s" text-anchor="middle">what happens, in order</text>
+  <text x="1260" y="122" class="col" text-anchor="middle">WHAT EXISTS NOW</text>
+  <text x="1260" y="150" class="s" text-anchor="middle">after each step</text>
+  <text x="46" y="232" class="t">Your browser</text>
+  <text x="46" y="262" class="s">on futura&#x27;s sign-in page</text>
+  <text x="46" y="286" class="s">no password anywhere</text>
+  <text x="46" y="320" class="xs">you:</text>
+  <text x="46" y="342" class="a">Sign in with Internet</text>
+  <text x="46" y="362" class="a">Identity</text>
+  <text x="362" y="230" class="t">0</text>
+  <text x="396" y="228" class="t">open Internet Identity</text>
+  <text x="396" y="252" class="s">a popup to identity.ic0.app: your passkey (face, finger or security key)</text>
+  <text x="1002" y="228" class="a" text-anchor="end">you, II</text>
+  <text x="1074" y="228" class="s">a key for this site in the browser, for</text>
+  <text x="1074" y="249" class="xs">the session; it never leaves the browser</text>
+  <text x="362" y="320" class="t">1</text>
+  <text x="396" y="318" class="t">your capsule</text>
+  <text x="396" y="342" class="s">asks the canister for your capsule; creates one if there is none</text>
+  <text x="1002" y="318" class="a" text-anchor="end">browser, your key</text>
+  <text x="1074" y="318" class="s">your capsule on ICP (not waited for)</text>
+  <text x="362" y="410" class="t">2</text>
+  <text x="396" y="408" class="t">a one-time code</text>
+  <text x="396" y="432" class="s">the web app makes a nonce and keeps it</text>
+  <text x="1002" y="408" class="a" text-anchor="end">/api/ii/challenge</text>
+  <text x="1074" y="408" class="s">a nonce row in Postgres: unused, with an</text>
+  <text x="1074" y="429" class="xs">expiry</text>
+  <text x="362" y="500" class="t">3</text>
+  <text x="396" y="498" class="t">register the code</text>
+  <text x="396" y="522" class="s">the browser hands the code to the canister, signed with your key</text>
+  <text x="1002" y="498" class="a" text-anchor="end">register_with_nonce</text>
+  <text x="1074" y="498" class="s">the canister knows: this code came from</text>
+  <text x="1074" y="519" class="xs">your principal</text>
+  <text x="362" y="590" class="t">4</text>
+  <text x="396" y="588" class="t">ask to sign in</text>
+  <text x="396" y="612" class="s">the browser sends the principal and the code to Auth.js</text>
+  <text x="1002" y="588" class="a" text-anchor="end">/api/auth/callback/ii</text>
+  <text x="1074" y="588" class="s">a sign-in request on the server</text>
+  <text x="362" y="680" class="t">5</text>
+  <text x="396" y="678" class="t">check on ICP</text>
+  <text x="396" y="702" class="s">the server asks the canister who registered the code: same principal?</text>
+  <text x="1002" y="678" class="a" text-anchor="end">verify_nonce</text>
+  <text x="1074" y="678" class="s">the proof; the nonce is marked used</text>
+  <text x="362" y="770" class="t">6</text>
+  <text x="396" y="768" class="t">signed in</text>
+  <text x="396" y="792" class="s">account found or created, cookie set, back to where you came from</text>
+  <text x="1002" y="768" class="a" text-anchor="end">Auth.js</text>
+  <text x="1074" y="768" class="s">you are signed in; your principal is</text>
+  <text x="1074" y="789" class="xs">listed on your account</text>
+  <text x="60" y="898" class="s">Nobody types a password and the server never sees the key: it only asks ICP who signed the one-time code. A signed-in e-mail user links an Internet Identity</text>
+  <text x="60" y="926" class="s">the same way, with /api/auth/link-ii in step 4. Tested on a local ICP network: 8 of 8 browser tests (Playwright), 20 November 2026.</text>
+  <text x="60" y="954" class="a">Fixed in November 2026: step 4 from the sign-in page sent an empty principal and always failed; linking did not show the principal until the next sign-in.</text>
+  <text x="1480" y="954" class="s" text-anchor="end">As of: 24 November 2026</text>
+  <text x="62" y="47" class="s">who starts the step</text>
+</svg>
+</body>
+</html>

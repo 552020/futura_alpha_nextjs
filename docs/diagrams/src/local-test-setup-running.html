@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap">
+<title>The local test setup running, on the studio PC</title>
+<style>
+  :root { --paper:#fbfaf6; --ink:#1d1d1b; --soft:#6b6a66; --accent:#b4531a; }
+  html, body { margin:0; background:var(--paper); color:var(--ink); }
+  body { padding:16px; font-family:"Patrick Hand","Bradley Hand","Segoe Print","Comic Sans MS","Chalkboard SE",cursive; }
+  svg { display:block; width:100%; height:auto; max-width:1500px; margin:0 auto; }
+  .line  { fill:none; stroke:var(--ink); stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; }
+  .thin  { fill:none; stroke:var(--ink); stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .plan  { stroke-dasharray:9 7; }
+  .svc   { stroke:var(--accent); stroke-width:2.2; }
+  .acc   { stroke:var(--accent); }
+  .fill  { fill:var(--paper); }
+  .dot   { fill:var(--accent); stroke:none; }
+  .door  { fill:var(--accent); stroke:var(--ink); stroke-width:1.6; }
+  .ca { fill:var(--accent); stroke:var(--ink); stroke-width:1; }
+  .cb { fill:var(--ink); stroke:var(--ink); stroke-width:1; }
+  .cc { fill:#c9c6bd; stroke:var(--ink); stroke-width:1; }
+  .cs { fill:url(#hatch); stroke:var(--ink); stroke-width:1; }
+  .ce { fill:none; stroke:#cfcdc6; stroke-width:1; }
+  .pw { fill:#f3d9c6; stroke:var(--accent); stroke-width:2; }
+  .pa { fill:#ffffff; stroke:var(--ink); stroke-width:2.2; }
+  .pk { fill:#dedbd2; stroke:var(--ink); stroke-width:1.4; }
+  .ps { fill:url(#hatch); stroke:var(--ink); stroke-width:1.4; }
+  .cn { fill:#fbfaf6; stroke:var(--ink); stroke-width:1.3; }
+  .cz { fill:none; stroke:var(--accent); stroke-width:3; }
+  .t     { font-size:22px; fill:var(--ink); }
+  .h     { font-size:30px; fill:var(--ink); }
+  .col   { font-size:24px; fill:var(--soft); letter-spacing:1px; }
+  .s     { font-size:18px; fill:var(--soft); }
+  .xs    { font-size:16px; fill:var(--soft); }
+  .a     { font-size:18px; fill:var(--accent); }
+  .mono  { font-family:ui-monospace,"SF Mono",Menlo,"DejaVu Sans Mono",monospace; font-size:17px; fill:var(--ink); }
+  .monoa { font-family:ui-monospace,"SF Mono",Menlo,"DejaVu Sans Mono",monospace; font-size:16px; fill:var(--accent); }
+</style>
+</head>
+<body>
+<svg viewBox="0 0 1500 960" role="img" aria-label="The local test setup: in WSL on the studio PC, a Postgres container, a local ICP network with the three canisters, and the web app built for them; Playwright, Vitest, cargo and the shell scripts test them">
+  <defs>
+    <filter id="hand" x="-2%" y="-2%" width="104%" height="104%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="2" seed="7" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="4"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+      <path d="M1,1 L11,6 L1,11" fill="none" stroke="#1d1d1b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    
+  </defs>
+  <g filter="url(#hand)">
+    <rect x="20" y="70" width="1460" height="800" rx="10" class="line fill"/>
+    <rect x="40" y="118" width="1420" height="732" rx="8" class="line fill"/>
+    <rect x="60" y="190" width="300" height="220" rx="6" class="line fill"/>
+    <rect x="60" y="428" width="300" height="116" rx="6" class="line fill plan"/>
+    <rect x="420" y="196" width="420" height="200" rx="6" class="line fill"/>
+    <rect x="420" y="490" width="420" height="200" rx="6" class="line fill"/>
+    <rect x="900" y="196" width="540" height="560" rx="6" class="line fill"/>
+    <rect x="920" y="280" width="500" height="120" rx="6" class="thin fill"/>
+    <rect x="920" y="416" width="500" height="110" rx="6" class="thin fill"/>
+    <rect x="920" y="542" width="500" height="100" rx="6" class="thin fill"/>
+    <path d="M362,246 L410,246" class="line" marker-end="url(#arrow)"/>
+    <path d="M630,398 L630,480" class="line" marker-end="url(#arrow)"/>
+    <path d="M842,320 L916,320" class="line" marker-end="url(#arrow)"/>
+    <path d="M220,188 L220,176 L886,176 L886,470 L916,470" class="line acc" marker-end="url(#arrow)"/>
+    <path d="M362,380 L392,380 L392,812 L1450,812 L1450,350 L1424,350" class="line" marker-end="url(#arrow)"/>
+  </g>
+  <rect x="412.0" y="231.0" width="16" height="30" rx="3" class="door"/>
+  <rect x="615.0" y="483.0" width="30" height="14" rx="3" class="door"/>
+  <circle cx="368" cy="246" r="6" class="dot"/>
+  <circle cx="630" cy="404" r="6" class="dot"/>
+  <circle cx="848" cy="320" r="6" class="dot"/>
+  <circle cx="220" cy="182" r="6" class="dot"/>
+  <circle cx="368" cy="380" r="6" class="dot"/>
+  <circle cx="46" cy="40" r="6" class="dot"/>
+  <text x="750" y="46" class="h" text-anchor="middle">The local test setup running, on the studio PC</text>
+  <text x="40" y="102" class="t">The studio PC</text>
+  <text x="220" y="102" class="s">Windows</text>
+  <text x="60" y="150" class="t">WSL: Ubuntu 24.04</text>
+  <text x="1440" y="150" class="a" text-anchor="end">everything on 127.0.0.1 only</text>
+  <text x="78" y="218" class="t">Tests, run by hand</text>
+  <text x="78" y="244" class="xs">Playwright with Chromium: 8 Internet</text>
+  <text x="78" y="264" class="xs">Identity browser tests</text>
+  <text x="78" y="292" class="xs">Vitest: 144 unit and integration tests</text>
+  <text x="78" y="320" class="xs">cargo test: 261 + 2 canister unit</text>
+  <text x="78" y="340" class="xs">tests, no network needed</text>
+  <text x="78" y="368" class="xs">shell scripts (dfx canister call): 19</text>
+  <text x="78" y="388" class="xs">canister tests</text>
+  <text x="78" y="456" class="t">Not running now</text>
+  <text x="78" y="482" class="xs">Mailgun, S3, Google login: not</text>
+  <text x="78" y="502" class="xs">configured locally; uploads to S3 are</text>
+  <text x="78" y="522" class="xs">untested</text>
+  <text x="440" y="228" class="t">Futura web app</text>
+  <text x="820" y="228" class="a" text-anchor="end">next start</text>
+  <text x="440" y="256" class="s">production build, port 3000</text>
+  <text x="440" y="286" class="xs">built with NEXT_PUBLIC_DFX_NETWORK=local</text>
+  <text x="440" y="308" class="xs">and the local canister ids</text>
+  <text x="440" y="350" class="mono">localhost:3000</text>
+  <text x="440" y="522" class="t">Docker: futura-dev-db</text>
+  <text x="820" y="522" class="a" text-anchor="end">postgres:17</text>
+  <text x="440" y="550" class="s">port 5452, data in a volume</text>
+  <text x="440" y="580" class="xs">schema from pnpm db:push</text>
+  <text x="440" y="602" class="xs">test users and memories only</text>
+  <text x="440" y="644" class="mono">127.0.0.1:5452</text>
+  <text x="920" y="228" class="t">Local ICP network</text>
+  <text x="1420" y="228" class="a" text-anchor="end">dfx 0.31 + PocketIC</text>
+  <text x="920" y="256" class="s">port 4943; started with dfx start --clean</text>
+  <text x="936" y="308" class="t">backend</text>
+  <text x="936" y="334" class="mono">uxrrr-q7777-77774-qaaaq-cai</text>
+  <text x="936" y="362" class="xs">the same code as main</text>
+  <text x="936" y="382" class="xs">(ahead of mainnet)</text>
+  <text x="936" y="444" class="t">internet_identity</text>
+  <text x="936" y="470" class="mono">umunu-kh777-77774-qaaca-cai</text>
+  <text x="936" y="498" class="xs">dev build 2026-02-28, captcha off</text>
+  <text x="936" y="570" class="t">canister_factory</text>
+  <text x="936" y="596" class="mono">uzt4z-lp777-77774-qaabq-cai</text>
+  <text x="936" y="620" class="xs">deployed, not used</text>
+  <text x="644" y="446" class="mono">SQL</text>
+  <text x="560" y="168" class="a" text-anchor="middle">the browser in the tests: passkey popup and capsule, with its own key</text>
+  <text x="900" y="804" class="s" text-anchor="middle">shell scripts: dfx canister call, straight to the backend</text>
+  <text x="60" y="898" class="s">How to start it: futura_alpha_icp/README.md (local network, deploy order) and e2e/README.md in the web app (build and Playwright).</text>
+  <text x="60" y="926" class="s">The canister ids are always these on a clean network when deployed in the order backend, canister_factory, internet_identity.</text>
+  <text x="60" y="954" class="a">Known: dfx 0.32 cannot start the local network here; dfx is deprecated in favour of icp-cli, the move is still to do.</text>
+  <text x="1480" y="954" class="s" text-anchor="end">As of: 24 November 2026</text>
+  <text x="62" y="47" class="s">who opens the connection</text>
+</svg>
+</body>
+</html>

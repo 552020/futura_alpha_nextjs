@@ -28,9 +28,9 @@ describe('desk documents', () => {
 
   it('renders tables and keeps inline HTML such as the drawing', async () => {
     const html = await renderDeskMarkdown(
-      '| a | b |\n| --- | --- |\n| 1 | 2 |\n\n<img src="/architecture.svg" alt="x" />'
+      '| a | b |\n| --- | --- |\n| 1 | 2 |\n\n<img src="/diagrams/futura-running.png" alt="x" />'
     );
     expect(html).toContain('<table>');
-    expect(html).toContain('<img src="/architecture.svg"');
+    expect(html).toContain('<img src="/diagrams/futura-running.png"');
   });
 });

@@ -4,7 +4,9 @@
 
 For readers who know their way around the web but not around this codebase. State of 20 November 2026.
 
-<img src="/architecture.svg" alt="Futura architecture: people use the Futura web app, which keeps data on a Web2 side (Postgres database, Vercel Blob or S3 files) and optionally on a Web3 side (a backend canister on the Internet Computer, Internet Identity, a planned canister factory)." />
+<img src="/diagrams/futura-running.png" alt="Futura running: who talks to whom" />
+
+More sketches, step by step (sign-in, uploads, the local test setup): [Sketches](/desk/sketches).
 
 ## The idea in one paragraph
 
