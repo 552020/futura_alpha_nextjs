@@ -83,20 +83,20 @@ The table is the only place on the Web2 side that knows about memories kept on I
 
 `futura_alpha_icp/src/backend/src/`:
 
-| Path                                           | Contents                                                                               |
-| ---------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `lib.rs`                                       | Every public method, about 110. Thin: each one calls into a module                     |
-| `capsule/`, `capsule_store/`, `capsule_acl.rs` | The capsule, how it is stored, and who may read, write and delete                      |
-| `memories/`                                    | Creating, reading, updating and deleting memories and their assets                     |
-| `gallery/`, `folder/`                          | Grouping, inside a capsule                                                             |
-| `upload/`, `session/`                          | Chunked uploads and the blob store                                                     |
-| `http/`                                        | The canister's HTTP side: serving files against signed tokens                          |
-| `auth.rs`, `user.rs`                           | The sign-in proof                                                                      |
-| `admin.rs`                                     | Admin principals                                                                       |
-| `canister_factory/`                            | An older attempt at moving a capsule into a canister of its own. Written, switched off |
-| `personal.rs`                                  | Personal mode: the same program with one fixed owner, in a canister of their own       |
-| `legacy.rs`                                    | Inheritance: trustees confirm a death, then heirs may read                             |
-| `upgrade.rs`                                   | What survives a code upgrade                                                           |
+| Path                                           | Contents                                                                                                             |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `lib.rs`                                       | Every public method, about 100. Thin: each one calls into a module                                                   |
+| `capsule/`, `capsule_store/`, `capsule_acl.rs` | The capsule, how it is stored, and who may read, write and delete                                                    |
+| `memories/`                                    | Creating, reading, updating and deleting memories and their assets                                                   |
+| `gallery/`, `folder/`                          | Grouping, inside a capsule                                                                                           |
+| `upload/`, `session/`                          | Chunked uploads and the blob store                                                                                   |
+| `http/`                                        | The canister's HTTP side: serving files against signed tokens                                                        |
+| `auth.rs`, `user.rs`                           | The sign-in proof                                                                                                    |
+| `admin.rs`                                     | Who is an admin: a fixed superadmin, the canister's controllers, stored admins, and in a personal canister its owner |
+| `canister_factory/`                            | An older attempt at moving a capsule into a canister of its own. Written, switched off                               |
+| `personal.rs`                                  | Personal mode: the same program with one fixed owner, in a canister of their own                                     |
+| `legacy.rs`                                    | Inheritance: trustees confirm a death, then heirs may read                                                           |
+| `upgrade.rs`                                   | What survives a code upgrade                                                                                         |
 
 Next to the backend, `src/canister_factory` is a second, small canister: the factory that creates personal canisters and hands them over. Both are explained in [Personal canisters and inheritance](/desk/personal-canisters).
 
@@ -115,7 +115,7 @@ A capsule is one record per person, keyed by an id, with indexes by subject and 
 | `bound_to_neon`                    | Whether a Web2 account is linked                                                                               |
 | `hosting_preferences`              | A copy of the person's Web2/Web3 choice                                                                        |
 
-Access to a capsule: owners, controllers and the subject may read and write; only owners and controllers may delete.
+Access to a capsule: owners, controllers and the subject may read and write; only owners and controllers may delete. In a personal canister there is one more gate in front of everything: update calls from anyone but the owner are refused before they run, except a trustee's confirmation and the sign-in handshake.
 
 Each memory, gallery and folder also carries its own list of **access entries**. An entry names a person (or is public), a role, a permission mask (view, download, share, manage, own) and a condition: immediately, after a date, until a date, or after an event such as "after death". "After death" opens when the trustees named by the owner have confirmed and a waiting period has passed; other events the owner records by hand. This is tested on a local network and not on mainnet yet.
 
@@ -182,6 +182,8 @@ All of this is the browser talking to the canister with the person's key (`src/s
 3. `memories_create_with_internal_blobs` creates the memory pointing at that blob.
 4. The smaller versions are uploaded the same way and attached with `memories_add_asset`; the placeholder goes inline with `memories_add_inline_asset`.
 5. Last, the browser tells the Web2 side: `PUT /api/storage/edges` with one metadata edge and one asset edge per file, all with location `icp`.
+
+Only the person who began an upload session can add pieces to it or finish it.
 
 Limits: the browser allows 512 pieces, about 920 MB per file; an unfinished upload session expires after two hours.
 

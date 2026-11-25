@@ -41,11 +41,11 @@ All pictures come from `docs/diagrams/tools/gen.py` (run it, then `node docs/dia
 
 ## Personal canisters and inheritance
 
-Built and tested on a local ICP network on 25 November 2026. Not in use on mainnet. The web app can create a personal canister and show it; everything else is done from a terminal. The explanation: [Personal canisters and inheritance](/desk/personal-canisters).
+Built and tested on a local ICP network on 25 November 2026. Not in use on mainnet. The web app can create a personal canister and show it; everything else is done from a terminal. Creation needs a credit from Futura's admin. The explanation: [Personal canisters and inheritance](/desk/personal-canisters).
 
 <figure>
 <img src="/diagrams/today-to-personal.png" alt="From today to personal canisters">
-<figcaption>From today to the target: today everyone on ICP has a capsule in one shared canister that Futura controls. The target is one canister per person, created by the factory and handed over. Dashed is what is not built: who pays the cycles, moving existing users, most of the web app, the mainnet deployment.</figcaption>
+<figcaption>From today to the target: today everyone on ICP has a capsule in one shared canister that Futura controls. The target is one canister per person, created by the factory and handed over. Dashed is what is not built: who pays the cycles (with what they cost), moving existing users, most of the web app, the mainnet deployment.</figcaption>
 </figure>
 
 <figure>
@@ -55,7 +55,7 @@ Built and tested on a local ICP network on 25 November 2026. Not in use on mainn
 
 <figure>
 <img src="/diagrams/personal-create-steps.png" alt="Creating a personal canister, step by step">
-<figcaption>Creating: the factory creates the canister with itself and you as controllers, installs the program with you as owner, then leaves you as the only controller. A failed creation can be resumed.</figcaption>
+<figcaption>Creating: Futura's admin gives you a credit; without one the factory refuses. Then the factory creates the canister with itself and you as controllers, installs the program with you as owner, then leaves you as the only controller. A failed creation can be resumed.</figcaption>
 </figure>
 
 <figure>
