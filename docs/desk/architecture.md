@@ -6,7 +6,7 @@ For readers who know their way around the web but not around this codebase. Stat
 
 <img src="/diagrams/futura-running.png" alt="Futura running: who talks to whom" />
 
-More sketches, step by step (sign-in, uploads, the local test setup): [Sketches](/desk/sketches).
+More sketches, step by step (sign-in, uploads, the local test setup): [Sketches](/desk/sketches). For developers, the same system followed through the code: [How Futura works in the code](/desk/architecture-code).
 
 ## The idea in one paragraph
 

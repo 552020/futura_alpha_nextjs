@@ -23,7 +23,7 @@ Step by step: [signing in with Internet Identity](public/diagrams/signin-ii-step
 - **Web2 side (default):** Postgres for accounts, memory details, galleries and shares; Vercel Blob or Amazon S3 for the files.
 - **Web3 side (a choice per person):** a backend canister on ICP holding one capsule per person. The browser writes to it directly with the person's own Internet Identity key; Futura's server only checks sign-in proofs there.
 
-The longer explanation, for technical readers new to the project: [docs/desk/architecture.md](docs/desk/architecture.md).
+The longer explanation, for technical readers new to the project: [docs/desk/architecture.md](docs/desk/architecture.md). For developers, following the code (tables, canister, sign-in, uploads): [docs/desk/architecture-code.md](docs/desk/architecture-code.md).
 
 ## Using Futura
 
@@ -50,6 +50,7 @@ The desk is the project's working material, rendered at `/desk` for admins (the 
 
 - [Futura: where it stands and what it could be](docs/desk/stand.md)
 - [How Futura is built](docs/desk/architecture.md)
+- [How Futura works in the code](docs/desk/architecture-code.md)
 - [Sketches](docs/desk/sketches.md)
 - [ICP and blockchain in November 2026: alive, or eaten by AI?](docs/desk/icp-and-blockchain.md)
 
