@@ -302,6 +302,23 @@ export const idlFactory = ({ IDL }) => {
     'blob_external_assets' : IDL.Vec(MemoryAssetBlobExternal),
     'access_entries' : IDL.Vec(AccessEntry),
   });
+  const EventRecord = IDL.Record({
+    'event' : AccessEvent,
+    'recorded_at' : IDL.Nat64,
+    'recorded_by' : IDL.Principal,
+  });
+  const DeathConfirmation = IDL.Record({
+    'trustee' : IDL.Principal,
+    'confirmed_at' : IDL.Nat64,
+  });
+  const LegacyState = IDL.Record({
+    'waiting_period_ns' : IDL.Nat64,
+    'required_confirmations' : IDL.Nat32,
+    'occurred_events' : IDL.Vec(EventRecord),
+    'trustees' : IDL.Vec(IDL.Principal),
+    'death_threshold_reached_at' : IDL.Opt(IDL.Nat64),
+    'death_confirmations' : IDL.Vec(DeathConfirmation),
+  });
   const BackendHosting = IDL.Variant({ 'Icp' : IDL.Null, 'Vercel' : IDL.Null });
   const HostingPreferences = IDL.Record({
     'backend_hosting' : BackendHosting,
@@ -323,6 +340,7 @@ export const idlFactory = ({ IDL }) => {
     'connections' : IDL.Vec(IDL.Tuple(PersonRef, Connection)),
     'memories' : IDL.Vec(IDL.Tuple(IDL.Text, Memory)),
     'bound_to_neon' : IDL.Bool,
+    'legacy' : IDL.Opt(LegacyState),
     'galleries' : IDL.Vec(IDL.Tuple(IDL.Text, Gallery)),
     'hosting_preferences' : HostingPreferences,
   });
@@ -471,6 +489,17 @@ export const idlFactory = ({ IDL }) => {
     'upgrade' : IDL.Opt(IDL.Bool),
     'status_code' : IDL.Nat16,
   });
+  const LegacyStatus = IDL.Record({
+    'now' : IDL.Nat64,
+    'death_effective_at' : IDL.Opt(IDL.Nat64),
+    'waiting_period_secs' : IDL.Nat64,
+    'required_confirmations' : IDL.Nat32,
+    'occurred_events' : IDL.Vec(EventRecord),
+    'trustees' : IDL.Vec(IDL.Principal),
+    'death_in_effect' : IDL.Bool,
+    'death_confirmations' : IDL.Vec(DeathConfirmation),
+  });
+  const Result_15 = IDL.Variant({ 'Ok' : LegacyStatus, 'Err' : Error });
   const InternalBlobAssetInput = IDL.Record({
     'metadata' : AssetMetadata,
     'blob_id' : IDL.Text,
@@ -484,13 +513,13 @@ export const idlFactory = ({ IDL }) => {
     'memory_id' : IDL.Text,
     'message' : IDL.Text,
   });
-  const Result_15 = IDL.Variant({ 'Ok' : AssetCleanupResult, 'Err' : Error });
+  const Result_16 = IDL.Variant({ 'Ok' : AssetCleanupResult, 'Err' : Error });
   const BulkFailure = IDL.Record({ 'id' : IDL.Text, 'err' : Error });
   const BulkResult = IDL.Record({
     'ok' : IDL.Vec(IDL.Text),
     'failed' : IDL.Vec(BulkFailure),
   });
-  const Result_16 = IDL.Variant({ 'Ok' : BulkResult, 'Err' : Error });
+  const Result_17 = IDL.Variant({ 'Ok' : BulkResult, 'Err' : Error });
   const AssetKind = IDL.Variant({
     'Display' : IDL.Null,
     'Original' : IDL.Null,
@@ -536,7 +565,7 @@ export const idlFactory = ({ IDL }) => {
     'next_cursor' : IDL.Opt(IDL.Text),
     'items' : IDL.Vec(MemoryHeader),
   });
-  const Result_17 = IDL.Variant({ 'Ok' : Page, 'Err' : Error });
+  const Result_18 = IDL.Variant({ 'Ok' : Page, 'Err' : Error });
   const MemoryAssetsList = IDL.Record({
     'inline_assets' : IDL.Vec(IDL.Text),
     'internal_assets' : IDL.Vec(IDL.Text),
@@ -544,17 +573,17 @@ export const idlFactory = ({ IDL }) => {
     'memory_id' : IDL.Text,
     'total_count' : IDL.Nat32,
   });
-  const Result_18 = IDL.Variant({ 'Ok' : MemoryAssetsList, 'Err' : Error });
+  const Result_19 = IDL.Variant({ 'Ok' : MemoryAssetsList, 'Err' : Error });
   const MemoryPresenceResult = IDL.Record({
     'metadata_present' : IDL.Bool,
     'memory_id' : IDL.Text,
     'asset_present' : IDL.Bool,
   });
-  const Result_19 = IDL.Variant({
+  const Result_20 = IDL.Variant({
     'Ok' : IDL.Vec(MemoryPresenceResult),
     'Err' : Error,
   });
-  const Result_20 = IDL.Variant({ 'Ok' : Memory, 'Err' : Error });
+  const Result_21 = IDL.Variant({ 'Ok' : Memory, 'Err' : Error });
   const MemoryUpdateData = IDL.Record({
     'metadata' : IDL.Opt(MemoryMetadata),
     'name' : IDL.Opt(IDL.Text),
@@ -751,6 +780,17 @@ export const idlFactory = ({ IDL }) => {
         [Result_7],
         ['query'],
       ),
+    'legacy_cancel_death' : IDL.Func([IDL.Text], [Result_15], []),
+    'legacy_confirm_death' : IDL.Func([IDL.Text], [Result_15], []),
+    'legacy_event_record' : IDL.Func([IDL.Text, AccessEvent], [Result_15], []),
+    'legacy_event_revoke' : IDL.Func([IDL.Text, AccessEvent], [Result_15], []),
+    'legacy_settings_set' : IDL.Func(
+        [IDL.Text, IDL.Vec(IDL.Principal), IDL.Nat32, IDL.Nat64],
+        [Result_15],
+        [],
+      ),
+    'legacy_status' : IDL.Func([IDL.Text], [Result_15], ['query']),
+    'legacy_withdraw_confirmation' : IDL.Func([IDL.Text], [Result_15], []),
     'list_admins' : IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
     'list_all_creation_states' : IDL.Func([], [Result_11], ['query']),
     'list_all_migration_states' : IDL.Func([], [Result_11], ['query']),
@@ -765,10 +805,10 @@ export const idlFactory = ({ IDL }) => {
         [Result6],
         [],
       ),
-    'memories_cleanup_assets_all' : IDL.Func([IDL.Text], [Result_15], []),
+    'memories_cleanup_assets_all' : IDL.Func([IDL.Text], [Result_16], []),
     'memories_cleanup_assets_bulk' : IDL.Func(
         [IDL.Vec(IDL.Text)],
-        [Result_16],
+        [Result_17],
         [],
       ),
     'memories_create' : IDL.Func(
@@ -801,23 +841,33 @@ export const idlFactory = ({ IDL }) => {
       ),
     'memories_list' : IDL.Func(
         [IDL.Text, IDL.Opt(IDL.Text), IDL.Opt(IDL.Nat32)],
-        [Result_17],
+        [Result_18],
         ['query'],
       ),
-    'memories_list_assets' : IDL.Func([IDL.Text], [Result_18], ['query']),
+    'memories_list_assets' : IDL.Func([IDL.Text], [Result_19], ['query']),
     'memories_list_by_capsule' : IDL.Func(
         [IDL.Text, IDL.Opt(IDL.Text), IDL.Opt(IDL.Nat32)],
-        [Result_17],
+        [Result_18],
         ['query'],
       ),
-    'memories_ping' : IDL.Func([IDL.Vec(IDL.Text)], [Result_19], ['query']),
-    'memories_read' : IDL.Func([IDL.Text], [Result_20], ['query']),
+    'memories_list_shared' : IDL.Func(
+        [IDL.Text, IDL.Opt(IDL.Text), IDL.Opt(IDL.Nat32)],
+        [Result_18],
+        ['query'],
+      ),
+    'memories_ping' : IDL.Func([IDL.Vec(IDL.Text)], [Result_20], ['query']),
+    'memories_read' : IDL.Func([IDL.Text], [Result_21], ['query']),
     'memories_read_asset' : IDL.Func(
         [IDL.Text, IDL.Nat32],
         [Result_1],
         ['query'],
       ),
-    'memories_update' : IDL.Func([IDL.Text, MemoryUpdateData], [Result_20], []),
+    'memories_read_shared' : IDL.Func(
+        [IDL.Text, IDL.Text],
+        [Result_21],
+        ['query'],
+      ),
+    'memories_update' : IDL.Func([IDL.Text, MemoryUpdateData], [Result_21], []),
     'migrate_capsule' : IDL.Func([], [PersonalCanisterCreationResponse], []),
     'mint_http_token' : IDL.Func(
         [IDL.Text, IDL.Vec(IDL.Text), IDL.Opt(IDL.Vec(IDL.Text)), IDL.Nat32],

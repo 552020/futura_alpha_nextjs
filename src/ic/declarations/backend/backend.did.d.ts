@@ -140,6 +140,7 @@ export interface Capsule {
   'connections' : Array<[PersonRef, Connection]>,
   'memories' : Array<[string, Memory]>,
   'bound_to_neon' : boolean,
+  'legacy' : [] | [LegacyState],
   'galleries' : Array<[string, Gallery]>,
   'hosting_preferences' : HostingPreferences,
 }
@@ -203,6 +204,10 @@ export interface CreationStatusResponse {
 }
 export type DatabaseHosting = { 'Icp' : null } |
   { 'Neon' : null };
+export interface DeathConfirmation {
+  'trustee' : Principal,
+  'confirmed_at' : bigint,
+}
 export interface DetailedCreationStatus {
   'status' : CreationStatus,
   'progress_message' : string,
@@ -226,6 +231,11 @@ export type Error = { 'Internal' : string } |
   { 'ResourceExhausted' : null } |
   { 'NotImplemented' : string } |
   { 'Conflict' : string };
+export interface EventRecord {
+  'event' : AccessEvent,
+  'recorded_at' : bigint,
+  'recorded_by' : Principal,
+}
 export interface Folder {
   'id' : string,
   'updated_at' : bigint,
@@ -347,6 +357,24 @@ export interface InlineAssetInput {
 export interface InternalBlobAssetInput {
   'metadata' : AssetMetadata,
   'blob_id' : string,
+}
+export interface LegacyState {
+  'waiting_period_ns' : bigint,
+  'required_confirmations' : number,
+  'occurred_events' : Array<EventRecord>,
+  'trustees' : Array<Principal>,
+  'death_threshold_reached_at' : [] | [bigint],
+  'death_confirmations' : Array<DeathConfirmation>,
+}
+export interface LegacyStatus {
+  'now' : bigint,
+  'death_effective_at' : [] | [bigint],
+  'waiting_period_secs' : bigint,
+  'required_confirmations' : number,
+  'occurred_events' : Array<EventRecord>,
+  'trustees' : Array<Principal>,
+  'death_in_effect' : boolean,
+  'death_confirmations' : Array<DeathConfirmation>,
 }
 export interface Memory {
   'id' : string,
@@ -514,19 +542,21 @@ export type Result_13 = { 'Ok' : [] | [DetailedCreationStatus] } |
   { 'Err' : Error };
 export type Result_14 = { 'Ok' : UserSettingsResponse } |
   { 'Err' : Error };
-export type Result_15 = { 'Ok' : AssetCleanupResult } |
+export type Result_15 = { 'Ok' : LegacyStatus } |
   { 'Err' : Error };
-export type Result_16 = { 'Ok' : BulkResult } |
+export type Result_16 = { 'Ok' : AssetCleanupResult } |
   { 'Err' : Error };
-export type Result_17 = { 'Ok' : Page } |
+export type Result_17 = { 'Ok' : BulkResult } |
   { 'Err' : Error };
-export type Result_18 = { 'Ok' : MemoryAssetsList } |
+export type Result_18 = { 'Ok' : Page } |
   { 'Err' : Error };
-export type Result_19 = { 'Ok' : Array<MemoryPresenceResult> } |
+export type Result_19 = { 'Ok' : MemoryAssetsList } |
   { 'Err' : Error };
 export type Result_2 = { 'Ok' : AssetRemovalResult } |
   { 'Err' : Error };
-export type Result_20 = { 'Ok' : Memory } |
+export type Result_20 = { 'Ok' : Array<MemoryPresenceResult> } |
+  { 'Err' : Error };
+export type Result_21 = { 'Ok' : Memory } |
   { 'Err' : Error };
 export type Result_3 = { 'Ok' : BlobMeta } |
   { 'Err' : Error };
@@ -588,17 +618,54 @@ export interface _SERVICE {
     [bigint, Uint8Array | number[]]
   >,
   'add_admin' : ActorMethod<[Principal], Result>,
+  /**
+   * Get a specific asset from a memory by asset_id
+   */
   'asset_get_by_id' : ActorMethod<[string, string], Result_1>,
+  /**
+   * Remove a specific asset from a memory by asset reference
+   */
   'asset_remove' : ActorMethod<[string, string], Result_2>,
+  /**
+   * Remove a specific asset from a memory by asset_id
+   */
   'asset_remove_by_id' : ActorMethod<[string, string], Result_2>,
+  /**
+   * Remove specific external storage asset by storage key
+   */
   'asset_remove_external' : ActorMethod<[string, string], Result_2>,
+  /**
+   * Remove specific inline asset by index
+   */
   'asset_remove_inline' : ActorMethod<[string, number], Result_2>,
+  /**
+   * Remove specific ICP blob asset by blob reference
+   */
   'asset_remove_internal' : ActorMethod<[string, string], Result_2>,
+  /**
+   * Delete blob by ID (unified endpoint for all blob types)
+   */
   'blob_delete' : ActorMethod<[string], Result6>,
+  /**
+   * Get blob metadata including total chunk count
+   */
   'blob_get_meta' : ActorMethod<[string], Result_3>,
+  /**
+   * Read blob data by locator (for asset retrieval)
+   */
   'blob_read' : ActorMethod<[string], Result_4>,
+  /**
+   * Read blob data by locator in chunks (for large files)
+   * Returns individual chunks to avoid IC message size limits
+   */
   'blob_read_chunk' : ActorMethod<[string, number], Result_4>,
+  /**
+   * Calculate gallery size when stored in capsule context
+   */
   'calculate_gallery_capsule_size' : ActorMethod<[Gallery], bigint>,
+  /**
+   * Calculate just the gallery size (without capsule overhead)
+   */
   'calculate_gallery_size' : ActorMethod<[Gallery], bigint>,
   'capsules_bind_neon' : ActorMethod<[ResourceType, string, boolean], Result>,
   'capsules_create' : ActorMethod<[[] | [PersonRef]], Result_5>,
@@ -607,6 +674,10 @@ export interface _SERVICE {
   'capsules_read_basic' : ActorMethod<[[] | [string]], Result_6>,
   'capsules_read_full' : ActorMethod<[[] | [string]], Result_5>,
   'capsules_update' : ActorMethod<[string, CapsuleUpdateData], Result_5>,
+  /**
+   * Emergency function to clear all stable memory data
+   * WARNING: This will delete all stored data and should only be used for recovery
+   */
   'clear_all_stable_memory' : ActorMethod<[], Result>,
   'clear_creation_state' : ActorMethod<[Principal], Result_7>,
   'clear_migration_state' : ActorMethod<[Principal], Result_7>,
@@ -616,9 +687,29 @@ export interface _SERVICE {
   >,
   'debug_blob_read_canary' : ActorMethod<[string, number], [] | [number]>,
   'debug_blob_write_canary' : ActorMethod<[string, number, number], undefined>,
+  /**
+   * Debug endpoint to finish upload with hex hash (dev only)
+   */
   'debug_finish_hex' : ActorMethod<[bigint, string, bigint], Result6>,
+  /**
+   * Debug endpoint to upload chunk with base64 data (dev only)
+   */
   'debug_put_chunk_b64' : ActorMethod<[bigint, number, string], Result>,
+  /**
+   * Debug endpoint to compute SHA256 hash of provided bytes
+   */
   'debug_sha256' : ActorMethod<[Uint8Array | number[]], string>,
+  /**
+   * TEMPORARY DEV METHOD: Clear all memories in a capsule
+   * 
+   * WARNING: This is a developer method that bypasses normal ACL checks
+   * and uses atomic operations. It should be refined or removed before
+   * production use.
+   * 
+   * TODO: Implement proper ACL checks and individual memory deletion
+   * TODO: Add proper error handling and rollback mechanisms
+   * TODO: Consider if this should be a user-facing feature
+   */
   'dev_clear_all_memories_in_capsule' : ActorMethod<
     [string, boolean],
     Result_8
@@ -647,7 +738,13 @@ export interface _SERVICE {
     [],
     [] | [DetailedCreationStatus]
   >,
+  /**
+   * Get detailed gallery size breakdown
+   */
   'get_gallery_size_breakdown' : ActorMethod<[Gallery], GallerySizeInfo>,
+  /**
+   * Get gallery size information for debugging stable memory limits
+   */
   'get_gallery_size_info' : ActorMethod<[Gallery], string>,
   'get_migration_states_by_status' : ActorMethod<[CreationStatus], Result_11>,
   'get_migration_stats' : ActorMethod<[], Result_12>,
@@ -662,6 +759,37 @@ export interface _SERVICE {
   'http_request' : ActorMethod<[HttpRequest], HttpResponse>,
   'is_migration_enabled' : ActorMethod<[], Result_7>,
   'is_personal_canister_creation_enabled' : ActorMethod<[], Result_7>,
+  /**
+   * Owner: "I am alive" - drops every death confirmation, at any time
+   */
+  'legacy_cancel_death' : ActorMethod<[string], Result_15>,
+  /**
+   * Trustee: confirm the owner's death (starts the waiting period once enough confirmed)
+   */
+  'legacy_confirm_death' : ActorMethod<[string], Result_15>,
+  /**
+   * Owner: record that an event happened (wedding, graduation, custom, ...)
+   */
+  'legacy_event_record' : ActorMethod<[string, AccessEvent], Result_15>,
+  /**
+   * Owner: take a recorded event back
+   */
+  'legacy_event_revoke' : ActorMethod<[string, AccessEvent], Result_15>,
+  /**
+   * Owner: set trustees, how many must confirm a death, and the waiting period
+   */
+  'legacy_settings_set' : ActorMethod<
+    [string, Array<Principal>, number, bigint],
+    Result_15
+  >,
+  /**
+   * Owner, controller or trustee: the inheritance state of a capsule
+   */
+  'legacy_status' : ActorMethod<[string], Result_15>,
+  /**
+   * Trustee: take the confirmation back (only before the death is in effect)
+   */
+  'legacy_withdraw_confirmation' : ActorMethod<[string], Result_15>,
   'list_admins' : ActorMethod<[], Array<Principal>>,
   'list_all_creation_states' : ActorMethod<[], Result_11>,
   'list_all_migration_states' : ActorMethod<[], Result_11>,
@@ -674,8 +802,14 @@ export interface _SERVICE {
     [string, InlineAssetInput, string],
     Result6
   >,
-  'memories_cleanup_assets_all' : ActorMethod<[string], Result_15>,
-  'memories_cleanup_assets_bulk' : ActorMethod<[Array<string>], Result_16>,
+  /**
+   * Clean up all assets from a memory while preserving the memory record
+   */
+  'memories_cleanup_assets_all' : ActorMethod<[string], Result_16>,
+  /**
+   * Bulk cleanup assets from multiple memories
+   */
+  'memories_cleanup_assets_bulk' : ActorMethod<[Array<string>], Result_17>,
   'memories_create' : ActorMethod<
     [
       string,
@@ -696,38 +830,80 @@ export interface _SERVICE {
     Result6
   >,
   'memories_delete' : ActorMethod<[string, boolean], Result>,
+  /**
+   * Delete ALL memories in a capsule (high-risk operation)
+   */
   'memories_delete_all' : ActorMethod<[string, boolean], Result_8>,
+  /**
+   * Bulk delete multiple memories in a single operation
+   */
   'memories_delete_bulk' : ActorMethod<
     [string, Array<string>, boolean],
     Result_8
   >,
   'memories_list' : ActorMethod<
     [string, [] | [string], [] | [number]],
-    Result_17
+    Result_18
   >,
-  'memories_list_assets' : ActorMethod<[string], Result_18>,
+  /**
+   * List all assets in a memory
+   */
+  'memories_list_assets' : ActorMethod<[string], Result_19>,
+  /**
+   * List memories filtered by capsule_id field (for UUID v7 implementation)
+   */
   'memories_list_by_capsule' : ActorMethod<
     [string, [] | [string], [] | [number]],
-    Result_17
+    Result_18
   >,
-  'memories_ping' : ActorMethod<[Array<string>], Result_19>,
-  'memories_read' : ActorMethod<[string], Result_20>,
+  /**
+   * Anyone granted access: the memories of a capsule they may view right now
+   */
+  'memories_list_shared' : ActorMethod<
+    [string, [] | [string], [] | [number]],
+    Result_18
+  >,
+  /**
+   * Check presence for multiple memories on ICP (consolidated from get_memory_presence_icp and get_memory_list_presence_icp)
+   */
+  'memories_ping' : ActorMethod<[Array<string>], Result_20>,
+  'memories_read' : ActorMethod<[string], Result_21>,
   'memories_read_asset' : ActorMethod<[string, number], Result_1>,
-  'memories_update' : ActorMethod<[string, MemoryUpdateData], Result_20>,
+  /**
+   * Anyone granted access: one memory they may view right now
+   */
+  'memories_read_shared' : ActorMethod<[string, string], Result_21>,
+  'memories_update' : ActorMethod<[string, MemoryUpdateData], Result_21>,
   'migrate_capsule' : ActorMethod<[], PersonalCanisterCreationResponse>,
   'mint_http_token' : ActorMethod<
     [string, Array<string>, [] | [Array<string>], number],
     string
   >,
+  /**
+   * Bulk token minting for efficient dashboard loading
+   * Returns a vector of (memory_id, token) pairs
+   */
   'mint_http_tokens_bulk' : ActorMethod<
     [Array<string>, Array<string>, [] | [Array<string>], number],
     Array<[string, string]>
   >,
   'register_with_nonce' : ActorMethod<[string], Result>,
   'remove_admin' : ActorMethod<[Principal], Result>,
+  /**
+   * Clean up expired sessions
+   */
   'sessions_cleanup_expired' : ActorMethod<[], Result6>,
+  /**
+   * Clear all upload sessions (development/debugging only)
+   */
   'sessions_clear_all' : ActorMethod<[], Result6>,
+  /**
+   * List all sessions for debugging
+   */
   'sessions_list' : ActorMethod<[], Result6>,
+  /**
+   * Get session statistics for monitoring
+   */
   'sessions_stats' : ActorMethod<[], Result6>,
   'set_migration_enabled' : ActorMethod<[boolean], Result>,
   'set_personal_canister_creation_enabled' : ActorMethod<[boolean], Result>,
@@ -736,13 +912,28 @@ export interface _SERVICE {
     Result
   >,
   'update_user_settings' : ActorMethod<[UserSettingsUpdateData], Result_14>,
+  /**
+   * Get upload configuration for TypeScript client discoverability
+   */
   'upload_config' : ActorMethod<[], UploadConfig>,
+  /**
+   * Abort upload session and cleanup
+   */
   'uploads_abort' : ActorMethod<[bigint], Result>,
+  /**
+   * Begin chunked upload for large files
+   */
   'uploads_begin' : ActorMethod<[string, number, string], Result13>,
+  /**
+   * Commit chunks to create final memory
+   */
   'uploads_finish' : ActorMethod<
     [bigint, Uint8Array | number[], bigint],
     Result15
   >,
+  /**
+   * Upload a chunk for an active session
+   */
   'uploads_put_chunk' : ActorMethod<
     [bigint, number, Uint8Array | number[]],
     Result
