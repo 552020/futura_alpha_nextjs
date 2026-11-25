@@ -12,6 +12,9 @@ import { fatLogger } from '@/lib/logger';
 import { StepNavigation } from '@/components/onboarding/common/step-navigation';
 import { OnboardingStep } from '@/contexts/onboarding-context';
 
+/** Same rule as POST /api/auth/signup */
+const MIN_PASSWORD_LENGTH = 6;
+
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -58,6 +61,9 @@ export function AuthModal({
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  // Email form: sign in to an existing account, or create one
+  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [iiBusy, setIiBusy] = useState(false);
@@ -67,6 +73,8 @@ export function AuthModal({
     if (!isOpen) {
       setEmail('');
       setPassword('');
+      setConfirmPassword('');
+      setMode('signin');
       setError(null);
       setBusy(false);
       setIiBusy(false);
@@ -94,6 +102,62 @@ export function AuthModal({
       router.push(safeCallbackUrl);
     } catch {
       setError('Sign in failed. Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function switchMode(next: 'signin' | 'signup') {
+    setMode(next);
+    setError(null);
+    setPassword('');
+    setConfirmPassword('');
+  }
+
+  async function handleSignUp(e: React.FormEvent) {
+    e.preventDefault();
+    if (busy) return;
+    setError(null);
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setError(
+        `Password must be at least ${MIN_PASSWORD_LENGTH} characters long`
+      );
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        setError(body?.error || 'Sign up failed. Please try again.');
+        return;
+      }
+
+      // The account exists: sign in with it right away
+      const signedIn = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
+        callbackUrl: safeCallbackUrl,
+      });
+      if (signedIn?.error) {
+        setError('Account created, but signing in failed. Please sign in.');
+        switchMode('signin');
+        return;
+      }
+      router.push(safeCallbackUrl);
+    } catch {
+      setError('Sign up failed. Please try again.');
     } finally {
       setBusy(false);
     }
@@ -251,12 +315,18 @@ export function AuthModal({
               </div>
             </div>
 
-            <form onSubmit={handleCredentialsSignIn} className="space-y-4">
+            <form
+              onSubmit={
+                mode === 'signin' ? handleCredentialsSignIn : handleSignUp
+              }
+              className="space-y-4"
+            >
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   type="email"
+                  autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
@@ -268,17 +338,60 @@ export function AuthModal({
                 <Input
                   id="password"
                   type="password"
+                  autoComplete={
+                    mode === 'signin' ? 'current-password' : 'new-password'
+                  }
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
+                  placeholder={
+                    mode === 'signin'
+                      ? 'Enter your password'
+                      : `At least ${MIN_PASSWORD_LENGTH} characters`
+                  }
                   required
                 />
               </div>
+              {mode === 'signup' && (
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm password</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    autoComplete="new-password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Enter the password again"
+                    required
+                  />
+                </div>
+              )}
               {error && <p className="text-sm text-red-500">{error}</p>}
               <Button type="submit" className="w-full" disabled={busy}>
-                {busy ? 'Signing in...' : 'Sign in with Email'}
+                {mode === 'signin'
+                  ? busy
+                    ? 'Signing in...'
+                    : 'Sign in with Email'
+                  : busy
+                    ? 'Creating account...'
+                    : 'Sign up with Email'}
               </Button>
             </form>
+
+            <p className="mt-4 text-center text-sm text-muted-foreground">
+              {mode === 'signin'
+                ? 'No account yet?'
+                : 'Already have an account?'}{' '}
+              <button
+                type="button"
+                className="font-medium text-foreground underline underline-offset-2"
+                onClick={() =>
+                  switchMode(mode === 'signin' ? 'signup' : 'signin')
+                }
+                data-testid="auth-mode-switch"
+              >
+                {mode === 'signin' ? 'Sign up' : 'Sign in'}
+              </button>
+            </p>
           </>
         )}
 

@@ -200,8 +200,9 @@ test.describe('Email/Password Signup', () => {
     ).toBeVisible();
     await expect(page.getByLabel(/confirm password/i)).toBeVisible();
 
-    // Switch back to signin tab
-    await page.getByRole('button', { name: 'Sign In', exact: true }).click();
+    // Switch back with the modal's own link (the header behind the modal
+    // has a "Sign In" button too)
+    await page.getByTestId('auth-mode-switch').click();
 
     // Should show signin form
     await expect(
