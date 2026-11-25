@@ -291,7 +291,7 @@ def local_running():
     # clients
     y = note_box(sk, 60, 190, 300, "Tests, run by hand", [
         "Playwright with Chromium: 8 Internet Identity browser tests and 1 personal canister test",
-        "Vitest: 150 unit and integration tests",
+        "Vitest: 151 unit and integration tests",
         "cargo test: 276 + 18 canister unit tests, no network needed",
         "shell scripts (dfx canister call): 23 canister tests"])
     note_box(sk, 60, y + 18, 300, "Not running now", ["Mailgun, S3, Google login: not configured locally; uploads to S3 are untested"], plan=True)
@@ -357,7 +357,7 @@ def personal_running():
     # the web app: a first piece
     sk.box(380, 650, 440, 96, "line", rx=10)
     sk.t(400, 682, "Futura web app", "t"); sk.t(800, 682, "a first piece", "a", "end")
-    sk.t(400, 710, "a card on the ICP page: create your canister", "s"); sk.t(400, 734, "and see its id, its version and that it is yours", "s")
+    sk.t(400, 710, "a card on the ICP page: create your canister, see its", "s"); sk.t(400, 734, "id and version, that it is yours, and the cycles left", "s")
     sk.box(380, 760, 440, 90, "line", plan=True, rx=10)
     sk.t(400, 790, "Not in the web app yet", "t")
     sk.t(400, 816, "storing memories in your canister, upgrading it,", "xs"); sk.t(400, 836, "trustees and heirs", "xs")
@@ -493,7 +493,7 @@ def top_up_steps():
          ("if the canister is frozen", "it cannot answer. That counts as a balance of zero, if it answered at least once before", "factory", "the deposit unfreezes it")],
         ["The canister's code belongs to its owner, who could install a program that always reports a low balance. The factory cannot check the number:",
          "the monthly cap is the limit of that loss. And the factory never spends below its own minimum of cycles."],
-        "Status: tested on a local ICP network, 25 November 2026. Not tested: the timer and the change of month. Not built: who pays the factory, warnings, a balance in the web app.",
+        "Status: tested on a local ICP network, 25 November 2026. Not tested: the timer and the change of month. Not built: who pays the factory, warnings. The web app shows the owner what is left to spend.",
         as_of=AS_OF_PERSONAL)
 
 def inheritance_steps():
