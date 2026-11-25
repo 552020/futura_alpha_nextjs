@@ -17,6 +17,7 @@ import {
   personalBackendActor,
 } from '@/ic/factory';
 import {
+  formatCycles,
   mayCreatePersonalCanister,
   personalCanisterView,
   type PersonalCanisterView,
@@ -32,6 +33,7 @@ export function PersonalCanisterCard() {
   const [view, setView] = useState<PersonalCanisterView | null>(null);
   const [mode, setMode] = useState<string | null>(null);
   const [mayCreate, setMayCreate] = useState(true);
+  const [cycles, setCycles] = useState<string | null>(null);
   const [principal, setPrincipal] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,6 +69,13 @@ export function PersonalCanisterCard() {
               : 'someone-else'
             : 'shared'
         );
+        // What it can still spend before it freezes. Canisters created
+        // before this existed have no such method: then show nothing.
+        try {
+          setCycles(formatCycles(await personal.cycles_liquid_balance()));
+        } catch {
+          setCycles(null);
+        }
       }
     } catch (e) {
       fatLogger.error('Personal canister: load failed', 'fe', {
@@ -175,6 +184,14 @@ export function PersonalCanisterCard() {
                 'Checking…'
               )}
             </dd>
+            {cycles && (
+              <>
+                <dt className="text-muted-foreground">Cycles</dt>
+                <dd data-testid="personal-canister-cycles">
+                  {cycles} left to spend. Futura tops it up when it runs low.
+                </dd>
+              </>
+            )}
             <dt className="text-muted-foreground">Version</dt>
             <dd>
               {view.version ?? 'unknown'}

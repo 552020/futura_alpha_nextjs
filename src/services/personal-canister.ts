@@ -66,3 +66,16 @@ export function mayCreatePersonalCanister(
 ): boolean {
   return open || credits > 0;
 }
+
+const TRILLION = BigInt(1_000_000_000_000);
+
+/**
+ * Cycles as people read them: in trillions ("T"), two decimals, rounded
+ * down so the card never shows more than the canister has.
+ */
+export function formatCycles(cycles: bigint): string {
+  const hundredths = (cycles * BigInt(100)) / TRILLION;
+  const whole = hundredths / BigInt(100);
+  const frac = (hundredths % BigInt(100)).toString().padStart(2, '0');
+  return `${whole}.${frac} T`;
+}

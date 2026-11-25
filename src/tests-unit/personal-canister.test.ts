@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { Principal } from '@dfinity/principal';
 import {
+  formatCycles,
   mayCreatePersonalCanister,
   personalCanisterView,
 } from '@/services/personal-canister';
@@ -82,5 +83,14 @@ describe('mayCreatePersonalCanister', () => {
 
   it('needs none when the factory is open (local test networks)', () => {
     expect(mayCreatePersonalCanister(0, true)).toBe(true);
+  });
+});
+
+describe('formatCycles', () => {
+  it('shows trillions with two decimals, rounded down', () => {
+    expect(formatCycles(BigInt('1479482939685'))).toBe('1.47 T');
+    expect(formatCycles(BigInt('2000000000000'))).toBe('2.00 T');
+    expect(formatCycles(BigInt('9999999999'))).toBe('0.00 T');
+    expect(formatCycles(BigInt('12050000000000'))).toBe('12.05 T');
   });
 });

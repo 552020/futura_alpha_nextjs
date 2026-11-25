@@ -48,6 +48,17 @@ testWithII(
       'Only you'
     );
 
+    // The canister tells its owner what it can still spend. Only a canister
+    // on the current release can: the test identity keeps its canister
+    // between runs, and one created by an older release has no such method
+    // (the card then says that a newer version is available).
+    const outdated = await card.getByText(/is available\)/).isVisible();
+    if (!outdated) {
+      await expect(page.getByTestId('personal-canister-cycles')).toContainText(
+        /^\d+\.\d\d T left to spend/
+      );
+    }
+
     // It survives a reload: the factory's registry remembers it
     const canisterId = await id.textContent();
     await page.reload();
