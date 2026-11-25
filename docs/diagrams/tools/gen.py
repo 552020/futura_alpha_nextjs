@@ -372,7 +372,7 @@ def personal_running():
     sk.t(936, 336, "your capsule: memories, galleries, files", "s")
     sk.t(936, 368, "Futura's admin cannot upgrade it or even read its status;", "xs")
     sk.t(936, 388, "updates from anyone else are refused before the canister pays for them", "xs")
-    sk.t(936, 416, "starts with about 1.5T cycles: roughly 0.7 GiB of uploads; no refills yet", "xs")
+    sk.t(936, 416, "starts with about 1.5T cycles: roughly 0.5 GiB of uploads; no refills yet", "xs")
     sk.box(920, 480, 530, 160, "line")
     sk.t(936, 510, "Shared backend canister", "t"); sk.t(1434, 510, "controller: Futura", "a", "end")
     sk.t(936, 536, "izhgj-eiaaa-aaaaj-a2f7q-cai", "mono")
@@ -439,7 +439,7 @@ def today_to_personal():
     sk.t(616, 440, "on the ICP page: create your canister", "xs"); sk.t(616, 460, "and see that only you control it", "xs")
     note_box(sk, 980, 384, 480, "After the hand-over", ["Only the owner can upgrade, stop or delete the canister, and only the owner can write to it. Futura cannot even read its status."])
     # missing
-    note_box(sk, 600, 510, 280, "Missing: cycles", ["Nobody tops a canister up. A new one has about 1.5T cycles: roughly 0.7 GiB of uploads. Storing 1 GiB costs about 14 USD a year. Open: who pays."], plan=True)
+    note_box(sk, 600, 510, 280, "Missing: cycles", ["Nobody tops a canister up. A new one has about 1.5T cycles: roughly 0.5 GiB of uploads. Storing 1 GiB costs about 14 USD a year. Open: who pays."], plan=True)
     note_box(sk, 900, 510, 280, "Missing: the web app", ["Storing and reading memories in your own canister. An upgrade button. Pages for trustees and heirs."], plan=True)
     note_box(sk, 1200, 510, 260, "Missing: mainnet", ["The factory is not deployed there. Credits are given by hand: no sign-up or payment step."], plan=True)
     note_box(sk, 600, 706, 860, "Open decisions", ["Who pays for cycles. Whether Futura stays a second controller by default, so it can upgrade and help. Whether everyone moves, or only new or paying users get a canister of their own."])
@@ -455,7 +455,7 @@ def personal_create_steps():
         [("release the program", "the gzipped backend program, uploaded in chunks; then release_set with a version name", "Futura's admin", "a release in the factory: version, sha256, the program"),
          ("give a credit", "personal_credit_set for your principal. One credit pays for one canister; admins need none", "Futura's admin", "a credit for you in the factory"),
          ("ask for a canister", "create_personal_canister. Without a credit it is refused and nothing is stored. Anonymous callers are refused", "you", "a registry entry for you: Pending"),
-         ("create the canister", "the factory asks the network for a new canister, with 2T cycles and a freezing threshold of 90 days", "factory", "an empty canister; controllers: the factory and you; the credit is used up; registry: Created"),
+         ("create the canister", "the factory asks the network for a new canister, with 2T cycles and a freezing threshold of 30 days", "factory", "an empty canister; controllers: the factory and you; the credit is used up; registry: Created"),
          ("install the program", "the released program, installed with init(owner = you): that makes it personal", "factory", "your canister runs the backend with you as owner; registry: Installed"),
          ("hand over", "the factory sets the controllers to you alone, and so removes itself", "factory", "you are the only controller; registry: Ready"),
          ("use it", "create your capsule and store memories with your own key. Today from a terminal only", "you", "your capsule in your own canister; nobody else can write there")],

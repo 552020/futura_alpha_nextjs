@@ -61,10 +61,10 @@ Cycles are bought at a fixed rate: 1T (a trillion) cycles costs about 1.37 US do
 
 What follows for a personal canister:
 
-- **The start is small.** The factory pays 2T. After the creation fee about 1.5T is left. Uploading costs 2.15T per GiB, so the canister runs out at roughly 0.7 GiB uploaded, before any storage time is counted.
+- **The start is small.** The factory pays 2T. After the creation fee about 1.5T is left. Uploading costs 2.15T per GiB, so the cycles alone would be gone at roughly 0.7 GiB uploaded. Because of the deposit below, the canister stops earlier: at roughly 0.5 GiB.
 - **Nobody tops it up.** No refill and no warning are built, on either side.
-- **It freezes before it is deleted.** A canister whose cycles would last less than its freezing threshold stops answering and keeps its data. Only when the cycles are gone does the network delete code and data. New personal canisters get a threshold of 90 days; the network's default is 30. That gives three months to notice.
-- **The threshold is a deposit.** The cycles for those 90 days cannot be spent. For 1 GiB that is about 2.5T. By this calculation a new canister with 1.5T would freeze at roughly 0.3 GiB uploaded, earlier than the 0.7 GiB above. This is arithmetic from the price list, not a test.
+- **It freezes before it is deleted.** A canister whose cycles would last less than its freezing threshold stops answering and keeps its data. Only when the cycles are gone does the network delete code and data. New personal canisters get a threshold of 30 days, the network's default, set explicitly. That gives a month to notice.
+- **The threshold is a deposit.** The cycles for those 30 days cannot be spent. For 1 GiB that is about 0.8T. So a new canister with 1.5T freezes when 1.5T minus 2.15T per GiB uploaded falls to 0.8T per GiB stored: at roughly 0.5 GiB. A threshold of 90 days was tried first: it reserves about 2.5T per GiB and would have frozen the canister at roughly 0.3 GiB. A longer threshold only makes sense together with more starting cycles and top-ups. All of this is arithmetic from the price list, not a test.
 - **Compared with cloud storage:** Amazon S3 costs about 0.28 dollars per GiB per year, roughly a fiftieth.
 
 ## Creating one
