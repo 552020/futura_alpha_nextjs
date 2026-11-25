@@ -5,6 +5,10 @@
  * Uses functional approach with module-level state management.
  */
 
+import {
+  readCanisterChoice,
+  resolveBackendCanisterId,
+} from '@/ic/canister-choice';
 import type { BackendActor } from '@/ic/backend';
 import { fatLogger } from './logger';
 
@@ -116,24 +120,23 @@ export function normalizeIcUrl(url: string): string {
  */
 export function getHttpBaseUrl(): string {
   const isLocal = process.env.NEXT_PUBLIC_DFX_NETWORK === 'local';
+  const shared = process.env.NEXT_PUBLIC_CANISTER_ID_BACKEND;
+  if (!shared) {
+    throw new Error(
+      isLocal
+        ? 'NEXT_PUBLIC_CANISTER_ID_BACKEND not set for local development'
+        : 'Cannot determine HTTP base URL - missing canister ID'
+    );
+  }
+  // Files are served by the canister that holds them: the shared one, or
+  // the personal canister the user chose in the settings
+  const canisterId = resolveBackendCanisterId(shared, readCanisterChoice());
 
   if (isLocal) {
-    const canisterId = process.env.NEXT_PUBLIC_CANISTER_ID_BACKEND;
-    if (!canisterId) {
-      throw new Error(
-        'NEXT_PUBLIC_CANISTER_ID_BACKEND not set for local development'
-      );
-    }
     return `http://${canisterId}.localhost:4943`;
   }
-
   // Production ICP HTTP gateway - use icp0.io (boundary network)
-  const canisterId = process.env.NEXT_PUBLIC_CANISTER_ID_BACKEND;
-  if (canisterId) {
-    return `https://${canisterId}.icp0.io`;
-  }
-
-  throw new Error('Cannot determine HTTP base URL - missing canister ID');
+  return `https://${canisterId}.icp0.io`;
 }
 
 /**

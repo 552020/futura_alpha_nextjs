@@ -866,6 +866,8 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(IDL.Tuple(IDL.Text, IDL.Text))],
         ['query'],
       ),
+    'personal_factory' : IDL.Func([], [IDL.Opt(IDL.Principal)], ['query']),
+    'personal_factory_set' : IDL.Func([IDL.Opt(IDL.Principal)], [Result], []),
     'register_with_nonce' : IDL.Func([IDL.Text], [Result], []),
     'remove_admin' : IDL.Func([IDL.Principal], [Result], []),
     'sessions_cleanup_expired' : IDL.Func([], [Result6], []),

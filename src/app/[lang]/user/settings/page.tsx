@@ -6,6 +6,7 @@ import RequireAuth from '@/components/auth/require-auth';
 import { Card, CardContent } from '@/components/ui/card';
 import { useInterface } from '@/contexts/interface-context';
 import { HostingSinglePreferenceCard } from '@/components/user/hosting-single-preference-card';
+import { CanisterChoiceCard } from '@/components/icp/canister-choice-card';
 import { HostingToggleCard } from '@/components/user/hosting-toggle-card';
 import { GeneralHostingCard } from '@/components/user/general-hosting-card';
 import {
@@ -379,6 +380,9 @@ export default function SettingsPage() {
             <HostingSinglePreferenceCard />
           </>
         )}
+
+        {/* Shared canister or personal canister, for memories on ICP */}
+        <CanisterChoiceCard />
 
         {/* Settings Cards */}
         <NotificationsCard />

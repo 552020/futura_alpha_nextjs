@@ -1,4 +1,4 @@
-import { backendActor } from '@/ic/backend';
+import { sharedBackendActor } from '@/ic/backend';
 import { Identity } from '@dfinity/agent';
 
 import { fatLogger } from '@/lib/logger';
@@ -53,7 +53,7 @@ export async function registerWithNonce(nonce: string, identity: Identity) {
     });
   }
 
-  const actor = await backendActor(identity);
+  const actor = await sharedBackendActor(identity);
   const result = (await actor.register_with_nonce(nonce)) as
     | { Ok: unknown }
     | { Err: unknown };
@@ -72,7 +72,7 @@ export async function registerWithNonce(nonce: string, identity: Identity) {
  * This is step 5.6 in the II integration flow
  */
 export async function markBoundOnCanister(identity: Identity) {
-  const actor = await backendActor(identity);
+  const actor = await sharedBackendActor(identity);
   // capsules_bind_neon needs an explicit capsule id (an empty id is rejected),
   // so look up the caller's own capsule first.
   const capsule = (await actor.capsules_read_basic([])) as

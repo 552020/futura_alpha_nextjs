@@ -885,6 +885,15 @@ export interface _SERVICE {
     [Array<string>, Array<string>, [] | [Array<string>], number],
     Array<[string, string]>
   >,
+  /**
+   * The factory that may read this personal canister's cycles and tops it up
+   */
+  'personal_factory' : ActorMethod<[], [] | [Principal]>,
+  /**
+   * Owner only: name the factory that may read this canister's cycles
+   * (`null`: nobody but the owner, which also ends top-ups).
+   */
+  'personal_factory_set' : ActorMethod<[[] | [Principal]], Result>,
   'register_with_nonce' : ActorMethod<[string], Result>,
   'remove_admin' : ActorMethod<[Principal], Result>,
   /**

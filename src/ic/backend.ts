@@ -4,6 +4,10 @@ import { IS_LOCAL } from './env';
 import { idlFactory as backendIDL } from '@/ic/declarations/backend/backend.did.js';
 import { canisterId as BACKEND_CANISTER_ID } from '@/ic/declarations/backend';
 import { makeActor } from './actor-factory';
+import {
+  readCanisterChoice,
+  resolveBackendCanisterId,
+} from './canister-choice';
 import type { Identity, ActorSubclass } from '@dfinity/agent';
 import type { _SERVICE as Backend } from '@/ic/declarations/backend/backend.did';
 
@@ -19,7 +23,10 @@ export type IcpInit =
  * @param identity - Optional ICP identity (anonymous if not provided)
  * @returns Promise<IcpInit> - Status object with actor or offline reason
  */
-export async function backendActorSafe(identity?: Identity): Promise<IcpInit> {
+export async function backendActorSafe(
+  identity?: Identity,
+  options: { shared?: boolean } = {}
+): Promise<IcpInit> {
   // 1) Preflight health check
   if (!(await isIcpAvailable())) {
     return { status: 'offline', reason: 'boundary-unavailable' };
@@ -39,11 +46,12 @@ export async function backendActorSafe(identity?: Identity): Promise<IcpInit> {
     }
 
     // 4) Create actor
-    const actor = makeActor(
-      backendIDL,
-      BACKEND_CANISTER_ID,
-      agent
-    ) as BackendActor;
+    //    The shared canister, or the user's personal one if they chose it
+    //    in the settings (see canister-choice.ts)
+    const canisterId = options.shared
+      ? BACKEND_CANISTER_ID
+      : activeBackendCanisterId(identity);
+    const actor = makeActor(backendIDL, canisterId, agent) as BackendActor;
     return { status: 'connected', actor };
   } catch (e: unknown) {
     return {
@@ -51,6 +59,32 @@ export async function backendActorSafe(identity?: Identity): Promise<IcpInit> {
       reason: e instanceof Error ? e.message : 'unknown',
     };
   }
+}
+
+/**
+ * The canister the app talks to right now: the shared one, or the personal
+ * canister chosen in the settings (only for the identity it belongs to).
+ */
+export function activeBackendCanisterId(identity?: Identity): string {
+  return resolveBackendCanisterId(
+    BACKEND_CANISTER_ID as string,
+    readCanisterChoice(),
+    identity?.getPrincipal().toText()
+  );
+}
+
+/**
+ * Always the shared canister, whatever the user chose. For the Internet
+ * Identity sign-in handshake: the server checks the proof there.
+ */
+export async function sharedBackendActor(
+  identity?: Identity
+): Promise<BackendActor> {
+  const result = await backendActorSafe(identity, { shared: true });
+  if (result.status === 'offline') {
+    throw new Error(`ICP service unavailable: ${result.reason}`);
+  }
+  return result.actor;
 }
 
 /**
