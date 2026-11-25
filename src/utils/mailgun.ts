@@ -12,7 +12,7 @@ import { fatLogger } from '@/lib/logger';
 
 // Environment variables
 const API_KEY = process.env.MAILGUN_API_KEY || '';
-const DOMAIN = process.env.MAILGUN_DOMAIN || ''; // e.g., "futura.now"
+const DOMAIN = process.env.MAILGUN_DOMAIN || ''; // a sending domain we control (NOT futura.now: given up in 2026)
 const FROM_EMAIL = process.env.MAILGUN_FROM || `hello@${DOMAIN}`;
 
 // Fail early if credentials are missing
