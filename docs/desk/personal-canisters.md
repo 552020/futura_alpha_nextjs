@@ -2,7 +2,7 @@
 
 # Personal canisters and inheritance
 
-For readers who know the web but not the Internet Computer (ICP). State of 25 November 2026. Everything here was built and tested on a local ICP network. None of it is in use on mainnet. The web app has a first piece: a card on the ICP page where a signed-in person creates their personal canister and sees that it is theirs. Everything else is done from a terminal so far. Creation is closed by default: the factory creates a canister only for someone Futura's admin gave a credit. The factory also keeps the canisters alive: once a day it tops up their cycles, within a monthly cap.
+For readers who know the web but not the Internet Computer (ICP). State of 25 November 2026. Everything here was built and tested on a local ICP network. None of it is in use on mainnet. In the web app a signed-in person can create their personal canister, see that it is theirs, and choose in the settings that their memories go there. Upgrading, inheritance and the admin's steps are done from a terminal so far. Creation is closed by default: the factory creates a canister only for someone Futura's admin gave a credit. The factory also keeps the canisters alive: once a day it tops up their cycles, within a monthly cap.
 
 A word first: a **canister** is a program on ICP together with its data. A **controller** is a key that may install new code into a canister, stop it or delete it. **Cycles** are what a canister pays for computing and storage; a canister without cycles stops and is later deleted.
 
@@ -83,9 +83,9 @@ After the hand-over the factory is not a controller, so it cannot ask the networ
 - **A frozen canister is refilled too.** It cannot answer; that counts as a balance of zero, provided it answered at least once before. The deposit unfreezes it.
 - **The number is not trusted beyond the cap.** The canister's code belongs to its owner, who could install a program that always reports a low balance. The factory cannot check it. Such a canister gets its monthly cap and no more: that is the limit of the loss.
 
-Shown by the test on a local network: a fresh canister gets nothing, a deposit arrives when the floor is set above its balance, the cap stops the second check, an admin raises the cap, strangers are refused. Not tested yet: the daily timer and the change of month, which need a simulated clock.
+Shown by the test on a local network: a fresh canister gets nothing, a deposit arrives when the floor is set above its balance, the cap stops the second check, an admin raises the cap, strangers are refused. The daily timer, the change of month, the rescue of a frozen canister and a factory upgrade are tested with a simulated clock (three tests on PocketIC, a local test network in one process).
 
-Canisters created before 25 November 2026 have no factory stored and cannot report to it.
+Canisters created before 25 November 2026 have no factory stored. Their owner can name it with `personal_factory_set`, or clear it, which also ends the top-ups.
 
 ## Creating one
 
@@ -103,6 +103,20 @@ Four details matter:
 - **The factory keeps no door open.** In the test, the factory's admin could not even read the status of the finished canister. The network only answers controllers.
 
 In the web app this is one button. The card "Your personal canister" on the ICP page (`/user/icp`) calls the factory with the person's Internet Identity key, then asks the new canister itself whose it is and shows "Only you". If a creation stopped half-way, the card shows the step and a "Continue" button. The card appears only when the app is built with the factory's canister id (`NEXT_PUBLIC_CANISTER_ID_FACTORY`); without a factory there is nothing to show. A browser test creates a canister this way and passes.
+
+## Using it
+
+Since 25 November 2026 the web app can work with a personal canister, not only create one.
+
+- **One switch.** The settings page has a card "Where your ICP memories live": the shared canister (the default) or "My own canister". The second needs a finished personal canister. Choosing it first makes sure the owner's capsule exists there, then the page reloads.
+- **The whole app follows.** Uploads, the memory list and the file links go to the chosen canister.
+- **Signing in stays on the shared canister.** The sign-in with Internet Identity always uses the shared canister, because Futura's server checks the sign-in proof there.
+- **Nothing is moved.** Each canister keeps what was stored in it. The app shows the one that is chosen; memories in the other are not gone, only not shown. Moving existing memories is not built.
+- **The choice lives in the browser.** It is stored in this browser, tied to the person who made it, not in the account. Another device, or a cleared browser, starts on the shared canister again.
+
+Shown by browser tests on a local network: switching there and back; and a photo added after choosing the own canister is uploaded to the personal canister only, with no call to the shared one, appears in the dashboard, and its file is served by the personal canister.
+
+One gap on local networks only: the small preview in the dashboard stays empty, because the app's image service cannot reach a local canister address. It is the same with the shared canister and does not apply to the public network.
 
 ## Upgrading one
 
@@ -151,9 +165,10 @@ Inheritance is separate from personal canisters. It lives in the backend program
 | Inheritance: trustees, waiting period, cancel, heirs read                            | Built and tested on the shared canister. The test on the network used a waiting period of 0 seconds; a wait of 7 days is covered by the unit tests, with a simulated clock                                                                                                                                             |
 | Fix for files lost on upgrade                                                        | Fixed 25 November 2026. Mainnet not yet upgraded                                                                                                                                                                                                                                                                       |
 | Web app: creating a personal canister and seeing it                                  | Built: a card on the ICP page. One browser test on a local network                                                                                                                                                                                                                                                     |
-| Web app: storing memories in the personal canister, upgrading it, trustees, heirs    | Not built. Uploads still go to the shared canister                                                                                                                                                                                                                                                                     |
+| Web app: using the personal canister for uploads, lists and file links               | Built: a choice in the settings, kept per browser. Two browser tests on a local network                                                                                                                                                                                                                                |
+| Web app: upgrading the personal canister, trustees, heirs                            | Not built                                                                                                                                                                                                                                                                                                              |
 | Factory on mainnet                                                                   | Not deployed                                                                                                                                                                                                                                                                                                           |
-| Cycles top-ups: the canister reports, the factory refills daily within a monthly cap | Built. Tested on a local network on 25 November 2026. The daily timer and the change of month are not tested yet                                                                                                                                                                                                       |
+| Cycles top-ups: the canister reports, the factory refills daily within a monthly cap | Built. Tested on a local network on 25 November 2026, the timer and the change of month with a simulated clock                                                                                                                                                                                                         |
 | The balance in the web app                                                           | Built: the card shows the owner how many cycles are left to spend, and that Futura tops it up. Hidden for canisters created before 25 November 2026                                                                                                                                                                    |
 | A warning before a canister runs dry, by e-mail or in the web app                    | Not built                                                                                                                                                                                                                                                                                                              |
 | Payment: who pays the factory for the cycles; plans or a quota                       | Not built                                                                                                                                                                                                                                                                                                              |

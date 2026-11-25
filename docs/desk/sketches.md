@@ -41,7 +41,7 @@ All pictures come from `docs/diagrams/tools/gen.py` (run it, then `node docs/dia
 
 ## Personal canisters and inheritance
 
-Built and tested on a local ICP network on 25 November 2026. Not in use on mainnet. The web app can create a personal canister and show it; everything else is done from a terminal. Creation needs a credit from Futura's admin. The factory tops the canisters up once a day. The explanation: [Personal canisters and inheritance](/desk/personal-canisters).
+Built and tested on a local ICP network on 25 November 2026. Not in use on mainnet. The web app can create a personal canister, show it, and store new memories in it; upgrading and inheritance are done from a terminal. Creation needs a credit from Futura's admin. The factory tops the canisters up once a day. The explanation: [Personal canisters and inheritance](/desk/personal-canisters).
 
 <figure>
 <img src="/diagrams/today-to-personal.png" alt="From today to personal canisters">

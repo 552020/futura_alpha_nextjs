@@ -195,6 +195,8 @@ The dashboard has one switch, the data source, set from the hosting preferences.
 - **Web2:** `GET /api/memories` reads Postgres and returns memories with signed S3 links.
 - **Web3:** the browser calls `memories_list` on the canister with the person's key.
 
+Which canister that is, is decided in one place, `src/ic/canister-choice.ts` and `activeBackendCanisterId` in `src/ic/backend.ts`: the shared backend canister, or the person's own canister if they chose it in the settings. The choice is kept in the browser together with the principal it belongs to, so another person on the same browser does not land in someone else's canister. One rule has no exception: the Internet Identity sign-in handshake always uses the shared canister (`sharedBackendActor`), because the server checks the proof there.
+
 Files on ICP are not fetched through canister calls but over plain HTTP, so an `<img>` tag can load them. The canister cannot see who is asking on that path, so it uses signed links:
 
 1. The browser asks for a token (`mint_http_token`, or it gets tokens together with the list). The token names the memory, the allowed versions and an expiry, and is signed with a secret that only the canister holds (HMAC-SHA256).
@@ -227,7 +229,7 @@ Things a new developer would otherwise find the hard way:
 - **Sign-in proofs in the canister never expire** and are kept only until the next upgrade. The server's own code record does expire and is single-use, which is what protects the handshake.
 - **File tokens** are always allowed the 30-minute maximum; the shorter cap meant for single requests is not applied yet.
 - **Unused parts that still show in the code:** the old capsule-moving code inside the backend (`src/backend/src/canister_factory/`), the `arweave` and `ipfs` locations, the lab canisters, the family tree tables.
-- **Built but not live:** personal canisters and inheritance work on a local network. Neither is on mainnet, and the web app only has the card that creates a personal canister.
+- **Built but not live:** personal canisters and inheritance work on a local network. Neither is on mainnet. In the web app a person can create a personal canister and choose it for their memories; upgrading and inheritance have no pages.
 - **Mainnet** runs the canister code from before November 2026. The fixes since then (list paging, gallery visibility and items, inline file links) are in `main`, not deployed. That old code loses the uploaded files on every upgrade; the next mainnet upgrade must be to the fixed version, see the warning in [Personal canisters and inheritance](/desk/personal-canisters).
 
 ## Running it

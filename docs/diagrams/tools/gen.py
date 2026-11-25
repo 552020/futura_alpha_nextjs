@@ -290,9 +290,9 @@ def local_running():
     sk.box(40, 118, 1420, 732, "line", rx=8); sk.t(60, 150, "WSL: Ubuntu 24.04", "t"); sk.t(1440, 150, "everything on 127.0.0.1 only", "a", "end")
     # clients
     y = note_box(sk, 60, 190, 300, "Tests, run by hand", [
-        "Playwright with Chromium: 8 Internet Identity browser tests and 1 personal canister test",
-        "Vitest: 151 unit and integration tests",
-        "cargo test: 276 + 18 canister unit tests, no network needed",
+        "Playwright with Chromium: 11 browser tests (8 sign-in, 1 personal canister, 2 storage choice)",
+        "Vitest: 157 unit and integration tests",
+        "cargo test: 277 + 18 canister unit tests, no network; 3 top-up tests on PocketIC",
         "shell scripts (dfx canister call): 23 canister tests"])
     note_box(sk, 60, y + 18, 300, "Not running now", ["Mailgun, S3, Google login: not configured locally; uploads to S3 are untested"], plan=True)
     # the web app
@@ -356,11 +356,11 @@ def personal_running():
     sk.t(412, 568, "pays 2T cycles for each new canister", "s"); sk.t(412, 590, "one credit, one canister; then a daily top-up, 3T a month at most", "xs")
     # the web app: a first piece
     sk.box(380, 650, 440, 96, "line", rx=10)
-    sk.t(400, 682, "Futura web app", "t"); sk.t(800, 682, "a first piece", "a", "end")
-    sk.t(400, 710, "a card on the ICP page: create your canister, see its", "s"); sk.t(400, 734, "id and version, that it is yours, and the cycles left", "s")
+    sk.t(400, 682, "Futura web app", "t"); sk.t(800, 682, "create, see, choose", "a", "end")
+    sk.t(400, 710, "create your canister and see it; in the settings choose", "s"); sk.t(400, 734, "it, and uploads, lists and file links go there", "s")
     sk.box(380, 760, 440, 90, "line", plan=True, rx=10)
     sk.t(400, 790, "Not in the web app yet", "t")
-    sk.t(400, 816, "storing memories in your canister, upgrading it,", "xs"); sk.t(400, 836, "trustees and heirs", "xs")
+    sk.t(400, 816, "upgrading your canister, trustees and heirs,", "xs"); sk.t(400, 836, "moving what is in the shared canister", "xs")
     # the network
     sk.box(900, 130, 570, 720, "line", rx=10)
     sk.t(920, 162, "Internet Computer", "t"); sk.t(1450, 162, "tested on a local network", "s", "end")
@@ -436,14 +436,14 @@ def today_to_personal():
     sk.t(760, 344, "moving a capsule with its files: no tool yet", "a", "middle")
     # the web app card
     sk.box(600, 384, 300, 96, "line")
-    sk.t(616, 414, "Web app: a card", "t")
-    sk.t(616, 440, "on the ICP page: create your canister", "xs"); sk.t(616, 460, "and see that only you control it", "xs")
+    sk.t(616, 414, "Web app", "t")
+    sk.t(616, 440, "create your canister; choose it in the", "xs"); sk.t(616, 460, "settings and new memories go there", "xs")
     note_box(sk, 980, 384, 480, "After the hand-over", ["Only the owner can upgrade, stop or delete the canister, and only the owner can write to it. Futura cannot even read its status."])
     # top-ups: built
     note_box(sk, 600, 512, 420, "Top-ups", ["Once a day the factory asks each canister what it can still spend and refills it: below 1T up to 2T, at most 3T a month per owner."])
     # missing
     note_box(sk, 1040, 512, 420, "Missing: who pays", ["Nobody pays the factory: no payment, no plans. No warning by e-mail or in the app. 3T a month keeps about 3.5 GiB."], plan=True)
-    note_box(sk, 600, 640, 420, "Missing: the web app", ["Storing and reading memories in your own canister. An upgrade button. Pages for trustees and heirs."], plan=True)
+    note_box(sk, 600, 640, 420, "Missing: the web app", ["An upgrade button. Pages for trustees and heirs. A warning when cycles run low."], plan=True)
     note_box(sk, 1040, 640, 420, "Missing: mainnet", ["The factory is not deployed there. Credits are given by hand: no sign-up or payment step."], plan=True)
     note_box(sk, 600, 752, 860, "Open decisions", ["Who pays Futura for the cycles. Whether Futura stays a second controller by default, so it can upgrade and help. Whether everyone moves, or only new or paying users get a canister of their own."])
     footer(sk, ["The program is the same on both sides: the backend runs in shared mode today and in personal mode in a canister of your own.",
@@ -461,10 +461,10 @@ def personal_create_steps():
          ("create the canister", "the factory asks the network for a new canister, with 2T cycles and a freezing threshold of 30 days", "factory", "an empty canister; controllers: the factory and you; the credit is used up; registry: Created"),
          ("install the program", "the released program, installed with init(owner = you): that makes it personal", "factory", "your canister runs the backend with you as owner; registry: Installed"),
          ("hand over", "the factory sets the controllers to you alone, and so removes itself", "factory", "you are the only controller; registry: Ready"),
-         ("use it", "create your capsule and store memories with your own key. Today from a terminal only", "you", "your capsule in your own canister; nobody else can write there")],
+         ("use it", "choose \"My own canister\" in the settings: uploads, lists and file links then go to it", "you", "your capsule in your own canister; nobody else can write there")],
         ["If a step fails, or a call hangs for more than 10 minutes, call create_personal_canister again: the registry remembers the canister and how far it got,",
          "so no second canister is created and no second credit is needed. Once it is Ready, the call just returns the same canister."],
-        "Status: tested on a local ICP network, 25 November 2026: all steps in a terminal, steps 2 to 5 also from the web app. Not built: payment, credits without the admin.",
+        "Status: tested on a local ICP network, 25 November 2026: all steps in a terminal, steps 2 to 6 also from the web app. Not built: payment, credits without the admin.",
         as_of=AS_OF_PERSONAL)
 
 def personal_upgrade_steps():
@@ -493,7 +493,7 @@ def top_up_steps():
          ("if the canister is frozen", "it cannot answer. That counts as a balance of zero, if it answered at least once before", "factory", "the deposit unfreezes it")],
         ["The canister's code belongs to its owner, who could install a program that always reports a low balance. The factory cannot check the number:",
          "the monthly cap is the limit of that loss. And the factory never spends below its own minimum of cycles."],
-        "Status: tested on a local ICP network, 25 November 2026. Not tested: the timer and the change of month. Not built: who pays the factory, warnings. The web app shows the owner what is left to spend.",
+        "Status: tested on a local ICP network, 25 November 2026. Timer, change of month and a frozen canister tested with a simulated clock. Not built: who pays the factory, warnings.",
         as_of=AS_OF_PERSONAL)
 
 def inheritance_steps():
