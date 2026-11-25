@@ -24,7 +24,7 @@ All pictures come from `docs/diagrams/tools/gen.py` (run it, then `node docs/dia
 
 <figure>
 <img src="/diagrams/upload-web2-steps.png" alt="Uploading a memory to the Web2 side, step by step">
-<figcaption>Web2 (the default): the server signs upload links, the browser uploads the original and the smaller versions to S3, the server records the memory in Postgres.</figcaption>
+<figcaption>Web2 (the default): the server signs upload links, the browser uploads the original and the smaller versions to S3, the server records the memory and its files in Postgres.</figcaption>
 </figure>
 
 <figure>
@@ -36,12 +36,17 @@ All pictures come from `docs/diagrams/tools/gen.py` (run it, then `node docs/dia
 
 <figure>
 <img src="/diagrams/local-test-setup-running.png" alt="The local test setup running, on the studio PC">
-<figcaption>On the studio PC: a Postgres container, a local ICP network with the three canisters, and the web app built for them; Playwright, Vitest, cargo and the shell scripts test them.</figcaption>
+<figcaption>On the studio PC: a Postgres container, a local ICP network with the three canisters (backend, Internet Identity, canister factory), and the web app built for them; Playwright, Vitest, cargo and the shell scripts test them.</figcaption>
 </figure>
 
 ## Personal canisters and inheritance
 
-Built and tested on a local ICP network on 25 November 2026. Not in use on mainnet, and the web app does not use it yet. The explanation: [Personal canisters and inheritance](/desk/personal-canisters).
+Built and tested on a local ICP network on 25 November 2026. Not in use on mainnet. The web app can create a personal canister and show it; everything else is done from a terminal. The explanation: [Personal canisters and inheritance](/desk/personal-canisters).
+
+<figure>
+<img src="/diagrams/today-to-personal.png" alt="From today to personal canisters">
+<figcaption>From today to the target: today everyone on ICP has a capsule in one shared canister that Futura controls. The target is one canister per person, created by the factory and handed over. Dashed is what is not built: who pays the cycles, moving existing users, most of the web app, the mainnet deployment.</figcaption>
+</figure>
 
 <figure>
 <img src="/diagrams/personal-canisters-running.png" alt="Personal canisters running: who controls what">

@@ -2,13 +2,18 @@
 
 # Personal canisters and inheritance
 
-For readers who know the web but not the Internet Computer (ICP). State of 25 November 2026. Everything here was built and tested on a local ICP network. None of it is in use on mainnet, and the web app does not use it yet.
+For readers who know the web but not the Internet Computer (ICP). State of 25 November 2026. Everything here was built and tested on a local ICP network. None of it is in use on mainnet. The web app has a first piece: a card on the ICP page where a signed-in person creates their personal canister and sees that it is theirs. Everything else is done from a terminal so far.
 
 A word first: a **canister** is a program on ICP together with its data. A **controller** is a key that may install new code into a canister, stop it or delete it. **Cycles** are what a canister pays for computing and storage; a canister without cycles stops and is later deleted.
 
 ## The idea in one paragraph
 
 Today every Futura user on ICP has a capsule inside one shared canister that Futura controls. A personal canister gives one person a canister of their own. A small program called the canister factory creates it, installs Futura's backend program in it with that person as owner, and then removes itself from the list of controllers. From that moment the person is the only controller: Futura cannot change the code, stop the canister or read its status. It is the same backend program as in the shared canister, started in "personal mode", where only the owner can create a capsule and store data. The model is Juno, a platform that hands each developer their own canister in the same way.
+
+<figure>
+<img src="/diagrams/today-to-personal.png" alt="From today to personal canisters">
+<figcaption>Today and the target side by side. Solid: built and tested on a local network. Dashed: not built, which is who pays the cycles, moving existing users, most of the web app, and the mainnet deployment.</figcaption>
+</figure>
 
 <figure>
 <img src="/diagrams/personal-canisters-running.png" alt="Personal canisters running: who controls what">
@@ -19,15 +24,15 @@ Today every Futura user on ICP has a capsule inside one shared canister that Fut
 
 Juno calls its factory the "console" and the canister it hands over a "satellite". Juno has been in maintenance mode since May 2026, so it is a design reference here, not something Futura depends on.
 
-| Question                         | Juno                                                                                         | Futura, shared canister (mainnet today) | Futura, personal canister (built, local only)                                                              |
-| -------------------------------- | -------------------------------------------------------------------------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| Who controls the canister        | The user only. The console removes itself after the first install                            | Futura                                  | The user only. The factory removes itself after the first install                                          |
-| Who pays to create it            | The console pays from its own cycles; the user pays Juno 3T cycles, or uses a free credit    | Futura                                  | The factory pays 2T cycles. The user pays nothing; no payment is built                                     |
-| Who pays to keep it running      | The user: tops up by hand, or runs an own monitor that does it. An empty canister is deleted | Futura                                  | Nobody yet. Top-ups are not built. An empty canister would stop                                            |
-| Who upgrades                     | The user pulls the release, checks its hash, installs it with their own key                  | Futura                                  | The user pulls the release from the factory, checks its sha256, installs it with their own key             |
-| Can the platform push code       | No: it is not a controller                                                                   | Yes                                     | No: it is not a controller                                                                                 |
-| How many people use one canister | Many: a satellite is one app with many end users                                             | Many: one capsule per person            | One owner. People the owner gave access can read their share                                               |
-| Who may ask for a canister       | Signed-in accounts, with a rate limit and payment                                            | Not applicable                          | Any signed-in principal. An allow-list exists in the factory but is off by default; there is no rate limit |
+| Question                         | Juno                                                                                         | Futura, shared canister (mainnet today) | Futura, personal canister (built, local only)                                                                                                       |
+| -------------------------------- | -------------------------------------------------------------------------------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Who controls the canister        | The user only. The console removes itself after the first install                            | Futura                                  | The user only. The factory removes itself after the first install                                                                                   |
+| Who pays to create it            | The console pays from its own cycles; the user pays Juno 3T cycles, or uses a free credit    | Futura                                  | The factory pays 2T cycles: the network's creation fee, and the rest is the canister's starting balance. The user pays nothing; no payment is built |
+| Who pays to keep it running      | The user: tops up by hand, or runs an own monitor that does it. An empty canister is deleted | Futura                                  | Nobody yet. Top-ups are not built. An empty canister would stop                                                                                     |
+| Who upgrades                     | The user pulls the release, checks its hash, installs it with their own key                  | Futura                                  | The user pulls the release from the factory, checks its sha256, installs it with their own key                                                      |
+| Can the platform push code       | No: it is not a controller                                                                   | Yes                                     | No: it is not a controller                                                                                                                          |
+| How many people use one canister | Many: a satellite is one app with many end users                                             | Many: one capsule per person            | One owner. People the owner gave access can read their share                                                                                        |
+| Who may ask for a canister       | Signed-in accounts, with a rate limit and payment                                            | Not applicable                          | Any signed-in principal. An allow-list exists in the factory but is off by default; there is no rate limit                                          |
 
 ## Creating one
 
@@ -42,6 +47,8 @@ Three details matter:
 - **A failed creation can be resumed.** The factory's registry remembers the canister and the last finished step (Pending, Created, Installed, Ready). Calling `create_personal_canister` again continues from there. No second canister is created and no cycles are spent twice.
 - **The factory keeps no door open.** In the test, the factory's admin could not even read the status of the finished canister. The network only answers controllers.
 
+In the web app this is one button. The card "Your personal canister" on the ICP page (`/user/icp`) calls the factory with the person's Internet Identity key, then asks the new canister itself whose it is and shows "Only you". If a creation stopped half-way, the card shows the step and a "Continue" button. The card appears only when the app is built with the factory's canister id (`NEXT_PUBLIC_CANISTER_ID_FACTORY`); without a factory there is nothing to show. A browser test creates a canister this way and passes.
+
 ## Upgrading one
 
 <figure>
@@ -51,7 +58,7 @@ Three details matter:
 
 Upgrades are pulled, never pushed. This is the price of real ownership: nobody upgrades for you. The hash check proves that the downloaded file is the file the factory lists. It does not prove that the program is good. For that, the source code and a repeatable build would have to be public, which is not set up.
 
-The test upgraded a personal canister by installing the same release a second time. The stored memory, the mode and the owner were unchanged afterwards. An upgrade from one version to a newer one has not been tested on a personal canister.
+The test upgraded a personal canister by installing the same release a second time. The stored memory, the mode and the owner were unchanged afterwards. An upgrade from one version to a newer one has not been tested on a personal canister. The web app does not upgrade: its card only says when the factory offers a different release than the one it installed.
 
 ### A warning about upgrades and the mainnet canister
 
@@ -71,29 +78,31 @@ Inheritance is separate from personal canisters. It lives in the backend program
 </figure>
 
 - **A death is never recorded by one click.** The owner names up to 10 trustees, says how many must confirm, and sets a waiting period. The owner cannot be their own trustee.
-- **The waiting period protects the living.** It starts when enough trustees have confirmed. During the wait a trustee can take a confirmation back. The owner can cancel with their own key, during the wait or after it; then all confirmations are dropped and heirs are locked out again. A capsule whose settings were never touched has a waiting period of 30 days, but also no trustees, so nobody can start anything. When the owner names trustees, the owner also sets the waiting period. Offering 30 days as the default there is a job for the web app.
+- **The waiting period protects the living.** It starts when enough trustees have confirmed. During the wait a trustee can take a confirmation back; if that leaves too few confirmations, the wait stops and starts again from zero when enough have confirmed. The owner can cancel with their own key, during the wait or after it; then all confirmations are dropped and heirs are locked out again. A capsule whose settings were never touched has a waiting period of 30 days, but also no trustees, so nobody can start anything. When the owner names trustees, the owner also sets the waiting period. Offering 30 days as the default there is a job for the web app.
 - **Nothing runs on a timer.** The canister stores the dates and compares them each time someone asks for access.
-- **A trustee gets no access.** A trustee can confirm and nothing more. An heir sees only the memories shared with them, and of each memory's access list only their own entry.
-- **Strangers learn nothing.** Every refused call answers "not found", so nobody can test whether a capsule exists.
+- **A trustee gets no access.** A trustee can confirm and nothing more. An heir sees only the memories shared with them, and of each memory's access list only their own entry (and a public entry, if the memory has one).
+- **Strangers learn nothing.** Someone who is neither owner, trustee nor heir gets "not found" on every call, so nobody can test whether a capsule exists.
 - **Other events.** The owner can also tie access to a wedding, a graduation or an event of their own, and records or revokes those alone. A death cannot be recorded that way.
 
 ## Built and not built
 
-| Piece                                                                         | State                                                                                         |
-| ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| Factory: release, create, hand over, registry, resume after a failure         | Built. Tested on a local network on 25 November 2026 (resume is in the code, not in the test) |
-| Backend in personal mode: only the owner can create a capsule                 | Built and tested. Other write endpoints were not reviewed for personal mode                   |
-| Upgrade by the owner: download, check sha256, install                         | Built and tested from a terminal, with the same release                                       |
-| Inheritance: trustees, waiting period, cancel, heirs read                     | Built and tested on the shared canister. The test used a waiting period of 0 seconds          |
-| Fix for files lost on upgrade                                                 | Fixed 25 November 2026. Mainnet not yet upgraded                                              |
-| Web app: pages for creating, upgrading, trustees, heirs                       | Not built. The web app uses none of this yet                                                  |
-| Cycles top-ups and a monitor that warns before a canister runs dry            | Not built                                                                                     |
-| Payment                                                                       | Not built                                                                                     |
-| A limit on who may ask for a canister                                         | Not built. Each request costs the factory 2T cycles                                           |
-| Moving an existing capsule from the shared canister into a personal one       | Not built                                                                                     |
-| File links over HTTP for heirs (today heirs read through canister calls only) | Not built                                                                                     |
+| Piece                                                                             | State                                                                                                                                                                      |
+| --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Factory: release, create, hand over, registry, resume after a failure             | Built. Tested on a local network on 25 November 2026 (resume is in the code, not in a test)                                                                                |
+| Backend in personal mode: only the owner can create a capsule                     | Built and tested. Other write endpoints were not reviewed for personal mode                                                                                                |
+| Upgrade by the owner: download, check sha256, install                             | Built and tested from a terminal, with the same release                                                                                                                    |
+| Inheritance: trustees, waiting period, cancel, heirs read                         | Built and tested on the shared canister. The test on the network used a waiting period of 0 seconds; a wait of 7 days is covered by the unit tests, with a simulated clock |
+| Fix for files lost on upgrade                                                     | Fixed 25 November 2026. Mainnet not yet upgraded                                                                                                                           |
+| Web app: creating a personal canister and seeing it                               | Built: a card on the ICP page. One browser test on a local network                                                                                                         |
+| Web app: storing memories in the personal canister, upgrading it, trustees, heirs | Not built. Uploads still go to the shared canister                                                                                                                         |
+| Factory on mainnet                                                                | Not deployed                                                                                                                                                               |
+| Cycles top-ups and a monitor that warns before a canister runs dry                | Not built                                                                                                                                                                  |
+| Payment                                                                           | Not built                                                                                                                                                                  |
+| A limit on who may ask for a canister                                             | Not built. Each request costs the factory 2T cycles                                                                                                                        |
+| Moving an existing capsule from the shared canister into a personal one           | Not built                                                                                                                                                                  |
+| File links over HTTP for heirs (today heirs read through canister calls only)     | Not built                                                                                                                                                                  |
 
-Where the code is, in `futura_alpha_icp`: `src/canister_factory/src/personal.rs` (factory), `src/backend/src/personal.rs` (mode), `src/backend/src/legacy.rs` (inheritance), `src/backend/src/upgrade.rs` (the upgrade fix). The exact flows are the test scripts `tests/backend/personal/test_personal_canister.sh` and `tests/backend/legacy/test_legacy_inheritance.sh`.
+Where the code is, in `futura_alpha_icp`: `src/canister_factory/src/personal.rs` (factory), `src/backend/src/personal.rs` (mode), `src/backend/src/legacy.rs` (inheritance), `src/backend/src/upgrade.rs` (the upgrade fix). The exact flows are the test scripts `tests/backend/personal/test_personal_canister.sh` and `tests/backend/legacy/test_legacy_inheritance.sh`. In the web app (`futura_alpha_nextjs`): `src/components/icp/personal-canister-card.tsx` and the browser test `e2e/personal-canister.spec.ts`.
 
 ## Open decisions
 

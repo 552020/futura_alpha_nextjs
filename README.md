@@ -9,7 +9,7 @@ This repository is the web app. The canisters (the ICP side) live in [futura_alp
 ## Status (November 2026)
 
 - **Code:** all test suites pass (web unit tests, Internet Identity browser tests, canister tests); CI green.
-- **Site:** https://futura-alpha-552020s-projects.vercel.app — the Vercel deployment is currently disabled. The old domain futura.now is no longer ours.
+- **Site:** https://futura-alpha-552020s-projects.vercel.app — the demo loads again (25 November 2026; sign-up and uploads not checked there). The old domain futura.now is no longer ours.
 - **ICP mainnet:** backend canister `izhgj-eiaaa-aaaaj-a2f7q-cai` is live; the canister fixes of November 2026 are not deployed there yet.
 - **Analysis:** where the project stands, what it could be, and the state of ICP and blockchain: see the [desk](#desk).
 
@@ -52,7 +52,7 @@ The desk is the project's working material, rendered at `/desk` for admins (the 
 - [How Futura is built](docs/desk/architecture.md)
 - [How Futura works in the code](docs/desk/architecture-code.md)
 - [Sketches](docs/desk/sketches.md)
-- [Personal canisters and inheritance](docs/desk/personal-canisters.md): a canister of one's own that Futura cannot touch, and handing memories to heirs. Built and tested locally, not in use yet
+- [Personal canisters and inheritance](docs/desk/personal-canisters.md): a canister of one's own that Futura cannot touch, and handing memories to heirs. Built and tested locally, not on mainnet; the web app can create a personal canister
 - [ICP and blockchain in November 2026: alive, or eaten by AI?](docs/desk/icp-and-blockchain.md)
 
 ## Development

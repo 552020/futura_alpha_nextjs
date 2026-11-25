@@ -2,7 +2,7 @@
 
 # Futura: where it stands and what it could be
 
-State of 20 November 2026.
+State of 20 November 2026. The rows on the live site, passing memories on and personal canisters, and next steps 1 and 6, were updated on 25 November 2026.
 
 ## In short
 
@@ -30,14 +30,14 @@ Futura is a working, well-tested product that nobody is using. The software is f
 
 ## What is not there yet
 
-| Gap                 | Today                                                                                                        | Why it matters                                                             |
-| ------------------- | ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
-| A live site         | Vercel deployment disabled ("payment required"); the domain futura.now is gone                               | Nobody can use it                                                          |
-| Users               | none recorded                                                                                                | No feedback, no proof of demand                                            |
-| Passing memories on | The canister knows an "after death" condition, but it always answers "no access": the event system is a TODO | This is the heart of "digital inheritance"                                 |
-| Latest fixes on ICP | Mainnet canister runs the code from before this month's fixes                                                | Gallery visibility, memory list and links are fixed only in the repository |
-| Personal canisters  | Canister factory built, not used                                                                             | The strongest form of "you own your data"                                  |
-| Business setup      | Photographer-client relation must be set up by hand in the database                                          | Blocks the photographer use without manual work                            |
+| Gap                 | Today                                                                                                                                                                  | Why it matters                                                             |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| A live site         | The demo loads again at its Vercel address (25 November 2026; sign-up and uploads not checked there). The domain futura.now is gone                                    | Without an address of its own nobody finds it                              |
+| Users               | none recorded                                                                                                                                                          | No feedback, no proof of demand                                            |
+| Passing memories on | Built in the canister on 25 November 2026: trustees confirm a death, a waiting period runs, heirs can read. Tested locally. Not on mainnet, and no page in the web app | This is the heart of "digital inheritance"                                 |
+| Latest fixes on ICP | Mainnet canister runs the code from before this month's fixes                                                                                                          | Gallery visibility, memory list and links are fixed only in the repository |
+| Personal canisters  | Built and tested locally on 25 November 2026; the web app can create one. Not on mainnet. Open: who pays the running costs, and moving existing users                  | The strongest form of "you own your data"                                  |
+| Business setup      | Photographer-client relation must be set up by hand in the database                                                                                                    | Blocks the photographer use without manual work                            |
 
 ## What the market test said
 
@@ -68,9 +68,9 @@ Keep it, but not as the foundation. The analysis page on ICP and blockchain has 
 
 ## Next steps
 
-1. Bring the site back: re-enable the Vercel project (or move it), point a domain at it.
+1. Give the site an address: the demo loads again on Vercel; check sign-up and uploads there and point a domain at it.
 2. Deploy the canister fixes from November 2026 to mainnet.
 3. Let a photographer set up client deliveries without database work, then run one real wedding through it.
 4. Decide the price and what "forever" means in writing (who pays the storage after 10 years).
 5. Move the ICP tooling from dfx to icp-cli (dfx is deprecated) before it breaks.
-6. Only then: the inheritance logic (after-death access) and personal canisters.
+6. Inheritance and personal canisters are built in the canisters (see [Personal canisters and inheritance](/desk/personal-canisters)). Only then: bring them to mainnet and into the web app.

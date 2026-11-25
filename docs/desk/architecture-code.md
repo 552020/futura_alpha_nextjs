@@ -83,17 +83,22 @@ The table is the only place on the Web2 side that knows about memories kept on I
 
 `futura_alpha_icp/src/backend/src/`:
 
-| Path                                           | Contents                                                           |
-| ---------------------------------------------- | ------------------------------------------------------------------ |
-| `lib.rs`                                       | Every public method, about 110. Thin: each one calls into a module |
-| `capsule/`, `capsule_store/`, `capsule_acl.rs` | The capsule, how it is stored, and who may read, write and delete  |
-| `memories/`                                    | Creating, reading, updating and deleting memories and their assets |
-| `gallery/`, `folder/`                          | Grouping, inside a capsule                                         |
-| `upload/`, `session/`                          | Chunked uploads and the blob store                                 |
-| `http/`                                        | The canister's HTTP side: serving files against signed tokens      |
-| `auth.rs`, `user.rs`                           | The sign-in proof                                                  |
-| `admin.rs`                                     | Admin principals                                                   |
-| `canister_factory/`                            | Moving a capsule into a canister of its own. Written, switched off |
+| Path                                           | Contents                                                                               |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `lib.rs`                                       | Every public method, about 110. Thin: each one calls into a module                     |
+| `capsule/`, `capsule_store/`, `capsule_acl.rs` | The capsule, how it is stored, and who may read, write and delete                      |
+| `memories/`                                    | Creating, reading, updating and deleting memories and their assets                     |
+| `gallery/`, `folder/`                          | Grouping, inside a capsule                                                             |
+| `upload/`, `session/`                          | Chunked uploads and the blob store                                                     |
+| `http/`                                        | The canister's HTTP side: serving files against signed tokens                          |
+| `auth.rs`, `user.rs`                           | The sign-in proof                                                                      |
+| `admin.rs`                                     | Admin principals                                                                       |
+| `canister_factory/`                            | An older attempt at moving a capsule into a canister of its own. Written, switched off |
+| `personal.rs`                                  | Personal mode: the same program with one fixed owner, in a canister of their own       |
+| `legacy.rs`                                    | Inheritance: trustees confirm a death, then heirs may read                             |
+| `upgrade.rs`                                   | What survives a code upgrade                                                           |
+
+Next to the backend, `src/canister_factory` is a second, small canister: the factory that creates personal canisters and hands them over. Both are explained in [Personal canisters and inheritance](/desk/personal-canisters).
 
 The interface is `src/backend/backend.did`. The TypeScript bindings in the web app (`src/ic/declarations/`) are generated from it by `dfx`.
 
@@ -112,7 +117,7 @@ A capsule is one record per person, keyed by an id, with indexes by subject and 
 
 Access to a capsule: owners, controllers and the subject may read and write; only owners and controllers may delete.
 
-Each memory, gallery and folder also carries its own list of **access entries**. An entry names a person (or is public), a role, a permission mask (view, download, share, manage, own) and a condition: immediately, after a date, until a date, or after an event such as "after death". The event conditions are declared but nothing triggers them yet.
+Each memory, gallery and folder also carries its own list of **access entries**. An entry names a person (or is public), a role, a permission mask (view, download, share, manage, own) and a condition: immediately, after a date, until a date, or after an event such as "after death". "After death" opens when the trustees named by the owner have confirmed and a waiting period has passed; other events the owner records by hand. This is tested on a local network and not on mainnet yet.
 
 A memory's files come in three forms:
 
@@ -124,12 +129,15 @@ A memory's files come in three forms:
 
 Canister data that must survive a code upgrade lives in stable memory, split into numbered regions (`memory.rs`):
 
-| Region | Contents                                |
-| ------ | --------------------------------------- |
-| 0 to 2 | Capsules and their two indexes          |
-| 6 to 8 | Blob chunks, blob details, blob counter |
-| 9      | Admins                                  |
-| 3 to 5 | Reserved for upload sessions, unused    |
+| Region | Contents                                                        |
+| ------ | --------------------------------------------------------------- |
+| 0 to 2 | Capsules and their two indexes                                  |
+| 6 to 8 | Blob chunks, blob details, blob counter                         |
+| 9      | Admins                                                          |
+| 10     | The owner of a personal canister (empty in the shared canister) |
+| 11     | State of the old capsule-moving code                            |
+| 42     | The secret that signs file links                                |
+| 3 to 5 | Reserved for upload sessions, unused                            |
 
 Kept only in working memory, and so lost on every upgrade: upload sessions in progress and sign-in proofs. Both are short-lived by nature, so an upgrade interrupts uploads and sign-ins that are under way and nothing else.
 
@@ -215,8 +223,9 @@ Things a new developer would otherwise find the hard way:
 - **A memory lives on one side.** The preference `dual` and the `migrating` sync state are in the schema; the copying is not written.
 - **Sign-in proofs in the canister never expire** and are kept only until the next upgrade. The server's own code record does expire and is single-use, which is what protects the handshake.
 - **File tokens** are always allowed the 30-minute maximum; the shorter cap meant for single requests is not applied yet.
-- **Unused parts that still show in the code:** the canister factory (personal canisters), the `arweave` and `ipfs` locations, the lab canisters, the family tree tables.
-- **Mainnet** runs the canister code from before November 2026. The fixes since then (list paging, gallery visibility and items, inline file links) are in `main`, not deployed.
+- **Unused parts that still show in the code:** the old capsule-moving code inside the backend (`src/backend/src/canister_factory/`), the `arweave` and `ipfs` locations, the lab canisters, the family tree tables.
+- **Built but not live:** personal canisters and inheritance work on a local network. Neither is on mainnet, and the web app only has the card that creates a personal canister.
+- **Mainnet** runs the canister code from before November 2026. The fixes since then (list paging, gallery visibility and items, inline file links) are in `main`, not deployed. That old code loses the uploaded files on every upgrade; the next mainnet upgrade must be to the fixed version, see the warning in [Personal canisters and inheritance](/desk/personal-canisters).
 
 ## Running it
 

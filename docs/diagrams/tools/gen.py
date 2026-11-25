@@ -106,6 +106,7 @@ class Sketch:
 
 
 AS_OF = "As of: 24 November 2026"
+AS_OF_PERSONAL = "As of: 25 November 2026"
 
 def footer(sk, lines, accent_line=None, as_of=None):
     y = 898
@@ -182,9 +183,9 @@ def running():
     sk.t(46, 332, "You, in a browser", "t")
     sk.t(46, 360, "couple, family,", "s"); sk.t(46, 384, "photographer", "s")
     sk.t(46, 418, "phone or laptop", "xs"); sk.t(46, 440, "holds your ICP key", "a"); sk.t(46, 462, "for the session", "a")
-    # Vercel and the web app (dashed: the deployment is disabled now)
-    sk.box(320, 150, 520, 470, "line", plan=True, rx=10)
-    sk.t(340, 182, "Vercel", "t"); sk.t(820, 182, "deployment disabled now", "a", "end")
+    # Vercel and the web app
+    sk.box(320, 150, 520, 470, "line", rx=10)
+    sk.t(340, 182, "Vercel", "t"); sk.t(820, 182, "the demo is online", "a", "end")
     sk.box(340, 200, 480, 404, "line")
     sk.t(356, 230, "Futura web app", "t"); sk.t(356, 254, "Next.js: pages and server functions", "s")
     sk.box(356, 272, 448, 86, "thin"); sk.t(372, 300, "Pages", "t"); sk.t(372, 326, "dashboard, galleries, sharing, settings", "s"); sk.t(372, 348, "English, German, Turkish", "xs")
@@ -234,7 +235,8 @@ def running():
     sk.route("M806,540 L856,540 L856,600 L916,600"); sk.dot(812, 540)
     footer(sk, ["The browser opens most connections: to the web app, to S3 with a link the server signed, and to the canister with the person's own key.",
                 "The server works with Postgres and, on ICP, only checks who signed a sign-in code: it cannot write into anyone's capsule."],
-           "Status: the code passes all tests; the Vercel deployment is disabled and mainnet runs the canister without the November 2026 fixes.")
+           "Status: the demo on Vercel loads again (sign-up and uploads not checked there); mainnet runs the canister without the November 2026 fixes.",
+           AS_OF_PERSONAL)
     return sk
 
 # ---------------------------------------------------------------- signing in with Internet Identity
@@ -261,7 +263,7 @@ def upload_web2_steps():
         [("ask for upload links", "the web app signs one short-lived S3 link per file version", "/api/upload/s3/presign", "upload links in the browser; nothing stored yet"),
          ("upload the original", "straight from the browser to S3, not through the server", "browser", "the original in S3"),
          ("make smaller versions", "display, thumbnail and placeholder, made in the browser at the same time as step 1", "browser", "display and thumbnail in S3"),
-         ("finish", "the web app records the memory and where each version lives", "/api/upload/complete", "a memory row and its storage edges in Postgres"),
+         ("finish", "the web app records the memory once the original is up, and the smaller versions when they are up", "/api/upload/complete", "a memory row, its file rows and its storage edges in Postgres"),
          ("show it", "the dashboard lists the memory; images load from S3", "you", "the memory in your dashboard")],
         ["The server never handles the file bytes: it signs the links and writes the records. Vercel Blob works the same way with its own routes.",
          "Many files at once: the same steps, with batches of links. A folder becomes a folder in Futura."],
@@ -288,10 +290,10 @@ def local_running():
     sk.box(40, 118, 1420, 732, "line", rx=8); sk.t(60, 150, "WSL: Ubuntu 24.04", "t"); sk.t(1440, 150, "everything on 127.0.0.1 only", "a", "end")
     # clients
     y = note_box(sk, 60, 190, 300, "Tests, run by hand", [
-        "Playwright with Chromium: 8 Internet Identity browser tests",
+        "Playwright with Chromium: 8 Internet Identity browser tests and 1 personal canister test",
         "Vitest: 144 unit and integration tests",
         "cargo test: 261 + 2 canister unit tests, no network needed",
-        "shell scripts (dfx canister call): 19 canister tests"])
+        "shell scripts (dfx canister call): 22 canister tests"])
     note_box(sk, 60, y + 18, 300, "Not running now", ["Mailgun, S3, Google login: not configured locally; uploads to S3 are untested"], plan=True)
     # the web app
     sk.box(420, 196, 420, 200, "line"); sk.t(440, 228, "Futura web app", "t"); sk.t(820, 228, "next start", "a", "end")
@@ -307,7 +309,7 @@ def local_running():
     sk.t(920, 256, "port 4943; started with dfx start --clean", "s")
     sk.box(920, 280, 500, 120, "thin"); sk.t(936, 308, "backend", "t"); sk.t(936, 334, "uxrrr-q7777-77774-qaaaq-cai", "mono"); sk.t(936, 362, "the same code as main", "xs"); sk.t(936, 382, "(ahead of mainnet)", "xs")
     sk.box(920, 416, 500, 110, "thin"); sk.t(936, 444, "internet_identity", "t"); sk.t(936, 470, "umunu-kh777-77774-qaaca-cai", "mono"); sk.t(936, 498, "dev build 2026-02-28, captcha off", "xs")
-    sk.box(920, 542, 500, 100, "thin"); sk.t(936, 570, "canister_factory", "t"); sk.t(936, 596, "uzt4z-lp777-77774-qaabq-cai", "mono"); sk.t(936, 620, "deployed, not used", "xs")
+    sk.box(920, 542, 500, 100, "thin"); sk.t(936, 570, "canister_factory", "t"); sk.t(936, 596, "uzt4z-lp777-77774-qaabq-cai", "mono"); sk.t(936, 620, "creates personal canisters in the tests", "xs")
     # connections
     sk.arrow(362, 246, 410, 246); sk.dot(368, 246)
     sk.arrow(630, 398, 630, 480); sk.dot(630, 404); sk.t(644, 446, "SQL", "mono")
@@ -318,11 +320,10 @@ def local_running():
     sk.t(900, 804, "shell scripts: dfx canister call, straight to the backend", "s", "middle")
     footer(sk, ["How to start it: futura_alpha_icp/README.md (local network, deploy order) and e2e/README.md in the web app (build and Playwright).",
                 "The canister ids are always these on a clean network when deployed in the order backend, canister_factory, internet_identity."],
-           "Known: dfx 0.32 cannot start the local network here; dfx is deprecated in favour of icp-cli, the move is still to do.")
+           "Known: dfx 0.32 cannot start the local network here; dfx is deprecated in favour of icp-cli, the move is still to do.", AS_OF_PERSONAL)
     return sk
 
 # ---------------------------------------------------------------- personal canisters
-AS_OF_PERSONAL = "As of: 25 November 2026"
 
 def personal_running():
     title = "Personal canisters running: who controls what"
@@ -331,7 +332,7 @@ def personal_running():
     # the owner
     sk.box(30, 130, 270, 210, "line", rx=8)
     sk.t(46, 162, "You, the owner", "t")
-    sk.t(46, 190, "today: a terminal (dfx)", "s")
+    sk.t(46, 190, "in a browser, or a terminal", "s")
     sk.t(46, 216, "holds your own key", "a")
     sk.t(46, 258, "ask the factory once,", "xs"); sk.t(46, 278, "then talk to your canister", "xs"); sk.t(46, 298, "directly", "xs")
     # Futura's admin
@@ -352,10 +353,13 @@ def personal_running():
     sk.t(412, 466, "which canister belongs to which user", "s"); sk.t(412, 488, "Pending, Created, Installed, Ready", "xs")
     sk.box(396, 514, 408, 90, "thin"); sk.t(412, 542, "Cycles", "t")
     sk.t(412, 568, "pays 2T cycles for each new canister", "s"); sk.t(412, 590, "any signed-in person may ask: no limit yet", "xs")
-    # the web app: not connected
-    sk.box(380, 660, 440, 120, "line", plan=True, rx=10)
-    sk.t(400, 692, "Futura web app", "t"); sk.t(800, 692, "not connected yet", "a", "end")
-    sk.t(400, 722, "no page or button uses the factory", "s"); sk.t(400, 748, "or a personal canister today", "s")
+    # the web app: a first piece
+    sk.box(380, 650, 440, 96, "line", rx=10)
+    sk.t(400, 682, "Futura web app", "t"); sk.t(800, 682, "a first piece", "a", "end")
+    sk.t(400, 710, "a card on the ICP page: create your canister", "s"); sk.t(400, 734, "and see its id, its version and that it is yours", "s")
+    sk.box(380, 760, 440, 90, "line", plan=True, rx=10)
+    sk.t(400, 790, "Not in the web app yet", "t")
+    sk.t(400, 816, "storing memories in your canister, upgrading it,", "xs"); sk.t(400, 836, "trustees and heirs", "xs")
     # the network
     sk.box(900, 130, 570, 720, "line", rx=10)
     sk.t(920, 162, "Internet Computer", "t"); sk.t(1450, 162, "tested on a local network", "s", "end")
@@ -367,7 +371,7 @@ def personal_running():
     sk.t(936, 336, "your capsule: memories, galleries, files", "s")
     sk.t(936, 368, "Futura's admin cannot upgrade it or even read its status;", "xs")
     sk.t(936, 388, "another user who tries to create a capsule gets: Unauthorized", "xs")
-    sk.t(936, 416, "starts with 2T cycles; nobody refills them yet", "xs")
+    sk.t(936, 416, "starts with what is left of 2T cycles after the creation fee; no refills yet", "xs")
     sk.box(920, 480, 530, 160, "line")
     sk.t(936, 510, "Shared backend canister", "t"); sk.t(1434, 510, "controller: Futura", "a", "end")
     sk.t(936, 536, "izhgj-eiaaa-aaaaj-a2f7q-cai", "mono")
@@ -384,22 +388,78 @@ def personal_running():
     sk.t(640, 92, "with your own key: your capsule, and as controller: upgrades and settings", "a", "middle")
     footer(sk, ["The factory is a controller only while it creates the canister and installs the program (dashed arrow). Then it removes itself and has no way in.",
                 "The same idea as Juno's satellites: the platform hands the canister over and cannot push code into it. The price: you upgrade it yourself."],
-           "Status: built and tested on a local ICP network, 25 November 2026 (17 checks). Not used on mainnet; the web app does not use it yet.", AS_OF_PERSONAL)
+           "Status: built and tested on a local ICP network, 25 November 2026 (17 checks in a terminal, 1 browser test). The factory is not on mainnet.", AS_OF_PERSONAL)
+    return sk
+
+def today_to_personal():
+    title = "From today to personal canisters"
+    sk = Sketch(title, "From today to personal canisters: today everyone on ICP has a capsule in one shared canister that Futura controls; the target is a factory that creates one canister per person and hands it over; the factory, the personal mode and a first card in the web app are built and tested locally; who pays the cycles, moving existing users, the rest of the web app and the mainnet deployment are missing")
+    sk.legend = "who starts"
+    sk.t(750, 46, title, "h", "middle")
+    # today
+    sk.box(20, 70, 500, 790, "line", rx=10)
+    sk.t(270, 112, "TODAY", "col", "middle"); sk.t(270, 140, "on mainnet, in use", "s", "middle")
+    sk.box(40, 170, 460, 80, "line", rx=8)
+    sk.t(56, 202, "Everyone who chose Web3", "t"); sk.t(56, 230, "each with their own key", "a")
+    sk.arrow(270, 252, 270, 296); sk.dot(270, 258)
+    sk.box(40, 300, 460, 290, "line")
+    sk.t(56, 332, "Shared backend canister", "t"); sk.t(484, 332, "controller: Futura", "a", "end")
+    sk.t(56, 358, "izhgj-eiaaa-aaaaj-a2f7q-cai", "mono")
+    for i, (a, b) in enumerate((("Ana's", "capsule"), ("Ben's", "capsule"), ("... one", "per person"))):
+        x = 56 + i * 146
+        sk.box(x, 380, 136, 70, "thin", plan=(i == 2))
+        sk.t(x + 68, 408, a, "s", "middle"); sk.t(x + 68, 432, b, "s", "middle")
+    sk.t(56, 484, "one program, many people", "s")
+    sk.t(56, 510, "Futura upgrades it and pays its cycles", "s")
+    sk.t(56, 542, "as controller, Futura can install new code,", "xs"); sk.t(56, 562, "stop the canister or delete it", "xs")
+    note_box(sk, 40, 620, 460, "What it means", ["Simple and cheap: one canister to run.", "Your capsule is written with your key, but the program around it belongs to Futura. You trust Futura not to change it."])
+    # the target
+    sk.box(580, 70, 900, 790, "line", rx=10)
+    sk.t(1030, 112, "THE TARGET", "col", "middle"); sk.t(1030, 140, "solid: built and tested on a local network.  dashed: not built", "s", "middle")
+    sk.box(600, 170, 300, 150, "line")
+    sk.t(616, 200, "Canister factory", "t"); sk.t(616, 226, "controlled by Futura", "a")
+    sk.t(616, 254, "holds the released backend program;", "xs"); sk.t(616, 274, "creates a canister for a person, installs", "xs"); sk.t(616, 294, "the program, then removes itself", "xs")
+    for i, name in enumerate(("Ana", "Ben", None)):
+        y = 170 + i * 52
+        sk.box(980, y, 480, 46, "line", svc=True, plan=(name is None))
+        if name:
+            sk.t(996, y + 30, name + "'s canister", "t"); sk.t(1444, y + 30, "controller: only " + name, "a", "end")
+            sk.arrow(902, y + 23, 976, y + 23)
+        else:
+            sk.t(996, y + 30, "... one per person who asks", "s")
+    sk.t(940, 186, "once", "xs", "middle")
+    sk.dot(908, 193); sk.dot(908, 245)
+    # moving existing users: not built
+    sk.route("M502,440 L548,440 L548,352 L1220,352 L1220,324", plan=True, accent=True)
+    sk.t(760, 344, "moving a capsule with its files: no tool yet", "a", "middle")
+    # the web app card
+    sk.box(600, 384, 300, 96, "line")
+    sk.t(616, 414, "Web app: a card", "t")
+    sk.t(616, 440, "on the ICP page: create your canister", "xs"); sk.t(616, 460, "and see that only you control it", "xs")
+    note_box(sk, 980, 384, 480, "After the hand-over", ["Only the owner can upgrade, stop or delete the canister. Futura cannot, and cannot even read its status."])
+    # missing
+    note_box(sk, 600, 510, 280, "Missing: cycles", ["Who pays to keep a canister running. Top-ups, a monitor that warns before one runs dry, payment."], plan=True)
+    note_box(sk, 900, 510, 280, "Missing: the web app", ["Storing and reading memories in your own canister. An upgrade button. Pages for trustees and heirs."], plan=True)
+    note_box(sk, 1200, 510, 260, "Missing: mainnet", ["The factory is not deployed there. No limit on who may ask: each request costs it 2T cycles."], plan=True)
+    note_box(sk, 600, 700, 860, "Open decisions", ["Who pays for cycles. Whether Futura stays a second controller by default, so it can upgrade and help. Whether everyone moves, or only new or paying users get a canister of their own."])
+    footer(sk, ["The program is the same on both sides: the backend runs in shared mode today and in personal mode in a canister of your own.",
+                "What changes is who controls it. Today that is Futura. In the target it is you alone, and nobody upgrades or pays for you."],
+           "Status: the target is built and tested on a local ICP network only (25 November 2026). On mainnet nothing has changed: everyone is in the shared canister.", AS_OF_PERSONAL)
     return sk
 
 def personal_create_steps():
     return steps_sketch("Creating a personal canister, step by step",
         "Creating a personal canister: the admin releases the backend program in the factory; a signed-in person asks for a canister; the factory creates it with itself and the person as controllers, installs the program with the person as owner, then leaves the person as the only controller",
-        ("YOU", "the future owner", "Your key", ["a signed-in principal", "today: from a terminal", "(dfx), no web page yet"], "ask the factory for a canister"),
+        ("YOU", "the future owner", "Your key", ["from Internet Identity", "on the web app's ICP page,", "or in a terminal (dfx)"], "ask the factory for a canister"),
         [("release the program", "the gzipped backend program, uploaded in chunks; then release_set with a version name", "Futura's admin", "a release in the factory: version, sha256, the program"),
          ("ask for a canister", "create_personal_canister. Anonymous callers are refused; one creation at a time per person", "you", "a registry entry for you: Pending"),
          ("create the canister", "the factory asks the network for a new canister and gives it 2T cycles", "factory", "an empty canister; controllers: the factory and you; registry: Created"),
          ("install the program", "the released program, installed with init(owner = you): that makes it personal", "factory", "your canister runs the backend with you as owner; registry: Installed"),
          ("hand over", "the factory sets the controllers to you alone, and so removes itself", "factory", "you are the only controller; registry: Ready"),
-         ("use it", "create your capsule and store memories with your own key", "you", "your capsule in your own canister; nobody else can create one there")],
+         ("use it", "create your capsule and store memories with your own key. Today from a terminal only", "you", "your capsule in your own canister; nobody else can create one there")],
         ["If a step fails, call create_personal_canister again: the registry remembers the canister and how far it got, so no second canister is created",
          "and no cycles are spent twice. Once it is Ready, the call just returns the same canister."],
-        "Status: tested on a local ICP network, 25 November 2026. Not built: a web page for it, a limit on who may ask, cycles top-ups, payment.",
+        "Status: tested on a local ICP network, 25 November 2026: steps 0 to 5 in a terminal, steps 1 to 4 also from the web app. Not built: a limit on who may ask, top-ups, payment.",
         as_of=AS_OF_PERSONAL)
 
 def personal_upgrade_steps():
@@ -414,7 +474,7 @@ def personal_upgrade_steps():
          ("check", "read a memory; ask canister_mode", "you", "same data, same owner, still personal")],
         ["The factory cannot do step 4: it is not a controller. In the test Futura's admin tried, and the network refused.",
          "The other side: nobody upgrades for you. The hash proves the file is what the factory lists, not that the program is good."],
-        "Status: tested on a local ICP network, 25 November 2026, by installing the same release again. Done with dfx in a terminal: no web page yet.",
+        "Status: tested on a local ICP network, 25 November 2026, by installing the same release again, in a terminal. The web app only shows that a newer version exists.",
         as_of=AS_OF_PERSONAL)
 
 def inheritance_steps():
@@ -428,7 +488,7 @@ def inheritance_steps():
          ("the owner can cancel", "legacy_cancel_death with the owner's key, during the wait or later", "owner", "all confirmations gone; heirs locked out again"),
          ("access opens", "once the waiting period is over, the after-death entries count", "nobody", "the heir may view what was shared with them, nothing else"),
          ("the heir reads", "memories_list_shared and memories_read_shared, with the heir's own key", "heir", "the memory, and of its access list only the heir's own entry")],
-        ["A trustee only confirms and gets no access. Strangers get \"not found\", so they do not even learn that a capsule exists.",
+        ["A trustee only confirms and gets no access. Someone who is neither owner, trustee nor heir gets \"not found\" and does not even learn that a capsule exists.",
          "Other events (a wedding, a graduation, your own) the owner records and revokes alone. A death can never be recorded that way."],
         "Status: tested on a local ICP network, 25 November 2026, on the shared canister. Not built: a web page for it; file links over HTTP for heirs.",
         as_of=AS_OF_PERSONAL)
@@ -439,6 +499,7 @@ if __name__ == "__main__":
     for name, fn in (("futura-running", running), ("signin-ii-steps", signin_steps),
                      ("upload-web2-steps", upload_web2_steps), ("upload-icp-steps", upload_icp_steps),
                      ("local-test-setup-running", local_running),
+                     ("today-to-personal", today_to_personal),
                      ("personal-canisters-running", personal_running), ("personal-create-steps", personal_create_steps),
                      ("personal-upgrade-steps", personal_upgrade_steps), ("inheritance-steps", inheritance_steps)):
         open(os.path.join(out, name + ".html"), "w").write(fn().html())
