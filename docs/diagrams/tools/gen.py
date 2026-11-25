@@ -107,13 +107,13 @@ class Sketch:
 
 AS_OF = "As of: 24 November 2026"
 
-def footer(sk, lines, accent_line=None):
+def footer(sk, lines, accent_line=None, as_of=None):
     y = 898
     for ln in lines:
         sk.t(60, y, ln, "s"); y += 28
     if accent_line:
         sk.t(60, y, accent_line, "a"); y += 28
-    sk.t(1480, y - 28, AS_OF, "s", "end")
+    sk.t(1480, y - 28, as_of or AS_OF, "s", "end")
 
 def note_box(sk, x, y, w, title, items, plan=False):
     """A box of short paragraphs, wrapped to the box width. Returns the y of its bottom edge."""
@@ -132,7 +132,7 @@ def note_box(sk, x, y, w, title, items, plan=False):
             sk.t(x + 18, yy, r, "xs"); yy += 20
     return y + h
 
-def steps_sketch(title, label, left, steps, foot, status, legend="who starts the step"):
+def steps_sketch(title, label, left, steps, foot, status, legend="who starts the step", as_of=None):
     """Three columns: where it starts, the numbered steps with who does them, what exists after each step.
     left = (column title, column subtitle, box title, box lines, what you do)"""
     col, colsub, btitle, blines, you_do = left
@@ -170,7 +170,7 @@ def steps_sketch(title, label, left, steps, foot, status, legend="who starts the
         for j, ln in enumerate(el): sk.t(1074, y + 28 + j * estep, ln, "s" if j == 0 else "xs")
         sk.arrow(1016, y + bh // 2, 1056, y + bh // 2)
     sk.arrow(274, top + 30, 328, top + 30); sk.dot(280, top + 30)
-    footer(sk, foot, status)
+    footer(sk, foot, status, as_of)
     return sk
 
 # ---------------------------------------------------------------- the system running
@@ -321,11 +321,125 @@ def local_running():
            "Known: dfx 0.32 cannot start the local network here; dfx is deprecated in favour of icp-cli, the move is still to do.")
     return sk
 
+# ---------------------------------------------------------------- personal canisters
+AS_OF_PERSONAL = "As of: 25 November 2026"
+
+def personal_running():
+    title = "Personal canisters running: who controls what"
+    sk = Sketch(title, "Personal canisters: Futura's admin releases the backend program in the canister factory; a person asks the factory once for a canister; the factory creates it, installs the program and removes itself; from then on only the owner controls the canister and talks to it with their own key")
+    sk.t(750, 46, title, "h", "middle")
+    # the owner
+    sk.box(30, 130, 270, 210, "line", rx=8)
+    sk.t(46, 162, "You, the owner", "t")
+    sk.t(46, 190, "today: a terminal (dfx)", "s")
+    sk.t(46, 216, "holds your own key", "a")
+    sk.t(46, 258, "ask the factory once,", "xs"); sk.t(46, 278, "then talk to your canister", "xs"); sk.t(46, 298, "directly", "xs")
+    # Futura's admin
+    sk.box(30, 430, 270, 130, "line", rx=8)
+    sk.t(46, 462, "Futura's admin", "t")
+    sk.t(46, 490, "uploads the backend program", "s")
+    sk.t(46, 516, "and releases it as a version", "s")
+    note_box(sk, 30, 600, 270, "Not built", ["cycles top-ups and payment", "moving a capsule out of the shared canister", "a limit on who may ask for a canister"], plan=True)
+    # the factory
+    sk.box(380, 130, 440, 486, "line", rx=10)
+    sk.t(400, 162, "Canister factory", "t"); sk.t(800, 162, "controlled by Futura", "a", "end")
+    sk.box(396, 178, 408, 96, "thin"); sk.t(412, 206, "Creating", "t")
+    sk.t(412, 232, "create_personal_canister", "mono"); sk.t(412, 258, "creates, installs, hands over", "xs")
+    sk.box(396, 286, 408, 114, "thin"); sk.t(412, 314, "The release", "t")
+    sk.t(412, 340, "the backend program, gzipped, with a version", "s")
+    sk.t(412, 364, "release_info  release_wasm", "mono"); sk.t(412, 388, "anyone may download it and check its sha256", "xs")
+    sk.box(396, 412, 408, 90, "thin"); sk.t(412, 440, "Registry", "t")
+    sk.t(412, 466, "which canister belongs to which user", "s"); sk.t(412, 488, "Pending, Created, Installed, Ready", "xs")
+    sk.box(396, 514, 408, 90, "thin"); sk.t(412, 542, "Cycles", "t")
+    sk.t(412, 568, "pays 2T cycles for each new canister", "s"); sk.t(412, 590, "any signed-in person may ask: no limit yet", "xs")
+    # the web app: not connected
+    sk.box(380, 660, 440, 120, "line", plan=True, rx=10)
+    sk.t(400, 692, "Futura web app", "t"); sk.t(800, 692, "not connected yet", "a", "end")
+    sk.t(400, 722, "no page or button uses the factory", "s"); sk.t(400, 748, "or a personal canister today", "s")
+    # the network
+    sk.box(900, 130, 570, 720, "line", rx=10)
+    sk.t(920, 162, "Internet Computer", "t"); sk.t(1450, 162, "tested on a local network", "s", "end")
+    sk.box(920, 200, 530, 250, "line", svc=True)
+    sk.t(936, 230, "Your personal canister", "t"); sk.t(1434, 230, "controller: only you", "a", "end")
+    sk.t(936, 258, "the same backend program, in personal mode", "s")
+    sk.t(936, 284, "owner = you: set at install, no way to change it", "s")
+    sk.t(936, 310, "only you can create a capsule and store data in it", "s")
+    sk.t(936, 336, "your capsule: memories, galleries, files", "s")
+    sk.t(936, 368, "Futura's admin cannot upgrade it or even read its status;", "xs")
+    sk.t(936, 388, "another user who tries to create a capsule gets: Unauthorized", "xs")
+    sk.t(936, 416, "starts with 2T cycles; nobody refills them yet", "xs")
+    sk.box(920, 480, 530, 160, "line")
+    sk.t(936, 510, "Shared backend canister", "t"); sk.t(1434, 510, "controller: Futura", "a", "end")
+    sk.t(936, 536, "izhgj-eiaaa-aaaaj-a2f7q-cai", "mono")
+    sk.t(936, 564, "the same program, in shared mode:", "s"); sk.t(936, 588, "many users, one capsule each", "s")
+    sk.t(936, 616, "today's mainnet canister; everyone is here now", "xs")
+    y = note_box(sk, 920, 660, 530, "Who upgrades", ["Futura upgrades the shared canister. You upgrade yours: download the release, check its sha256, install it with your own key."])
+    sk.t(936, y + 34, "canister_mode() tells which mode a canister runs in", "xs")
+    # connections
+    sk.arrow(302, 226, 376, 226); sk.dot(308, 226); sk.t(332, 208, "create", "xs", "middle")
+    sk.arrow(302, 320, 376, 320); sk.dot(308, 320); sk.t(332, 302, "download", "xs", "middle")
+    sk.route("M165,428 L165,386 L376,386"); sk.dot(165, 422); sk.t(186, 376, "release_set", "mono")
+    sk.arrow(822, 226, 916, 226, plan=True); sk.dot(828, 226); sk.t(866, 214, "once", "xs", "middle")
+    sk.route("M165,128 L165,100 L1185,100 L1185,196", accent=True); sk.dot(165, 122)
+    sk.t(640, 92, "with your own key: your capsule, and as controller: upgrades and settings", "a", "middle")
+    footer(sk, ["The factory is a controller only while it creates the canister and installs the program (dashed arrow). Then it removes itself and has no way in.",
+                "The same idea as Juno's satellites: the platform hands the canister over and cannot push code into it. The price: you upgrade it yourself."],
+           "Status: built and tested on a local ICP network, 25 November 2026 (17 checks). Not used on mainnet; the web app does not use it yet.", AS_OF_PERSONAL)
+    return sk
+
+def personal_create_steps():
+    return steps_sketch("Creating a personal canister, step by step",
+        "Creating a personal canister: the admin releases the backend program in the factory; a signed-in person asks for a canister; the factory creates it with itself and the person as controllers, installs the program with the person as owner, then leaves the person as the only controller",
+        ("YOU", "the future owner", "Your key", ["a signed-in principal", "today: from a terminal", "(dfx), no web page yet"], "ask the factory for a canister"),
+        [("release the program", "the gzipped backend program, uploaded in chunks; then release_set with a version name", "Futura's admin", "a release in the factory: version, sha256, the program"),
+         ("ask for a canister", "create_personal_canister. Anonymous callers are refused; one creation at a time per person", "you", "a registry entry for you: Pending"),
+         ("create the canister", "the factory asks the network for a new canister and gives it 2T cycles", "factory", "an empty canister; controllers: the factory and you; registry: Created"),
+         ("install the program", "the released program, installed with init(owner = you): that makes it personal", "factory", "your canister runs the backend with you as owner; registry: Installed"),
+         ("hand over", "the factory sets the controllers to you alone, and so removes itself", "factory", "you are the only controller; registry: Ready"),
+         ("use it", "create your capsule and store memories with your own key", "you", "your capsule in your own canister; nobody else can create one there")],
+        ["If a step fails, call create_personal_canister again: the registry remembers the canister and how far it got, so no second canister is created",
+         "and no cycles are spent twice. Once it is Ready, the call just returns the same canister."],
+        "Status: tested on a local ICP network, 25 November 2026. Not built: a web page for it, a limit on who may ask, cycles top-ups, payment.",
+        as_of=AS_OF_PERSONAL)
+
+def personal_upgrade_steps():
+    return steps_sketch("Upgrading a personal canister, step by step",
+        "Upgrading a personal canister: the owner looks at the release in the factory, downloads it, checks its sha256, and installs it with their own key; the factory is not a controller and cannot do it",
+        ("YOU", "the owner", "Your key", ["the only controller", "of your canister"], "decide when to upgrade"),
+        [("a new release", "the admin releases a new version of the backend program in the factory", "Futura's admin", "the factory offers the new version"),
+         ("look", "release_info: version, sha256, size. Open to anyone", "you", "you know which version is offered, and its sha256"),
+         ("download", "release_wasm: the gzipped program, straight from the factory", "you", "the file on your computer"),
+         ("check the hash", "compute the sha256 of the file and compare it with release_info", "you", "the file is the release, byte for byte; if not, stop here"),
+         ("install", "install in upgrade mode, signed with your key. The network accepts this only from a controller", "you", "your canister runs the new version"),
+         ("check", "read a memory; ask canister_mode", "you", "same data, same owner, still personal")],
+        ["The factory cannot do step 4: it is not a controller. In the test Futura's admin tried, and the network refused.",
+         "The other side: nobody upgrades for you. The hash proves the file is what the factory lists, not that the program is good."],
+        "Status: tested on a local ICP network, 25 November 2026, by installing the same release again. Done with dfx in a terminal: no web page yet.",
+        as_of=AS_OF_PERSONAL)
+
+def inheritance_steps():
+    return steps_sketch("Inheritance, step by step",
+        "Inheritance: the owner shares a memory with an heir on the condition after death and names trustees; trustees confirm the death; when enough have confirmed, a waiting period runs; then the heir can read what was shared; the owner can cancel at any time",
+        ("THE OWNER", "while alive", "Your capsule", ["on ICP, written", "with your own key"], "decide who inherits what"),
+        [("share a memory, after death", "an access entry for the heir with the condition: after death. It gives nothing yet", "owner", "the heir is on the memory's list, and reads nothing"),
+         ("name trustees", "up to 10 trustees, how many of them must confirm, and how long to wait after that", "owner", "the rules on the capsule; the owner cannot be a trustee"),
+         ("trustees confirm the death", "each with their own key. A trustee can take it back during the wait", "trustees", "confirmations, each with its date"),
+         ("the waiting period runs", "it starts when enough trustees have confirmed. No timer: the dates are compared on every read", "nobody", "the date when the death takes effect"),
+         ("the owner can cancel", "legacy_cancel_death with the owner's key, during the wait or later", "owner", "all confirmations gone; heirs locked out again"),
+         ("access opens", "once the waiting period is over, the after-death entries count", "nobody", "the heir may view what was shared with them, nothing else"),
+         ("the heir reads", "memories_list_shared and memories_read_shared, with the heir's own key", "heir", "the memory, and of its access list only the heir's own entry")],
+        ["A trustee only confirms and gets no access. Strangers get \"not found\", so they do not even learn that a capsule exists.",
+         "Other events (a wedding, a graduation, your own) the owner records and revokes alone. A death can never be recorded that way."],
+        "Status: tested on a local ICP network, 25 November 2026, on the shared canister. Not built: a web page for it; file links over HTTP for heirs.",
+        as_of=AS_OF_PERSONAL)
+
 if __name__ == "__main__":
     out = os.path.join(HERE, "..", "src")
     os.makedirs(out, exist_ok=True)
     for name, fn in (("futura-running", running), ("signin-ii-steps", signin_steps),
                      ("upload-web2-steps", upload_web2_steps), ("upload-icp-steps", upload_icp_steps),
-                     ("local-test-setup-running", local_running)):
+                     ("local-test-setup-running", local_running),
+                     ("personal-canisters-running", personal_running), ("personal-create-steps", personal_create_steps),
+                     ("personal-upgrade-steps", personal_upgrade_steps), ("inheritance-steps", inheritance_steps)):
         open(os.path.join(out, name + ".html"), "w").write(fn().html())
         print("wrote", name)

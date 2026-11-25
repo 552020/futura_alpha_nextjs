@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap">
+<title>Personal canisters running: who controls what</title>
+<style>
+  :root { --paper:#fbfaf6; --ink:#1d1d1b; --soft:#6b6a66; --accent:#b4531a; }
+  html, body { margin:0; background:var(--paper); color:var(--ink); }
+  body { padding:16px; font-family:"Patrick Hand","Bradley Hand","Segoe Print","Comic Sans MS","Chalkboard SE",cursive; }
+  svg { display:block; width:100%; height:auto; max-width:1500px; margin:0 auto; }
+  .line  { fill:none; stroke:var(--ink); stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; }
+  .thin  { fill:none; stroke:var(--ink); stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .plan  { stroke-dasharray:9 7; }
+  .svc   { stroke:var(--accent); stroke-width:2.2; }
+  .acc   { stroke:var(--accent); }
+  .fill  { fill:var(--paper); }
+  .dot   { fill:var(--accent); stroke:none; }
+  .door  { fill:var(--accent); stroke:var(--ink); stroke-width:1.6; }
+  .ca { fill:var(--accent); stroke:var(--ink); stroke-width:1; }
+  .cb { fill:var(--ink); stroke:var(--ink); stroke-width:1; }
+  .cc { fill:#c9c6bd; stroke:var(--ink); stroke-width:1; }
+  .cs { fill:url(#hatch); stroke:var(--ink); stroke-width:1; }
+  .ce { fill:none; stroke:#cfcdc6; stroke-width:1; }
+  .pw { fill:#f3d9c6; stroke:var(--accent); stroke-width:2; }
+  .pa { fill:#ffffff; stroke:var(--ink); stroke-width:2.2; }
+  .pk { fill:#dedbd2; stroke:var(--ink); stroke-width:1.4; }
+  .ps { fill:url(#hatch); stroke:var(--ink); stroke-width:1.4; }
+  .cn { fill:#fbfaf6; stroke:var(--ink); stroke-width:1.3; }
+  .cz { fill:none; stroke:var(--accent); stroke-width:3; }
+  .t     { font-size:22px; fill:var(--ink); }
+  .h     { font-size:30px; fill:var(--ink); }
+  .col   { font-size:24px; fill:var(--soft); letter-spacing:1px; }
+  .s     { font-size:18px; fill:var(--soft); }
+  .xs    { font-size:16px; fill:var(--soft); }
+  .a     { font-size:18px; fill:var(--accent); }
+  .mono  { font-family:ui-monospace,"SF Mono",Menlo,"DejaVu Sans Mono",monospace; font-size:17px; fill:var(--ink); }
+  .monoa { font-family:ui-monospace,"SF Mono",Menlo,"DejaVu Sans Mono",monospace; font-size:16px; fill:var(--accent); }
+</style>
+</head>
+<body>
+<svg viewBox="0 0 1500 960" role="img" aria-label="Personal canisters: Futura&#x27;s admin releases the backend program in the canister factory; a person asks the factory once for a canister; the factory creates it, installs the program and removes itself; from then on only the owner controls the canister and talks to it with their own key">
+  <defs>
+    <filter id="hand" x="-2%" y="-2%" width="104%" height="104%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="2" seed="7" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="4"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+      <path d="M1,1 L11,6 L1,11" fill="none" stroke="#1d1d1b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    
+  </defs>
+  <g filter="url(#hand)">
+    <rect x="30" y="130" width="270" height="210" rx="8" class="line fill"/>
+    <rect x="30" y="430" width="270" height="130" rx="8" class="line fill"/>
+    <rect x="30" y="600" width="270" height="172" rx="6" class="line fill plan"/>
+    <rect x="380" y="130" width="440" height="486" rx="10" class="line fill"/>
+    <rect x="396" y="178" width="408" height="96" rx="6" class="thin fill"/>
+    <rect x="396" y="286" width="408" height="114" rx="6" class="thin fill"/>
+    <rect x="396" y="412" width="408" height="90" rx="6" class="thin fill"/>
+    <rect x="396" y="514" width="408" height="90" rx="6" class="thin fill"/>
+    <rect x="380" y="660" width="440" height="120" rx="10" class="line fill plan"/>
+    <rect x="900" y="130" width="570" height="720" rx="10" class="line fill"/>
+    <rect x="920" y="200" width="530" height="250" rx="6" class="line fill svc"/>
+    <rect x="920" y="480" width="530" height="160" rx="6" class="line fill"/>
+    <rect x="920" y="660" width="530" height="96" rx="6" class="line fill"/>
+    <path d="M302,226 L376,226" class="line" marker-end="url(#arrow)"/>
+    <path d="M302,320 L376,320" class="line" marker-end="url(#arrow)"/>
+    <path d="M165,428 L165,386 L376,386" class="line" marker-end="url(#arrow)"/>
+    <path d="M822,226 L916,226" class="line plan" marker-end="url(#arrow)"/>
+    <path d="M165,128 L165,100 L1185,100 L1185,196" class="line acc" marker-end="url(#arrow)"/>
+  </g>
+  <circle cx="308" cy="226" r="6" class="dot"/>
+  <circle cx="308" cy="320" r="6" class="dot"/>
+  <circle cx="165" cy="422" r="6" class="dot"/>
+  <circle cx="828" cy="226" r="6" class="dot"/>
+  <circle cx="165" cy="122" r="6" class="dot"/>
+  <circle cx="46" cy="40" r="6" class="dot"/>
+  <text x="750" y="46" class="h" text-anchor="middle">Personal canisters running: who controls what</text>
+  <text x="46" y="162" class="t">You, the owner</text>
+  <text x="46" y="190" class="s">today: a terminal (dfx)</text>
+  <text x="46" y="216" class="a">holds your own key</text>
+  <text x="46" y="258" class="xs">ask the factory once,</text>
+  <text x="46" y="278" class="xs">then talk to your canister</text>
+  <text x="46" y="298" class="xs">directly</text>
+  <text x="46" y="462" class="t">Futura&#x27;s admin</text>
+  <text x="46" y="490" class="s">uploads the backend program</text>
+  <text x="46" y="516" class="s">and releases it as a version</text>
+  <text x="48" y="628" class="t">Not built</text>
+  <text x="48" y="654" class="xs">cycles top-ups and payment</text>
+  <text x="48" y="682" class="xs">moving a capsule out of the shared</text>
+  <text x="48" y="702" class="xs">canister</text>
+  <text x="48" y="730" class="xs">a limit on who may ask for a</text>
+  <text x="48" y="750" class="xs">canister</text>
+  <text x="400" y="162" class="t">Canister factory</text>
+  <text x="800" y="162" class="a" text-anchor="end">controlled by Futura</text>
+  <text x="412" y="206" class="t">Creating</text>
+  <text x="412" y="232" class="mono">create_personal_canister</text>
+  <text x="412" y="258" class="xs">creates, installs, hands over</text>
+  <text x="412" y="314" class="t">The release</text>
+  <text x="412" y="340" class="s">the backend program, gzipped, with a version</text>
+  <text x="412" y="364" class="mono">release_info  release_wasm</text>
+  <text x="412" y="388" class="xs">anyone may download it and check its sha256</text>
+  <text x="412" y="440" class="t">Registry</text>
+  <text x="412" y="466" class="s">which canister belongs to which user</text>
+  <text x="412" y="488" class="xs">Pending, Created, Installed, Ready</text>
+  <text x="412" y="542" class="t">Cycles</text>
+  <text x="412" y="568" class="s">pays 2T cycles for each new canister</text>
+  <text x="412" y="590" class="xs">any signed-in person may ask: no limit yet</text>
+  <text x="400" y="692" class="t">Futura web app</text>
+  <text x="800" y="692" class="a" text-anchor="end">not connected yet</text>
+  <text x="400" y="722" class="s">no page or button uses the factory</text>
+  <text x="400" y="748" class="s">or a personal canister today</text>
+  <text x="920" y="162" class="t">Internet Computer</text>
+  <text x="1450" y="162" class="s" text-anchor="end">tested on a local network</text>
+  <text x="936" y="230" class="t">Your personal canister</text>
+  <text x="1434" y="230" class="a" text-anchor="end">controller: only you</text>
+  <text x="936" y="258" class="s">the same backend program, in personal mode</text>
+  <text x="936" y="284" class="s">owner = you: set at install, no way to change it</text>
+  <text x="936" y="310" class="s">only you can create a capsule and store data in it</text>
+  <text x="936" y="336" class="s">your capsule: memories, galleries, files</text>
+  <text x="936" y="368" class="xs">Futura&#x27;s admin cannot upgrade it or even read its status;</text>
+  <text x="936" y="388" class="xs">another user who tries to create a capsule gets: Unauthorized</text>
+  <text x="936" y="416" class="xs">starts with 2T cycles; nobody refills them yet</text>
+  <text x="936" y="510" class="t">Shared backend canister</text>
+  <text x="1434" y="510" class="a" text-anchor="end">controller: Futura</text>
+  <text x="936" y="536" class="mono">izhgj-eiaaa-aaaaj-a2f7q-cai</text>
+  <text x="936" y="564" class="s">the same program, in shared mode:</text>
+  <text x="936" y="588" class="s">many users, one capsule each</text>
+  <text x="936" y="616" class="xs">today&#x27;s mainnet canister; everyone is here now</text>
+  <text x="938" y="688" class="t">Who upgrades</text>
+  <text x="938" y="714" class="xs">Futura upgrades the shared canister. You upgrade yours: download the</text>
+  <text x="938" y="734" class="xs">release, check its sha256, install it with your own key.</text>
+  <text x="936" y="790" class="xs">canister_mode() tells which mode a canister runs in</text>
+  <text x="332" y="208" class="xs" text-anchor="middle">create</text>
+  <text x="332" y="302" class="xs" text-anchor="middle">download</text>
+  <text x="186" y="376" class="mono">release_set</text>
+  <text x="866" y="214" class="xs" text-anchor="middle">once</text>
+  <text x="640" y="92" class="a" text-anchor="middle">with your own key: your capsule, and as controller: upgrades and settings</text>
+  <text x="60" y="898" class="s">The factory is a controller only while it creates the canister and installs the program (dashed arrow). Then it removes itself and has no way in.</text>
+  <text x="60" y="926" class="s">The same idea as Juno&#x27;s satellites: the platform hands the canister over and cannot push code into it. The price: you upgrade it yourself.</text>
+  <text x="60" y="954" class="a">Status: built and tested on a local ICP network, 25 November 2026 (17 checks). Not used on mainnet; the web app does not use it yet.</text>
+  <text x="1480" y="954" class="s" text-anchor="end">As of: 25 November 2026</text>
+  <text x="62" y="47" class="s">who opens the connection</text>
+</svg>
+</body>
+</html>

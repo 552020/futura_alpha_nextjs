@@ -52,6 +52,7 @@ The desk is the project's working material, rendered at `/desk` for admins (the 
 - [How Futura is built](docs/desk/architecture.md)
 - [How Futura works in the code](docs/desk/architecture-code.md)
 - [Sketches](docs/desk/sketches.md)
+- [Personal canisters and inheritance](docs/desk/personal-canisters.md): a canister of one's own that Futura cannot touch, and handing memories to heirs. Built and tested locally, not in use yet
 - [ICP and blockchain in November 2026: alive, or eaten by AI?](docs/desk/icp-and-blockchain.md)
 
 ## Development

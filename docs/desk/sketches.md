@@ -2,7 +2,7 @@
 
 # Sketches
 
-All sketches of Futura on one page: the system running, the three flows step by step, and the local test setup. Same hand-drawn style as the Inception-of-Things sketches: a dot marks who opens the connection or starts the step, dashed means written but not running now, and the line at the bottom of each sketch says how true it is today.
+All sketches of Futura on one page: the system running, the three flows step by step, the local test setup, and the personal canisters with inheritance. Same hand-drawn style as the Inception-of-Things sketches: a dot marks who opens the connection or starts the step, dashed means written but not running now, and the line at the bottom of each sketch says how true it is today.
 
 All pictures come from `docs/diagrams/tools/gen.py` (run it, then `node docs/diagrams/tools/shots.mjs` for the PNGs).
 
@@ -37,4 +37,28 @@ All pictures come from `docs/diagrams/tools/gen.py` (run it, then `node docs/dia
 <figure>
 <img src="/diagrams/local-test-setup-running.png" alt="The local test setup running, on the studio PC">
 <figcaption>On the studio PC: a Postgres container, a local ICP network with the three canisters, and the web app built for them; Playwright, Vitest, cargo and the shell scripts test them.</figcaption>
+</figure>
+
+## Personal canisters and inheritance
+
+Built and tested on a local ICP network on 25 November 2026. Not in use on mainnet, and the web app does not use it yet. The explanation: [Personal canisters and inheritance](/desk/personal-canisters).
+
+<figure>
+<img src="/diagrams/personal-canisters-running.png" alt="Personal canisters running: who controls what">
+<figcaption>Who controls what: Futura controls the factory and the shared canister. The factory creates your canister, installs the backend program and removes itself. After that only you control it.</figcaption>
+</figure>
+
+<figure>
+<img src="/diagrams/personal-create-steps.png" alt="Creating a personal canister, step by step">
+<figcaption>Creating: the factory creates the canister with itself and you as controllers, installs the program with you as owner, then leaves you as the only controller. A failed creation can be resumed.</figcaption>
+</figure>
+
+<figure>
+<img src="/diagrams/personal-upgrade-steps.png" alt="Upgrading a personal canister, step by step">
+<figcaption>Upgrading: the owner downloads the release from the factory, checks its sha256 and installs it with their own key. The factory cannot, because it is not a controller.</figcaption>
+</figure>
+
+<figure>
+<img src="/diagrams/inheritance-steps.png" alt="Inheritance, step by step">
+<figcaption>Inheritance: trustees confirm a death, a waiting period runs, then heirs can read what was shared with them. The owner can cancel at any time. Trustees get no access.</figcaption>
 </figure>
