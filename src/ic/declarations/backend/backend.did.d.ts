@@ -684,6 +684,16 @@ export interface _SERVICE {
     PersonalCanisterCreationResponse
   >,
   /**
+   * All cycles this canister holds, including the part the network keeps
+   * back as the freezing reserve. For the owner and the factory.
+   */
+  'cycles_balance' : ActorMethod<[], bigint>,
+  /**
+   * The cycles this canister can still spend before it freezes: the balance
+   * above the freezing reserve. This is what the factory tops up against.
+   */
+  'cycles_liquid_balance' : ActorMethod<[], bigint>,
+  /**
    * Debug endpoint to compute SHA256 hash of provided bytes
    */
   'debug_sha256' : ActorMethod<[Uint8Array | number[]], string>,

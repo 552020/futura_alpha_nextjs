@@ -23,6 +23,7 @@ const entry = (over: Partial<PersonalCanister> = {}): PersonalCanister => ({
   updated_at: BigInt(2),
   busy: false,
   last_error: [],
+  top_up: [],
   ...over,
 });
 const release = (sha: string, version = '0.2.0'): ReleaseInfo => ({

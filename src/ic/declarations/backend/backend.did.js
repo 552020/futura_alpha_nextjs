@@ -664,6 +664,8 @@ export const idlFactory = ({ IDL }) => {
         [PersonalCanisterCreationResponse],
         [],
       ),
+    'cycles_balance' : IDL.Func([], [IDL.Nat], ['query']),
+    'cycles_liquid_balance' : IDL.Func([], [IDL.Nat], ['query']),
     'debug_sha256' : IDL.Func([IDL.Vec(IDL.Nat8)], [IDL.Text], ['query']),
     'dev_clear_all_memories_in_capsule' : IDL.Func(
         [IDL.Text, IDL.Bool],

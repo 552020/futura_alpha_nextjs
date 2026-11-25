@@ -56,6 +56,7 @@ export interface PersonalCanister {
   'canister_id' : [] | [Principal],
   'created_at' : bigint,
   'version' : [] | [string],
+  'top_up' : [] | [TopUpRecord],
   'module_sha256_hex' : [] | [string],
 }
 export type PersonalStatus = { 'Ready' : null } |
@@ -72,7 +73,11 @@ export type Result = { 'Ok' : null } |
   { 'Err' : string };
 export type Result_1 = { 'Ok' : number } |
   { 'Err' : string };
-export type Result_10 = { 'Ok' : Array<[Principal, number]> } |
+export type Result_10 = { 'Ok' : Uint8Array | number[] } |
+  { 'Err' : string };
+export type Result_11 = { 'Ok' : TopUpReport } |
+  { 'Err' : string };
+export type Result_12 = { 'Ok' : Array<TopUpReport> } |
   { 'Err' : string };
 export type Result_2 = { 'Ok' : string } |
   { 'Err' : string };
@@ -86,10 +91,33 @@ export type Result_6 = { 'Ok' : UploadInfo } |
   { 'Err' : string };
 export type Result_7 = { 'Ok' : Array<PersonalCanister> } |
   { 'Err' : string };
-export type Result_8 = { 'Ok' : ReleaseInfo } |
+export type Result_8 = { 'Ok' : Array<[Principal, number]> } |
   { 'Err' : string };
-export type Result_9 = { 'Ok' : Uint8Array | number[] } |
+export type Result_9 = { 'Ok' : ReleaseInfo } |
   { 'Err' : string };
+export interface TopUpConfig {
+  'floor' : bigint,
+  'enabled' : boolean,
+  'target' : bigint,
+  'monthly_cap' : bigint,
+}
+export interface TopUpRecord {
+  'last_error' : [] | [string],
+  'month' : [] | [number],
+  'last_top_up_at' : [] | [bigint],
+  'last_checked_at' : [] | [bigint],
+  'month_total' : [] | [bigint],
+  'monthly_cap' : [] | [bigint],
+  'last_top_up_cycles' : [] | [bigint],
+  'last_balance' : [] | [bigint],
+}
+export interface TopUpReport {
+  'balance' : [] | [bigint],
+  'owner' : Principal,
+  'note' : string,
+  'sent' : bigint,
+  'canister_id' : [] | [Principal],
+}
 export interface UploadCommit { 'expected_sha256_hex' : string }
 export interface UploadInfo {
   'committed_hash' : [] | [Uint8Array | number[]],
@@ -142,7 +170,7 @@ export interface _SERVICE {
   /**
    * Admin: all principals that hold credits.
    */
-  'personal_credits_list' : ActorMethod<[], Result_10>,
+  'personal_credits_list' : ActorMethod<[], Result_8>,
   'personal_open' : ActorMethod<[], boolean>,
   /**
    * Admin: open creation to every signed-in principal. For local test
@@ -154,12 +182,12 @@ export interface _SERVICE {
   /**
    * Admin: make a committed upload the release that new personal canisters get.
    */
-  'release_set' : ActorMethod<[bigint, string], Result_8>,
+  'release_set' : ActorMethod<[bigint, string], Result_9>,
   /**
    * The released wasm, for owners who upgrade their canister themselves.
    * Check it against `release_info().sha256_hex` before installing.
    */
-  'release_wasm' : ActorMethod<[], Result_9>,
+  'release_wasm' : ActorMethod<[], Result_10>,
   'remove_admin' : ActorMethod<[Principal], Result>,
   'set_allowlist' : ActorMethod<[[] | [Array<Principal>]], Result>,
   /**
@@ -170,6 +198,29 @@ export interface _SERVICE {
    * Admin: cycles a new personal canister starts with.
    */
   'set_personal_canister_cycles' : ActorMethod<[bigint], Result>,
+  /**
+   * Admin: one owner's monthly cap; `null` goes back to the default.
+   * A cap of 0 stops top-ups for that owner.
+   */
+  'top_up_cap_set' : ActorMethod<[Principal, [] | [bigint]], Result>,
+  /**
+   * Check one owner's canister now and top it up if needed.
+   * For admins, and for the owner (the monthly cap applies either way).
+   */
+  'top_up_check' : ActorMethod<[Principal], Result_11>,
+  /**
+   * Admin: check every ready canister now. The daily timer does the same.
+   */
+  'top_up_check_all' : ActorMethod<[], Result_12>,
+  'top_up_config' : ActorMethod<[], TopUpConfig>,
+  /**
+   * Admin: floor, target, default monthly cap, and whether the timer runs.
+   */
+  'top_up_config_set' : ActorMethod<[TopUpConfig], Result>,
+  /**
+   * When the check of all canisters last started (network time, ns)
+   */
+  'top_up_last_run' : ActorMethod<[], [] | [bigint]>,
   /**
    * ===== Utility functions =====
    */
