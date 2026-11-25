@@ -136,6 +136,7 @@ Canister data that must survive a code upgrade lives in stable memory, split int
 | 9      | Admins                                                          |
 | 10     | The owner of a personal canister (empty in the shared canister) |
 | 11     | State of the old capsule-moving code                            |
+| 12     | The factory that installed a personal canister                  |
 | 42     | The secret that signs file links                                |
 | 3 to 5 | Reserved for upload sessions, unused                            |
 

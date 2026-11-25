@@ -70,10 +70,11 @@
     <path d="M502,440 L548,440 L548,352 L1220,352 L1220,324" class="line plan acc" marker-end="url(#arrow)"/>
     <rect x="600" y="384" width="300" height="96" rx="6" class="line fill"/>
     <rect x="980" y="384" width="480" height="116" rx="6" class="line fill"/>
-    <rect x="600" y="510" width="280" height="136" rx="6" class="line fill plan"/>
-    <rect x="900" y="510" width="280" height="116" rx="6" class="line fill plan"/>
-    <rect x="1200" y="510" width="260" height="116" rx="6" class="line fill plan"/>
-    <rect x="600" y="706" width="860" height="96" rx="6" class="line fill"/>
+    <rect x="600" y="512" width="420" height="116" rx="6" class="line fill"/>
+    <rect x="1040" y="512" width="420" height="116" rx="6" class="line fill plan"/>
+    <rect x="600" y="640" width="420" height="96" rx="6" class="line fill plan"/>
+    <rect x="1040" y="640" width="420" height="96" rx="6" class="line fill plan"/>
+    <rect x="600" y="752" width="860" height="96" rx="6" class="line fill"/>
   </g>
   <circle cx="270" cy="258" r="6" class="dot"/>
   <circle cx="908" cy="193" r="6" class="dot"/>
@@ -122,24 +123,25 @@
   <text x="998" y="438" class="xs">Only the owner can upgrade, stop or delete the canister, and</text>
   <text x="998" y="458" class="xs">only the owner can write to it. Futura cannot even read its</text>
   <text x="998" y="478" class="xs">status.</text>
-  <text x="618" y="538" class="t">Missing: cycles</text>
-  <text x="618" y="564" class="xs">Nobody tops a canister up. A new one</text>
-  <text x="618" y="584" class="xs">has about 1.5T cycles: roughly 0.5</text>
-  <text x="618" y="604" class="xs">GiB of uploads. Storing 1 GiB costs</text>
-  <text x="618" y="624" class="xs">about 14 USD a year. Open: who pays.</text>
-  <text x="918" y="538" class="t">Missing: the web app</text>
-  <text x="918" y="564" class="xs">Storing and reading memories in your</text>
-  <text x="918" y="584" class="xs">own canister. An upgrade button.</text>
-  <text x="918" y="604" class="xs">Pages for trustees and heirs.</text>
-  <text x="1218" y="538" class="t">Missing: mainnet</text>
-  <text x="1218" y="564" class="xs">The factory is not deployed</text>
-  <text x="1218" y="584" class="xs">there. Credits are given by hand:</text>
-  <text x="1218" y="604" class="xs">no sign-up or payment step.</text>
-  <text x="618" y="734" class="t">Open decisions</text>
-  <text x="618" y="760" class="xs">Who pays for cycles. Whether Futura stays a second controller by default, so it can upgrade and help. Whether everyone</text>
-  <text x="618" y="780" class="xs">moves, or only new or paying users get a canister of their own.</text>
+  <text x="618" y="540" class="t">Top-ups</text>
+  <text x="618" y="566" class="xs">Once a day the factory asks each canister what it can</text>
+  <text x="618" y="586" class="xs">still spend and refills it: below 1T up to 2T, at most</text>
+  <text x="618" y="606" class="xs">3T a month per owner.</text>
+  <text x="1058" y="540" class="t">Missing: who pays</text>
+  <text x="1058" y="566" class="xs">Nobody pays the factory: no payment, no plans. No</text>
+  <text x="1058" y="586" class="xs">warning by e-mail or in the app. 3T a month keeps about</text>
+  <text x="1058" y="606" class="xs">3.5 GiB.</text>
+  <text x="618" y="668" class="t">Missing: the web app</text>
+  <text x="618" y="694" class="xs">Storing and reading memories in your own canister. An</text>
+  <text x="618" y="714" class="xs">upgrade button. Pages for trustees and heirs.</text>
+  <text x="1058" y="668" class="t">Missing: mainnet</text>
+  <text x="1058" y="694" class="xs">The factory is not deployed there. Credits are given by</text>
+  <text x="1058" y="714" class="xs">hand: no sign-up or payment step.</text>
+  <text x="618" y="780" class="t">Open decisions</text>
+  <text x="618" y="806" class="xs">Who pays Futura for the cycles. Whether Futura stays a second controller by default, so it can upgrade and help.</text>
+  <text x="618" y="826" class="xs">Whether everyone moves, or only new or paying users get a canister of their own.</text>
   <text x="60" y="898" class="s">The program is the same on both sides: the backend runs in shared mode today and in personal mode in a canister of your own.</text>
-  <text x="60" y="926" class="s">What changes is who controls it. Today that is Futura. In the target it is you alone, and nobody upgrades or pays for you.</text>
+  <text x="60" y="926" class="s">What changes is who controls it. Today that is Futura. In the target it is you alone: nobody upgrades for you, and Futura only adds cycles.</text>
   <text x="60" y="954" class="a">Status: the target is built and tested on a local ICP network only (25 November 2026). On mainnet nothing has changed: everyone is in the shared canister.</text>
   <text x="1480" y="954" class="s" text-anchor="end">As of: 25 November 2026</text>
   <text x="62" y="47" class="s">who starts</text>

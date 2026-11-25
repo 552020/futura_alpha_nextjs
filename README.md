@@ -9,7 +9,7 @@ This repository is the web app. The canisters (the ICP side) live in [futura_alp
 ## Status (November 2026)
 
 - **Code:** all test suites pass (web unit tests, Internet Identity browser tests, canister tests); CI green.
-- **Site:** https://futura-alpha-552020s-projects.vercel.app — the demo loads again (25 November 2026; sign-up and uploads not checked there). The old domain futura.now is no longer ours.
+- **Site:** https://futura-alpha-552020s-projects.vercel.app — the public address answers, but with the version of 1 September 2026. Every Vercel deployment since 24 November 2026 failed, so nothing of November (fixes, desk, sketches, personal canisters) is online. Reason unknown; handed over in Linear FKWEB-49. The old domain futura.now is no longer ours.
 - **ICP mainnet:** backend canister `izhgj-eiaaa-aaaaj-a2f7q-cai` is live; the canister fixes of November 2026 are not deployed there yet.
 - **Analysis:** where the project stands, what it could be, and the state of ICP and blockchain: see the [desk](#desk).
 

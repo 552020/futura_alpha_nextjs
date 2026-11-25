@@ -41,11 +41,11 @@ All pictures come from `docs/diagrams/tools/gen.py` (run it, then `node docs/dia
 
 ## Personal canisters and inheritance
 
-Built and tested on a local ICP network on 25 November 2026. Not in use on mainnet. The web app can create a personal canister and show it; everything else is done from a terminal. Creation needs a credit from Futura's admin. The explanation: [Personal canisters and inheritance](/desk/personal-canisters).
+Built and tested on a local ICP network on 25 November 2026. Not in use on mainnet. The web app can create a personal canister and show it; everything else is done from a terminal. Creation needs a credit from Futura's admin. The factory tops the canisters up once a day. The explanation: [Personal canisters and inheritance](/desk/personal-canisters).
 
 <figure>
 <img src="/diagrams/today-to-personal.png" alt="From today to personal canisters">
-<figcaption>From today to the target: today everyone on ICP has a capsule in one shared canister that Futura controls. The target is one canister per person, created by the factory and handed over. Dashed is what is not built: who pays the cycles (with what they cost), moving existing users, most of the web app, the mainnet deployment.</figcaption>
+<figcaption>From today to the target: today everyone on ICP has a capsule in one shared canister that Futura controls. The target is one canister per person, created by the factory and handed over. Top-ups are built. Dashed is what is not built: who pays Futura for the cycles, moving existing users, most of the web app, the mainnet deployment.</figcaption>
 </figure>
 
 <figure>
@@ -61,6 +61,11 @@ Built and tested on a local ICP network on 25 November 2026. Not in use on mainn
 <figure>
 <img src="/diagrams/personal-upgrade-steps.png" alt="Upgrading a personal canister, step by step">
 <figcaption>Upgrading: the owner downloads the release from the factory, checks its sha256 and installs it with their own key. The factory cannot, because it is not a controller.</figcaption>
+</figure>
+
+<figure>
+<img src="/diagrams/top-up-steps.png" alt="Topping up a personal canister, step by step">
+<figcaption>Topping up: once a day the factory asks each personal canister what it can still spend and refills it, within a monthly cap per owner. The factory needs no rights for that and is still not a controller.</figcaption>
 </figure>
 
 <figure>

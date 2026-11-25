@@ -43,12 +43,12 @@ Futura keeps photos, videos and notes ("memories") and lets people share them, h
 
 ## How it is checked
 
-| Check                                        | What it covers                                                                              | Last result                                |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| Web unit tests (Vitest)                      | Auth, sign-in redirects, sharing, galleries, database connector, storage records            | 148 pass                                   |
-| Internet Identity browser tests (Playwright) | Real sign-in, linking, sign-out against a local ICP network                                 | 8 of 8 pass, plus 1 personal canister test |
-| Canister unit tests (Rust)                   | Capsules, access rules, uploads, tokens, galleries, inheritance, personal mode, the factory | 275 + 7 pass                               |
-| Canister integration tests (shell)           | The deployed canister on a local network                                                    | 22 scripts                                 |
-| GitHub CI                                    | Install, build and a smoke test on every push to the web app                                | green                                      |
+| Check                                        | What it covers                                                                              | Last result   |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------- |
+| Web unit tests (Vitest)                      | Auth, sign-in redirects, sharing, galleries, database connector, storage records            | 150 pass      |
+| Internet Identity browser tests (Playwright) | Real sign-in, linking, sign-out against a local ICP network                                 | 9 of 9 pass   |
+| Canister unit tests (Rust)                   | Capsules, access rules, uploads, tokens, galleries, inheritance, personal mode, the factory | 276 + 18 pass |
+| Canister integration tests (shell)           | The deployed canister on a local network                                                    | 23 of 23 pass |
+| GitHub CI                                    | Install, build and a smoke test on every push to the web app                                | green         |
 
 How to run the local ICP network and the browser tests: `e2e/README.md` in the web app.

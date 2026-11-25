@@ -54,7 +54,7 @@
   <g filter="url(#hand)">
     <rect x="30" y="130" width="270" height="210" rx="8" class="line fill"/>
     <rect x="30" y="430" width="270" height="130" rx="8" class="line fill"/>
-    <rect x="30" y="600" width="270" height="172" rx="6" class="line fill plan"/>
+    <rect x="30" y="600" width="270" height="192" rx="6" class="line fill plan"/>
     <rect x="380" y="130" width="440" height="486" rx="10" class="line fill"/>
     <rect x="396" y="178" width="408" height="96" rx="6" class="thin fill"/>
     <rect x="396" y="286" width="408" height="114" rx="6" class="thin fill"/>
@@ -70,12 +70,14 @@
     <path d="M302,320 L376,320" class="line" marker-end="url(#arrow)"/>
     <path d="M165,428 L165,386 L376,386" class="line" marker-end="url(#arrow)"/>
     <path d="M822,226 L916,226" class="line plan" marker-end="url(#arrow)"/>
+    <path d="M822,560 L868,560 L868,430 L916,430" class="line" marker-end="url(#arrow)"/>
     <path d="M165,128 L165,100 L1185,100 L1185,196" class="line acc" marker-end="url(#arrow)"/>
   </g>
   <circle cx="308" cy="226" r="6" class="dot"/>
   <circle cx="308" cy="320" r="6" class="dot"/>
   <circle cx="165" cy="422" r="6" class="dot"/>
   <circle cx="828" cy="226" r="6" class="dot"/>
+  <circle cx="828" cy="560" r="6" class="dot"/>
   <circle cx="165" cy="122" r="6" class="dot"/>
   <circle cx="46" cy="40" r="6" class="dot"/>
   <text x="750" y="46" class="h" text-anchor="middle">Personal canisters running: who controls what</text>
@@ -90,11 +92,12 @@
   <text x="46" y="516" class="s">and releases it as a version;</text>
   <text x="46" y="542" class="s">gives credits: who may create</text>
   <text x="48" y="628" class="t">Not built</text>
-  <text x="48" y="654" class="xs">cycles top-ups and payment</text>
-  <text x="48" y="682" class="xs">moving a capsule out of the shared</text>
-  <text x="48" y="702" class="xs">canister</text>
-  <text x="48" y="730" class="xs">getting a credit without the</text>
-  <text x="48" y="750" class="xs">admin: sign-up or payment</text>
+  <text x="48" y="654" class="xs">payment: who pays the factory for</text>
+  <text x="48" y="674" class="xs">the cycles</text>
+  <text x="48" y="702" class="xs">moving a capsule out of the shared</text>
+  <text x="48" y="722" class="xs">canister</text>
+  <text x="48" y="750" class="xs">getting a credit without the</text>
+  <text x="48" y="770" class="xs">admin: sign-up or payment</text>
   <text x="400" y="162" class="t">Canister factory</text>
   <text x="800" y="162" class="a" text-anchor="end">controlled by Futura</text>
   <text x="412" y="206" class="t">Creating</text>
@@ -109,7 +112,7 @@
   <text x="412" y="488" class="xs">Pending, Created, Installed, Ready</text>
   <text x="412" y="542" class="t">Cycles</text>
   <text x="412" y="568" class="s">pays 2T cycles for each new canister</text>
-  <text x="412" y="590" class="xs">only for a credit from the admin: one credit, one canister</text>
+  <text x="412" y="590" class="xs">one credit, one canister; then a daily top-up, 3T a month at most</text>
   <text x="400" y="682" class="t">Futura web app</text>
   <text x="800" y="682" class="a" text-anchor="end">a first piece</text>
   <text x="400" y="710" class="s">a card on the ICP page: create your canister</text>
@@ -127,7 +130,7 @@
   <text x="936" y="336" class="s">your capsule: memories, galleries, files</text>
   <text x="936" y="368" class="xs">Futura&#x27;s admin cannot upgrade it or even read its status;</text>
   <text x="936" y="388" class="xs">updates from anyone else are refused before the canister pays for them</text>
-  <text x="936" y="416" class="xs">starts with about 1.5T cycles: roughly 0.5 GiB of uploads; no refills yet</text>
+  <text x="936" y="416" class="xs">starts with about 1.5T cycles; tells the factory what it can still spend</text>
   <text x="936" y="510" class="t">Shared backend canister</text>
   <text x="1434" y="510" class="a" text-anchor="end">controller: Futura</text>
   <text x="936" y="536" class="mono">izhgj-eiaaa-aaaaj-a2f7q-cai</text>
@@ -142,10 +145,11 @@
   <text x="332" y="302" class="xs" text-anchor="middle">download</text>
   <text x="186" y="376" class="mono">release_set</text>
   <text x="866" y="214" class="xs" text-anchor="middle">once</text>
+  <text x="848" y="584" class="xs">top-up</text>
   <text x="640" y="92" class="a" text-anchor="middle">with your own key: your capsule, and as controller: upgrades and settings</text>
   <text x="60" y="898" class="s">The factory is a controller only while it creates the canister and installs the program (dashed arrow). Then it removes itself and has no way in.</text>
   <text x="60" y="926" class="s">The same idea as Juno&#x27;s satellites: the platform hands the canister over and cannot push code into it. The price: you upgrade it yourself.</text>
-  <text x="60" y="954" class="a">Status: built and tested on a local ICP network, 25 November 2026 (22 checks in a terminal, 1 browser test). The factory is not on mainnet.</text>
+  <text x="60" y="954" class="a">Status: built and tested on a local ICP network, 25 November 2026 (shell tests in a terminal, 1 browser test). The factory is not on mainnet.</text>
   <text x="1480" y="954" class="s" text-anchor="end">As of: 25 November 2026</text>
   <text x="62" y="47" class="s">who opens the connection</text>
 </svg>
