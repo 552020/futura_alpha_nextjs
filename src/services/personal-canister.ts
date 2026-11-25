@@ -54,3 +54,15 @@ export function personalCanisterView(
     latestVersion: release?.version ?? null,
   };
 }
+
+/**
+ * May this user start creating a canister? Creation costs the factory
+ * cycles, so it needs a credit from an admin unless the factory is open
+ * (local test networks).
+ */
+export function mayCreatePersonalCanister(
+  credits: number,
+  open: boolean
+): boolean {
+  return open || credits > 0;
+}

@@ -1,7 +1,10 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { Principal } from '@dfinity/principal';
-import { personalCanisterView } from '@/services/personal-canister';
+import {
+  mayCreatePersonalCanister,
+  personalCanisterView,
+} from '@/services/personal-canister';
 import type {
   PersonalCanister,
   ReleaseInfo,
@@ -67,5 +70,16 @@ describe('personalCanisterView', () => {
     expect(
       personalCanisterView(entry({ canister_id: [] }), undefined).state
     ).toBe('creating');
+  });
+});
+
+describe('mayCreatePersonalCanister', () => {
+  it('needs a credit while the factory is closed', () => {
+    expect(mayCreatePersonalCanister(0, false)).toBe(false);
+    expect(mayCreatePersonalCanister(1, false)).toBe(true);
+  });
+
+  it('needs none when the factory is open (local test networks)', () => {
+    expect(mayCreatePersonalCanister(0, true)).toBe(true);
   });
 });

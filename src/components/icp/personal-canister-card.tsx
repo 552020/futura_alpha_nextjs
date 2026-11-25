@@ -17,6 +17,7 @@ import {
   personalBackendActor,
 } from '@/ic/factory';
 import {
+  mayCreatePersonalCanister,
   personalCanisterView,
   type PersonalCanisterView,
 } from '@/services/personal-canister';
@@ -30,6 +31,8 @@ export function PersonalCanisterCard() {
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [view, setView] = useState<PersonalCanisterView | null>(null);
   const [mode, setMode] = useState<string | null>(null);
+  const [mayCreate, setMayCreate] = useState(true);
+  const [principal, setPrincipal] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,10 +46,14 @@ export function PersonalCanisterCard() {
       setSignedIn(true);
       const identity = authClient.getIdentity();
       const factory = await factoryActor(identity);
-      const [entry, release] = await Promise.all([
+      const [entry, release, credits, open] = await Promise.all([
         factory.my_personal_canister(),
         factory.release_info(),
+        factory.my_personal_credits(),
+        factory.personal_open(),
       ]);
+      setMayCreate(mayCreatePersonalCanister(credits, open));
+      setPrincipal(identity.getPrincipal().toText());
       const next = personalCanisterView(entry[0], release[0]);
       setView(next);
       if (next.state === 'ready') {
@@ -108,7 +115,21 @@ export function PersonalCanisterCard() {
           </p>
         )}
 
-        {signedIn && view?.state === 'none' && (
+        {signedIn && view?.state === 'none' && !mayCreate && (
+          <div
+            className="space-y-2 text-sm"
+            data-testid="personal-canister-no-credit"
+          >
+            <p>
+              Personal canisters are by invitation for now: each one costs
+              Futura real cycles. Send us your principal and we will allow one
+              for you.
+            </p>
+            <p className="font-mono break-all">{principal}</p>
+          </div>
+        )}
+
+        {signedIn && view?.state === 'none' && mayCreate && (
           <Button
             onClick={create}
             disabled={busy}
