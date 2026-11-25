@@ -10,6 +10,7 @@ import { InternetIdentityManagement } from '@/components/user/internet-identity-
 import { Whoami } from '@/components/icp/whoami';
 import { Greeting } from '@/components/icp/greeting';
 import { CapsuleInfo } from '@/components/icp/capsule-info';
+import { PersonalCanisterCard } from '@/components/icp/personal-canister-card';
 
 export default function ICPPage() {
   const { isAuthorized, isLoading } = useAuthGuard();
@@ -36,6 +37,10 @@ export default function ICPPage() {
       {/* Internet Identity Management - Unified Component */}
       <div className="mb-6">
         <InternetIdentityManagement />
+      </div>
+
+      <div className="my-6">
+        <PersonalCanisterCard />
       </div>
 
       <div className="my-6">
