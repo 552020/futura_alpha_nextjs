@@ -2,35 +2,16 @@ import type { Principal } from '@dfinity/principal';
 import type { ActorMethod } from '@dfinity/agent';
 import type { IDL } from '@dfinity/candid';
 
-export interface CallerStats {
-  'created_count' : number,
-  'last_created_at' : [] | [bigint],
-}
 export interface Config {
   'next_upload_id' : bigint,
   'emergency_stop' : boolean,
   'min_factory_cycles' : bigint,
   'upload_ttl_ns' : bigint,
   'admins' : Array<Principal>,
-  'max_canisters_per_caller' : number,
   'allowlist' : [] | [Array<Principal>],
   'max_upload_size' : bigint,
 }
-export interface CreateInstallRequest {
-  'extra_controllers' : [] | [Array<Principal>],
-  'handoff' : boolean,
-  'mode' : Mode,
-  'init_arg' : Uint8Array | number[],
-  'upload_id' : bigint,
-  'cycles' : bigint,
-}
-export interface CreateInstallResponse {
-  'canister_id' : Principal,
-  'module_hash_hex' : string,
-  'cycles_used' : bigint,
-}
 export interface FactoryStats {
-  'unique_callers' : bigint,
   'total_canisters_created' : bigint,
   'factory_cycles_balance' : bigint,
   'active_uploads' : bigint,
@@ -39,14 +20,10 @@ export interface FactoryStats {
 export interface InitArg {
   'min_factory_cycles' : [] | [bigint],
   'admins' : [] | [Array<Principal>],
-  'max_canisters_per_caller' : [] | [number],
   'allowlist' : [] | [Array<Principal>],
   'upload_ttl_seconds' : [] | [bigint],
   'max_upload_size' : [] | [bigint],
 }
-export type Mode = { 'Upgrade' : null } |
-  { 'Install' : null } |
-  { 'Reinstall' : null };
 export interface PersonalCanister {
   'last_error' : [] | [string],
   'status' : PersonalStatus,
@@ -73,27 +50,25 @@ export type Result = { 'Ok' : null } |
   { 'Err' : string };
 export type Result_1 = { 'Ok' : number } |
   { 'Err' : string };
-export type Result_10 = { 'Ok' : Uint8Array | number[] } |
+export type Result_10 = { 'Ok' : TopUpReport } |
   { 'Err' : string };
-export type Result_11 = { 'Ok' : TopUpReport } |
-  { 'Err' : string };
-export type Result_12 = { 'Ok' : Array<TopUpReport> } |
+export type Result_11 = { 'Ok' : Array<TopUpReport> } |
   { 'Err' : string };
 export type Result_2 = { 'Ok' : string } |
   { 'Err' : string };
-export type Result_3 = { 'Ok' : CreateInstallResponse } |
+export type Result_3 = { 'Ok' : PersonalCanister } |
   { 'Err' : string };
-export type Result_4 = { 'Ok' : PersonalCanister } |
+export type Result_4 = { 'Ok' : bigint } |
   { 'Err' : string };
-export type Result_5 = { 'Ok' : bigint } |
+export type Result_5 = { 'Ok' : UploadInfo } |
   { 'Err' : string };
-export type Result_6 = { 'Ok' : UploadInfo } |
+export type Result_6 = { 'Ok' : Array<PersonalCanister> } |
   { 'Err' : string };
-export type Result_7 = { 'Ok' : Array<PersonalCanister> } |
+export type Result_7 = { 'Ok' : Array<[Principal, number]> } |
   { 'Err' : string };
-export type Result_8 = { 'Ok' : Array<[Principal, number]> } |
+export type Result_8 = { 'Ok' : ReleaseInfo } |
   { 'Err' : string };
-export type Result_9 = { 'Ok' : ReleaseInfo } |
+export type Result_9 = { 'Ok' : Uint8Array | number[] } |
   { 'Err' : string };
 export interface TopUpConfig {
   'floor' : bigint,
@@ -133,35 +108,30 @@ export interface _SERVICE {
   'clear_upload' : ActorMethod<[bigint], Result>,
   'commit_upload' : ActorMethod<[bigint, UploadCommit], Result_2>,
   /**
-   * ===== Factory: create + install (supports Install/Reinstall/Upgrade) =====
-   */
-  'create_and_install_with' : ActorMethod<[CreateInstallRequest], Result_3>,
-  /**
    * Create (or finish creating) the caller's personal canister.
    * Idempotent: once Ready it returns the same canister.
    */
-  'create_personal_canister' : ActorMethod<[], Result_4>,
+  'create_personal_canister' : ActorMethod<[], Result_3>,
   /**
    * ===== Upload API (chunked) =====
    */
-  'create_upload' : ActorMethod<[], Result_5>,
+  'create_upload' : ActorMethod<[], Result_4>,
   /**
    * ===== Query endpoints =====
    */
   'get_config' : ActorMethod<[], Config>,
   'get_factory_stats' : ActorMethod<[], FactoryStats>,
-  'get_upload_info' : ActorMethod<[bigint], Result_6>,
+  'get_upload_info' : ActorMethod<[bigint], Result_5>,
   'health_check' : ActorMethod<[], string>,
   'my_personal_canister' : ActorMethod<[], [] | [PersonalCanister]>,
   /**
    * How many personal canisters the caller may still create.
    */
   'my_personal_credits' : ActorMethod<[], number>,
-  'my_stats' : ActorMethod<[], CallerStats>,
   /**
    * Admin: every personal canister the factory created.
    */
-  'personal_canisters_list' : ActorMethod<[], Result_7>,
+  'personal_canisters_list' : ActorMethod<[], Result_6>,
   /**
    * Admin: set how many personal canisters a principal may still create
    * (0 removes the entry).
@@ -170,24 +140,24 @@ export interface _SERVICE {
   /**
    * Admin: all principals that hold credits.
    */
-  'personal_credits_list' : ActorMethod<[], Result_8>,
+  'personal_credits_list' : ActorMethod<[], Result_7>,
   'personal_open' : ActorMethod<[], boolean>,
   /**
    * Admin: open creation to every signed-in principal. For local test
    * networks; on mainnet this lets anybody spend the factory's cycles.
    */
   'personal_open_set' : ActorMethod<[boolean], Result>,
-  'put_chunk' : ActorMethod<[bigint, Uint8Array | number[]], Result_5>,
+  'put_chunk' : ActorMethod<[bigint, Uint8Array | number[]], Result_4>,
   'release_info' : ActorMethod<[], [] | [ReleaseInfo]>,
   /**
    * Admin: make a committed upload the release that new personal canisters get.
    */
-  'release_set' : ActorMethod<[bigint, string], Result_9>,
+  'release_set' : ActorMethod<[bigint, string], Result_8>,
   /**
    * The released wasm, for owners who upgrade their canister themselves.
    * Check it against `release_info().sha256_hex` before installing.
    */
-  'release_wasm' : ActorMethod<[], Result_10>,
+  'release_wasm' : ActorMethod<[], Result_9>,
   'remove_admin' : ActorMethod<[Principal], Result>,
   'set_allowlist' : ActorMethod<[[] | [Array<Principal>]], Result>,
   /**
@@ -207,11 +177,11 @@ export interface _SERVICE {
    * Check one owner's canister now and top it up if needed.
    * For admins, and for the owner (the monthly cap applies either way).
    */
-  'top_up_check' : ActorMethod<[Principal], Result_11>,
+  'top_up_check' : ActorMethod<[Principal], Result_10>,
   /**
    * Admin: check every ready canister now. The daily timer does the same.
    */
-  'top_up_check_all' : ActorMethod<[], Result_12>,
+  'top_up_check_all' : ActorMethod<[], Result_11>,
   'top_up_config' : ActorMethod<[], TopUpConfig>,
   /**
    * Admin: floor, target, default monthly cap, and whether the timer runs.

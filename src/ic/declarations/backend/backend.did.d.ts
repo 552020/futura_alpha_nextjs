@@ -192,33 +192,11 @@ export interface ControllerState {
   'granted_at' : bigint,
   'granted_by' : PersonRef,
 }
-export type CreationStatus = { 'Importing' : null } |
-  { 'Creating' : null } |
-  { 'Failed' : null } |
-  { 'Exporting' : null } |
-  { 'Installing' : null } |
-  { 'Completed' : null } |
-  { 'Verifying' : null } |
-  { 'NotStarted' : null };
-export interface CreationStatusResponse {
-  'status' : CreationStatus,
-  'canister_id' : [] | [Principal],
-  'message' : [] | [string],
-}
 export type DatabaseHosting = { 'Icp' : null } |
   { 'Neon' : null };
 export interface DeathConfirmation {
   'trustee' : Principal,
   'confirmed_at' : bigint,
-}
-export interface DetailedCreationStatus {
-  'status' : CreationStatus,
-  'progress_message' : string,
-  'canister_id' : [] | [Principal],
-  'error_message' : [] | [string],
-  'created_at' : bigint,
-  'cycles_consumed' : bigint,
-  'completed_at' : [] | [bigint],
 }
 export interface DocumentAssetMetadata {
   'document_type' : [] | [string],
@@ -504,17 +482,6 @@ export interface Page {
 }
 export type PersonRef = { 'Opaque' : string } |
   { 'Principal' : Principal };
-export interface PersonalCanisterCreationResponse {
-  'canister_id' : [] | [Principal],
-  'message' : string,
-  'success' : boolean,
-}
-export interface PersonalCanisterCreationStats {
-  'total_successes' : bigint,
-  'total_failures' : bigint,
-  'total_attempts' : bigint,
-  'total_cycles_consumed' : bigint,
-}
 export type ResourceRole = { 'Guest' : null } |
   { 'Member' : null } |
   { 'SuperAdmin' : null } |
@@ -535,31 +502,23 @@ export type Result6 = { 'Ok' : string } |
   { 'Err' : Error };
 export type Result_1 = { 'Ok' : MemoryAssetData } |
   { 'Err' : Error };
-export type Result_10 = { 'Ok' : Gallery } |
+export type Result_10 = { 'Ok' : UserSettingsResponse } |
   { 'Err' : Error };
-export type Result_11 = { 'Ok' : Array<[Principal, DetailedCreationStatus]> } |
+export type Result_11 = { 'Ok' : LegacyStatus } |
   { 'Err' : Error };
-export type Result_12 = { 'Ok' : PersonalCanisterCreationStats } |
+export type Result_12 = { 'Ok' : AssetCleanupResult } |
   { 'Err' : Error };
-export type Result_13 = { 'Ok' : [] | [DetailedCreationStatus] } |
+export type Result_13 = { 'Ok' : BulkResult } |
   { 'Err' : Error };
-export type Result_14 = { 'Ok' : UserSettingsResponse } |
+export type Result_14 = { 'Ok' : Page } |
   { 'Err' : Error };
-export type Result_15 = { 'Ok' : LegacyStatus } |
+export type Result_15 = { 'Ok' : MemoryAssetsList } |
   { 'Err' : Error };
-export type Result_16 = { 'Ok' : AssetCleanupResult } |
+export type Result_16 = { 'Ok' : Array<MemoryPresenceResult> } |
   { 'Err' : Error };
-export type Result_17 = { 'Ok' : BulkResult } |
-  { 'Err' : Error };
-export type Result_18 = { 'Ok' : Page } |
-  { 'Err' : Error };
-export type Result_19 = { 'Ok' : MemoryAssetsList } |
+export type Result_17 = { 'Ok' : Memory } |
   { 'Err' : Error };
 export type Result_2 = { 'Ok' : AssetRemovalResult } |
-  { 'Err' : Error };
-export type Result_20 = { 'Ok' : Array<MemoryPresenceResult> } |
-  { 'Err' : Error };
-export type Result_21 = { 'Ok' : Memory } |
   { 'Err' : Error };
 export type Result_3 = { 'Ok' : BlobMeta } |
   { 'Err' : Error };
@@ -569,11 +528,11 @@ export type Result_5 = { 'Ok' : Capsule } |
   { 'Err' : Error };
 export type Result_6 = { 'Ok' : CapsuleInfo } |
   { 'Err' : Error };
-export type Result_7 = { 'Ok' : boolean } |
+export type Result_7 = { 'Ok' : BulkDeleteResult } |
   { 'Err' : Error };
-export type Result_8 = { 'Ok' : BulkDeleteResult } |
+export type Result_8 = { 'Ok' : Folder } |
   { 'Err' : Error };
-export type Result_9 = { 'Ok' : Folder } |
+export type Result_9 = { 'Ok' : Gallery } |
   { 'Err' : Error };
 export type SharingStatus = { 'Shared' : null } |
   { 'Private' : null } |
@@ -677,12 +636,6 @@ export interface _SERVICE {
   'capsules_read_basic' : ActorMethod<[[] | [string]], Result_6>,
   'capsules_read_full' : ActorMethod<[[] | [string]], Result_5>,
   'capsules_update' : ActorMethod<[string, CapsuleUpdateData], Result_5>,
-  'clear_creation_state' : ActorMethod<[Principal], Result_7>,
-  'clear_migration_state' : ActorMethod<[Principal], Result_7>,
-  'create_personal_canister' : ActorMethod<
-    [],
-    PersonalCanisterCreationResponse
-  >,
   /**
    * All cycles this canister holds, including the part the network keeps
    * back as the freezing reserve. For the owner and the factory.
@@ -693,10 +646,6 @@ export interface _SERVICE {
    * above the freezing reserve. This is what the factory tops up against.
    */
   'cycles_liquid_balance' : ActorMethod<[], bigint>,
-  /**
-   * Debug endpoint to compute SHA256 hash of provided bytes
-   */
-  'debug_sha256' : ActorMethod<[Uint8Array | number[]], string>,
   /**
    * TEMPORARY DEV METHOD: Clear all memories in a capsule
    * 
@@ -710,32 +659,22 @@ export interface _SERVICE {
    */
   'dev_clear_all_memories_in_capsule' : ActorMethod<
     [string, boolean],
-    Result_8
+    Result_7
   >,
-  'folders_create' : ActorMethod<[FolderData], Result_9>,
+  'folders_create' : ActorMethod<[FolderData], Result_8>,
   'folders_delete' : ActorMethod<[string], Result>,
   'folders_list' : ActorMethod<[], Array<FolderHeader>>,
-  'folders_update' : ActorMethod<[string, FolderUpdateData], Result_9>,
-  'galleries_create' : ActorMethod<[GalleryData], Result_10>,
+  'folders_update' : ActorMethod<[string, FolderUpdateData], Result_8>,
+  'galleries_create' : ActorMethod<[GalleryData], Result_9>,
   'galleries_create_with_memories' : ActorMethod<
     [GalleryData, boolean],
-    Result_10
+    Result_9
   >,
   'galleries_delete' : ActorMethod<[string], Result>,
   'galleries_list' : ActorMethod<[], Array<FolderHeader>>,
-  'galleries_read' : ActorMethod<[string], Result_10>,
-  'galleries_update' : ActorMethod<[string, GalleryUpdateData], Result_10>,
+  'galleries_read' : ActorMethod<[string], Result_9>,
+  'galleries_update' : ActorMethod<[string, GalleryUpdateData], Result_9>,
   'get_canister_size_stats' : ActorMethod<[], CanisterSizeStats>,
-  'get_creation_states_by_status' : ActorMethod<[CreationStatus], Result_11>,
-  'get_creation_status' : ActorMethod<[], [] | [CreationStatusResponse]>,
-  'get_detailed_creation_status' : ActorMethod<
-    [],
-    [] | [DetailedCreationStatus]
-  >,
-  'get_detailed_migration_status' : ActorMethod<
-    [],
-    [] | [DetailedCreationStatus]
-  >,
   /**
    * Get detailed gallery size breakdown
    */
@@ -744,53 +683,41 @@ export interface _SERVICE {
    * Get gallery size information for debugging stable memory limits
    */
   'get_gallery_size_info' : ActorMethod<[Gallery], string>,
-  'get_migration_states_by_status' : ActorMethod<[CreationStatus], Result_11>,
-  'get_migration_stats' : ActorMethod<[], Result_12>,
-  'get_migration_status' : ActorMethod<[], [] | [CreationStatusResponse]>,
-  'get_my_personal_canister_id' : ActorMethod<[], [] | [Principal]>,
-  'get_personal_canister_creation_stats' : ActorMethod<[], Result_12>,
-  'get_personal_canister_id' : ActorMethod<[Principal], [] | [Principal]>,
-  'get_user_creation_status' : ActorMethod<[Principal], Result_13>,
-  'get_user_migration_status' : ActorMethod<[Principal], Result_13>,
-  'get_user_settings' : ActorMethod<[], Result_14>,
+  'get_user_settings' : ActorMethod<[], Result_10>,
   'greet' : ActorMethod<[string], string>,
   'http_request' : ActorMethod<[HttpRequest], HttpResponse>,
-  'is_migration_enabled' : ActorMethod<[], Result_7>,
-  'is_personal_canister_creation_enabled' : ActorMethod<[], Result_7>,
   /**
    * Owner: "I am alive" - drops every death confirmation, at any time
    */
-  'legacy_cancel_death' : ActorMethod<[string], Result_15>,
+  'legacy_cancel_death' : ActorMethod<[string], Result_11>,
   /**
    * Trustee: confirm the owner's death (starts the waiting period once enough confirmed)
    */
-  'legacy_confirm_death' : ActorMethod<[string], Result_15>,
+  'legacy_confirm_death' : ActorMethod<[string], Result_11>,
   /**
    * Owner: record that an event happened (wedding, graduation, custom, ...)
    */
-  'legacy_event_record' : ActorMethod<[string, AccessEvent], Result_15>,
+  'legacy_event_record' : ActorMethod<[string, AccessEvent], Result_11>,
   /**
    * Owner: take a recorded event back
    */
-  'legacy_event_revoke' : ActorMethod<[string, AccessEvent], Result_15>,
+  'legacy_event_revoke' : ActorMethod<[string, AccessEvent], Result_11>,
   /**
    * Owner: set trustees, how many must confirm a death, and the waiting period
    */
   'legacy_settings_set' : ActorMethod<
     [string, Array<Principal>, number, bigint],
-    Result_15
+    Result_11
   >,
   /**
    * Owner, controller or trustee: the inheritance state of a capsule
    */
-  'legacy_status' : ActorMethod<[string], Result_15>,
+  'legacy_status' : ActorMethod<[string], Result_11>,
   /**
    * Trustee: take the confirmation back (only before the death is in effect)
    */
-  'legacy_withdraw_confirmation' : ActorMethod<[string], Result_15>,
+  'legacy_withdraw_confirmation' : ActorMethod<[string], Result_11>,
   'list_admins' : ActorMethod<[], Array<Principal>>,
-  'list_all_creation_states' : ActorMethod<[], Result_11>,
-  'list_all_migration_states' : ActorMethod<[], Result_11>,
   'list_superadmins' : ActorMethod<[], Array<Principal>>,
   'memories_add_asset' : ActorMethod<
     [string, InternalBlobAssetInput, string],
@@ -803,11 +730,11 @@ export interface _SERVICE {
   /**
    * Clean up all assets from a memory while preserving the memory record
    */
-  'memories_cleanup_assets_all' : ActorMethod<[string], Result_16>,
+  'memories_cleanup_assets_all' : ActorMethod<[string], Result_12>,
   /**
    * Bulk cleanup assets from multiple memories
    */
-  'memories_cleanup_assets_bulk' : ActorMethod<[Array<string>], Result_17>,
+  'memories_cleanup_assets_bulk' : ActorMethod<[Array<string>], Result_13>,
   'memories_create' : ActorMethod<
     [
       string,
@@ -831,48 +758,47 @@ export interface _SERVICE {
   /**
    * Delete ALL memories in a capsule (high-risk operation)
    */
-  'memories_delete_all' : ActorMethod<[string, boolean], Result_8>,
+  'memories_delete_all' : ActorMethod<[string, boolean], Result_7>,
   /**
    * Bulk delete multiple memories in a single operation
    */
   'memories_delete_bulk' : ActorMethod<
     [string, Array<string>, boolean],
-    Result_8
+    Result_7
   >,
   'memories_list' : ActorMethod<
     [string, [] | [string], [] | [number]],
-    Result_18
+    Result_14
   >,
   /**
    * List all assets in a memory
    */
-  'memories_list_assets' : ActorMethod<[string], Result_19>,
+  'memories_list_assets' : ActorMethod<[string], Result_15>,
   /**
    * List memories filtered by capsule_id field (for UUID v7 implementation)
    */
   'memories_list_by_capsule' : ActorMethod<
     [string, [] | [string], [] | [number]],
-    Result_18
+    Result_14
   >,
   /**
    * Anyone granted access: the memories of a capsule they may view right now
    */
   'memories_list_shared' : ActorMethod<
     [string, [] | [string], [] | [number]],
-    Result_18
+    Result_14
   >,
   /**
    * Check presence for multiple memories on ICP (consolidated from get_memory_presence_icp and get_memory_list_presence_icp)
    */
-  'memories_ping' : ActorMethod<[Array<string>], Result_20>,
-  'memories_read' : ActorMethod<[string], Result_21>,
+  'memories_ping' : ActorMethod<[Array<string>], Result_16>,
+  'memories_read' : ActorMethod<[string], Result_17>,
   'memories_read_asset' : ActorMethod<[string, number], Result_1>,
   /**
    * Anyone granted access: one memory they may view right now
    */
-  'memories_read_shared' : ActorMethod<[string, string], Result_21>,
-  'memories_update' : ActorMethod<[string, MemoryUpdateData], Result_21>,
-  'migrate_capsule' : ActorMethod<[], PersonalCanisterCreationResponse>,
+  'memories_read_shared' : ActorMethod<[string, string], Result_17>,
+  'memories_update' : ActorMethod<[string, MemoryUpdateData], Result_17>,
   'mint_http_token' : ActorMethod<
     [string, Array<string>, [] | [Array<string>], number],
     string
@@ -908,13 +834,11 @@ export interface _SERVICE {
    * Get session statistics for monitoring
    */
   'sessions_stats' : ActorMethod<[], Result6>,
-  'set_migration_enabled' : ActorMethod<[boolean], Result>,
-  'set_personal_canister_creation_enabled' : ActorMethod<[boolean], Result>,
   'update_gallery_storage_location' : ActorMethod<
     [string, Array<BlobHosting>],
     Result
   >,
-  'update_user_settings' : ActorMethod<[UserSettingsUpdateData], Result_14>,
+  'update_user_settings' : ActorMethod<[UserSettingsUpdateData], Result_10>,
   /**
    * Get upload configuration for TypeScript client discoverability
    */
