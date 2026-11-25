@@ -98,6 +98,7 @@ export interface AudioAssetMetadata {
 }
 export type BackendHosting = { 'Icp' : null } |
   { 'Vercel' : null };
+export interface BackendInitArg { 'owner' : [] | [Principal] }
 export type BlobHosting = { 'S3' : null } |
   { 'Icp' : null } |
   { 'VercelBlob' : null } |
@@ -120,6 +121,8 @@ export interface BulkResult {
   'ok' : Array<string>,
   'failed' : Array<BulkFailure>,
 }
+export type CanisterMode = { 'Shared' : null } |
+  { 'Personal' : { 'owner' : Principal } };
 export interface CanisterSizeStats {
   'remaining_capacity_bytes' : bigint,
   'max_size_bytes' : bigint,
@@ -667,6 +670,10 @@ export interface _SERVICE {
    * Calculate just the gallery size (without capsule overhead)
    */
   'calculate_gallery_size' : ActorMethod<[Gallery], bigint>,
+  /**
+   * Shared canister (many users) or the personal canister of one owner
+   */
+  'canister_mode' : ActorMethod<[], CanisterMode>,
   'capsules_bind_neon' : ActorMethod<[ResourceType, string, boolean], Result>,
   'capsules_create' : ActorMethod<[[] | [PersonRef]], Result_5>,
   'capsules_delete' : ActorMethod<[string], Result>,

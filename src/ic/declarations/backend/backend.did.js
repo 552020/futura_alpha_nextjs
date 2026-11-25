@@ -1,4 +1,5 @@
 export const idlFactory = ({ IDL }) => {
+  const BackendInitArg = IDL.Record({ 'owner' : IDL.Opt(IDL.Principal) });
   const Error = IDL.Variant({
     'Internal' : IDL.Text,
     'NotFound' : IDL.Null,
@@ -132,6 +133,10 @@ export const idlFactory = ({ IDL }) => {
     'created_at' : IDL.Nat64,
     'items' : IDL.Vec(GalleryItem),
     'access_entries' : IDL.Vec(AccessEntry),
+  });
+  const CanisterMode = IDL.Variant({
+    'Shared' : IDL.Null,
+    'Personal' : IDL.Record({ 'owner' : IDL.Principal }),
   });
   const ResourceType = IDL.Variant({
     'Memory' : IDL.Null,
@@ -641,6 +646,7 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'calculate_gallery_size' : IDL.Func([Gallery], [IDL.Nat64], ['query']),
+    'canister_mode' : IDL.Func([], [CanisterMode], ['query']),
     'capsules_bind_neon' : IDL.Func(
         [ResourceType, IDL.Text, IDL.Bool],
         [Result],
@@ -923,4 +929,7 @@ export const idlFactory = ({ IDL }) => {
     'whoami' : IDL.Func([], [IDL.Principal], ['query']),
   });
 };
-export const init = ({ IDL }) => { return []; };
+export const init = ({ IDL }) => {
+  const BackendInitArg = IDL.Record({ 'owner' : IDL.Opt(IDL.Principal) });
+  return [IDL.Opt(BackendInitArg)];
+};
