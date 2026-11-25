@@ -6,7 +6,10 @@
  * Needs the local setup of e2e/README.md plus the factory with a release:
  * in futura_alpha_icp run `dfx deploy canister_factory`, give it cycles
  * (`dfx ledger fabricate-cycles --canister canister_factory --t 20`) and
- * `scripts/factory-release.sh 0.1.0`. The app must be built with
+ * `scripts/factory-release.sh 0.1.0`. Creation is closed unless an admin gave
+ * the user a credit; each test run has a new identity, so open it for the
+ * local network: `dfx canister call canister_factory personal_open_set '(true)'`
+ * (never on mainnet). The app must be built with
  * NEXT_PUBLIC_CANISTER_ID_FACTORY.
  */
 import { testWithII, expect } from '@dfinity/internet-identity-playwright';

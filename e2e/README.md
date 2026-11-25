@@ -83,6 +83,16 @@ canister nonce, NextAuth, Postgres). It needs the local ICP stack from
    Deployed in this order on a clean replica, the IDs are the ones below.
    The local II is the dev build with captcha disabled (`init_arg`).
 
+   For `personal-canister.spec.ts` the factory also needs cycles, a release
+   and open creation (local only: on mainnet creation needs a credit from an
+   admin, `personal_credit_set`):
+
+   ```bash
+   dfx ledger fabricate-cycles --canister canister_factory --t 20
+   scripts/factory-release.sh 0.2.0
+   dfx canister call canister_factory personal_open_set '(true)'
+   ```
+
 2. Local Postgres: `docker compose -f docker-compose.dev.yml up -d`, then
    `pnpm db:push` (see the README).
 

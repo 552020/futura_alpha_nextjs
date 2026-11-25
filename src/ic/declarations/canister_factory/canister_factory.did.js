@@ -85,6 +85,10 @@ export const idlFactory = ({ IDL }) => {
     'Ok' : IDL.Vec(PersonalCanister),
     'Err' : IDL.Text,
   });
+  const Result_10 = IDL.Variant({
+    'Ok' : IDL.Vec(IDL.Tuple(IDL.Principal, IDL.Nat32)),
+    'Err' : IDL.Text,
+  });
   const ReleaseInfo = IDL.Record({
     'size' : IDL.Nat64,
     'sha256_hex' : IDL.Text,
@@ -115,8 +119,13 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Opt(PersonalCanister)],
         ['query'],
       ),
+    'my_personal_credits' : IDL.Func([], [IDL.Nat32], ['query']),
     'my_stats' : IDL.Func([], [CallerStats], ['query']),
     'personal_canisters_list' : IDL.Func([], [Result_7], ['query']),
+    'personal_credit_set' : IDL.Func([IDL.Principal, IDL.Nat32], [Result], []),
+    'personal_credits_list' : IDL.Func([], [Result_10], ['query']),
+    'personal_open' : IDL.Func([], [IDL.Bool], ['query']),
+    'personal_open_set' : IDL.Func([IDL.Bool], [Result], []),
     'put_chunk' : IDL.Func([IDL.Nat64, IDL.Vec(IDL.Nat8)], [Result_5], []),
     'release_info' : IDL.Func([], [IDL.Opt(ReleaseInfo)], ['query']),
     'release_set' : IDL.Func([IDL.Nat64, IDL.Text], [Result_8], []),

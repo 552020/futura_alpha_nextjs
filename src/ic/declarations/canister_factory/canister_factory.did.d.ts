@@ -72,6 +72,8 @@ export type Result = { 'Ok' : null } |
   { 'Err' : string };
 export type Result_1 = { 'Ok' : number } |
   { 'Err' : string };
+export type Result_10 = { 'Ok' : Array<[Principal, number]> } |
+  { 'Err' : string };
 export type Result_2 = { 'Ok' : string } |
   { 'Err' : string };
 export type Result_3 = { 'Ok' : CreateInstallResponse } |
@@ -123,11 +125,30 @@ export interface _SERVICE {
   'get_upload_info' : ActorMethod<[bigint], Result_6>,
   'health_check' : ActorMethod<[], string>,
   'my_personal_canister' : ActorMethod<[], [] | [PersonalCanister]>,
+  /**
+   * How many personal canisters the caller may still create.
+   */
+  'my_personal_credits' : ActorMethod<[], number>,
   'my_stats' : ActorMethod<[], CallerStats>,
   /**
    * Admin: every personal canister the factory created.
    */
   'personal_canisters_list' : ActorMethod<[], Result_7>,
+  /**
+   * Admin: set how many personal canisters a principal may still create
+   * (0 removes the entry).
+   */
+  'personal_credit_set' : ActorMethod<[Principal, number], Result>,
+  /**
+   * Admin: all principals that hold credits.
+   */
+  'personal_credits_list' : ActorMethod<[], Result_10>,
+  'personal_open' : ActorMethod<[], boolean>,
+  /**
+   * Admin: open creation to every signed-in principal. For local test
+   * networks; on mainnet this lets anybody spend the factory's cycles.
+   */
+  'personal_open_set' : ActorMethod<[boolean], Result>,
   'put_chunk' : ActorMethod<[bigint, Uint8Array | number[]], Result_5>,
   'release_info' : ActorMethod<[], [] | [ReleaseInfo]>,
   /**

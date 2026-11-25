@@ -624,11 +624,6 @@ export const idlFactory = ({ IDL }) => {
   const Result15 = IDL.Variant({ 'Ok' : UploadFinishResult, 'Err' : Error });
   const Result14 = IDL.Variant({ 'Ok' : IDL.Principal, 'Err' : Error });
   return IDL.Service({
-    '_probe_inline_len' : IDL.Func(
-        [IDL.Opt(IDL.Vec(IDL.Nat8))],
-        [IDL.Nat64, IDL.Vec(IDL.Nat8)],
-        [],
-      ),
     'add_admin' : IDL.Func([IDL.Principal], [Result], []),
     'asset_get_by_id' : IDL.Func([IDL.Text, IDL.Text], [Result_1], ['query']),
     'asset_remove' : IDL.Func([IDL.Text, IDL.Text], [Result_2], []),
@@ -662,32 +657,11 @@ export const idlFactory = ({ IDL }) => {
       ),
     'capsules_read_full' : IDL.Func([IDL.Opt(IDL.Text)], [Result_5], ['query']),
     'capsules_update' : IDL.Func([IDL.Text, CapsuleUpdateData], [Result_5], []),
-    'clear_all_stable_memory' : IDL.Func([], [Result], []),
     'clear_creation_state' : IDL.Func([IDL.Principal], [Result_7], []),
     'clear_migration_state' : IDL.Func([IDL.Principal], [Result_7], []),
     'create_personal_canister' : IDL.Func(
         [],
         [PersonalCanisterCreationResponse],
-        [],
-      ),
-    'debug_blob_read_canary' : IDL.Func(
-        [IDL.Text, IDL.Nat32],
-        [IDL.Opt(IDL.Nat32)],
-        ['query'],
-      ),
-    'debug_blob_write_canary' : IDL.Func(
-        [IDL.Text, IDL.Nat32, IDL.Nat32],
-        [],
-        [],
-      ),
-    'debug_finish_hex' : IDL.Func(
-        [IDL.Nat64, IDL.Text, IDL.Nat64],
-        [Result6],
-        [],
-      ),
-    'debug_put_chunk_b64' : IDL.Func(
-        [IDL.Nat64, IDL.Nat32, IDL.Text],
-        [Result],
         [],
       ),
     'debug_sha256' : IDL.Func([IDL.Vec(IDL.Nat8)], [IDL.Text], ['query']),
@@ -893,7 +867,6 @@ export const idlFactory = ({ IDL }) => {
     'register_with_nonce' : IDL.Func([IDL.Text], [Result], []),
     'remove_admin' : IDL.Func([IDL.Principal], [Result], []),
     'sessions_cleanup_expired' : IDL.Func([], [Result6], []),
-    'sessions_clear_all' : IDL.Func([], [Result6], []),
     'sessions_list' : IDL.Func([], [Result6], ['query']),
     'sessions_stats' : IDL.Func([], [Result6], ['query']),
     'set_migration_enabled' : IDL.Func([IDL.Bool], [Result], []),

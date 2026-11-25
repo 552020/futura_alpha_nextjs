@@ -616,10 +616,6 @@ export interface VideoAssetMetadata {
   'aspect_ratio' : [] | [number],
 }
 export interface _SERVICE {
-  '_probe_inline_len' : ActorMethod<
-    [[] | [Uint8Array | number[]]],
-    [bigint, Uint8Array | number[]]
-  >,
   'add_admin' : ActorMethod<[Principal], Result>,
   /**
    * Get a specific asset from a memory by asset_id
@@ -681,27 +677,12 @@ export interface _SERVICE {
   'capsules_read_basic' : ActorMethod<[[] | [string]], Result_6>,
   'capsules_read_full' : ActorMethod<[[] | [string]], Result_5>,
   'capsules_update' : ActorMethod<[string, CapsuleUpdateData], Result_5>,
-  /**
-   * Emergency function to clear all stable memory data
-   * WARNING: This will delete all stored data and should only be used for recovery
-   */
-  'clear_all_stable_memory' : ActorMethod<[], Result>,
   'clear_creation_state' : ActorMethod<[Principal], Result_7>,
   'clear_migration_state' : ActorMethod<[Principal], Result_7>,
   'create_personal_canister' : ActorMethod<
     [],
     PersonalCanisterCreationResponse
   >,
-  'debug_blob_read_canary' : ActorMethod<[string, number], [] | [number]>,
-  'debug_blob_write_canary' : ActorMethod<[string, number, number], undefined>,
-  /**
-   * Debug endpoint to finish upload with hex hash (dev only)
-   */
-  'debug_finish_hex' : ActorMethod<[bigint, string, bigint], Result6>,
-  /**
-   * Debug endpoint to upload chunk with base64 data (dev only)
-   */
-  'debug_put_chunk_b64' : ActorMethod<[bigint, number, string], Result>,
   /**
    * Debug endpoint to compute SHA256 hash of provided bytes
    */
@@ -900,10 +881,6 @@ export interface _SERVICE {
    * Clean up expired sessions
    */
   'sessions_cleanup_expired' : ActorMethod<[], Result6>,
-  /**
-   * Clear all upload sessions (development/debugging only)
-   */
-  'sessions_clear_all' : ActorMethod<[], Result6>,
   /**
    * List all sessions for debugging
    */
